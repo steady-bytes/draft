@@ -22,7 +22,7 @@
     - [File-level Extensions](#gorm/options.proto-extensions)
     - [File-level Extensions](#gorm/options.proto-extensions)
   
-- [firegraph.proto](#firegraph.proto)
+- [draft.proto](#draft.proto)
     - [CreateEventRequest](#api.CreateEventRequest)
     - [CreateEventResponse](#api.CreateEventResponse)
     - [Event](#api.Event)
@@ -313,10 +313,10 @@
 
 
 
-<a name="firegraph.proto"></a>
+<a name="draft.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## firegraph.proto
+## draft.proto
 
 
 

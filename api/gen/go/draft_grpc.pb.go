@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: firegraph.proto
+// source: draft.proto
 
 package api
 
@@ -177,5 +177,5 @@ var EventService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "firegraph.proto",
+	Metadata: "draft.proto",
 }
