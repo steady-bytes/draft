@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+/* __NOTE:__ This file is extracted from `protoc-gen-gorm`
+ * https://github.com/infobloxopen/protoc-gen-gorm/blob/main/proto/types/types.proto */
+
+package gorm.types;
+
+option go_package = "github.com/infobloxopen/protoc-gen-gorm/types;types";
+
+message UUIDValue {
+  string value = 1;
+}
+
+message JSONValue {
+  string value = 1;
+}
+
+message UUID {
+  string value = 1;
+}
+
+message InetValue {
+  string value = 1;
+}
+
+message TimeOnly {
+  uint32 value = 1;
+}
+
+message BigInt {
+  string value = 1;
+}
