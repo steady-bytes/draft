@@ -1,4 +1,4 @@
-# Firegraph
+# Draft
 A graph database using the relational model as a storage solution.
 
 ## Project Structure
@@ -88,19 +88,19 @@ binary.
 
 For example if you would like run the `event_store` service then all you have to do is run the following.
 ```sh
-$ firegraph event_store
+$ draft event_store
 ```
 
 Each process has defaults configurations if a argument/flag is __not__ set, or config file is __not__ used. So for example 
 the `event_store` by default will run on port `50001`. If you want to change that then use the following arguments.
 
 ```sh
-$ firegraph event_store --port 8080
+$ draft event_store --port 8080
 # or, using shorthand
-$ firegraph event_store -p 8080
+$ draft event_store -p 8080
 ```
 
-This will run the `firegraph event_store` service on port `8080` instead.
+This will run the `draft event_store` service on port `8080` instead.
 
 ## Internal
 Each directory is a self contained implementation of one of the system components.
