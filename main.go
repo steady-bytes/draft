@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/steady-ytes/draft/cmd"
+	"github.com/steady-bytes/draft/cmd"
 )
 
 func main() {

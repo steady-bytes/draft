@@ -254,6 +254,10 @@
             <ul>
               
                 <li>
+                  <a href="#api.Command"><span class="badge">M</span>Command</a>
+                </li>
+              
+                <li>
                   <a href="#api.CreateEventRequest"><span class="badge">M</span>CreateEventRequest</a>
                 </li>
               
@@ -266,50 +270,78 @@
                 </li>
               
                 <li>
+                  <a href="#api.JoinRequest"><span class="badge">M</span>JoinRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#api.JoinResponse"><span class="badge">M</span>JoinResponse</a>
+                </li>
+              
+                <li>
+                  <a href="#api.LeaveRequest"><span class="badge">M</span>LeaveRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#api.LeaveResponse"><span class="badge">M</span>LeaveResponse</a>
+                </li>
+              
+                <li>
+                  <a href="#api.Metadata"><span class="badge">M</span>Metadata</a>
+                </li>
+              
+                <li>
                   <a href="#api.Output"><span class="badge">M</span>Output</a>
                 </li>
               
                 <li>
-                  <a href="#api.ReadEventRequest"><span class="badge">M</span>ReadEventRequest</a>
+                  <a href="#api.Process"><span class="badge">M</span>Process</a>
                 </li>
               
                 <li>
-                  <a href="#api.ReadEventResponse"><span class="badge">M</span>ReadEventResponse</a>
+                  <a href="#api.ReadAggreageByIDRequest"><span class="badge">M</span>ReadAggreageByIDRequest</a>
                 </li>
               
                 <li>
-                  <a href="#api.SaveEdge"><span class="badge">M</span>SaveEdge</a>
+                  <a href="#api.ReadAggregateByIDRespose"><span class="badge">M</span>ReadAggregateByIDRespose</a>
                 </li>
               
                 <li>
-                  <a href="#api.SaveNode"><span class="badge">M</span>SaveNode</a>
-                </li>
-              
-                <li>
-                  <a href="#api.Snapshot"><span class="badge">M</span>Snapshot</a>
-                </li>
-              
-                <li>
-                  <a href="#api.SnapshotRequest"><span class="badge">M</span>SnapshotRequest</a>
-                </li>
-              
-                <li>
-                  <a href="#api.SnapshotResponse"><span class="badge">M</span>SnapshotResponse</a>
+                  <a href="#api.Transaction"><span class="badge">M</span>Transaction</a>
                 </li>
               
               
                 <li>
-                  <a href="#api.AggregateType"><span class="badge">E</span>AggregateType</a>
+                  <a href="#api.AggregateKind"><span class="badge">E</span>AggregateKind</a>
                 </li>
               
                 <li>
                   <a href="#api.EventCode"><span class="badge">E</span>EventCode</a>
                 </li>
               
+                <li>
+                  <a href="#api.ProcessKind"><span class="badge">E</span>ProcessKind</a>
+                </li>
+              
+                <li>
+                  <a href="#api.SystemAggregateKind"><span class="badge">E</span>SystemAggregateKind</a>
+                </li>
+              
+                <li>
+                  <a href="#api.SystemEventCode"><span class="badge">E</span>SystemEventCode</a>
+                </li>
+              
               
               
                 <li>
-                  <a href="#api.EventService"><span class="badge">S</span>EventService</a>
+                  <a href="#api.EventStore"><span class="badge">S</span>EventStore</a>
+                </li>
+              
+                <li>
+                  <a href="#api.Registry"><span class="badge">S</span>Registry</a>
+                </li>
+              
+                <li>
+                  <a href="#api.Writer"><span class="badge">S</span>Writer</a>
                 </li>
               
             </ul>
@@ -1184,8 +1216,39 @@
       <p></p>
 
       
-        <h3 id="api.CreateEventRequest">CreateEventRequest</h3>
+        <h3 id="api.Command">Command</h3>
         <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>arguments</td>
+                  <td><a href="#google.protobuf.Any">google.protobuf.Any</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.CreateEventRequest">CreateEventRequest</h3>
+        <p>Request, and response messages for the `Event` creation</p>
 
         
           <table class="field-table">
@@ -1288,8 +1351,8 @@ the `data` value. </p></td>
                 </tr>
               
                 <tr>
-                  <td>aggregate_type</td>
-                  <td><a href="#api.AggregateType">AggregateType</a></td>
+                  <td>aggregate_kind</td>
+                  <td><a href="#api.AggregateKind">AggregateKind</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -1358,7 +1421,7 @@ the `data` value. </p></td>
                 </tr>
               
                 <tr>
-                  <td>aggregate_type</td>
+                  <td>aggregate_kind</td>
                   <td>
                     <ul>
                     
@@ -1386,7 +1449,422 @@ the `data` value. </p></td>
 
         
       
+        <h3 id="api.JoinRequest">JoinRequest</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>payload</td>
+                  <td><a href="#api.Process">Process</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.JoinResponse">JoinResponse</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>result</td>
+                  <td><a href="#api.Process">Process</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.LeaveRequest">LeaveRequest</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="api.LeaveResponse">LeaveResponse</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="api.Metadata">Metadata</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>id - is a uuid to identify each process of the system </p></td>
+                </tr>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
         <h3 id="api.Output">Output</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>transaction_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>aggregate_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>result</td>
+                  <td><a href="#google.protobuf.Any">google.protobuf.Any</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>transaction_id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+                <tr>
+                  <td>aggregate_id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="api.Process">Process</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>id - is a uuid to identify each process of the system </p></td>
+                </tr>
+              
+                <tr>
+                  <td>name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>group</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>local</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>ip_address</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>process_kind</td>
+                  <td><a href="#api.ProcessKind">ProcessKind</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>metadata</td>
+                  <td><a href="#api.Metadata">Metadata</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="api.ReadAggreageByIDRequest">ReadAggreageByIDRequest</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>aggregate</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.ReadAggregateByIDRespose">ReadAggregateByIDRespose</h3>
+        <p></p>
+
+        
+
+        
+      
+        <h3 id="api.Transaction">Transaction</h3>
         <p></p>
 
         
@@ -1455,165 +1933,10 @@ the `data` value. </p></td>
 
         
       
-        <h3 id="api.ReadEventRequest">ReadEventRequest</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>id</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="api.ReadEventResponse">ReadEventResponse</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>result</td>
-                  <td><a href="#api.Event">Event</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="api.SaveEdge">SaveEdge</h3>
-        <p>SaveEdge is used to write a new Edge, or update and existing if an id is provided.</p><p>it's also assumed that the whole Edge is being save/updated.</p>
-
-        
-
-        
-      
-        <h3 id="api.SaveNode">SaveNode</h3>
-        <p>SaveNode is used to write a new node, or update an existing if an id is provided.</p><p>it's also assumed that the whole Node is being save/updated</p>
-
-        
-
-        
-      
-        <h3 id="api.Snapshot">Snapshot</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>id</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="api.SnapshotRequest">SnapshotRequest</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>aggregate_id</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>start_time</td>
-                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>end_time</td>
-                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="api.SnapshotResponse">SnapshotResponse</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>aggregate_id</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>snapshot</td>
-                  <td><a href="#api.Snapshot">Snapshot</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
 
       
-        <h3 id="api.AggregateType">AggregateType</h3>
-        <p>Declairs a mapping to the aggregate_type from the `event_code`. The package the event is</p><p>imported from is the `AggregateType`. While also specifiying a group of all Events</p>
+        <h3 id="api.AggregateKind">AggregateKind</h3>
+        <p>APPLICATION AGGREGATES</p><p>///////////////////////</p>
         <table class="enum-table">
           <thead>
             <tr><td>Name</td><td>Number</td><td>Description</td></tr>
@@ -1623,18 +1946,6 @@ the `data` value. </p></td>
               <tr>
                 <td>INVALID_AGGREGATE</td>
                 <td>0</td>
-                <td><p></p></td>
-              </tr>
-            
-              <tr>
-                <td>QUERIER</td>
-                <td>1</td>
-                <td><p></p></td>
-              </tr>
-            
-              <tr>
-                <td>WRITER</td>
-                <td>2</td>
                 <td><p></p></td>
               </tr>
             
@@ -1650,32 +1961,95 @@ the `data` value. </p></td>
           <tbody>
             
               <tr>
-                <td>INVALID_QUERY_EVENT_CODE</td>
+                <td>INVALID_EVENT_CODE</td>
+                <td>0</td>
+                <td><p></p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+        <h3 id="api.ProcessKind">ProcessKind</h3>
+        <p></p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>INVALID_PROCESS_KIND</td>
                 <td>0</td>
                 <td><p></p></td>
               </tr>
             
               <tr>
-                <td>TYPE_CHECKING_COMPLETED</td>
+                <td>AGGREGATE_PROCESS</td>
+                <td>1</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>CONSUMER_PROCESS</td>
+                <td>2</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROJECTION_PROCESS</td>
+                <td>3</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>RPC_PROCESS</td>
+                <td>4</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>HTTP_PROCESS</td>
                 <td>5</td>
                 <td><p></p></td>
               </tr>
             
               <tr>
-                <td>SEMANTIC_ANALYSIS_COMPLETED</td>
+                <td>DEFAULT_PROCESS</td>
                 <td>6</td>
                 <td><p></p></td>
               </tr>
             
+          </tbody>
+        </table>
+      
+        <h3 id="api.SystemAggregateKind">SystemAggregateKind</h3>
+        <p>Declairs a mapping to the aggregate_type from the `event_code`. The package the event is</p><p>imported from is the `AggregateKind`. While also specifiying a group of all Events</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
               <tr>
-                <td>QUERY_OPTIMIZED</td>
-                <td>7</td>
+                <td>INVALID_SYSTEM_AGGREGATE</td>
+                <td>0</td>
                 <td><p></p></td>
               </tr>
             
+          </tbody>
+        </table>
+      
+        <h3 id="api.SystemEventCode">SystemEventCode</h3>
+        <p>EventCode</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
               <tr>
-                <td>QUERY_EXECUTED</td>
-                <td>8</td>
+                <td>INVALID_SYSTEM_EVENT_CODE</td>
+                <td>0</td>
                 <td><p></p></td>
               </tr>
             
@@ -1686,7 +2060,7 @@ the `data` value. </p></td>
       
 
       
-        <h3 id="api.EventService">EventService</h3>
+        <h3 id="api.EventStore">EventStore</h3>
         <p>The storage, and routing interface of all `Event`'s in the system.</p><p>When an event has been emitted it's stored, and routed to the correct event stream</p>
         <table class="enum-table">
           <thead>
@@ -1702,18 +2076,54 @@ the `data` value. </p></td>
 to the system</p></td>
               </tr>
             
+          </tbody>
+        </table>
+
+        
+        <h3 id="api.Registry">Registry</h3>
+        <p>Key/Value store allowing a process to join the systm so it can send or receive messages</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
               <tr>
-                <td>Read</td>
-                <td><a href="#api.ReadEventRequest">ReadEventRequest</a></td>
-                <td><a href="#api.ReadEventResponse">ReadEventResponse</a></td>
-                <td><p></p></td>
+                <td>Join</td>
+                <td><a href="#api.JoinRequest">JoinRequest</a></td>
+                <td><a href="#api.JoinResponse">JoinResponse</a></td>
+                <td><p>Join - Connects a process to the remainder of the system. After registration is complete, a process will be able
+to send and receive messages.</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+
+        
+        <h3 id="api.Writer">Writer</h3>
+        <p>All system writes can go through two different methods. Exec, or ExecSaga.</p><p>`Writes` are segregated from `Reads` following the `CQRS`.</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>Exec</td>
+                <td><a href="#api.Command">Command</a></td>
+                <td><a href="#api.Output">Output</a></td>
+                <td><p>Executes a syncrounus command. Meaning the response is expected to
+contain a result message containing some details. The client will
+not be expecting the server to response with more data.</p></td>
               </tr>
             
               <tr>
-                <td>Snapshot</td>
-                <td><a href="#api.SnapshotRequest">SnapshotRequest</a></td>
-                <td><a href="#api.SnapshotResponse">SnapshotResponse</a></td>
-                <td><p>Snapshot takes a aggregate_id, and a date-time range queries all event&#39;s and returns the list of values</p></td>
+                <td>ExecSaga</td>
+                <td><a href="#api.Command">Command</a></td>
+                <td><a href="#api.Transaction">Transaction</a></td>
+                <td><p>ExecSaga - Invokes a command using the asyncrounus `Saga` pattern. So a `transaction_id`,
+and `aggregate_id` are returned, and can then be used by the client to filter streaming
+results for specific responses</p></td>
               </tr>
             
           </tbody>

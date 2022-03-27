@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"commet"
+	draft "github.com/steady-bytes/draft/pkg/draft-runtime"
 
 	"fmt"
 	"os"
@@ -27,7 +27,7 @@ var rootCmd = &cobra.Command{
 
 var (
 	configFile string
-	Runtime    *commet.Commet
+	Runtime    *draft.Commet
 
 	port int32
 )
@@ -51,9 +51,9 @@ func initConfig() {
 		os.Exit(1)
 	}
 
-	cfg := commet.NewConfig()
+	cfg := draft.NewConfig()
 
-	rt, err := commet.New(cfg)
+	rt, err := draft.New(cfg)
 	if err != nil {
 		fmt.Printf("failed to start: %v\n", err)
 	}

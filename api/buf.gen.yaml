@@ -1,39 +1,45 @@
 version: v1beta1
 plugins:
   - name: go
-    out: gen/go
+    out: ./gen/go
     opt: 
       - paths=source_relative
+
   - name: go-grpc
-    out: gen/go
+    out: ./gen/go
     opt: 
       - paths=source_relative
       - require_unimplemented_servers=false
+
   - name: gorm
-    out: gen/go
+    out: ./gen/go
     opt: 
       - paths=source_relative 
       - engine=postgres
+
   - name: doc
     out: ./gen/docs/
     opt: html,index.html
     strategy: all
+
   - name: doc
     out: ./gen/docs/
     opt: markdown,docs.md
     strategy: all
+
   - name: validate
-    out: gen/go
+    out: ./gen/go
     opt:
       - paths=source_relative
       - lang=go
-  # KEEP, we will need these bindings when a web-client is made.
-  # - name: grpc-web
-  #   out: ./gen/web
-  #   path: protoc-gen-grpc-web-1.2.1-darwin-x86_64
-  #   opt:
-  #     - paths=source_relative
-  #     - import_style=commonjs+dts,mode=grpcwebtext
-  # - name: js
-  #   out: ./gen/web
-  #   opt: import_style=commonjs
+
+  # js - uses `protoc` standard, and not an individual plugin
+  - name: js
+    out: ./gen/web
+    opt: import_style=commonjs
+
+  - name: grpc-web
+    out: ./gen/web
+    opt:
+      - import_style=commonjs+dts
+      - mode=grpcwebtext

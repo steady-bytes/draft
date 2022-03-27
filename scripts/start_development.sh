@@ -9,8 +9,8 @@ MASTER_NODE=sql-db-1
 NODE_2=sql-db-2
 NODE_3=sql-db-3
 
-DB_USER=firegraph
-DB_NAME=firegraph
+DB_USER=draft
+DB_NAME=draft
 
 # build the image is needed
 docker build -t db ./deployments/sql/

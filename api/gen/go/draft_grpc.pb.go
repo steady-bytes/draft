@@ -18,162 +18,308 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// EventServiceClient is the client API for EventService service.
+// WriterClient is the client API for Writer service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type EventServiceClient interface {
-	// Create - Allows a producer to `Emit` an `Event` making the remaing system aware of a change
-	// to the system
-	Create(ctx context.Context, in *CreateEventRequest, opts ...grpc.CallOption) (*CreateEventResponse, error)
-	Read(ctx context.Context, in *ReadEventRequest, opts ...grpc.CallOption) (*ReadEventResponse, error)
-	// Snapshot takes a aggregate_id, and a date-time range queries all event's and returns the list of values
-	Snapshot(ctx context.Context, in *SnapshotRequest, opts ...grpc.CallOption) (*SnapshotResponse, error)
+type WriterClient interface {
+	// Executes a syncrounus command. Meaning the response is expected to
+	// contain a result message containing some details. The client will
+	// not be expecting the server to response with more data.
+	Exec(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Output, error)
+	// ExecSaga - Invokes a command using the asyncrounus `Saga` pattern. So a `transaction_id`,
+	// and `aggregate_id` are returned, and can then be used by the client to filter streaming
+	// results for specific responses
+	ExecSaga(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Transaction, error)
 }
 
-type eventServiceClient struct {
+type writerClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewEventServiceClient(cc grpc.ClientConnInterface) EventServiceClient {
-	return &eventServiceClient{cc}
+func NewWriterClient(cc grpc.ClientConnInterface) WriterClient {
+	return &writerClient{cc}
 }
 
-func (c *eventServiceClient) Create(ctx context.Context, in *CreateEventRequest, opts ...grpc.CallOption) (*CreateEventResponse, error) {
-	out := new(CreateEventResponse)
-	err := c.cc.Invoke(ctx, "/api.EventService/Create", in, out, opts...)
+func (c *writerClient) Exec(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Output, error) {
+	out := new(Output)
+	err := c.cc.Invoke(ctx, "/api.Writer/Exec", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *eventServiceClient) Read(ctx context.Context, in *ReadEventRequest, opts ...grpc.CallOption) (*ReadEventResponse, error) {
-	out := new(ReadEventResponse)
-	err := c.cc.Invoke(ctx, "/api.EventService/Read", in, out, opts...)
+func (c *writerClient) ExecSaga(ctx context.Context, in *Command, opts ...grpc.CallOption) (*Transaction, error) {
+	out := new(Transaction)
+	err := c.cc.Invoke(ctx, "/api.Writer/ExecSaga", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *eventServiceClient) Snapshot(ctx context.Context, in *SnapshotRequest, opts ...grpc.CallOption) (*SnapshotResponse, error) {
-	out := new(SnapshotResponse)
-	err := c.cc.Invoke(ctx, "/api.EventService/Snapshot", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// EventServiceServer is the server API for EventService service.
-// All implementations should embed UnimplementedEventServiceServer
+// WriterServer is the server API for Writer service.
+// All implementations should embed UnimplementedWriterServer
 // for forward compatibility
-type EventServiceServer interface {
+type WriterServer interface {
+	// Executes a syncrounus command. Meaning the response is expected to
+	// contain a result message containing some details. The client will
+	// not be expecting the server to response with more data.
+	Exec(context.Context, *Command) (*Output, error)
+	// ExecSaga - Invokes a command using the asyncrounus `Saga` pattern. So a `transaction_id`,
+	// and `aggregate_id` are returned, and can then be used by the client to filter streaming
+	// results for specific responses
+	ExecSaga(context.Context, *Command) (*Transaction, error)
+}
+
+// UnimplementedWriterServer should be embedded to have forward compatible implementations.
+type UnimplementedWriterServer struct {
+}
+
+func (UnimplementedWriterServer) Exec(context.Context, *Command) (*Output, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Exec not implemented")
+}
+func (UnimplementedWriterServer) ExecSaga(context.Context, *Command) (*Transaction, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExecSaga not implemented")
+}
+
+// UnsafeWriterServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to WriterServer will
+// result in compilation errors.
+type UnsafeWriterServer interface {
+	mustEmbedUnimplementedWriterServer()
+}
+
+func RegisterWriterServer(s grpc.ServiceRegistrar, srv WriterServer) {
+	s.RegisterService(&Writer_ServiceDesc, srv)
+}
+
+func _Writer_Exec_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Command)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WriterServer).Exec(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Writer/Exec",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WriterServer).Exec(ctx, req.(*Command))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Writer_ExecSaga_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Command)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WriterServer).ExecSaga(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Writer/ExecSaga",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WriterServer).ExecSaga(ctx, req.(*Command))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Writer_ServiceDesc is the grpc.ServiceDesc for Writer service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Writer_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "api.Writer",
+	HandlerType: (*WriterServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Exec",
+			Handler:    _Writer_Exec_Handler,
+		},
+		{
+			MethodName: "ExecSaga",
+			Handler:    _Writer_ExecSaga_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "draft.proto",
+}
+
+// RegistryClient is the client API for Registry service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type RegistryClient interface {
+	// Join - Connects a process to the remainder of the system. After registration is complete, a process will be able
+	// to send and receive messages.
+	Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (*JoinResponse, error)
+}
+
+type registryClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewRegistryClient(cc grpc.ClientConnInterface) RegistryClient {
+	return &registryClient{cc}
+}
+
+func (c *registryClient) Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (*JoinResponse, error) {
+	out := new(JoinResponse)
+	err := c.cc.Invoke(ctx, "/api.Registry/Join", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RegistryServer is the server API for Registry service.
+// All implementations should embed UnimplementedRegistryServer
+// for forward compatibility
+type RegistryServer interface {
+	// Join - Connects a process to the remainder of the system. After registration is complete, a process will be able
+	// to send and receive messages.
+	Join(context.Context, *JoinRequest) (*JoinResponse, error)
+}
+
+// UnimplementedRegistryServer should be embedded to have forward compatible implementations.
+type UnimplementedRegistryServer struct {
+}
+
+func (UnimplementedRegistryServer) Join(context.Context, *JoinRequest) (*JoinResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Join not implemented")
+}
+
+// UnsafeRegistryServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to RegistryServer will
+// result in compilation errors.
+type UnsafeRegistryServer interface {
+	mustEmbedUnimplementedRegistryServer()
+}
+
+func RegisterRegistryServer(s grpc.ServiceRegistrar, srv RegistryServer) {
+	s.RegisterService(&Registry_ServiceDesc, srv)
+}
+
+func _Registry_Join_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).Join(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Registry/Join",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).Join(ctx, req.(*JoinRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Registry_ServiceDesc is the grpc.ServiceDesc for Registry service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Registry_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "api.Registry",
+	HandlerType: (*RegistryServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Join",
+			Handler:    _Registry_Join_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "draft.proto",
+}
+
+// EventStoreClient is the client API for EventStore service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type EventStoreClient interface {
+	// Create - Allows a producer to `Emit` an `Event` making the remaing system aware of a change
+	// to the system
+	Create(ctx context.Context, in *CreateEventRequest, opts ...grpc.CallOption) (*CreateEventResponse, error)
+}
+
+type eventStoreClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewEventStoreClient(cc grpc.ClientConnInterface) EventStoreClient {
+	return &eventStoreClient{cc}
+}
+
+func (c *eventStoreClient) Create(ctx context.Context, in *CreateEventRequest, opts ...grpc.CallOption) (*CreateEventResponse, error) {
+	out := new(CreateEventResponse)
+	err := c.cc.Invoke(ctx, "/api.EventStore/Create", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// EventStoreServer is the server API for EventStore service.
+// All implementations should embed UnimplementedEventStoreServer
+// for forward compatibility
+type EventStoreServer interface {
 	// Create - Allows a producer to `Emit` an `Event` making the remaing system aware of a change
 	// to the system
 	Create(context.Context, *CreateEventRequest) (*CreateEventResponse, error)
-	Read(context.Context, *ReadEventRequest) (*ReadEventResponse, error)
-	// Snapshot takes a aggregate_id, and a date-time range queries all event's and returns the list of values
-	Snapshot(context.Context, *SnapshotRequest) (*SnapshotResponse, error)
 }
 
-// UnimplementedEventServiceServer should be embedded to have forward compatible implementations.
-type UnimplementedEventServiceServer struct {
+// UnimplementedEventStoreServer should be embedded to have forward compatible implementations.
+type UnimplementedEventStoreServer struct {
 }
 
-func (UnimplementedEventServiceServer) Create(context.Context, *CreateEventRequest) (*CreateEventResponse, error) {
+func (UnimplementedEventStoreServer) Create(context.Context, *CreateEventRequest) (*CreateEventResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedEventServiceServer) Read(context.Context, *ReadEventRequest) (*ReadEventResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Read not implemented")
-}
-func (UnimplementedEventServiceServer) Snapshot(context.Context, *SnapshotRequest) (*SnapshotResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Snapshot not implemented")
-}
 
-// UnsafeEventServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to EventServiceServer will
+// UnsafeEventStoreServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to EventStoreServer will
 // result in compilation errors.
-type UnsafeEventServiceServer interface {
-	mustEmbedUnimplementedEventServiceServer()
+type UnsafeEventStoreServer interface {
+	mustEmbedUnimplementedEventStoreServer()
 }
 
-func RegisterEventServiceServer(s grpc.ServiceRegistrar, srv EventServiceServer) {
-	s.RegisterService(&EventService_ServiceDesc, srv)
+func RegisterEventStoreServer(s grpc.ServiceRegistrar, srv EventStoreServer) {
+	s.RegisterService(&EventStore_ServiceDesc, srv)
 }
 
-func _EventService_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _EventStore_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateEventRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(EventServiceServer).Create(ctx, in)
+		return srv.(EventStoreServer).Create(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.EventService/Create",
+		FullMethod: "/api.EventStore/Create",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EventServiceServer).Create(ctx, req.(*CreateEventRequest))
+		return srv.(EventStoreServer).Create(ctx, req.(*CreateEventRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _EventService_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReadEventRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(EventServiceServer).Read(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.EventService/Read",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EventServiceServer).Read(ctx, req.(*ReadEventRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _EventService_Snapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SnapshotRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(EventServiceServer).Snapshot(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.EventService/Snapshot",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EventServiceServer).Snapshot(ctx, req.(*SnapshotRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// EventService_ServiceDesc is the grpc.ServiceDesc for EventService service.
+// EventStore_ServiceDesc is the grpc.ServiceDesc for EventStore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var EventService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "api.EventService",
-	HandlerType: (*EventServiceServer)(nil),
+var EventStore_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "api.EventStore",
+	HandlerType: (*EventStoreServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Create",
-			Handler:    _EventService_Create_Handler,
-		},
-		{
-			MethodName: "Read",
-			Handler:    _EventService_Read_Handler,
-		},
-		{
-			MethodName: "Snapshot",
-			Handler:    _EventService_Snapshot_Handler,
+			Handler:    _EventStore_Create_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

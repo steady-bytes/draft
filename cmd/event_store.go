@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	commet "commet"
-
-	es "event_store"
+	es "github.com/steady-bytes/draft/internal/event_store"
 
 	"github.com/spf13/cobra"
 )
@@ -15,15 +13,12 @@ func init() {
 
 var eventStore = &cobra.Command{
 	Use:   "event_store",
-	Short: "run the event store component of `firegraph`.",
+	Short: "run the event store component of `draft`.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		options := commet.DefaultBuilderToggles{
-			// isRpc:       true,
-			// isPublisher: true,
+		if err := Runtime.DefaultBuilder(es.NewPlugin()).Start(); err != nil {
+			panic(err)
 		}
-
-		Runtime.WithDefaultBuilder(es.NewPlugin(), options).Start()
 
 		return nil
 	},

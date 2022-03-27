@@ -23,22 +23,30 @@
     - [File-level Extensions](#gorm/options.proto-extensions)
   
 - [draft.proto](#draft.proto)
+    - [Command](#api.Command)
     - [CreateEventRequest](#api.CreateEventRequest)
     - [CreateEventResponse](#api.CreateEventResponse)
     - [Event](#api.Event)
+    - [JoinRequest](#api.JoinRequest)
+    - [JoinResponse](#api.JoinResponse)
+    - [LeaveRequest](#api.LeaveRequest)
+    - [LeaveResponse](#api.LeaveResponse)
+    - [Metadata](#api.Metadata)
     - [Output](#api.Output)
-    - [ReadEventRequest](#api.ReadEventRequest)
-    - [ReadEventResponse](#api.ReadEventResponse)
-    - [SaveEdge](#api.SaveEdge)
-    - [SaveNode](#api.SaveNode)
-    - [Snapshot](#api.Snapshot)
-    - [SnapshotRequest](#api.SnapshotRequest)
-    - [SnapshotResponse](#api.SnapshotResponse)
+    - [Process](#api.Process)
+    - [ReadAggreageByIDRequest](#api.ReadAggreageByIDRequest)
+    - [ReadAggregateByIDRespose](#api.ReadAggregateByIDRespose)
+    - [Transaction](#api.Transaction)
   
-    - [AggregateType](#api.AggregateType)
+    - [AggregateKind](#api.AggregateKind)
     - [EventCode](#api.EventCode)
+    - [ProcessKind](#api.ProcessKind)
+    - [SystemAggregateKind](#api.SystemAggregateKind)
+    - [SystemEventCode](#api.SystemEventCode)
   
-    - [EventService](#api.EventService)
+    - [EventStore](#api.EventStore)
+    - [Registry](#api.Registry)
+    - [Writer](#api.Writer)
   
 - [gorm/types/types.proto](#gorm/types/types.proto)
     - [BigInt](#gorm.types.BigInt)
@@ -320,10 +328,26 @@
 
 
 
+<a name="api.Command"></a>
+
+### Command
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+| arguments | [google.protobuf.Any](#google.protobuf.Any) |  |  |
+
+
+
+
+
+
 <a name="api.CreateEventRequest"></a>
 
 ### CreateEventRequest
-
+Request, and response messages for the `Event` creation
 
 
 | Field | Type | Label | Description |
@@ -365,9 +389,86 @@ the `Event` is stored and forwarded to the correct consumer.
 | data | [string](#string) |  | data - the `data` payload of the event system that can be of any message type the consumer will only be interested in specific types of `Events` from a specifc source. the `event_type` is used as the deserialization/serialization as the type identifier of the `data` value. |
 | created_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | The datetime when the event was stored |
 | published_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | The datetime when the event was published to it&#39;s event stream for processing |
-| aggregate_type | [AggregateType](#api.AggregateType) |  |  |
+| aggregate_kind | [AggregateKind](#api.AggregateKind) |  |  |
 | event_code | [EventCode](#api.EventCode) |  |  |
 | side_affect | [bool](#bool) |  | used to determin reply strategy |
+
+
+
+
+
+
+<a name="api.JoinRequest"></a>
+
+### JoinRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| payload | [Process](#api.Process) |  |  |
+
+
+
+
+
+
+<a name="api.JoinResponse"></a>
+
+### JoinResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| result | [Process](#api.Process) |  |  |
+
+
+
+
+
+
+<a name="api.LeaveRequest"></a>
+
+### LeaveRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.LeaveResponse"></a>
+
+### LeaveResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.Metadata"></a>
+
+### Metadata
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  | id - is a uuid to identify each process of the system |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
 
 
 
@@ -384,106 +485,69 @@ the `Event` is stored and forwarded to the correct consumer.
 | ----- | ---- | ----- | ----------- |
 | transaction_id | [string](#string) |  |  |
 | aggregate_id | [string](#string) |  |  |
+| result | [google.protobuf.Any](#google.protobuf.Any) |  |  |
 
 
 
 
 
 
-<a name="api.ReadEventRequest"></a>
+<a name="api.Process"></a>
 
-### ReadEventRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="api.ReadEventResponse"></a>
-
-### ReadEventResponse
+### Process
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| result | [Event](#api.Event) |  |  |
+| id | [string](#string) |  | id - is a uuid to identify each process of the system |
+| name | [string](#string) |  |  |
+| group | [string](#string) |  |  |
+| local | [string](#string) |  |  |
+| ip_address | [string](#string) |  |  |
+| process_kind | [ProcessKind](#api.ProcessKind) |  |  |
+| metadata | [Metadata](#api.Metadata) | repeated |  |
 
 
 
 
 
 
-<a name="api.SaveEdge"></a>
+<a name="api.ReadAggreageByIDRequest"></a>
 
-### SaveEdge
-SaveEdge is used to write a new Edge, or update and existing if an id is provided.
-it&#39;s also assumed that the whole Edge is being save/updated.
-
-
-
-
-
-
-<a name="api.SaveNode"></a>
-
-### SaveNode
-SaveNode is used to write a new node, or update an existing if an id is provided.
-it&#39;s also assumed that the whole Node is being save/updated
-
-
-
-
-
-
-<a name="api.Snapshot"></a>
-
-### Snapshot
+### ReadAggreageByIDRequest
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  |  |
+| aggregate | [string](#string) |  |  |
 
 
 
 
 
 
-<a name="api.SnapshotRequest"></a>
+<a name="api.ReadAggregateByIDRespose"></a>
 
-### SnapshotRequest
+### ReadAggregateByIDRespose
+
+
+
+
+
+
+
+<a name="api.Transaction"></a>
+
+### Transaction
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
+| transaction_id | [string](#string) |  |  |
 | aggregate_id | [string](#string) |  |  |
-| start_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
-| end_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
-
-
-
-
-
-
-<a name="api.SnapshotResponse"></a>
-
-### SnapshotResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| aggregate_id | [string](#string) |  |  |
-| snapshot | [Snapshot](#api.Snapshot) |  |  |
 
 
 
@@ -492,17 +556,15 @@ it&#39;s also assumed that the whole Node is being save/updated
  
 
 
-<a name="api.AggregateType"></a>
+<a name="api.AggregateKind"></a>
 
-### AggregateType
-Declairs a mapping to the aggregate_type from the `event_code`. The package the event is
-imported from is the `AggregateType`. While also specifiying a group of all Events
+### AggregateKind
+APPLICATION AGGREGATES
+///////////////////////
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
 | INVALID_AGGREGATE | 0 |  |
-| QUERIER | 1 |  |
-| WRITER | 2 |  |
 
 
 
@@ -513,11 +575,47 @@ imported from is the `AggregateType`. While also specifiying a group of all Even
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
-| INVALID_QUERY_EVENT_CODE | 0 |  |
-| TYPE_CHECKING_COMPLETED | 5 |  |
-| SEMANTIC_ANALYSIS_COMPLETED | 6 |  |
-| QUERY_OPTIMIZED | 7 |  |
-| QUERY_EXECUTED | 8 |  |
+| INVALID_EVENT_CODE | 0 |  |
+
+
+
+<a name="api.ProcessKind"></a>
+
+### ProcessKind
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| INVALID_PROCESS_KIND | 0 |  |
+| AGGREGATE_PROCESS | 1 |  |
+| CONSUMER_PROCESS | 2 |  |
+| PROJECTION_PROCESS | 3 |  |
+| RPC_PROCESS | 4 |  |
+| HTTP_PROCESS | 5 |  |
+| DEFAULT_PROCESS | 6 |  |
+
+
+
+<a name="api.SystemAggregateKind"></a>
+
+### SystemAggregateKind
+Declairs a mapping to the aggregate_type from the `event_code`. The package the event is
+imported from is the `AggregateKind`. While also specifiying a group of all Events
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| INVALID_SYSTEM_AGGREGATE | 0 |  |
+
+
+
+<a name="api.SystemEventCode"></a>
+
+### SystemEventCode
+EventCode
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| INVALID_SYSTEM_EVENT_CODE | 0 |  |
 
 
  
@@ -525,17 +623,37 @@ imported from is the `AggregateType`. While also specifiying a group of all Even
  
 
 
-<a name="api.EventService"></a>
+<a name="api.EventStore"></a>
 
-### EventService
+### EventStore
 The storage, and routing interface of all `Event`&#39;s in the system.
 When an event has been emitted it&#39;s stored, and routed to the correct event stream
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | Create | [CreateEventRequest](#api.CreateEventRequest) | [CreateEventResponse](#api.CreateEventResponse) | Create - Allows a producer to `Emit` an `Event` making the remaing system aware of a change to the system |
-| Read | [ReadEventRequest](#api.ReadEventRequest) | [ReadEventResponse](#api.ReadEventResponse) |  |
-| Snapshot | [SnapshotRequest](#api.SnapshotRequest) | [SnapshotResponse](#api.SnapshotResponse) | Snapshot takes a aggregate_id, and a date-time range queries all event&#39;s and returns the list of values |
+
+
+<a name="api.Registry"></a>
+
+### Registry
+Key/Value store allowing a process to join the systm so it can send or receive messages
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| Join | [JoinRequest](#api.JoinRequest) | [JoinResponse](#api.JoinResponse) | Join - Connects a process to the remainder of the system. After registration is complete, a process will be able to send and receive messages. |
+
+
+<a name="api.Writer"></a>
+
+### Writer
+All system writes can go through two different methods. Exec, or ExecSaga.
+`Writes` are segregated from `Reads` following the `CQRS`.
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| Exec | [Command](#api.Command) | [Output](#api.Output) | Executes a syncrounus command. Meaning the response is expected to contain a result message containing some details. The client will not be expecting the server to response with more data. |
+| ExecSaga | [Command](#api.Command) | [Transaction](#api.Transaction) | ExecSaga - Invokes a command using the asyncrounus `Saga` pattern. So a `transaction_id`, and `aggregate_id` are returned, and can then be used by the client to filter streaming results for specific responses |
 
  
 

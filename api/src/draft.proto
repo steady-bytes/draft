@@ -13,13 +13,14 @@ import "gorm/options.proto";
 // WRITER
 /////////
 
-// All systems writes can go through two different methods. Exec, or ExecSaga.
+// All system writes can go through two different methods. Exec, or ExecSaga.
 // `Writes` are segregated from `Reads` following the `CQRS`.
 service Writer {
   // Executes a syncrounus command. Meaning the response is expected to
   // contain a result message containing some details. The client will
   // not be expecting the server to response with more data.
   rpc Exec(Command) returns (Output) {}
+
   // ExecSaga - Invokes a command using the asyncrounus `Saga` pattern. So a `transaction_id`,
   // and `aggregate_id` are returned, and can then be used by the client to filter streaming
   // results for specific responses
@@ -46,23 +47,83 @@ message Transaction {
 // READER
 /////////
 
-service Reader {
-  rpc ReadByID() returns () {}
-  rpc ReadAllByFields() returns () {}
-  rpc ReadAll() returns () {}
+// service Reader {
+  // rpc ReadAggregateByID() returns () {}
+  /* rpc ReadAllByFields() returns () {}
+   * rpc ReadAll() returns () {} */
+// }
+
+message ReadAggreageByIDRequest {
+  string aggregate = 1;
 }
+
+message ReadAggregateByIDRespose {}
 
 // ////////
 // REGISTRY
 ///////////
 
+// Key/Value store allowing a process to join the systm so it can send or receive messages
 service Registry {
-  Register() returns () {}
+  // Join - Connects a process to the remainder of the system. After registration is complete, a process will be able
+  // to send and receive messages.
+  rpc Join(JoinRequest) returns (JoinResponse) {}
+
+  // Leave - Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
+  // receive a message from the system.
+  // rpc Leave() returns () {}
 }
 
-////////////////////
-// SYSTEM AGGREGATES
-////////////////////
+message JoinRequest {
+  Process payload = 1;
+}
+
+message JoinResponse {
+  Process result = 1;
+}
+
+message LeaveRequest {
+  string process_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message LeaveResponse {
+  string process_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message Process {
+  option (gorm.opts).ormable = true;
+  // id - is a uuid to identify each process of the system
+  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
+  
+  string name = 2;
+  string group = 3;
+  string local = 4;
+
+  string ip_address = 5;
+
+  ProcessKind process_kind = 6;
+
+  repeated Metadata metadata = 7;
+}
+
+enum ProcessKind {
+  INVALID_PROCESS_KIND = 0;
+  AGGREGATE_PROCESS = 1;
+  CONSUMER_PROCESS = 2;
+  PROJECTION_PROCESS = 3;
+  RPC_PROCESS = 4;
+  HTTP_PROCESS = 5;
+  DEFAULT_PROCESS = 6;
+}
+
+message Metadata {
+  option (gorm.opts).ormable = true;
+  // id - is a uuid to identify each process of the system
+  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
+  
+  string key = 2;
+  string value = 3;
+}
 
 /* The storage, and routing interface of all `Event`'s in the system.
  * When an event has been emitted it's stored, and routed to the correct event stream */
@@ -104,7 +165,7 @@ message Event {
   // The datetime when the event was published to it's event stream for processing
   google.protobuf.Timestamp published_at = 6;
 
-  AggregateType aggregate_type = 7 [(validate.rules).enum = {not_in: [0]}];
+  AggregateKind aggregate_kind = 7 [(validate.rules).enum = {not_in: [0]}];
   EventCode event_code = 8 [(validate.rules).enum = {not_in: [0]}];
 
   // used to determin reply strategy
@@ -122,9 +183,9 @@ message CreateEventResponse {
 
 /* 
  * Declairs a mapping to the aggregate_type from the `event_code`. The package the event is
- * imported from is the `AggregateType`. While also specifiying a group of all Events */
-enum SystemAggregateType {
-    INVALID_AGGREGATE = 0;
+ * imported from is the `AggregateKind`. While also specifiying a group of all Events */
+enum SystemAggregateKind {
+    INVALID_SYSTEM_AGGREGATE = 0;
 }
 
 /*
@@ -137,14 +198,21 @@ enum SystemEventCode {
 /////////////////////////
 // APPLICATION AGGREGATES
 /////////////////////////
+enum AggregateKind {
+  INVALID_AGGREGATE = 0;
+}
+
+enum EventCode {
+  INVALID_EVENT_CODE = 0;
+}
 
 // CRUDLAggregate - A generic interface that can be implemented by any `Aggregate` 
-service CRUDLAggregate {
-  rpc Create() returns {}
-  rpc Read() returns {}
-  rpc Update() returns {}
-  rpc Deltete() returns {}
-  rpc List() returns {}
-}
+/* service CRUDLAggregate {
+ *   rpc Create() returns {}
+ *   rpc Read() returns {}
+ *   rpc Update() returns {}
+ *   rpc Deltete() returns {}
+ *   rpc List() returns {}
+ * } */
 
 // 

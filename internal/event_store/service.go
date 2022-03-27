@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"api"
+	api "github.com/steady-bytes/draft/api/gen/go"
 )
 
 type service struct {
-	rpc *api.EventServiceDefaultServer
+	rpc *api.EventStoreDefaultServer
 	pub *eventStorePublisher
 }
 
@@ -21,8 +21,8 @@ func NewService() *service {
 }
 
 // create the default crud implementation
-func NewRPC() *api.EventServiceDefaultServer {
-	return &api.EventServiceDefaultServer{}
+func NewRPC() *api.EventStoreDefaultServer {
+	return &api.EventStoreDefaultServer{}
 }
 
 // decorate the default `Create` interface implementing custom business logic around the currently generated `Create`
@@ -41,7 +41,7 @@ func (s *service) Create(ctx context.Context, req *api.CreateEventRequest) (*api
 		return nil, err
 	}
 
-	topic := req.GetPayload().GetAggregateType().String()
+	topic := req.GetPayload().GetAggregateKind().String()
 	if topic == "" {
 		return nil, errors.New("failed topic length validation")
 	}
