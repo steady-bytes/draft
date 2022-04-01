@@ -26,6 +26,7 @@ type eventStorePlugin struct {
 	service *service
 }
 
+// Override the `ReisterDB` default behavior for the `DefaultRuntimebuilder`
 func (s *eventStorePlugin) RegisterDB(db interface{}) error {
 	if db == nil {
 		return errors.New("db interface is nil")
@@ -39,6 +40,7 @@ func (s *eventStorePlugin) RegisterDB(db interface{}) error {
 	return nil
 }
 
+// Override the `RegisterRPC` default behavior for the `DefaultRuntimeBuilder`
 func (s *eventStorePlugin) RegisterRPC() *grpc.Server {
 	server := grpc.NewServer()
 	api.RegisterEventStoreServer(server, s.service.rpc)
@@ -46,6 +48,7 @@ func (s *eventStorePlugin) RegisterRPC() *grpc.Server {
 	return server
 }
 
+// Override the `RegisterBroker` default behavior for the `DefaultRuntimeBuilder`
 func (s *eventStorePlugin) RegisterBroker(broker interface{}) error {
 	if broker == nil {
 		return errors.New("broker connection is nil")

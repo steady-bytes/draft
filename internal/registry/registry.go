@@ -6,9 +6,10 @@ import (
 
 	api "github.com/steady-bytes/draft/api/gen/go"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime"
-	"google.golang.org/grpc"
 
+	fiber "github.com/gofiber/fiber/v2"
 	"github.com/jinzhu/gorm"
+	"google.golang.org/grpc"
 )
 
 // The registry is a persistent service storing metadata, and process information in the system
@@ -45,10 +46,6 @@ func (r *registry) RegisterDB(db interface{}) error {
 	return nil
 }
 
-// Implement the `draft.RpcPluginRegistrar` interface because the `EventStore`
-// contains a `Create` event for external clients like `web-app`'s, `mobile` app's
-// and native desktop applications to create and event known to the whole system
-// of services.
 func (r *registry) IsRpc() bool {
 	return true
 }
@@ -58,4 +55,20 @@ func (r *registry) RegisterRPC() *grpc.Server {
 	api.RegisterRegistryServer(server, r.service)
 
 	return server
+}
+
+func (r *registry) IsHttp() bool {
+	return true
+}
+
+func (r *registry) RegisterHTTP() *fiber.App {
+	httpMux := fiber.New()
+
+	httpMux.Get("/", hello)
+
+	return httpMux
+}
+
+func hello(c *fiber.Ctx) error {
+	return c.SendString("Hello, World!")
 }

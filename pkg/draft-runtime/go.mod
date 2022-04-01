@@ -1,4 +1,4 @@
-module draft-runtime
+module draft_runtime
 
 go 1.17
 

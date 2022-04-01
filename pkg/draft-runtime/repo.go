@@ -1,4 +1,4 @@
-package draft-runtime
+package draft_runtime
 
 import (
 	"fmt"
@@ -15,6 +15,8 @@ type RepoPluginRegistrar interface {
 
 	// RegisterDB - gives the plugin the option to use many differnt types of orms/db client. A type assertion can
 	// be used at the client level configure the runtime.
+	//
+	// TODO: Make this parameter an actual type, and not a generic interface
 	RegisterDB(interface{}) error
 }
 

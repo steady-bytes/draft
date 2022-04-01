@@ -1,4 +1,4 @@
-package draft-runtime
+package draft_runtime
 
 import "github.com/nats-io/nats.go"
 
