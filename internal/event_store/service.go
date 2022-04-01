@@ -10,13 +10,13 @@ import (
 
 type service struct {
 	rpc *api.EventStoreDefaultServer
-	pub *eventStorePublisher
+	msg *eventStoreMessagePublisher
 }
 
 func NewService() *service {
 	return &service{
 		rpc: NewRPC(),
-		pub: NewEventStorePublisher(),
+		msg: NewMessagePublisher(),
 	}
 }
 
@@ -48,7 +48,7 @@ func (s *service) Create(ctx context.Context, req *api.CreateEventRequest) (*api
 
 	event := req.GetPayload().GetData()
 
-	if err := s.pub.Publish(topic, []byte(event)); err != nil {
+	if err := s.msg.Publish(topic, []byte(event)); err != nil {
 		fmt.Println("failed publish")
 		return nil, err
 	}

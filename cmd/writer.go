@@ -17,7 +17,7 @@ var writer = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name = "writer"
 
-		if err := Runtime.RpcBuilder(wr.NewPlugin()).Start(); err != nil {
+		if err := Runtime.DefaultBuilder(wr.NewPlugin()).Start(); err != nil {
 			panic(err)
 		}
 

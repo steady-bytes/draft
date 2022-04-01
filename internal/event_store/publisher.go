@@ -7,17 +7,21 @@ import (
 	nats "github.com/nats-io/nats.go"
 )
 
-type eventStorePublisher struct {
+type eventStoreMessagePublisher struct {
 	broker *nats.Conn
 }
 
-func NewEventStorePublisher() *eventStorePublisher {
-	return &eventStorePublisher{
+type MessagePublisher interface {
+	Publish(topic string, message []byte) error
+}
+
+func NewMessagePublisher() *eventStoreMessagePublisher {
+	return &eventStoreMessagePublisher{
 		broker: nil,
 	}
 }
 
-func (p *eventStorePublisher) Publish(topic string, message []byte) error {
+func (p *eventStoreMessagePublisher) Publish(topic string, message []byte) error {
 	if topic == "" {
 		fmt.Println("error")
 		return errors.New("topic can't be empty")

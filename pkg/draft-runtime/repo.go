@@ -39,7 +39,9 @@ func (rt RepoType) String() string {
 }
 
 // WithRepo - Connects to the plugins repo of choice with the runtime
-func (c *Commet) withRepo(repoType RepoType, registrar RepoPluginRegistrar) {
+func (c *Commet) withRepo(registrar RepoPluginRegistrar) {
+	repoType := registrar.GetRepoType()
+
 	if repoType == NullRepoType {
 		return
 	} else if repoType == PostgresGorm {

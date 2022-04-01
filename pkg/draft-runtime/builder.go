@@ -26,17 +26,7 @@ type Commet struct {
 	nats *nats.Conn
 	http *fiber.App
 
-	pluginType PluginType
-
 	defaultPlugin DefaultPluginRegistrar
-
-	rpcPlugin RpcPluginRegistrar
-
-	aggregatePlugin AggregatePluginRegistrar
-}
-
-func (c Commet) GetPluginType() PluginType {
-	return c.pluginType
 }
 
 func New(config *Config) (*Commet, error) {
@@ -49,20 +39,11 @@ func New(config *Config) (*Commet, error) {
 	}, nil
 }
 
-type PluginType int
-
-const (
-	NullPluginType PluginType = iota
-	DefaultPlugin
-	RpcPlugin
-	AggregatePlugin
-)
-
 // DefaultPluginRegistrar - An interface that can be implemented by a service to register a `Repo`, `Rpc` interface, and a `Consumer`.
 // This is kind of like the kictchen sink interface for services that have many different requirments.
 type DefaultPluginRegistrar interface {
 	RepoPluginRegistrar
-	RpcPluginRegistrar
+	ServerPluginRegistrar
 	BrokerPluginRegistrar
 }
 
@@ -71,59 +52,48 @@ type DefaultPluginRegistrar interface {
 func (c *Commet) DefaultBuilder(plugin DefaultPluginRegistrar) *Commet {
 	c.pluginType = DefaultPlugin
 
-	if repo := plugin.GetRepoType(); repo != NullRepoType {
-		c.withRepo(repo, plugin)
-	}
-
-	if plugin.IsRpc() {
-		c.withRpc(plugin)
-	}
-
-	if plugin.GetBrokerType() == Nats {
-		c.withBroker()
-	}
+	c.withRepo(plugin)
+	c.withRpc(plugin)
+	c.withHttp(plugin)
+	c.withBroker(plugin)
 
 	c.defaultPlugin = plugin
 
 	return c
 }
 
-// RpcBuilder - Is used to register an rpc only process to the draft runtime.
-// Prcesses like `writers`, and `readers` are usually gateways to different process that may
-// expose a public read, or writer method.
-func (c *Commet) RpcBuilder(plugin RpcPluginRegistrar) *Commet {
-	c.rpcPlugin = plugin
-	c.pluginType = RpcPlugin
+type DefaultRuntimeBuilder struct{}
 
-	if c.rpcPlugin.IsRpc() {
-		c.withRpc(plugin)
-	}
-
-	return c
+func (d *DefaultRuntimeBuilder) GetRepoType() RepoType {
+	return PostgresGorm
 }
 
-// AggregatePluginRegistrar - Is the most common type of the system. It contains a repo, and rpc interface. It's
-// used for simple writes, and reads to specific aggregates types.
-type AggregatePluginRegistrar interface {
-	RepoPluginRegistrar
-	RpcPluginRegistrar
+func (d *DefaultRuntimeBuilder) RegisterDB(db interface{}) error {
+	return nil
 }
 
-// AggregateBuilder - A method for building the `Aggregate` process type.
-func (c *Commet) AggregateBuilder(plugin AggregatePluginRegistrar) *Commet {
-	c.pluginType = AggregatePlugin
+func (d *DefaultRuntimeBuilder) IsRpc() bool {
+	return false
+}
 
-	if repo := plugin.GetRepoType(); repo != NullRepoType {
-		c.withRepo(repo, plugin)
-	}
+func (d *DefaultRuntimeBuilder) RegisterRPC() *grpc.Server {
+	return nil
+}
 
-	if plugin.IsRpc() {
-		c.withRpc(plugin)
-	}
+func (s *DefaultRuntimeBuilder) IsHttp() bool {
+	return false
+}
 
-	c.aggregatePlugin = plugin
+func (d *DefaultRuntimeBuilder) RegisterHTTP() *fiber.App {
+	return nil
+}
 
-	return c
+func (d *DefaultRuntimeBuilder) GetBrokerType() BrokerType {
+	return Nats
+}
+
+func (d *DefaultRuntimeBuilder) RegisterBroker(broker interface{}) error {
+	return nil
 }
 
 // Start the runtime of the service. This will do things like fire up the grpc/http servers and put them on a background routine's

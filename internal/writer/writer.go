@@ -7,13 +7,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewPlugin() draft.RpcPluginRegistrar {
+func NewPlugin() draft.DefaultPluginRegistrar {
 	return &writerPlugin{
 		service: NewService(),
 	}
 }
 
 type writerPlugin struct {
+	*draft.DefaultRuntimeBuilder
 	service *service
 }
 

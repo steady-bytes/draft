@@ -16,24 +16,15 @@ import (
 //
 // Because of this, an rpc interface, event_store client, and storage facility is needed so the `AggregatePluginRegistrar`
 // can be used as it's base.
-func NewPlugin() draft.AggregatePluginRegistrar {
+func NewPlugin() draft.DefaultPluginRegistrar {
 	return &registry{
-		repoType: draft.PostgresGorm,
-		service:  NewService(),
+		service: NewService(),
 	}
 }
 
 type registry struct {
-	repoType draft.RepoType
-	service  *service
-}
-
-// Implement the `draft.RpcPluginRegistrar` interface because the `EventStore`
-// contains a `Create` event for external clients like `web-app`'s, `mobile` app's
-// and native desktop applications to create and event known to the whole system
-// of services.
-func (r *registry) GetRepoType() draft.RepoType {
-	return r.repoType
+	*draft.DefaultRuntimeBuilder
+	service *service
 }
 
 func (r *registry) RegisterDB(db interface{}) error {

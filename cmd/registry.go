@@ -18,7 +18,7 @@ var registry = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name = "registry"
 
-		if err := Runtime.AggregateBuilder(rg.NewPlugin()).Start(); err != nil {
+		if err := Runtime.DefaultBuilder(rg.NewPlugin()).Start(); err != nil {
 			panic(err)
 		}
 
