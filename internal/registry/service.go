@@ -19,8 +19,6 @@ func NewService() *service {
 	return &service{}
 }
 
-// RPC INTERFACE IMPLEMENTATION
-
 func (s *service) Join(ctx context.Context, join *api.JoinRequest) (*api.JoinResponse, error) {
 	// unpack request payload
 	payload := join.GetPayload()

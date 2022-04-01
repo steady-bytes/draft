@@ -50,8 +50,6 @@ type DefaultPluginRegistrar interface {
 // DefaultRpcPlugin - Is used to reigister the plugin with the commet runtime. Commet will save off an refernce to the plugin interface for
 // each bootstrapping. This is generally the first method that is called with the `Runtime`.
 func (c *Commet) DefaultBuilder(plugin DefaultPluginRegistrar) *Commet {
-	c.pluginType = DefaultPlugin
-
 	c.withRepo(plugin)
 	c.withRpc(plugin)
 	c.withHttp(plugin)

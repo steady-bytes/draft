@@ -17,8 +17,6 @@ var eventStore = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name = "event_store"
 
-		if err := Runtime.DefaultBuilder(es.NewPlugin()).Start(); err != nil {
-			panic(err)
 		}
 
 		return nil
