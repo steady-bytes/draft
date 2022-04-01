@@ -1,4 +1,4 @@
-package commet
+package draft-runtime
 
 import (
 	"fmt"
