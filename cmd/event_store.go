@@ -8,13 +8,14 @@ import (
 
 func init() {
 	rootCmd.AddCommand(eventStore)
-	eventStore.Flags().Int32VarP(&port, "port", "p", 50001, "port override, by default the port is 50001")
+	eventStore.Flags().Int32VarP(&rpcPort, "rpc_port", "r", 50001, "rpc port override, by default the rpc port is 50001")
 }
 
 var eventStore = &cobra.Command{
 	Use:   "event_store",
 	Short: "run the event store component of `draft`.",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		name = "event_store"
 
 		if err := Runtime.DefaultBuilder(es.NewPlugin()).Start(); err != nil {
 			panic(err)

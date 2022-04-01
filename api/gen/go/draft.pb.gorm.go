@@ -16,6 +16,8 @@ type ProcessORM struct {
 	Group       string
 	Id          string `gorm:"type:uuid;primary_key"`
 	IpAddress   string
+	JoinedTime  *time.Time `gorm:"type:timestamp"`
+	LeftTime    *time.Time `gorm:"type:timestamp"`
 	Local       string
 	Metadata    []*MetadataORM `gorm:"foreignkey:ProcessId;association_foreignkey:Id"`
 	Name        string
@@ -54,6 +56,14 @@ func (m *Process) ToORM(ctx context.Context) (ProcessORM, error) {
 			to.Metadata = append(to.Metadata, nil)
 		}
 	}
+	if m.JoinedTime != nil {
+		t := m.JoinedTime.AsTime()
+		to.JoinedTime = &t
+	}
+	if m.LeftTime != nil {
+		t := m.LeftTime.AsTime()
+		to.LeftTime = &t
+	}
 	if posthook, ok := interface{}(m).(ProcessWithAfterToORM); ok {
 		err = posthook.AfterToORM(ctx, &to)
 	}
@@ -86,6 +96,12 @@ func (m *ProcessORM) ToPB(ctx context.Context) (Process, error) {
 		} else {
 			to.Metadata = append(to.Metadata, nil)
 		}
+	}
+	if m.JoinedTime != nil {
+		to.JoinedTime = timestamppb.New(*m.JoinedTime)
+	}
+	if m.LeftTime != nil {
+		to.LeftTime = timestamppb.New(*m.LeftTime)
 	}
 	if posthook, ok := interface{}(m).(ProcessWithAfterToPB); ok {
 		err = posthook.AfterToPB(ctx, &to)
@@ -577,7 +593,9 @@ func DefaultApplyFieldMaskProcess(ctx context.Context, patchee *Process, patcher
 		return nil, errors.NilArgumentError
 	}
 	var err error
-	for _, f := range updateMask.Paths {
+	var updatedJoinedTime bool
+	var updatedLeftTime bool
+	for i, f := range updateMask.Paths {
 		if f == prefix+"Id" {
 			patchee.Id = patcher.Id
 			continue
@@ -604,6 +622,52 @@ func DefaultApplyFieldMaskProcess(ctx context.Context, patchee *Process, patcher
 		}
 		if f == prefix+"Metadata" {
 			patchee.Metadata = patcher.Metadata
+			continue
+		}
+		if !updatedJoinedTime && strings.HasPrefix(f, prefix+"JoinedTime.") {
+			if patcher.JoinedTime == nil {
+				patchee.JoinedTime = nil
+				continue
+			}
+			if patchee.JoinedTime == nil {
+				patchee.JoinedTime = &timestamppb.Timestamp{}
+			}
+			childMask := &field_mask.FieldMask{}
+			for j := i; j < len(updateMask.Paths); j++ {
+				if trimPath := strings.TrimPrefix(updateMask.Paths[j], prefix+"JoinedTime."); trimPath != updateMask.Paths[j] {
+					childMask.Paths = append(childMask.Paths, trimPath)
+				}
+			}
+			if err := gorm1.MergeWithMask(patcher.JoinedTime, patchee.JoinedTime, childMask); err != nil {
+				return nil, nil
+			}
+		}
+		if f == prefix+"JoinedTime" {
+			updatedJoinedTime = true
+			patchee.JoinedTime = patcher.JoinedTime
+			continue
+		}
+		if !updatedLeftTime && strings.HasPrefix(f, prefix+"LeftTime.") {
+			if patcher.LeftTime == nil {
+				patchee.LeftTime = nil
+				continue
+			}
+			if patchee.LeftTime == nil {
+				patchee.LeftTime = &timestamppb.Timestamp{}
+			}
+			childMask := &field_mask.FieldMask{}
+			for j := i; j < len(updateMask.Paths); j++ {
+				if trimPath := strings.TrimPrefix(updateMask.Paths[j], prefix+"LeftTime."); trimPath != updateMask.Paths[j] {
+					childMask.Paths = append(childMask.Paths, trimPath)
+				}
+			}
+			if err := gorm1.MergeWithMask(patcher.LeftTime, patchee.LeftTime, childMask); err != nil {
+				return nil, nil
+			}
+		}
+		if f == prefix+"LeftTime" {
+			updatedLeftTime = true
+			patchee.LeftTime = patcher.LeftTime
 			continue
 		}
 	}

@@ -507,6 +507,8 @@ the `Event` is stored and forwarded to the correct consumer.
 | ip_address | [string](#string) |  |  |
 | process_kind | [ProcessKind](#api.ProcessKind) |  |  |
 | metadata | [Metadata](#api.Metadata) | repeated |  |
+| joined_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+| left_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
 
 
 
@@ -642,6 +644,7 @@ Key/Value store allowing a process to join the systm so it can send or receive m
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | Join | [JoinRequest](#api.JoinRequest) | [JoinResponse](#api.JoinResponse) | Join - Connects a process to the remainder of the system. After registration is complete, a process will be able to send and receive messages. |
+| Leave | [LeaveRequest](#api.LeaveRequest) | [LeaveResponse](#api.LeaveResponse) | Leave - Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or receive a message from the system. |
 
 
 <a name="api.Writer"></a>

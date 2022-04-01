@@ -16,7 +16,7 @@ infra-stop:
 #####
 # API
 #####
-api:
+api: compiler
 	docker run --volume "$(PWD)/api:/api" --workdir /api apibuilder:v1 mod update
 	docker run --volume "$(PWD)/api:/api" --workdir /api apibuilder:v1 generate
 	@if [ "$(OS)" = "Linux" ]; then\

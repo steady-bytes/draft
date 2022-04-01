@@ -21,7 +21,7 @@ type writerPlugin struct {
 // contains a `Create` event for external clients like `web-app`'s, `mobile` app's
 // and native desktop applications to create and event known to the whole system
 // of services.
-func (s *writerPlugin) GetIsRpc() bool {
+func (s *writerPlugin) IsRpc() bool {
 	return true
 }
 

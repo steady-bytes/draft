@@ -1727,7 +1727,9 @@ proto.api.Process.toObject = function(includeInstance, msg) {
     ipAddress: jspb.Message.getFieldWithDefault(msg, 5, ""),
     processKind: jspb.Message.getFieldWithDefault(msg, 6, 0),
     metadataList: jspb.Message.toObjectList(msg.getMetadataList(),
-    proto.api.Metadata.toObject, includeInstance)
+    proto.api.Metadata.toObject, includeInstance),
+    joinedTime: (f = msg.getJoinedTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    leftTime: (f = msg.getLeftTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -1792,6 +1794,16 @@ proto.api.Process.deserializeBinaryFromReader = function(msg, reader) {
       var value = new proto.api.Metadata;
       reader.readMessage(value,proto.api.Metadata.deserializeBinaryFromReader);
       msg.addMetadata(value);
+      break;
+    case 8:
+      var value = new google_protobuf_timestamp_pb.Timestamp;
+      reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
+      msg.setJoinedTime(value);
+      break;
+    case 9:
+      var value = new google_protobuf_timestamp_pb.Timestamp;
+      reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
+      msg.setLeftTime(value);
       break;
     default:
       reader.skipField();
@@ -1870,6 +1882,22 @@ proto.api.Process.serializeBinaryToWriter = function(message, writer) {
       7,
       f,
       proto.api.Metadata.serializeBinaryToWriter
+    );
+  }
+  f = message.getJoinedTime();
+  if (f != null) {
+    writer.writeMessage(
+      8,
+      f,
+      google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
+    );
+  }
+  f = message.getLeftTime();
+  if (f != null) {
+    writer.writeMessage(
+      9,
+      f,
+      google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
     );
   }
 };
@@ -2018,6 +2046,80 @@ proto.api.Process.prototype.addMetadata = function(opt_value, opt_index) {
  */
 proto.api.Process.prototype.clearMetadataList = function() {
   return this.setMetadataList([]);
+};
+
+
+/**
+ * optional google.protobuf.Timestamp joined_time = 8;
+ * @return {?proto.google.protobuf.Timestamp}
+ */
+proto.api.Process.prototype.getJoinedTime = function() {
+  return /** @type{?proto.google.protobuf.Timestamp} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_timestamp_pb.Timestamp, 8));
+};
+
+
+/**
+ * @param {?proto.google.protobuf.Timestamp|undefined} value
+ * @return {!proto.api.Process} returns this
+*/
+proto.api.Process.prototype.setJoinedTime = function(value) {
+  return jspb.Message.setWrapperField(this, 8, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.api.Process} returns this
+ */
+proto.api.Process.prototype.clearJoinedTime = function() {
+  return this.setJoinedTime(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.api.Process.prototype.hasJoinedTime = function() {
+  return jspb.Message.getField(this, 8) != null;
+};
+
+
+/**
+ * optional google.protobuf.Timestamp left_time = 9;
+ * @return {?proto.google.protobuf.Timestamp}
+ */
+proto.api.Process.prototype.getLeftTime = function() {
+  return /** @type{?proto.google.protobuf.Timestamp} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_timestamp_pb.Timestamp, 9));
+};
+
+
+/**
+ * @param {?proto.google.protobuf.Timestamp|undefined} value
+ * @return {!proto.api.Process} returns this
+*/
+proto.api.Process.prototype.setLeftTime = function(value) {
+  return jspb.Message.setWrapperField(this, 9, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.api.Process} returns this
+ */
+proto.api.Process.prototype.clearLeftTime = function() {
+  return this.setLeftTime(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.api.Process.prototype.hasLeftTime = function() {
+  return jspb.Message.getField(this, 9) != null;
 };
 
 

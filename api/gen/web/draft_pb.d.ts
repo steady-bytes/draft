@@ -212,6 +212,16 @@ export class Process extends jspb.Message {
   clearMetadataList(): Process;
   addMetadata(value?: Metadata, index?: number): Metadata;
 
+  getJoinedTime(): google_protobuf_timestamp_pb.Timestamp | undefined;
+  setJoinedTime(value?: google_protobuf_timestamp_pb.Timestamp): Process;
+  hasJoinedTime(): boolean;
+  clearJoinedTime(): Process;
+
+  getLeftTime(): google_protobuf_timestamp_pb.Timestamp | undefined;
+  setLeftTime(value?: google_protobuf_timestamp_pb.Timestamp): Process;
+  hasLeftTime(): boolean;
+  clearLeftTime(): Process;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Process.AsObject;
   static toObject(includeInstance: boolean, msg: Process): Process.AsObject;
@@ -229,6 +239,8 @@ export namespace Process {
     ipAddress: string,
     processKind: ProcessKind,
     metadataList: Array<Metadata.AsObject>,
+    joinedTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
+    leftTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
   }
 }
 

@@ -22,9 +22,9 @@ docker build -t db ./deployments/sql/
 docker network create -d bridge ${SQL_DB_NETWORK}
 
 # create first node
-docker run -d --name=${MASTER_NODE} --hostname=${MASTER_NODE} --network=${SQL_DB_NETWORK} -p 26257:26257 -p 9000:8080 -v "${PWD}/deployments/sql/data/${MASTER_NODE}:/cockroach/cockroach-data" db start --insecure
-docker run -d --name=${NODE_2} --hostname=${NODE_2} --network=${SQL_DB_NETWORK} -v "${PWD}/deployments/sql/data/${NODE_2}:/cockroach/cockroach-data" db start --insecure --join=${MASTER_NODE}
-docker run -d --name=${NODE_3} --hostname=${NODE_3} --network=${SQL_DB_NETWORK} -v "${PWD}/deployments/sql/data/${NODE_3}:/cockroach/cockroach-data" db start --insecure --join=${MASTER_NODE}
+docker run -d --name=${MASTER_NODE} --hostname=${MASTER_NODE} --network=${SQL_DB_NETWORK} -p 26257:26257 -p 9000:8080 db start --insecure
+docker run -d --name=${NODE_2} --hostname=${NODE_2} --network=${SQL_DB_NETWORK} db start --insecure --join=${MASTER_NODE}
+docker run -d --name=${NODE_3} --hostname=${NODE_3} --network=${SQL_DB_NETWORK} db start --insecure --join=${MASTER_NODE}
 
 # check status
 docker ps

@@ -24,7 +24,8 @@ type Service struct {
 	// default "localhost"
 	Name string
 	// Port that is accepting requests on
-	Port int32
+	RPCPort  int32
+	HTTPPort int32
 }
 
 // gateway
@@ -60,36 +61,18 @@ type PostgresConnectionConfig struct {
 	Migrate  bool
 }
 
-func NewConfig() *Config {
+func NewConfig(name string, rpcPort, httpPort int32) *Config {
 	config := &Config{
-		Service:  readServiceConfig(),
+		Service: &Service{
+			Name:     name,
+			RPCPort:  rpcPort,
+			HTTPPort: httpPort,
+		},
 		Repos:    readRepoConfig(),
 		Gateways: readGatewayConfig(),
 	}
 
 	return config
-}
-
-// parseService
-func readServiceConfig() *Service {
-	service := &Service{
-		Name: viper.GetString("Service.Name"),
-		Port: viper.GetInt32("Service.Port"),
-	}
-
-	// validation for the service config object
-	if len(service.Name) == 0 {
-		fmt.Errorf("must set name")
-		panic(ErrorCode)
-	}
-
-	if service.Port == 0 {
-		fmt.Errorf("must set port for service to run on")
-		panic(ErrorCode)
-
-	}
-
-	return service
 }
 
 // readGatewayConfig: A utility method that is use to retrieve a gateway from the configuration file

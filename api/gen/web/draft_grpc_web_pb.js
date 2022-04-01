@@ -314,6 +314,67 @@ proto.api.RegistryPromiseClient.prototype.join =
 
 
 /**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.api.LeaveRequest,
+ *   !proto.api.LeaveResponse>}
+ */
+const methodDescriptor_Registry_Leave = new grpc.web.MethodDescriptor(
+  '/api.Registry/Leave',
+  grpc.web.MethodType.UNARY,
+  proto.api.LeaveRequest,
+  proto.api.LeaveResponse,
+  /**
+   * @param {!proto.api.LeaveRequest} request
+   * @return {!Uint8Array}
+   */
+  function(request) {
+    return request.serializeBinary();
+  },
+  proto.api.LeaveResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.api.LeaveRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.RpcError, ?proto.api.LeaveResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.api.LeaveResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.api.RegistryClient.prototype.leave =
+    function(request, metadata, callback) {
+  return this.client_.rpcCall(this.hostname_ +
+      '/api.Registry/Leave',
+      request,
+      metadata || {},
+      methodDescriptor_Registry_Leave,
+      callback);
+};
+
+
+/**
+ * @param {!proto.api.LeaveRequest} request The
+ *     request proto
+ * @param {?Object<string, string>=} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.api.LeaveResponse>}
+ *     Promise that resolves to the response
+ */
+proto.api.RegistryPromiseClient.prototype.leave =
+    function(request, metadata) {
+  return this.client_.unaryCall(this.hostname_ +
+      '/api.Registry/Leave',
+      request,
+      metadata || {},
+      methodDescriptor_Registry_Leave);
+};
+
+
+/**
  * @param {string} hostname
  * @param {?Object} credentials
  * @param {?grpc.web.ClientOptions} options

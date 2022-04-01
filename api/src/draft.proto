@@ -71,7 +71,7 @@ service Registry {
 
   // Leave - Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
   // receive a message from the system.
-  // rpc Leave() returns () {}
+  rpc Leave(LeaveRequest) returns (LeaveResponse) {}
 }
 
 message JoinRequest {
@@ -104,6 +104,9 @@ message Process {
   ProcessKind process_kind = 6;
 
   repeated Metadata metadata = 7;
+
+  google.protobuf.Timestamp joined_time = 8 [(gorm.field).tag = {type: "timestamp"}];
+  google.protobuf.Timestamp left_time = 9 [(gorm.field).tag = {type: "timestamp"}];
 }
 
 enum ProcessKind {

@@ -1,8 +1,10 @@
 package commet
 
 import (
+	"fmt"
 	"net"
 
+	fiber "github.com/gofiber/fiber/v2"
 	"github.com/jinzhu/gorm"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/grpc"
@@ -22,6 +24,9 @@ type Commet struct {
 	gorm *gorm.DB
 	rpc  *grpc.Server
 	nats *nats.Conn
+	http *fiber.App
+
+	pluginType PluginType
 
 	defaultPlugin DefaultPluginRegistrar
 
@@ -30,14 +35,28 @@ type Commet struct {
 	aggregatePlugin AggregatePluginRegistrar
 }
 
+func (c Commet) GetPluginType() PluginType {
+	return c.pluginType
+}
+
 func New(config *Config) (*Commet, error) {
 	return &Commet{
 		config: config,
 		gorm:   nil,
 		rpc:    nil,
 		tcp:    nil,
+		http:   nil,
 	}, nil
 }
+
+type PluginType int
+
+const (
+	NullPluginType PluginType = iota
+	DefaultPlugin
+	RpcPlugin
+	AggregatePlugin
+)
 
 // DefaultPluginRegistrar - An interface that can be implemented by a service to register a `Repo`, `Rpc` interface, and a `Consumer`.
 // This is kind of like the kictchen sink interface for services that have many different requirments.
@@ -50,19 +69,21 @@ type DefaultPluginRegistrar interface {
 // DefaultRpcPlugin - Is used to reigister the plugin with the commet runtime. Commet will save off an refernce to the plugin interface for
 // each bootstrapping. This is generally the first method that is called with the `Runtime`.
 func (c *Commet) DefaultBuilder(plugin DefaultPluginRegistrar) *Commet {
-	c.defaultPlugin = plugin
+	c.pluginType = DefaultPlugin
 
-	if c.defaultPlugin.GetRepoType() != NullRepoType {
-		c.withRepo()
+	if repo := plugin.GetRepoType(); repo != NullRepoType {
+		c.withRepo(repo, plugin)
 	}
 
-	if c.defaultPlugin.GetIsRpc() {
-		c.withRpc()
+	if plugin.IsRpc() {
+		c.withRpc(plugin)
 	}
 
-	if c.defaultPlugin.GetBrokerType() == Nats {
+	if plugin.GetBrokerType() == Nats {
 		c.withBroker()
 	}
+
+	c.defaultPlugin = plugin
 
 	return c
 }
@@ -72,9 +93,10 @@ func (c *Commet) DefaultBuilder(plugin DefaultPluginRegistrar) *Commet {
 // expose a public read, or writer method.
 func (c *Commet) RpcBuilder(plugin RpcPluginRegistrar) *Commet {
 	c.rpcPlugin = plugin
+	c.pluginType = RpcPlugin
 
-	if c.rpcPlugin.GetIsRpc() {
-		c.withRpc()
+	if c.rpcPlugin.IsRpc() {
+		c.withRpc(plugin)
 	}
 
 	return c
@@ -89,24 +111,29 @@ type AggregatePluginRegistrar interface {
 
 // AggregateBuilder - A method for building the `Aggregate` process type.
 func (c *Commet) AggregateBuilder(plugin AggregatePluginRegistrar) *Commet {
+	c.pluginType = AggregatePlugin
+
+	if repo := plugin.GetRepoType(); repo != NullRepoType {
+		c.withRepo(repo, plugin)
+	}
+
+	if plugin.IsRpc() {
+		c.withRpc(plugin)
+	}
+
 	c.aggregatePlugin = plugin
-
-	if c.aggregatePlugin.GetRepoType() != NullRepoType {
-		c.withRepo()
-	}
-
-	if c.aggregatePlugin.GetIsRpc() {
-		c.withRpc()
-	}
 
 	return c
 }
 
 // Start the runtime of the service. This will do things like fire up the grpc/http servers and put them on a background routine's
 func (c *Commet) Start() error {
-	if c.rpc != nil {
+	fmt.Println("start called")
 
+	if c.rpc != nil {
+		fmt.Println("starting")
 		c.rpc.Serve(c.tcp)
+		fmt.Println("started this will never be called")
 	}
 	return nil
 }

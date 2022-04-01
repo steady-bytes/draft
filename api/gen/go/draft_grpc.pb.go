@@ -157,6 +157,9 @@ type RegistryClient interface {
 	// Join - Connects a process to the remainder of the system. After registration is complete, a process will be able
 	// to send and receive messages.
 	Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (*JoinResponse, error)
+	// Leave - Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
+	// receive a message from the system.
+	Leave(ctx context.Context, in *LeaveRequest, opts ...grpc.CallOption) (*LeaveResponse, error)
 }
 
 type registryClient struct {
@@ -176,6 +179,15 @@ func (c *registryClient) Join(ctx context.Context, in *JoinRequest, opts ...grpc
 	return out, nil
 }
 
+func (c *registryClient) Leave(ctx context.Context, in *LeaveRequest, opts ...grpc.CallOption) (*LeaveResponse, error) {
+	out := new(LeaveResponse)
+	err := c.cc.Invoke(ctx, "/api.Registry/Leave", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RegistryServer is the server API for Registry service.
 // All implementations should embed UnimplementedRegistryServer
 // for forward compatibility
@@ -183,6 +195,9 @@ type RegistryServer interface {
 	// Join - Connects a process to the remainder of the system. After registration is complete, a process will be able
 	// to send and receive messages.
 	Join(context.Context, *JoinRequest) (*JoinResponse, error)
+	// Leave - Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
+	// receive a message from the system.
+	Leave(context.Context, *LeaveRequest) (*LeaveResponse, error)
 }
 
 // UnimplementedRegistryServer should be embedded to have forward compatible implementations.
@@ -191,6 +206,9 @@ type UnimplementedRegistryServer struct {
 
 func (UnimplementedRegistryServer) Join(context.Context, *JoinRequest) (*JoinResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Join not implemented")
+}
+func (UnimplementedRegistryServer) Leave(context.Context, *LeaveRequest) (*LeaveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Leave not implemented")
 }
 
 // UnsafeRegistryServer may be embedded to opt out of forward compatibility for this service.
@@ -222,6 +240,24 @@ func _Registry_Join_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Registry_Leave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LeaveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).Leave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Registry/Leave",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).Leave(ctx, req.(*LeaveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Registry_ServiceDesc is the grpc.ServiceDesc for Registry service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -232,6 +268,10 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Join",
 			Handler:    _Registry_Join_Handler,
+		},
+		{
+			MethodName: "Leave",
+			Handler:    _Registry_Leave_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

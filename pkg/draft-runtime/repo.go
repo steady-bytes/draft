@@ -13,9 +13,6 @@ type RepoPluginRegistrar interface {
 	// GetRepoType - is used to determin how to integrate the default rpc handler, and the orm
 	GetRepoType() RepoType
 
-	// SetModel - Receives the model from the implementing plugin
-	SetModel() interface{}
-
 	// RegisterDB - gives the plugin the option to use many differnt types of orms/db client. A type assertion can
 	// be used at the client level configure the runtime.
 	RegisterDB(interface{}) error
@@ -42,9 +39,7 @@ func (rt RepoType) String() string {
 }
 
 // WithRepo - Connects to the plugins repo of choice with the runtime
-func (c *Commet) withRepo() {
-	repoType := c.defaultPlugin.GetRepoType()
-
+func (c *Commet) withRepo(repoType RepoType, registrar RepoPluginRegistrar) {
 	if repoType == NullRepoType {
 		return
 	} else if repoType == PostgresGorm {
@@ -56,7 +51,7 @@ func (c *Commet) withRepo() {
 		}
 
 		addr := fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=disable", cfg.Protocol, cfg.User, cfg.Domain, cfg.Port, cfg.Server)
-		fmt.Println("addr: ", addr)
+
 		db, err := gorm.Open("postgres", addr)
 		if err != nil {
 			panic("failed to connect to posgres")
@@ -64,11 +59,10 @@ func (c *Commet) withRepo() {
 
 		c.gorm = db
 
-		if cfg.Migrate {
-			if err := c.gorm.AutoMigrate(c.defaultPlugin.SetModel()); err != nil {
-				fmt.Println(err)
-			}
+		if err := registrar.RegisterDB(db); err != nil {
+			panic(err)
 		}
+
 	} else {
 		panic("a valid repo was not configured")
 	}

@@ -29,7 +29,9 @@ var (
 	configFile string
 	Runtime    *draft.Commet
 
-	port int32
+	name     string
+	rpcPort  int32
+	httpPort int32
 )
 
 func init() {
@@ -51,7 +53,7 @@ func initConfig() {
 		os.Exit(1)
 	}
 
-	cfg := draft.NewConfig()
+	cfg := draft.NewConfig(name, rpcPort, httpPort)
 
 	rt, err := draft.New(cfg)
 	if err != nil {

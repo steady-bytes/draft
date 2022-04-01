@@ -8,13 +8,14 @@ import (
 
 func init() {
 	rootCmd.AddCommand(writer)
-	writer.Flags().Int32VarP(&port, "port", "p", 50000, "port override, by default the port is 50000")
+	writer.Flags().Int32VarP(&rpcPort, "rpc_port", "r", 50000, "rpc port override, by default the rpc port is 50000")
 }
 
 var writer = &cobra.Command{
 	Use:   "writer",
 	Short: "run the writer interface of `draft`.",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		name = "writer"
 
 		if err := Runtime.RpcBuilder(wr.NewPlugin()).Start(); err != nil {
 			panic(err)

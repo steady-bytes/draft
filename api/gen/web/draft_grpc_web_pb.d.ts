@@ -36,6 +36,13 @@ export class RegistryClient {
                response: draft_pb.JoinResponse) => void
   ): grpcWeb.ClientReadableStream<draft_pb.JoinResponse>;
 
+  leave(
+    request: draft_pb.LeaveRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+               response: draft_pb.LeaveResponse) => void
+  ): grpcWeb.ClientReadableStream<draft_pb.LeaveResponse>;
+
 }
 
 export class EventStoreClient {
@@ -78,6 +85,11 @@ export class RegistryPromiseClient {
     request: draft_pb.JoinRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<draft_pb.JoinResponse>;
+
+  leave(
+    request: draft_pb.LeaveRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<draft_pb.LeaveResponse>;
 
 }
 

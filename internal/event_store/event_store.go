@@ -20,7 +20,6 @@ func NewPlugin() draft.DefaultPluginRegistrar {
 		// type flags that enabled differnt features of the eventStorePlugin
 		repoType:   draft.PostgresGorm,
 		brokerType: draft.Nats,
-		model:      &api.EventORM{},
 		service:    NewService(),
 	}
 }
@@ -29,7 +28,6 @@ func NewPlugin() draft.DefaultPluginRegistrar {
 type eventStorePlugin struct {
 	repoType   draft.RepoType
 	brokerType draft.BrokerType
-	model      *api.EventORM
 	service    *service
 }
 
@@ -40,16 +38,13 @@ func (s *eventStorePlugin) GetRepoType() draft.RepoType {
 	return s.repoType
 }
 
-func (s *eventStorePlugin) SetModel() interface{} {
-	return s.model
-}
-
 func (s *eventStorePlugin) RegisterDB(db interface{}) error {
 	if db == nil {
 		return errors.New("db interface is nil")
 	}
 
 	if db, ok := db.(*gorm.DB); ok {
+		db = db.AutoMigrate(&api.EventORM{})
 		s.service.rpc.DB = db
 	}
 
@@ -60,7 +55,7 @@ func (s *eventStorePlugin) RegisterDB(db interface{}) error {
 // contains a `Create` event for external clients like `web-app`'s, `mobile` app's
 // and native desktop applications to create and event known to the whole system
 // of services.
-func (s *eventStorePlugin) GetIsRpc() bool {
+func (s *eventStorePlugin) IsRpc() bool {
 	return true
 }
 

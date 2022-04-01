@@ -1799,6 +1799,20 @@ the `data` value. </p></td>
                   <td><p> </p></td>
                 </tr>
               
+                <tr>
+                  <td>joined_time</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>left_time</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
             </tbody>
           </table>
 
@@ -2094,6 +2108,14 @@ to the system</p></td>
                 <td><a href="#api.JoinResponse">JoinResponse</a></td>
                 <td><p>Join - Connects a process to the remainder of the system. After registration is complete, a process will be able
 to send and receive messages.</p></td>
+              </tr>
+            
+              <tr>
+                <td>Leave</td>
+                <td><a href="#api.LeaveRequest">LeaveRequest</a></td>
+                <td><a href="#api.LeaveResponse">LeaveResponse</a></td>
+                <td><p>Leave - Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
+receive a message from the system.</p></td>
               </tr>
             
           </tbody>

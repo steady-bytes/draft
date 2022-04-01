@@ -1235,6 +1235,64 @@ func (m *Process) validate(all bool) error {
 
 	}
 
+	if all {
+		switch v := interface{}(m.GetJoinedTime()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ProcessValidationError{
+					field:  "JoinedTime",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ProcessValidationError{
+					field:  "JoinedTime",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetJoinedTime()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ProcessValidationError{
+				field:  "JoinedTime",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetLeftTime()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ProcessValidationError{
+					field:  "LeftTime",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ProcessValidationError{
+					field:  "LeftTime",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetLeftTime()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ProcessValidationError{
+				field:  "LeftTime",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
 		return ProcessMultiError(errors)
 	}
