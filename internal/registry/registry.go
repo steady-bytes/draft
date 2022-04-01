@@ -8,6 +8,7 @@ import (
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime"
 
 	fiber "github.com/gofiber/fiber/v2"
+	"github.com/gofiber/template/handlebars"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
 )
@@ -62,9 +63,20 @@ func (r *registry) IsHttp() bool {
 }
 
 func (r *registry) RegisterHTTP() *fiber.App {
-	httpMux := fiber.New()
+	engine := handlebars.New("./views", ".hbs")
 
-	httpMux.Get("/", hello)
+	httpMux := fiber.New(fiber.Config{
+		Views: engine,
+	})
+
+	httpMux.Get("/hello", hello)
+
+	httpMux.Get("/", func(c *fiber.Ctx) error {
+		// Render index within layouts/main
+		return c.Render("index", fiber.Map{
+			"Title": "Hello, World from the layout!",
+		}, "layouts/main")
+	})
 
 	return httpMux
 }
