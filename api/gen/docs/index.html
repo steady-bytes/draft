@@ -270,31 +270,7 @@
                 </li>
               
                 <li>
-                  <a href="#api.JoinRequest"><span class="badge">M</span>JoinRequest</a>
-                </li>
-              
-                <li>
-                  <a href="#api.JoinResponse"><span class="badge">M</span>JoinResponse</a>
-                </li>
-              
-                <li>
-                  <a href="#api.LeaveRequest"><span class="badge">M</span>LeaveRequest</a>
-                </li>
-              
-                <li>
-                  <a href="#api.LeaveResponse"><span class="badge">M</span>LeaveResponse</a>
-                </li>
-              
-                <li>
-                  <a href="#api.Metadata"><span class="badge">M</span>Metadata</a>
-                </li>
-              
-                <li>
                   <a href="#api.Output"><span class="badge">M</span>Output</a>
-                </li>
-              
-                <li>
-                  <a href="#api.Process"><span class="badge">M</span>Process</a>
                 </li>
               
                 <li>
@@ -319,10 +295,6 @@
                 </li>
               
                 <li>
-                  <a href="#api.ProcessKind"><span class="badge">E</span>ProcessKind</a>
-                </li>
-              
-                <li>
                   <a href="#api.SystemAggregateKind"><span class="badge">E</span>SystemAggregateKind</a>
                 </li>
               
@@ -334,10 +306,6 @@
               
                 <li>
                   <a href="#api.EventStore"><span class="badge">S</span>EventStore</a>
-                </li>
-              
-                <li>
-                  <a href="#api.Registry"><span class="badge">S</span>Registry</a>
                 </li>
               
                 <li>
@@ -378,6 +346,85 @@
               
               
               
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#registry.proto">registry.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#api.DisconnectRequest"><span class="badge">M</span>DisconnectRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#api.Disconnected"><span class="badge">M</span>Disconnected</a>
+                </li>
+              
+                <li>
+                  <a href="#api.Empty"><span class="badge">M</span>Empty</a>
+                </li>
+              
+                <li>
+                  <a href="#api.Handshake"><span class="badge">M</span>Handshake</a>
+                </li>
+              
+                <li>
+                  <a href="#api.JournalQueryRequest"><span class="badge">M</span>JournalQueryRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#api.JournalQueryResponse"><span class="badge">M</span>JournalQueryResponse</a>
+                </li>
+              
+                <li>
+                  <a href="#api.JournalQueryResponse.ResultEntry"><span class="badge">M</span>JournalQueryResponse.ResultEntry</a>
+                </li>
+              
+                <li>
+                  <a href="#api.Metadata"><span class="badge">M</span>Metadata</a>
+                </li>
+              
+                <li>
+                  <a href="#api.MonitorRequest"><span class="badge">M</span>MonitorRequest</a>
+                </li>
+              
+                <li>
+                  <a href="#api.Process"><span class="badge">M</span>Process</a>
+                </li>
+              
+                <li>
+                  <a href="#api.ProcessDetails"><span class="badge">M</span>ProcessDetails</a>
+                </li>
+              
+                <li>
+                  <a href="#api.Query"><span class="badge">M</span>Query</a>
+                </li>
+              
+                <li>
+                  <a href="#api.RequestHandshake"><span class="badge">M</span>RequestHandshake</a>
+                </li>
+              
+              
+                <li>
+                  <a href="#api.ProcessHealthState"><span class="badge">E</span>ProcessHealthState</a>
+                </li>
+              
+                <li>
+                  <a href="#api.ProcessKind"><span class="badge">E</span>ProcessKind</a>
+                </li>
+              
+                <li>
+                  <a href="#api.ProcessRunningState"><span class="badge">E</span>ProcessRunningState</a>
+                </li>
+              
+              
+              
+                <li>
+                  <a href="#api.Registry"><span class="badge">S</span>Registry</a>
+                </li>
               
             </ul>
           </li>
@@ -1449,221 +1496,6 @@ the `data` value. </p></td>
 
         
       
-        <h3 id="api.JoinRequest">JoinRequest</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>payload</td>
-                  <td><a href="#api.Process">Process</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="api.JoinResponse">JoinResponse</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>result</td>
-                  <td><a href="#api.Process">Process</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="api.LeaveRequest">LeaveRequest</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>process_id</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-            
-            
-            <h4>Validated Fields</h4>
-            <table>
-              <thead>
-                <tr>
-                  <td>Field</td>
-                  <td>Validations</td>
-                </tr>
-              </thead>
-              <tbody>
-              
-                <tr>
-                  <td>process_id</td>
-                  <td>
-                    <ul>
-                    
-                      <li>string.uuid: true</li>
-                    
-                    </ul>
-                  </td>
-                </tr>
-              
-              </tbody>
-            </table>
-            
-          
-
-        
-      
-        <h3 id="api.LeaveResponse">LeaveResponse</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>process_id</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-            
-            
-            <h4>Validated Fields</h4>
-            <table>
-              <thead>
-                <tr>
-                  <td>Field</td>
-                  <td>Validations</td>
-                </tr>
-              </thead>
-              <tbody>
-              
-                <tr>
-                  <td>process_id</td>
-                  <td>
-                    <ul>
-                    
-                      <li>string.uuid: true</li>
-                    
-                    </ul>
-                  </td>
-                </tr>
-              
-              </tbody>
-            </table>
-            
-          
-
-        
-      
-        <h3 id="api.Metadata">Metadata</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>id</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>id - is a uuid to identify each process of the system </p></td>
-                </tr>
-              
-                <tr>
-                  <td>key</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>value</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-            
-            
-            <h4>Validated Fields</h4>
-            <table>
-              <thead>
-                <tr>
-                  <td>Field</td>
-                  <td>Validations</td>
-                </tr>
-              </thead>
-              <tbody>
-              
-                <tr>
-                  <td>id</td>
-                  <td>
-                    <ul>
-                    
-                      <li>string.uuid: true</li>
-                    
-                    </ul>
-                  </td>
-                </tr>
-              
-              </tbody>
-            </table>
-            
-          
-
-        
-      
         <h3 id="api.Output">Output</h3>
         <p></p>
 
@@ -1724,113 +1556,6 @@ the `data` value. </p></td>
               
                 <tr>
                   <td>aggregate_id</td>
-                  <td>
-                    <ul>
-                    
-                      <li>string.uuid: true</li>
-                    
-                    </ul>
-                  </td>
-                </tr>
-              
-              </tbody>
-            </table>
-            
-          
-
-        
-      
-        <h3 id="api.Process">Process</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>id</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>id - is a uuid to identify each process of the system </p></td>
-                </tr>
-              
-                <tr>
-                  <td>name</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>group</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>local</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>ip_address</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>process_kind</td>
-                  <td><a href="#api.ProcessKind">ProcessKind</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>metadata</td>
-                  <td><a href="#api.Metadata">Metadata</a></td>
-                  <td>repeated</td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>joined_time</td>
-                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>left_time</td>
-                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-            
-            
-            <h4>Validated Fields</h4>
-            <table>
-              <thead>
-                <tr>
-                  <td>Field</td>
-                  <td>Validations</td>
-                </tr>
-              </thead>
-              <tbody>
-              
-                <tr>
-                  <td>id</td>
                   <td>
                     <ul>
                     
@@ -1983,59 +1708,6 @@ the `data` value. </p></td>
           </tbody>
         </table>
       
-        <h3 id="api.ProcessKind">ProcessKind</h3>
-        <p></p>
-        <table class="enum-table">
-          <thead>
-            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
-          </thead>
-          <tbody>
-            
-              <tr>
-                <td>INVALID_PROCESS_KIND</td>
-                <td>0</td>
-                <td><p></p></td>
-              </tr>
-            
-              <tr>
-                <td>AGGREGATE_PROCESS</td>
-                <td>1</td>
-                <td><p></p></td>
-              </tr>
-            
-              <tr>
-                <td>CONSUMER_PROCESS</td>
-                <td>2</td>
-                <td><p></p></td>
-              </tr>
-            
-              <tr>
-                <td>PROJECTION_PROCESS</td>
-                <td>3</td>
-                <td><p></p></td>
-              </tr>
-            
-              <tr>
-                <td>RPC_PROCESS</td>
-                <td>4</td>
-                <td><p></p></td>
-              </tr>
-            
-              <tr>
-                <td>HTTP_PROCESS</td>
-                <td>5</td>
-                <td><p></p></td>
-              </tr>
-            
-              <tr>
-                <td>DEFAULT_PROCESS</td>
-                <td>6</td>
-                <td><p></p></td>
-              </tr>
-            
-          </tbody>
-        </table>
-      
         <h3 id="api.SystemAggregateKind">SystemAggregateKind</h3>
         <p>Declairs a mapping to the aggregate_type from the `event_code`. The package the event is</p><p>imported from is the `AggregateKind`. While also specifiying a group of all Events</p>
         <table class="enum-table">
@@ -2088,34 +1760,6 @@ the `data` value. </p></td>
                 <td><a href="#api.CreateEventResponse">CreateEventResponse</a></td>
                 <td><p>Create - Allows a producer to `Emit` an `Event` making the remaing system aware of a change
 to the system</p></td>
-              </tr>
-            
-          </tbody>
-        </table>
-
-        
-        <h3 id="api.Registry">Registry</h3>
-        <p>Key/Value store allowing a process to join the systm so it can send or receive messages</p>
-        <table class="enum-table">
-          <thead>
-            <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
-          </thead>
-          <tbody>
-            
-              <tr>
-                <td>Join</td>
-                <td><a href="#api.JoinRequest">JoinRequest</a></td>
-                <td><a href="#api.JoinResponse">JoinResponse</a></td>
-                <td><p>Join - Connects a process to the remainder of the system. After registration is complete, a process will be able
-to send and receive messages.</p></td>
-              </tr>
-            
-              <tr>
-                <td>Leave</td>
-                <td><a href="#api.LeaveRequest">LeaveRequest</a></td>
-                <td><a href="#api.LeaveResponse">LeaveResponse</a></td>
-                <td><p>Leave - Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
-receive a message from the system.</p></td>
               </tr>
             
           </tbody>
@@ -2310,6 +1954,731 @@ results for specific responses</p></td>
       
 
       
+    
+      
+      <div class="file-heading">
+        <h2 id="registry.proto">registry.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="api.DisconnectRequest">DisconnectRequest</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="api.Disconnected">Disconnected</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="api.Empty">Empty</h3>
+        <p></p>
+
+        
+
+        
+      
+        <h3 id="api.Handshake">Handshake</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>the process_id is assigned when the join request is successful however it does not mean that the process is
+registered and running. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>leader_address</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>the address the client must stream it&#39;s status messages to </p></td>
+                </tr>
+              
+                <tr>
+                  <td>token</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.JournalQueryRequest">JournalQueryRequest</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>look_up</td>
+                  <td><a href="#api.Query">Query</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.JournalQueryResponse">JournalQueryResponse</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>result</td>
+                  <td><a href="#api.JournalQueryResponse.ResultEntry">JournalQueryResponse.ResultEntry</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.JournalQueryResponse.ResultEntry">JournalQueryResponse.ResultEntry</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#api.Process">Process</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.Metadata">Metadata</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>id - is a uuid to identify each process of the system </p></td>
+                </tr>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="api.MonitorRequest">MonitorRequest</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>look_up</td>
+                  <td><a href="#api.Query">Query</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.Process">Process</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>id - is a uuid to identify each process of the system </p></td>
+                </tr>
+              
+                <tr>
+                  <td>name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>group</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>local</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>ip_address</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>process_kind</td>
+                  <td><a href="#api.ProcessKind">ProcessKind</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>tags</td>
+                  <td><a href="#api.Metadata">Metadata</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>joined_time</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>left_time</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>version</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>running_state</td>
+                  <td><a href="#api.ProcessRunningState">ProcessRunningState</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>process_health</td>
+                  <td><a href="#api.ProcessHealthState">ProcessHealthState</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
+        <h3 id="api.ProcessDetails">ProcessDetails</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>running_state</td>
+                  <td><a href="#api.ProcessRunningState">ProcessRunningState</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>process_health</td>
+                  <td><a href="#api.ProcessHealthState">ProcessHealthState</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.Query">Query</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>group</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>all</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="api.RequestHandshake">RequestHandshake</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>payload</td>
+                  <td><a href="#api.Process">Process</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+
+      
+        <h3 id="api.ProcessHealthState">ProcessHealthState</h3>
+        <p></p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>INVALID_PROCESS_HEALTH_STATE</td>
+                <td>0</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROCESS_HEALTHY</td>
+                <td>1</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROCESS_UNHEALTHY</td>
+                <td>2</td>
+                <td><p></p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+        <h3 id="api.ProcessKind">ProcessKind</h3>
+        <p></p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>INVALID_PROCESS_KIND</td>
+                <td>0</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>AGGREGATE_PROCESS</td>
+                <td>1</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>CONSUMER_PROCESS</td>
+                <td>2</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROJECTION_PROCESS</td>
+                <td>3</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>RPC_PROCESS</td>
+                <td>4</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>HTTP_PROCESS</td>
+                <td>5</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>DEFAULT_PROCESS</td>
+                <td>6</td>
+                <td><p></p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+        <h3 id="api.ProcessRunningState">ProcessRunningState</h3>
+        <p></p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>INVALID_PROCESS_RUNNING_STATE</td>
+                <td>0</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROCESS_STARTING</td>
+                <td>1</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROCESS_TESTING</td>
+                <td>2</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROCESS_RUNNING</td>
+                <td>3</td>
+                <td><p></p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
+      
+        <h3 id="api.Registry">Registry</h3>
+        <p>Process registry</p><p>For a process to connect to the registry it's required to </p><p>`InitiateHandshake`, and then use the `Handshake` details to `Connect` and stream process details to the registry on a set</p><p>interval notifiing the registry of the processes state</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>InitiateHandshake</td>
+                <td><a href="#api.RequestHandshake">RequestHandshake</a></td>
+                <td><a href="#api.Handshake">Handshake</a></td>
+                <td><p>Initiate the connection process to the remainder of the system. After registration is complete, a process will be able
+to send and receive messages.</p></td>
+              </tr>
+            
+              <tr>
+                <td>Connect</td>
+                <td><a href="#api.ProcessDetails">ProcessDetails</a> stream</td>
+                <td><a href="#api.Empty">Empty</a></td>
+                <td><p>The process that has joined the cluster must send connections details of it&#39;s ability to process requests, or perform the
+business logic it&#39;s supposted to</p></td>
+              </tr>
+            
+              <tr>
+                <td>Disconnect</td>
+                <td><a href="#api.DisconnectRequest">DisconnectRequest</a></td>
+                <td><a href="#api.Disconnected">Disconnected</a></td>
+                <td><p>Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
+receive a message from the system.</p></td>
+              </tr>
+            
+              <tr>
+                <td>Monitor</td>
+                <td><a href="#api.MonitorRequest">MonitorRequest</a></td>
+                <td><a href="#api.Process">Process</a> stream</td>
+                <td><p>used by external clients to monitor the status of one, or many processes</p></td>
+              </tr>
+            
+              <tr>
+                <td>QuerySystemJournal</td>
+                <td><a href="#api.JournalQueryRequest">JournalQueryRequest</a></td>
+                <td><a href="#api.JournalQueryResponse">JournalQueryResponse</a></td>
+                <td><p>Query the registries journal of processes</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+
+        
     
 
     <h2 id="scalar-value-types">Scalar Value Types</h2>

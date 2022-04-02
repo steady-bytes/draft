@@ -24,27 +24,6 @@ export class WriterClient {
 
 }
 
-export class RegistryClient {
-  constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: any; });
-
-  join(
-    request: draft_pb.JoinRequest,
-    metadata: grpcWeb.Metadata | undefined,
-    callback: (err: grpcWeb.RpcError,
-               response: draft_pb.JoinResponse) => void
-  ): grpcWeb.ClientReadableStream<draft_pb.JoinResponse>;
-
-  leave(
-    request: draft_pb.LeaveRequest,
-    metadata: grpcWeb.Metadata | undefined,
-    callback: (err: grpcWeb.RpcError,
-               response: draft_pb.LeaveResponse) => void
-  ): grpcWeb.ClientReadableStream<draft_pb.LeaveResponse>;
-
-}
-
 export class EventStoreClient {
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
@@ -73,23 +52,6 @@ export class WriterPromiseClient {
     request: draft_pb.Command,
     metadata?: grpcWeb.Metadata
   ): Promise<draft_pb.Transaction>;
-
-}
-
-export class RegistryPromiseClient {
-  constructor (hostname: string,
-               credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: any; });
-
-  join(
-    request: draft_pb.JoinRequest,
-    metadata?: grpcWeb.Metadata
-  ): Promise<draft_pb.JoinResponse>;
-
-  leave(
-    request: draft_pb.LeaveRequest,
-    metadata?: grpcWeb.Metadata
-  ): Promise<draft_pb.LeaveResponse>;
 
 }
 

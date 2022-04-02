@@ -19,9 +19,9 @@ func NewService() *service {
 	return &service{}
 }
 
-func (s *service) Join(ctx context.Context, join *api.JoinRequest) (*api.JoinResponse, error) {
+func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandshake) (*api.Handshake, error) {
 	// unpack request payload
-	payload := join.GetPayload()
+	payload := req.GetPayload()
 
 	// validate
 	if err := payload.Validate(); err != nil {
@@ -30,7 +30,7 @@ func (s *service) Join(ctx context.Context, join *api.JoinRequest) (*api.JoinRes
 	}
 
 	// store in db
-	res, err := api.DefaultCreateProcess(ctx, payload, s.DB)
+	_, err := api.DefaultCreateProcess(ctx, payload, s.DB)
 	if err != nil {
 		msg := fmt.Sprintf("payload was not stored %s", err)
 		return nil, errors.New(msg)
@@ -38,12 +38,21 @@ func (s *service) Join(ctx context.Context, join *api.JoinRequest) (*api.JoinRes
 
 	// send event
 
-	// return response
-	return &api.JoinResponse{
-		Result: res,
-	}, nil
+	return nil, errors.New("implement me")
 }
 
-func (s *service) Leave(ctx context.Context, leave *api.LeaveRequest) (*api.LeaveResponse, error) {
+func (s *service) Connect(stream api.Registry_ConnectServer) error {
+	return errors.New("implement me")
+}
+
+func (s *service) Disconnect(ctx context.Context, req *api.DisconnectRequest) (*api.Disconnected, error) {
+	return nil, errors.New("implement me")
+}
+
+func (s *service) Monitor(req *api.MonitorRequest, stream api.Registry_MonitorServer) error {
+	return errors.New("implement me")
+}
+
+func (s *service) QuerySystemJournal(ctx context.Context, req *api.JournalQueryRequest) (*api.JournalQueryResponse, error) {
 	return nil, errors.New("implement me")
 }
