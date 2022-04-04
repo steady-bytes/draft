@@ -41,6 +41,10 @@ func (r *registry) RegisterDB(db interface{}) error {
 		fmt.Println("migrate process metadata")
 		db = db.AutoMigrate(&api.MetadataORM{})
 
+		// todo
+		fmt.Println("migrate process metadata")
+		db = db.AutoMigrate(&api.TokenORM{})
+
 		r.service.DB = db
 	}
 

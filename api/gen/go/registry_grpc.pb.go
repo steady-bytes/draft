@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RegistryClient interface {
-	// Initiate the connection process to the remainder of the system. After registration is complete, a process will be able
+	// Initiate the connection process to the registry. After registration is complete, a process will be able
 	// to send and receive messages.
 	InitiateHandshake(ctx context.Context, in *RequestHandshake, opts ...grpc.CallOption) (*Handshake, error)
 	// The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
@@ -142,7 +142,7 @@ func (c *registryClient) QuerySystemJournal(ctx context.Context, in *JournalQuer
 // All implementations should embed UnimplementedRegistryServer
 // for forward compatibility
 type RegistryServer interface {
-	// Initiate the connection process to the remainder of the system. After registration is complete, a process will be able
+	// Initiate the connection process to the registry. After registration is complete, a process will be able
 	// to send and receive messages.
 	InitiateHandshake(context.Context, *RequestHandshake) (*Handshake, error)
 	// The process that has joined the cluster must send connections details of it's ability to process requests, or perform the

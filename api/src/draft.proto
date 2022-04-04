@@ -63,8 +63,8 @@ message ReadAggregateByIDRespose {}
  * When an event has been emitted it's stored, and routed to the correct event stream */
 service EventStore {
   option (gorm.server).autogen = true;
-   // Create - Allows a producer to `Emit` an `Event` making the remaing system aware of a change
-   // to the system
+  // Create - Allows a producer to `Emit` an `Event` making the remaing system aware of a change
+  // to the system
   rpc Create(CreateEventRequest) returns (CreateEventResponse) {}
 
   // Snapshot takes a aggregate_id, and a date-time range queries all event's and returns the list of values

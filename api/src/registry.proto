@@ -18,7 +18,7 @@ import "gorm/options.proto";
 // `InitiateHandshake`, and then use the `Handshake` details to `Connect` and stream process details to the registry on a set
 // interval notifiing the registry of the processes state
 service Registry {
-  // Initiate the connection process to the remainder of the system. After registration is complete, a process will be able
+  // Initiate the connection process to the registry. After registration is complete, a process will be able
   // to send and receive messages.
   rpc InitiateHandshake(RequestHandshake) returns (Handshake) {}
 
@@ -68,7 +68,7 @@ message Handshake {
   // the address the client must stream it's status messages to
   string leader_address = 2;
   
-  string token = 3;
+  Token token = 3;
 }
 
 message ProcessDetails {
@@ -123,6 +123,20 @@ message Process {
 
   ProcessRunningState running_state = 11;
   ProcessHealthState process_health = 12;
+
+  Token token = 13;
+}
+
+message Token {
+  option (gorm.opts).ormable = true;
+
+  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
+
+  //
+  string token = 3;
+
+  // 
+  string nonce = 4;
 }
 
 enum ProcessKind {

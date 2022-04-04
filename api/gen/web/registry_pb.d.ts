@@ -126,8 +126,10 @@ export class Handshake extends jspb.Message {
   getLeaderAddress(): string;
   setLeaderAddress(value: string): Handshake;
 
-  getToken(): string;
-  setToken(value: string): Handshake;
+  getToken(): Token | undefined;
+  setToken(value?: Token): Handshake;
+  hasToken(): boolean;
+  clearToken(): Handshake;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Handshake.AsObject;
@@ -141,7 +143,7 @@ export namespace Handshake {
   export type AsObject = {
     processId: string,
     leaderAddress: string,
-    token: string,
+    token?: Token.AsObject,
   }
 }
 
@@ -264,6 +266,11 @@ export class Process extends jspb.Message {
   getProcessHealth(): ProcessHealthState;
   setProcessHealth(value: ProcessHealthState): Process;
 
+  getToken(): Token | undefined;
+  setToken(value?: Token): Process;
+  hasToken(): boolean;
+  clearToken(): Process;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): Process.AsObject;
   static toObject(includeInstance: boolean, msg: Process): Process.AsObject;
@@ -286,6 +293,33 @@ export namespace Process {
     version: string,
     runningState: ProcessRunningState,
     processHealth: ProcessHealthState,
+    token?: Token.AsObject,
+  }
+}
+
+export class Token extends jspb.Message {
+  getId(): string;
+  setId(value: string): Token;
+
+  getToken(): string;
+  setToken(value: string): Token;
+
+  getNonce(): string;
+  setNonce(value: string): Token;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): Token.AsObject;
+  static toObject(includeInstance: boolean, msg: Token): Token.AsObject;
+  static serializeBinaryToWriter(message: Token, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): Token;
+  static deserializeBinaryFromReader(message: Token, reader: jspb.BinaryReader): Token;
+}
+
+export namespace Token {
+  export type AsObject = {
+    id: string,
+    token: string,
+    nonce: string,
   }
 }
 

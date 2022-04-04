@@ -62,6 +62,8 @@ type PostgresConnectionConfig struct {
 }
 
 func NewConfig(name string, rpcPort, httpPort int32) *Config {
+	fmt.Println("rpc port: ", rpcPort)
+
 	config := &Config{
 		Service: &Service{
 			Name:     name,
@@ -71,6 +73,8 @@ func NewConfig(name string, rpcPort, httpPort int32) *Config {
 		Repos:    readRepoConfig(),
 		Gateways: readGatewayConfig(),
 	}
+
+	fmt.Println("config: ", config)
 
 	return config
 }

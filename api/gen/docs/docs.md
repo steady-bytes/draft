@@ -62,6 +62,7 @@
     - [ProcessDetails](#api.ProcessDetails)
     - [Query](#api.Query)
     - [RequestHandshake](#api.RequestHandshake)
+    - [Token](#api.Token)
   
     - [ProcessHealthState](#api.ProcessHealthState)
     - [ProcessKind](#api.ProcessKind)
@@ -710,7 +711,7 @@ All system writes can go through two different methods. Exec, or ExecSaga.
 | ----- | ---- | ----- | ----------- |
 | process_id | [string](#string) |  | the process_id is assigned when the join request is successful however it does not mean that the process is registered and running. |
 | leader_address | [string](#string) |  | the address the client must stream it&#39;s status messages to |
-| token | [string](#string) |  |  |
+| token | [Token](#api.Token) |  |  |
 
 
 
@@ -815,6 +816,7 @@ All system writes can go through two different methods. Exec, or ExecSaga.
 | version | [string](#string) |  |  |
 | running_state | [ProcessRunningState](#api.ProcessRunningState) |  |  |
 | process_health | [ProcessHealthState](#api.ProcessHealthState) |  |  |
+| token | [Token](#api.Token) |  |  |
 
 
 
@@ -864,6 +866,23 @@ All system writes can go through two different methods. Exec, or ExecSaga.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | payload | [Process](#api.Process) |  |  |
+
+
+
+
+
+
+<a name="api.Token"></a>
+
+### Token
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  |  |
+| token | [string](#string) |  |  |
+| nonce | [string](#string) |  |  |
 
 
 
@@ -930,7 +949,7 @@ interval notifiing the registry of the processes state
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| InitiateHandshake | [RequestHandshake](#api.RequestHandshake) | [Handshake](#api.Handshake) | Initiate the connection process to the remainder of the system. After registration is complete, a process will be able to send and receive messages. |
+| InitiateHandshake | [RequestHandshake](#api.RequestHandshake) | [Handshake](#api.Handshake) | Initiate the connection process to the registry. After registration is complete, a process will be able to send and receive messages. |
 | Connect | [ProcessDetails](#api.ProcessDetails) stream | [Empty](#api.Empty) | The process that has joined the cluster must send connections details of it&#39;s ability to process requests, or perform the business logic it&#39;s supposted to |
 | Disconnect | [DisconnectRequest](#api.DisconnectRequest) | [Disconnected](#api.Disconnected) | Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or receive a message from the system. |
 | Monitor | [MonitorRequest](#api.MonitorRequest) | [Process](#api.Process) stream | used by external clients to monitor the status of one, or many processes |

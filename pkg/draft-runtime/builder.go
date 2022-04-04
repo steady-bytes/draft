@@ -108,6 +108,7 @@ func (c *Commet) Start() error {
 		c.rpc.Serve(c.tcp)
 		fmt.Println("started this will never be called")
 	}
+
 	return nil
 }
 

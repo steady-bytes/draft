@@ -407,6 +407,10 @@
                   <a href="#api.RequestHandshake"><span class="badge">M</span>RequestHandshake</a>
                 </li>
               
+                <li>
+                  <a href="#api.Token"><span class="badge">M</span>Token</a>
+                </li>
+              
               
                 <li>
                   <a href="#api.ProcessHealthState"><span class="badge">E</span>ProcessHealthState</a>
@@ -2098,7 +2102,7 @@ registered and running. </p></td>
               
                 <tr>
                   <td>token</td>
-                  <td><a href="#string">string</a></td>
+                  <td><a href="#api.Token">Token</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -2372,6 +2376,13 @@ registered and running. </p></td>
                   <td><p> </p></td>
                 </tr>
               
+                <tr>
+                  <td>token</td>
+                  <td><a href="#api.Token">Token</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
             </tbody>
           </table>
 
@@ -2502,6 +2513,71 @@ registered and running. </p></td>
             </tbody>
           </table>
 
+          
+
+        
+      
+        <h3 id="api.Token">Token</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>token</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>nonce</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
           
 
         
@@ -2641,7 +2717,7 @@ registered and running. </p></td>
                 <td>InitiateHandshake</td>
                 <td><a href="#api.RequestHandshake">RequestHandshake</a></td>
                 <td><a href="#api.Handshake">Handshake</a></td>
-                <td><p>Initiate the connection process to the remainder of the system. After registration is complete, a process will be able
+                <td><p>Initiate the connection process to the registry. After registration is complete, a process will be able
 to send and receive messages.</p></td>
               </tr>
             
