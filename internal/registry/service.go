@@ -11,17 +11,32 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	api "github.com/steady-bytes/draft/api/gen/go"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/jinzhu/gorm"
 )
 
 type service struct {
 	api.RegistryServer
-	DB *gorm.DB
+	DB               *gorm.DB
+	eventStoreClient api.EventStoreClient
 }
 
-func NewService() *service {
-	return &service{}
+func NewService() (*service, error) {
+	url := fmt.Sprintf("%s:%d", "localhost", 50000)
+	conn, err := grpc.Dial(url, grpc.WithInsecure())
+	if err != nil {
+		fmt.Printf("[%s] Dial failed: %v", url, err)
+		return nil, err
+	}
+
+	client := api.NewEventStoreClient(conn)
+
+	return &service{
+		eventStoreClient: client,
+	}, nil
 }
 
 const clientID = "78f5b6e1-3096-4d40-8bdc-8061d2cc0751"
@@ -57,7 +72,39 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 	}
 
 	// send event?
-	// process joined
+	// process handshake started
+	evtData := &api.HandshakeInitiated{
+		ProcessId:     process.GetId(),
+		LeaderAddress: "http://[::1]:50002",
+		InitiatedTime: timestamppb.Now(),
+	}
+
+	evtDataJson, err := protojson.Marshal(evtData)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	evt := &api.Event{
+		Id:            uuid.NewString(),
+		AggregateId:   process.GetId(),
+		TransactionId: uuid.NewString(),
+		Data:          string(evtDataJson),
+		CreatedAt:     timestamppb.Now(),
+		AggregateKind: api.AggregateKind_REGISTRY,
+		EventCode:     api.EventCode_HANDSHAKE_INITIATED,
+		SideAffect:    false,
+	}
+
+	esReq := &api.CreateEventRequest{
+		Payload: evt,
+	}
+
+	res, err := s.eventStoreClient.Create(ctx, esReq)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
 
 	// iniate the `Handshake` type
 	handshake := &api.Handshake{
@@ -65,6 +112,7 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 		// TODO: change this to some method that will fetch dynamicly
 		LeaderAddress: "http://[::1]:50002",
 		Token:         process.GetToken(),
+		TransactionId: res.GetResult().GetTransactionId(),
 	}
 
 	return handshake, nil

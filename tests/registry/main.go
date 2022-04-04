@@ -32,9 +32,6 @@ func testInitateHandshake() error {
 
 	clientID := "78f5b6e1-3096-4d40-8bdc-8061d2cc0751"
 
-	// create context
-	ctx := context.Background()
-
 	client := api.NewRegistryClient(conn)
 
 	req := &api.RequestHandshake{
@@ -71,6 +68,10 @@ func testInitateHandshake() error {
 		},
 	}
 
+	// create context
+	ctx := context.Background()
+
+	// make rpc call
 	res, err := client.InitiateHandshake(ctx, req)
 	if err != nil {
 		return err

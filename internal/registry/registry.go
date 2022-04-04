@@ -19,8 +19,13 @@ import (
 // Because of this, an rpc interface, event_store client, and storage facility is needed so the `AggregatePluginRegistrar`
 // can be used as it's base.
 func NewPlugin() draft.DefaultPluginRegistrar {
+	svc, err := NewService()
+	if err != nil {
+		panic(err)
+	}
+
 	return &registry{
-		service: NewService(),
+		service: svc,
 	}
 }
 

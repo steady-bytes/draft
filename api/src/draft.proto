@@ -59,6 +59,9 @@ message ReadAggreageByIDRequest {
 
 message ReadAggregateByIDRespose {}
 
+///////
+// EVENT_STORE
+//////
 /* The storage, and routing interface of all `Event`'s in the system.
  * When an event has been emitted it's stored, and routed to the correct event stream */
 service EventStore {
@@ -115,29 +118,173 @@ message CreateEventResponse {
   Event result = 1; 
 }
 
-/* 
- * Declairs a mapping to the aggregate_type from the `event_code`. The package the event is
- * imported from is the `AggregateKind`. While also specifiying a group of all Events */
-enum SystemAggregateKind {
-    INVALID_SYSTEM_AGGREGATE = 0;
-}
-
-/*
- * EventCode
- */
-enum SystemEventCode {
-  INVALID_SYSTEM_EVENT_CODE = 0;
-}
-
-/////////////////////////
-// APPLICATION AGGREGATES
-/////////////////////////
 enum AggregateKind {
   INVALID_AGGREGATE = 0;
+  REGISTRY = 1;
 }
 
 enum EventCode {
   INVALID_EVENT_CODE = 0;
+  HANDSHAKE_INITIATED = 1;
+}
+
+message HandshakeInitiated {
+  string process_id = 1 [(validate.rules).string.uuid = true];
+
+  string leader_address = 2;
+
+  google.protobuf.Timestamp initiated_time = 3;
+}
+
+///////////
+// REGISTRY
+///////////
+
+// Process registry
+// For a process to connect to the registry it's required to 
+// `InitiateHandshake`, and then use the `Handshake` details to `Connect` and stream process details to the registry on a set
+// interval notifiing the registry of the processes state
+service Registry {
+  // Initiate the connection process to the registry. After registration is complete, a process will be able
+  // to send and receive messages.
+  rpc InitiateHandshake(RequestHandshake) returns (Handshake) {}
+
+  // The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
+  // business logic it's supposted to
+  rpc Connect(stream ProcessDetails) returns (Empty) {}
+
+  // Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
+  // receive a message from the system.
+  rpc Disconnect(DisconnectRequest) returns (Disconnected) {}
+
+  // used by external clients to monitor the status of one, or many processes
+  rpc Monitor(MonitorRequest) returns (stream Process) {}
+
+  // Query the registries journal of processes
+  rpc QuerySystemJournal(JournalQueryRequest) returns (JournalQueryResponse) {}
+}
+
+message JournalQueryRequest {
+  Query look_up = 1;
+}
+
+message JournalQueryResponse {
+  map<string, Process> result = 1;
+}
+
+message MonitorRequest {
+  Query look_up = 1;
+}
+
+message Query {
+  oneof option {
+    string id = 1;
+    string group = 2;
+    string all = 3;
+  } 
+}
+
+message RequestHandshake {
+  Process payload = 1;
+}
+
+message Handshake {
+  // the process_id is assigned when the join request is successful however it does not mean that the process is
+  // registered and running.
+  string process_id = 1;
+  // the address the client must stream it's status messages to
+  string leader_address = 2;
+  
+  Token token = 3;
+
+  string transaction_id = 4 [(validate.rules).string.uuid = true];
+}
+
+message ProcessDetails {
+  string process_id = 1;
+  
+  ProcessRunningState running_state = 2;
+  ProcessHealthState process_health = 3;
+}
+
+message Empty {}
+
+enum ProcessRunningState {
+  INVALID_PROCESS_RUNNING_STATE = 0;
+  PROCESS_STARTING = 1;
+  PROCESS_TESTING = 2;
+  PROCESS_RUNNING = 3;
+}
+
+enum ProcessHealthState {
+  INVALID_PROCESS_HEALTH_STATE = 0;
+  PROCESS_HEALTHY = 1;
+  PROCESS_UNHEALTHY = 2;
+}
+
+message DisconnectRequest {
+  string process_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message Disconnected {
+  string process_id = 1 [(validate.rules).string.uuid = true];
+}
+
+message Process {
+  option (gorm.opts).ormable = true;
+  // id - is a uuid to identify each process of the system
+  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
+  
+  string name = 2;
+  string group = 3;
+  string local = 4;
+
+  string ip_address = 5;
+
+  ProcessKind process_kind = 6;
+
+  repeated Metadata tags = 7;
+
+  google.protobuf.Timestamp joined_time = 8 [(gorm.field).tag = {type: "timestamp"}];
+  google.protobuf.Timestamp left_time = 9 [(gorm.field).tag = {type: "timestamp"}];
+
+  string version = 10;
+
+  ProcessRunningState running_state = 11;
+  ProcessHealthState process_health = 12;
+
+  Token token = 13;
+}
+
+message Token {
+  option (gorm.opts).ormable = true;
+
+  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
+
+  //
+  string token = 3;
+
+  // 
+  string nonce = 4;
+}
+
+enum ProcessKind {
+  INVALID_PROCESS_KIND = 0;
+  AGGREGATE_PROCESS = 1;
+  CONSUMER_PROCESS = 2;
+  PROJECTION_PROCESS = 3;
+  RPC_PROCESS = 4;
+  HTTP_PROCESS = 5;
+  DEFAULT_PROCESS = 6;
+}
+
+message Metadata {
+  option (gorm.opts).ormable = true;
+  // id - is a uuid to identify each process of the system
+  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
+  
+  string key = 2;
+  string value = 3;
 }
 
 // CRUDLAggregate - A generic interface that can be implemented by any `Aggregate` 
