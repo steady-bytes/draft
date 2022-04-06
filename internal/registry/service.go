@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -122,7 +123,19 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 }
 
 func (s *service) Connect(stream api.Registry_ConnectServer) error {
-	return errors.New("implement me")
+	for {
+		status, err := stream.Recv()
+		if err == io.EOF {
+			fmt.Println("eof close")
+			return stream.SendAndClose(&api.Empty{})
+		}
+		if err != nil {
+			fmt.Println("err close")
+			return err
+		}
+
+		fmt.Println("status: ", status)
+	}
 }
 
 func (s *service) Disconnect(ctx context.Context, req *api.DisconnectRequest) (*api.Disconnected, error) {

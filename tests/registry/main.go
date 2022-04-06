@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	api "github.com/steady-bytes/draft/api/gen/go"
@@ -14,12 +15,15 @@ import (
 // TODO: change this to the testing package
 
 func main() {
-	if err := testInitateHandshake(); err != nil {
+	res, err := testInitateHandshake()
+	if err != nil {
 		fmt.Println(err)
 	}
+
+	testConnect(res)
 }
 
-func testInitateHandshake() error {
+func testConnect(handshake *api.Handshake) {
 	// create url
 	url := fmt.Sprintf("%s:%d", "localhost", 50002)
 
@@ -27,7 +31,39 @@ func testInitateHandshake() error {
 	conn, err := grpc.Dial(url, grpc.WithInsecure())
 	if err != nil {
 		fmt.Printf("[%s] Dial failed: %v", url, err)
-		return err
+		panic(err)
+	}
+
+	client := api.NewRegistryClient(conn)
+
+	stream, err := client.Connect(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		status := &api.ProcessDetails{
+			ProcessId:     handshake.GetProcessId(),
+			RunningState:  2,
+			ProcessHealth: 1,
+		}
+
+		stream.Send(status)
+
+		time.Sleep(5 * time.Second)
+
+	}
+}
+
+func testInitateHandshake() (*api.Handshake, error) {
+	// create url
+	url := fmt.Sprintf("%s:%d", "localhost", 50002)
+
+	// create the grpc client
+	conn, err := grpc.Dial(url, grpc.WithInsecure())
+	if err != nil {
+		fmt.Printf("[%s] Dial failed: %v", url, err)
+		return nil, err
 	}
 
 	clientID := "78f5b6e1-3096-4d40-8bdc-8061d2cc0751"
@@ -74,10 +110,10 @@ func testInitateHandshake() error {
 	// make rpc call
 	res, err := client.InitiateHandshake(ctx, req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Println(res)
 
-	return nil
+	return res, nil
 }
