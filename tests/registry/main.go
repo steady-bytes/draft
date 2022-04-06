@@ -21,7 +21,7 @@ func main() {
 
 func testInitateHandshake() error {
 	// create url
-	url := fmt.Sprintf("%s:%d", "localhost", 50000)
+	url := fmt.Sprintf("%s:%d", "localhost", 50002)
 
 	// create the grpc client
 	conn, err := grpc.Dial(url, grpc.WithInsecure())

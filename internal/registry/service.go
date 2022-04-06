@@ -25,7 +25,7 @@ type service struct {
 }
 
 func NewService() (*service, error) {
-	url := fmt.Sprintf("%s:%d", "localhost", 50000)
+	url := fmt.Sprintf("%s:%d", "localhost", 50001)
 	conn, err := grpc.Dial(url, grpc.WithInsecure())
 	if err != nil {
 		fmt.Printf("[%s] Dial failed: %v", url, err)
@@ -71,20 +71,21 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 		return nil, errors.New(msg)
 	}
 
-	// send event?
-	// process handshake started
+	// init handshake started event
 	evtData := &api.HandshakeInitiated{
 		ProcessId:     process.GetId(),
 		LeaderAddress: "http://[::1]:50002",
 		InitiatedTime: timestamppb.Now(),
 	}
 
+	// marshal event data
 	evtDataJson, err := protojson.Marshal(evtData)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
 
+	// init event
 	evt := &api.Event{
 		Id:            uuid.NewString(),
 		AggregateId:   process.GetId(),
@@ -96,17 +97,19 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 		SideAffect:    false,
 	}
 
+	// wrap event in req
 	esReq := &api.CreateEventRequest{
 		Payload: evt,
 	}
 
+	// emit and event to the eventstore service
 	res, err := s.eventStoreClient.Create(ctx, esReq)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
 
-	// iniate the `Handshake` type
+	// iniate the `Handshake`
 	handshake := &api.Handshake{
 		ProcessId: process.GetId(),
 		// TODO: change this to some method that will fetch dynamicly

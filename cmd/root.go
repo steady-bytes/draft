@@ -18,8 +18,8 @@ func Execute() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "firegraph",
-	Short: "firegraph is a graph database that kick's ass",
+	Use:   "draft",
+	Short: "draft a really cool way to build distributed systems",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Usage()
 	},
