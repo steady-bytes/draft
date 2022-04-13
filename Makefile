@@ -6,12 +6,24 @@ OS := $(shell uname)
 #####
 # DEV
 #####
-.PHONY: infra infra-stop
+.PHONY: infra infra-stop start local
 infra:
 	./scripts/start_development.sh
 
 infra-stop:
 	./scripts/stop_development.sh
+
+registry:
+	go run main.go registry -r 50000
+
+event_store:
+	go run main.go event_store -r 50001
+
+local:
+	make -j 2 registry event_store
+
+test:
+	cd tests/registry && go run main.go 
 
 #####
 # API

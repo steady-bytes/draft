@@ -8,8 +8,8 @@ import (
 
 func init() {
 	rootCmd.AddCommand(registry)
-	registry.Flags().Int32VarP(&rpcPort, "rpc_port", "r", 50002, "rpc port override, by default the rpc port is 50002")
-	registry.Flags().Int32VarP(&httpPort, "http_port", "p", 40002, "http port override, by default the http port is 40002")
+	registry.Flags().Int32VarP(&rpcPort, "rpc_port", "r", 50000, "rpc port override, by default the rpc port is 50002")
+	registry.Flags().Int32VarP(&httpPort, "http_port", "p", 40000, "http port override, by default the http port is 40002")
 }
 
 var registry = &cobra.Command{

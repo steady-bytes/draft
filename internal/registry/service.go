@@ -59,6 +59,8 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 		return nil, errors.New("internal error, invalid client id")
 	}
 
+	fmt.Println("payload validated")
+
 	// create api token
 	process, err := NewProcessFromHandshakePayload(payload)
 	if err != nil {
@@ -103,12 +105,16 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 		Payload: evt,
 	}
 
+	fmt.Println("sending event")
+
 	// emit and event to the eventstore service
 	res, err := s.eventStoreClient.Create(ctx, esReq)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
+
+	fmt.Println("event sent")
 
 	// iniate the `Handshake`
 	handshake := &api.Handshake{
@@ -123,8 +129,10 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 }
 
 func (s *service) Connect(stream api.Registry_ConnectServer) error {
+	fmt.Println("connect?")
 	for {
 		status, err := stream.Recv()
+		fmt.Println("test recv")
 		if err == io.EOF {
 			fmt.Println("eof close")
 			return stream.SendAndClose(&api.Empty{})

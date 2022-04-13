@@ -12,8 +12,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// TODO: change this to the testing package
-
 func main() {
 	res, err := testInitateHandshake()
 	if err != nil {
@@ -25,7 +23,7 @@ func main() {
 
 func testConnect(handshake *api.Handshake) {
 	// create url
-	url := fmt.Sprintf("%s:%d", "localhost", 50002)
+	url := fmt.Sprintf("%s:%d", "localhost", 50001)
 
 	// create the grpc client
 	conn, err := grpc.Dial(url, grpc.WithInsecure())
@@ -48,7 +46,11 @@ func testConnect(handshake *api.Handshake) {
 			ProcessHealth: 1,
 		}
 
-		stream.Send(status)
+		fmt.Println("sending status: ", status)
+
+		if err := stream.Send(status); err != nil {
+			panic(err)
+		}
 
 		time.Sleep(5 * time.Second)
 
@@ -57,7 +59,7 @@ func testConnect(handshake *api.Handshake) {
 
 func testInitateHandshake() (*api.Handshake, error) {
 	// create url
-	url := fmt.Sprintf("%s:%d", "localhost", 50002)
+	url := fmt.Sprintf("%s:%d", "localhost", 50000)
 
 	// create the grpc client
 	conn, err := grpc.Dial(url, grpc.WithInsecure())
@@ -113,7 +115,7 @@ func testInitateHandshake() (*api.Handshake, error) {
 		return nil, err
 	}
 
-	fmt.Println(res)
+	fmt.Println("handshake response: ", res)
 
 	return res, nil
 }

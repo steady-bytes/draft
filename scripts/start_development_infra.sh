@@ -60,5 +60,3 @@ sleep 10
 # run nats worker nodes, and join them with the leader
 docker run -d --name ${BROKER_WORK_1} --network ${BROKER_NETWORK} nats --cluster_name ${BROKER_CLUSTER_NAME} --cluster nats://0.0.0.0:6222 --routes=nats://ruser:T0pS3cr3t@nats:6222
 docker run -d --name ${BROKER_WORK_2} --network ${BROKER_NETWORK} nats --cluster_name ${BROKER_CLUSTER_NAME} --cluster nats://0.0.0.0:6222 --routes=nats://ruser:T0pS3cr3t@nats:6222
-
-
