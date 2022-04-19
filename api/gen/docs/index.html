@@ -2050,6 +2050,13 @@ registered and running. </p></td>
                 </tr>
               
                 <tr>
+                  <td>last_status_time</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
                   <td>version</td>
                   <td><a href="#string">string</a></td>
                   <td></td>
@@ -2138,6 +2145,20 @@ registered and running. </p></td>
                 <tr>
                   <td>process_health</td>
                   <td><a href="#api.ProcessHealthState">ProcessHealthState</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>token</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>nonce</td>
+                  <td><a href="#string">string</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -2582,7 +2603,7 @@ to send and receive messages.</p></td>
               </tr>
             
               <tr>
-                <td>Connect</td>
+                <td>ConnectProcess</td>
                 <td><a href="#api.ProcessDetails">ProcessDetails</a> stream</td>
                 <td><a href="#api.Empty">Empty</a></td>
                 <td><p>The process that has joined the cluster must send connections details of it&#39;s ability to process requests, or perform the

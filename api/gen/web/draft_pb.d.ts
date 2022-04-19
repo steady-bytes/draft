@@ -389,6 +389,12 @@ export class ProcessDetails extends jspb.Message {
   getProcessHealth(): ProcessHealthState;
   setProcessHealth(value: ProcessHealthState): ProcessDetails;
 
+  getToken(): string;
+  setToken(value: string): ProcessDetails;
+
+  getNonce(): string;
+  setNonce(value: string): ProcessDetails;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ProcessDetails.AsObject;
   static toObject(includeInstance: boolean, msg: ProcessDetails): ProcessDetails.AsObject;
@@ -402,6 +408,8 @@ export namespace ProcessDetails {
     processId: string,
     runningState: ProcessRunningState,
     processHealth: ProcessHealthState,
+    token: string,
+    nonce: string,
   }
 }
 
@@ -489,6 +497,11 @@ export class Process extends jspb.Message {
   hasLeftTime(): boolean;
   clearLeftTime(): Process;
 
+  getLastStatusTime(): google_protobuf_timestamp_pb.Timestamp | undefined;
+  setLastStatusTime(value?: google_protobuf_timestamp_pb.Timestamp): Process;
+  hasLastStatusTime(): boolean;
+  clearLastStatusTime(): Process;
+
   getVersion(): string;
   setVersion(value: string): Process;
 
@@ -522,6 +535,7 @@ export namespace Process {
     tagsList: Array<Metadata.AsObject>,
     joinedTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
     leftTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
+    lastStatusTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
     version: string,
     runningState: ProcessRunningState,
     processHealth: ProcessHealthState,

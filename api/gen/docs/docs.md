@@ -594,6 +594,7 @@ the `Event` is stored and forwarded to the correct consumer.
 | tags | [Metadata](#api.Metadata) | repeated |  |
 | joined_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
 | left_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+| last_status_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
 | version | [string](#string) |  |  |
 | running_state | [ProcessRunningState](#api.ProcessRunningState) |  |  |
 | process_health | [ProcessHealthState](#api.ProcessHealthState) |  |  |
@@ -615,6 +616,8 @@ the `Event` is stored and forwarded to the correct consumer.
 | process_id | [string](#string) |  |  |
 | running_state | [ProcessRunningState](#api.ProcessRunningState) |  |  |
 | process_health | [ProcessHealthState](#api.ProcessHealthState) |  |  |
+| token | [string](#string) |  |  |
+| nonce | [string](#string) |  |  |
 
 
 
@@ -807,7 +810,7 @@ interval notifiing the registry of the processes state
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | InitiateHandshake | [RequestHandshake](#api.RequestHandshake) | [Handshake](#api.Handshake) | Initiate the connection process to the registry. After registration is complete, a process will be able to send and receive messages. |
-| Connect | [ProcessDetails](#api.ProcessDetails) stream | [Empty](#api.Empty) | The process that has joined the cluster must send connections details of it&#39;s ability to process requests, or perform the business logic it&#39;s supposted to |
+| ConnectProcess | [ProcessDetails](#api.ProcessDetails) stream | [Empty](#api.Empty) | The process that has joined the cluster must send connections details of it&#39;s ability to process requests, or perform the business logic it&#39;s supposted to |
 | Disconnect | [DisconnectRequest](#api.DisconnectRequest) | [Disconnected](#api.Disconnected) | Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or receive a message from the system. |
 | Monitor | [MonitorRequest](#api.MonitorRequest) | [Process](#api.Process) stream | used by external clients to monitor the status of one, or many processes |
 | QuerySystemJournal | [JournalQueryRequest](#api.JournalQueryRequest) | [JournalQueryResponse](#api.JournalQueryResponse) | Query the registries journal of processes |

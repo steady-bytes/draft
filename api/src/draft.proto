@@ -151,7 +151,7 @@ service Registry {
 
   // The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
   // business logic it's supposted to
-  rpc Connect(stream ProcessDetails) returns (Empty) {}
+  rpc ConnectProcess(stream ProcessDetails) returns (Empty) {}
 
   // Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
   // receive a message from the system.
@@ -205,6 +205,9 @@ message ProcessDetails {
   
   ProcessRunningState running_state = 2;
   ProcessHealthState process_health = 3;
+
+  string token = 4;
+  string nonce = 5;
 }
 
 message Empty {}
@@ -247,13 +250,14 @@ message Process {
 
   google.protobuf.Timestamp joined_time = 8 [(gorm.field).tag = {type: "timestamp"}];
   google.protobuf.Timestamp left_time = 9 [(gorm.field).tag = {type: "timestamp"}];
+  google.protobuf.Timestamp last_status_time = 10 [(gorm.field).tag = {type: "timestamp"}];
 
-  string version = 10;
+  string version = 11;
 
-  ProcessRunningState running_state = 11;
-  ProcessHealthState process_health = 12;
+  ProcessRunningState running_state = 12;
+  ProcessHealthState process_health = 13;
 
-  Token token = 13;
+  Token token = 14;
 }
 
 message Token {

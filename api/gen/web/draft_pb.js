@@ -3353,7 +3353,9 @@ proto.api.ProcessDetails.toObject = function(includeInstance, msg) {
   var f, obj = {
     processId: jspb.Message.getFieldWithDefault(msg, 1, ""),
     runningState: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    processHealth: jspb.Message.getFieldWithDefault(msg, 3, 0)
+    processHealth: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    token: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    nonce: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -3402,6 +3404,14 @@ proto.api.ProcessDetails.deserializeBinaryFromReader = function(msg, reader) {
       var value = /** @type {!proto.api.ProcessHealthState} */ (reader.readEnum());
       msg.setProcessHealth(value);
       break;
+    case 4:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setToken(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setNonce(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -3449,6 +3459,20 @@ proto.api.ProcessDetails.serializeBinaryToWriter = function(message, writer) {
   if (f !== 0.0) {
     writer.writeEnum(
       3,
+      f
+    );
+  }
+  f = message.getToken();
+  if (f.length > 0) {
+    writer.writeString(
+      4,
+      f
+    );
+  }
+  f = message.getNonce();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -3506,6 +3530,42 @@ proto.api.ProcessDetails.prototype.getProcessHealth = function() {
  */
 proto.api.ProcessDetails.prototype.setProcessHealth = function(value) {
   return jspb.Message.setProto3EnumField(this, 3, value);
+};
+
+
+/**
+ * optional string token = 4;
+ * @return {string}
+ */
+proto.api.ProcessDetails.prototype.getToken = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.api.ProcessDetails} returns this
+ */
+proto.api.ProcessDetails.prototype.setToken = function(value) {
+  return jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string nonce = 5;
+ * @return {string}
+ */
+proto.api.ProcessDetails.prototype.getNonce = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.api.ProcessDetails} returns this
+ */
+proto.api.ProcessDetails.prototype.setNonce = function(value) {
+  return jspb.Message.setProto3StringField(this, 5, value);
 };
 
 
@@ -3919,9 +3979,10 @@ proto.api.Process.toObject = function(includeInstance, msg) {
     proto.api.Metadata.toObject, includeInstance),
     joinedTime: (f = msg.getJoinedTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
     leftTime: (f = msg.getLeftTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
-    version: jspb.Message.getFieldWithDefault(msg, 10, ""),
-    runningState: jspb.Message.getFieldWithDefault(msg, 11, 0),
-    processHealth: jspb.Message.getFieldWithDefault(msg, 12, 0),
+    lastStatusTime: (f = msg.getLastStatusTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    version: jspb.Message.getFieldWithDefault(msg, 11, ""),
+    runningState: jspb.Message.getFieldWithDefault(msg, 12, 0),
+    processHealth: jspb.Message.getFieldWithDefault(msg, 13, 0),
     token: (f = msg.getToken()) && proto.api.Token.toObject(includeInstance, f)
   };
 
@@ -3999,18 +4060,23 @@ proto.api.Process.deserializeBinaryFromReader = function(msg, reader) {
       msg.setLeftTime(value);
       break;
     case 10:
+      var value = new google_protobuf_timestamp_pb.Timestamp;
+      reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
+      msg.setLastStatusTime(value);
+      break;
+    case 11:
       var value = /** @type {string} */ (reader.readString());
       msg.setVersion(value);
       break;
-    case 11:
+    case 12:
       var value = /** @type {!proto.api.ProcessRunningState} */ (reader.readEnum());
       msg.setRunningState(value);
       break;
-    case 12:
+    case 13:
       var value = /** @type {!proto.api.ProcessHealthState} */ (reader.readEnum());
       msg.setProcessHealth(value);
       break;
-    case 13:
+    case 14:
       var value = new proto.api.Token;
       reader.readMessage(value,proto.api.Token.deserializeBinaryFromReader);
       msg.setToken(value);
@@ -4110,31 +4176,39 @@ proto.api.Process.serializeBinaryToWriter = function(message, writer) {
       google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
     );
   }
+  f = message.getLastStatusTime();
+  if (f != null) {
+    writer.writeMessage(
+      10,
+      f,
+      google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
+    );
+  }
   f = message.getVersion();
   if (f.length > 0) {
     writer.writeString(
-      10,
+      11,
       f
     );
   }
   f = message.getRunningState();
   if (f !== 0.0) {
     writer.writeEnum(
-      11,
+      12,
       f
     );
   }
   f = message.getProcessHealth();
   if (f !== 0.0) {
     writer.writeEnum(
-      12,
+      13,
       f
     );
   }
   f = message.getToken();
   if (f != null) {
     writer.writeMessage(
-      13,
+      14,
       f,
       proto.api.Token.serializeBinaryToWriter
     );
@@ -4363,11 +4437,48 @@ proto.api.Process.prototype.hasLeftTime = function() {
 
 
 /**
- * optional string version = 10;
+ * optional google.protobuf.Timestamp last_status_time = 10;
+ * @return {?proto.google.protobuf.Timestamp}
+ */
+proto.api.Process.prototype.getLastStatusTime = function() {
+  return /** @type{?proto.google.protobuf.Timestamp} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_timestamp_pb.Timestamp, 10));
+};
+
+
+/**
+ * @param {?proto.google.protobuf.Timestamp|undefined} value
+ * @return {!proto.api.Process} returns this
+*/
+proto.api.Process.prototype.setLastStatusTime = function(value) {
+  return jspb.Message.setWrapperField(this, 10, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.api.Process} returns this
+ */
+proto.api.Process.prototype.clearLastStatusTime = function() {
+  return this.setLastStatusTime(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.api.Process.prototype.hasLastStatusTime = function() {
+  return jspb.Message.getField(this, 10) != null;
+};
+
+
+/**
+ * optional string version = 11;
  * @return {string}
  */
 proto.api.Process.prototype.getVersion = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 10, ""));
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 11, ""));
 };
 
 
@@ -4376,16 +4487,16 @@ proto.api.Process.prototype.getVersion = function() {
  * @return {!proto.api.Process} returns this
  */
 proto.api.Process.prototype.setVersion = function(value) {
-  return jspb.Message.setProto3StringField(this, 10, value);
+  return jspb.Message.setProto3StringField(this, 11, value);
 };
 
 
 /**
- * optional ProcessRunningState running_state = 11;
+ * optional ProcessRunningState running_state = 12;
  * @return {!proto.api.ProcessRunningState}
  */
 proto.api.Process.prototype.getRunningState = function() {
-  return /** @type {!proto.api.ProcessRunningState} */ (jspb.Message.getFieldWithDefault(this, 11, 0));
+  return /** @type {!proto.api.ProcessRunningState} */ (jspb.Message.getFieldWithDefault(this, 12, 0));
 };
 
 
@@ -4394,16 +4505,16 @@ proto.api.Process.prototype.getRunningState = function() {
  * @return {!proto.api.Process} returns this
  */
 proto.api.Process.prototype.setRunningState = function(value) {
-  return jspb.Message.setProto3EnumField(this, 11, value);
+  return jspb.Message.setProto3EnumField(this, 12, value);
 };
 
 
 /**
- * optional ProcessHealthState process_health = 12;
+ * optional ProcessHealthState process_health = 13;
  * @return {!proto.api.ProcessHealthState}
  */
 proto.api.Process.prototype.getProcessHealth = function() {
-  return /** @type {!proto.api.ProcessHealthState} */ (jspb.Message.getFieldWithDefault(this, 12, 0));
+  return /** @type {!proto.api.ProcessHealthState} */ (jspb.Message.getFieldWithDefault(this, 13, 0));
 };
 
 
@@ -4412,17 +4523,17 @@ proto.api.Process.prototype.getProcessHealth = function() {
  * @return {!proto.api.Process} returns this
  */
 proto.api.Process.prototype.setProcessHealth = function(value) {
-  return jspb.Message.setProto3EnumField(this, 12, value);
+  return jspb.Message.setProto3EnumField(this, 13, value);
 };
 
 
 /**
- * optional Token token = 13;
+ * optional Token token = 14;
  * @return {?proto.api.Token}
  */
 proto.api.Process.prototype.getToken = function() {
   return /** @type{?proto.api.Token} */ (
-    jspb.Message.getWrapperField(this, proto.api.Token, 13));
+    jspb.Message.getWrapperField(this, proto.api.Token, 14));
 };
 
 
@@ -4431,7 +4542,7 @@ proto.api.Process.prototype.getToken = function() {
  * @return {!proto.api.Process} returns this
 */
 proto.api.Process.prototype.setToken = function(value) {
-  return jspb.Message.setWrapperField(this, 13, value);
+  return jspb.Message.setWrapperField(this, 14, value);
 };
 
 
@@ -4449,7 +4560,7 @@ proto.api.Process.prototype.clearToken = function() {
  * @return {boolean}
  */
 proto.api.Process.prototype.hasToken = function() {
-  return jspb.Message.getField(this, 13) != null;
+  return jspb.Message.getField(this, 14) != null;
 };
 
 

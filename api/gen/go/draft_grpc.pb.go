@@ -247,7 +247,7 @@ type RegistryClient interface {
 	InitiateHandshake(ctx context.Context, in *RequestHandshake, opts ...grpc.CallOption) (*Handshake, error)
 	// The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
 	// business logic it's supposted to
-	Connect(ctx context.Context, opts ...grpc.CallOption) (Registry_ConnectClient, error)
+	ConnectProcess(ctx context.Context, opts ...grpc.CallOption) (Registry_ConnectProcessClient, error)
 	// Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
 	// receive a message from the system.
 	Disconnect(ctx context.Context, in *DisconnectRequest, opts ...grpc.CallOption) (*Disconnected, error)
@@ -274,30 +274,30 @@ func (c *registryClient) InitiateHandshake(ctx context.Context, in *RequestHands
 	return out, nil
 }
 
-func (c *registryClient) Connect(ctx context.Context, opts ...grpc.CallOption) (Registry_ConnectClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[0], "/api.Registry/Connect", opts...)
+func (c *registryClient) ConnectProcess(ctx context.Context, opts ...grpc.CallOption) (Registry_ConnectProcessClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[0], "/api.Registry/ConnectProcess", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &registryConnectClient{stream}
+	x := &registryConnectProcessClient{stream}
 	return x, nil
 }
 
-type Registry_ConnectClient interface {
+type Registry_ConnectProcessClient interface {
 	Send(*ProcessDetails) error
 	CloseAndRecv() (*Empty, error)
 	grpc.ClientStream
 }
 
-type registryConnectClient struct {
+type registryConnectProcessClient struct {
 	grpc.ClientStream
 }
 
-func (x *registryConnectClient) Send(m *ProcessDetails) error {
+func (x *registryConnectProcessClient) Send(m *ProcessDetails) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *registryConnectClient) CloseAndRecv() (*Empty, error) {
+func (x *registryConnectProcessClient) CloseAndRecv() (*Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -367,7 +367,7 @@ type RegistryServer interface {
 	InitiateHandshake(context.Context, *RequestHandshake) (*Handshake, error)
 	// The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
 	// business logic it's supposted to
-	Connect(Registry_ConnectServer) error
+	ConnectProcess(Registry_ConnectProcessServer) error
 	// Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or
 	// receive a message from the system.
 	Disconnect(context.Context, *DisconnectRequest) (*Disconnected, error)
@@ -384,8 +384,8 @@ type UnimplementedRegistryServer struct {
 func (UnimplementedRegistryServer) InitiateHandshake(context.Context, *RequestHandshake) (*Handshake, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InitiateHandshake not implemented")
 }
-func (UnimplementedRegistryServer) Connect(Registry_ConnectServer) error {
-	return status.Errorf(codes.Unimplemented, "method Connect not implemented")
+func (UnimplementedRegistryServer) ConnectProcess(Registry_ConnectProcessServer) error {
+	return status.Errorf(codes.Unimplemented, "method ConnectProcess not implemented")
 }
 func (UnimplementedRegistryServer) Disconnect(context.Context, *DisconnectRequest) (*Disconnected, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Disconnect not implemented")
@@ -426,25 +426,25 @@ func _Registry_InitiateHandshake_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Registry_Connect_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(RegistryServer).Connect(&registryConnectServer{stream})
+func _Registry_ConnectProcess_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RegistryServer).ConnectProcess(&registryConnectProcessServer{stream})
 }
 
-type Registry_ConnectServer interface {
+type Registry_ConnectProcessServer interface {
 	SendAndClose(*Empty) error
 	Recv() (*ProcessDetails, error)
 	grpc.ServerStream
 }
 
-type registryConnectServer struct {
+type registryConnectProcessServer struct {
 	grpc.ServerStream
 }
 
-func (x *registryConnectServer) SendAndClose(m *Empty) error {
+func (x *registryConnectProcessServer) SendAndClose(m *Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *registryConnectServer) Recv() (*ProcessDetails, error) {
+func (x *registryConnectProcessServer) Recv() (*ProcessDetails, error) {
 	m := new(ProcessDetails)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -531,8 +531,8 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Connect",
-			Handler:       _Registry_Connect_Handler,
+			StreamName:    "ConnectProcess",
+			Handler:       _Registry_ConnectProcess_Handler,
 			ClientStreams: true,
 		},
 		{

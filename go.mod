@@ -7,6 +7,10 @@ replace github.com/steady-bytes/draft/pkg/draft-runtime v0.0.1 => ./pkg/draft-ru
 require (
 	github.com/envoyproxy/protoc-gen-validate v0.6.3
 	github.com/favadi/protoc-go-inject-tag v1.3.0
+	github.com/gofiber/fiber/v2 v2.31.0
+	github.com/gofiber/template v1.6.26
+	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.3
 	github.com/infobloxopen/atlas-app-toolkit v0.24.1-0.20210416193901-4c7518b07e08
 	github.com/infobloxopen/protoc-gen-gorm v1.1.0
@@ -29,13 +33,9 @@ require (
 	github.com/aokoli/goutils v1.0.1 // indirect
 	github.com/aymerick/raymond v2.0.2+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/gofiber/fiber/v2 v2.31.0 // indirect
-	github.com/gofiber/template v1.6.26 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.0.0 // indirect
 	github.com/iancoleman/strcase v0.2.0 // indirect

@@ -125,25 +125,59 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 		TransactionId: res.GetResult().GetTransactionId(),
 	}
 
+	fmt.Println("handshake: ", handshake)
+
 	return handshake, nil
 }
 
-func (s *service) Connect(stream api.Registry_ConnectServer) error {
-	fmt.Println("connect?")
+// ConnectProcess - Uses the
+func (s *service) ConnectProcess(stream api.Registry_ConnectProcessServer) error {
 	for {
-		status, err := stream.Recv()
-		fmt.Println("test recv")
-		if err == io.EOF {
-			fmt.Println("eof close")
+		msg, closer := stream.Recv()
+		if closer == io.EOF {
 			return stream.SendAndClose(&api.Empty{})
 		}
-		if err != nil {
-			fmt.Println("err close")
-			return err
+		if closer != nil {
+			fmt.Println("stream closed")
+			return closer
+		} else {
+			fmt.Println("status: ", msg)
+
+			// If the `ProcessDetails` contain the correct `nonce`, and `token` then update the `last_status_time` field
+			if err := s.updateProcessDetails(msg); err != nil {
+				fmt.Println("process details failed to update")
+				return err
+			}
+		}
+	}
+}
+
+func (s *service) updateProcessDetails(details *api.ProcessDetails) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		// db.Where(&User{Name: "jinzhu", Age: 20}).First(&user)
+		// db.First(&user, "id = ?", "string_primary_key")
+		//// SELECT * FROM users WHERE id = 'string_primary_key';
+
+		p := &api.Process{}
+		tx = tx.First(p, "id = ?", details.GetProcessId())
+		if tx.Error != nil {
+			fmt.Println("and error occured when finding the process by it's primary key")
+			return tx.Error
 		}
 
-		fmt.Println("status: ", status)
-	}
+		// if both the `token` and `nonce` are valid, update `last_status_time`
+		if p.GetToken().GetToken() == details.GetToken() && p.GetToken().GetNonce() == details.GetNonce() {
+			// change the `last_status_time`
+			p.LastStatusTime = timestamppb.Now()
+			// TODO: update other fields from the details as well
+			tx = tx.Update(p)
+			if tx.Error != nil {
+				fmt.Println("and error occured when updating the process last_status_time")
+				return tx.Error
+			}
+		}
+		return nil
+	})
 }
 
 func (s *service) Disconnect(ctx context.Context, req *api.DisconnectRequest) (*api.Disconnected, error) {

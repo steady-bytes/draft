@@ -18,12 +18,14 @@ func main() {
 		fmt.Println(err)
 	}
 
+	fmt.Println("hanshake: ", res)
+
 	testConnect(res)
 }
 
 func testConnect(handshake *api.Handshake) {
 	// create url
-	url := fmt.Sprintf("%s:%d", "localhost", 50001)
+	url := fmt.Sprintf("%s:%d", "localhost", 50000)
 
 	// create the grpc client
 	conn, err := grpc.Dial(url, grpc.WithInsecure())
@@ -34,10 +36,12 @@ func testConnect(handshake *api.Handshake) {
 
 	client := api.NewRegistryClient(conn)
 
-	stream, err := client.Connect(context.Background())
+	stream, err := client.ConnectProcess(context.Background())
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println("enter forever loop")
 
 	for {
 		status := &api.ProcessDetails{
@@ -49,6 +53,7 @@ func testConnect(handshake *api.Handshake) {
 		fmt.Println("sending status: ", status)
 
 		if err := stream.Send(status); err != nil {
+			fmt.Println("close message: ", err)
 			panic(err)
 		}
 

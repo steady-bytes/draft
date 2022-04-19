@@ -2140,6 +2140,10 @@ func (m *ProcessDetails) validate(all bool) error {
 
 	// no validation rules for ProcessHealth
 
+	// no validation rules for Token
+
+	// no validation rules for Nonce
+
 	if len(errors) > 0 {
 		return ProcessDetailsMultiError(errors)
 	}
@@ -2686,6 +2690,35 @@ func (m *Process) validate(all bool) error {
 		if err := v.Validate(); err != nil {
 			return ProcessValidationError{
 				field:  "LeftTime",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetLastStatusTime()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ProcessValidationError{
+					field:  "LastStatusTime",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ProcessValidationError{
+					field:  "LastStatusTime",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetLastStatusTime()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ProcessValidationError{
+				field:  "LastStatusTime",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

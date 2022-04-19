@@ -98,10 +98,10 @@ func (d *DefaultRuntimeBuilder) RegisterBroker(broker interface{}) error {
 func (c *Commet) Start() error {
 	fmt.Println("start called")
 
-	if c.http != nil {
-		port := fmt.Sprintf(":%d", c.config.Service.HTTPPort)
-		go c.http.Listen(port)
-	}
+	/* if c.http != nil {
+	 *   port := fmt.Sprintf(":%d", c.config.Service.HTTPPort)
+	 *   go c.http.Listen(port)
+	 * } */
 
 	if c.rpc != nil {
 		fmt.Println("starting")
