@@ -234,6 +234,54 @@ export namespace HandshakeInitiated {
   }
 }
 
+export class ProcessConnected extends jspb.Message {
+  getProcessId(): string;
+  setProcessId(value: string): ProcessConnected;
+
+  getConnectedAt(): google_protobuf_timestamp_pb.Timestamp | undefined;
+  setConnectedAt(value?: google_protobuf_timestamp_pb.Timestamp): ProcessConnected;
+  hasConnectedAt(): boolean;
+  clearConnectedAt(): ProcessConnected;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ProcessConnected.AsObject;
+  static toObject(includeInstance: boolean, msg: ProcessConnected): ProcessConnected.AsObject;
+  static serializeBinaryToWriter(message: ProcessConnected, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ProcessConnected;
+  static deserializeBinaryFromReader(message: ProcessConnected, reader: jspb.BinaryReader): ProcessConnected;
+}
+
+export namespace ProcessConnected {
+  export type AsObject = {
+    processId: string,
+    connectedAt?: google_protobuf_timestamp_pb.Timestamp.AsObject,
+  }
+}
+
+export class ProcessDisconnected extends jspb.Message {
+  getProcessId(): string;
+  setProcessId(value: string): ProcessDisconnected;
+
+  getDisconnectedAt(): google_protobuf_timestamp_pb.Timestamp | undefined;
+  setDisconnectedAt(value?: google_protobuf_timestamp_pb.Timestamp): ProcessDisconnected;
+  hasDisconnectedAt(): boolean;
+  clearDisconnectedAt(): ProcessDisconnected;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): ProcessDisconnected.AsObject;
+  static toObject(includeInstance: boolean, msg: ProcessDisconnected): ProcessDisconnected.AsObject;
+  static serializeBinaryToWriter(message: ProcessDisconnected, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): ProcessDisconnected;
+  static deserializeBinaryFromReader(message: ProcessDisconnected, reader: jspb.BinaryReader): ProcessDisconnected;
+}
+
+export namespace ProcessDisconnected {
+  export type AsObject = {
+    processId: string,
+    disconnectedAt?: google_protobuf_timestamp_pb.Timestamp.AsObject,
+  }
+}
+
 export class JournalQueryRequest extends jspb.Message {
   getLookUp(): Query | undefined;
   setLookUp(value?: Query): JournalQueryRequest;
@@ -547,8 +595,8 @@ export class Token extends jspb.Message {
   getId(): string;
   setId(value: string): Token;
 
-  getToken(): string;
-  setToken(value: string): Token;
+  getJwt(): string;
+  setJwt(value: string): Token;
 
   getNonce(): string;
   setNonce(value: string): Token;
@@ -564,7 +612,7 @@ export class Token extends jspb.Message {
 export namespace Token {
   export type AsObject = {
     id: string,
-    token: string,
+    jwt: string,
     nonce: string,
   }
 }
@@ -602,12 +650,15 @@ export enum AggregateKind {
 export enum EventCode { 
   INVALID_EVENT_CODE = 0,
   HANDSHAKE_INITIATED = 1,
+  PROCESS_CONNECTED = 2,
+  PROCESS_DISCONNECTED = 3,
 }
 export enum ProcessRunningState { 
   INVALID_PROCESS_RUNNING_STATE = 0,
   PROCESS_STARTING = 1,
   PROCESS_TESTING = 2,
   PROCESS_RUNNING = 3,
+  PROCESS_DICONNECTED = 4,
 }
 export enum ProcessHealthState { 
   INVALID_PROCESS_HEALTH_STATE = 0,

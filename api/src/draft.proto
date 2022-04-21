@@ -118,6 +118,16 @@ message CreateEventResponse {
   Event result = 1; 
 }
 
+// AggregateKind - Is the registered type in the system that defines some kind of data that is stored. Each `Aggregate`
+// is mutable through the `Writer`, and readable from the `Reader`.
+// 
+// An example of this is a `User` aggregate that can will contain default `CRUDL` methods that can be chained together
+// to implement any sort of business logic. Secondarly, side effacts can be issued in the form of `Event`s when a specific
+// interesting point in time of the aggregates lifespan occures.
+// 
+// A default topic is created for each `AggregateKind` this allows for a simple decoupling of the data, events, and individual
+// `Processes`. In the future this default may be configurable; however, it's currently not. `Queues` also need to be considered
+// when implementing a new `AggregateKind`.
 enum AggregateKind {
   INVALID_AGGREGATE = 0;
   REGISTRY = 1;
@@ -126,14 +136,29 @@ enum AggregateKind {
 enum EventCode {
   INVALID_EVENT_CODE = 0;
   HANDSHAKE_INITIATED = 1;
+  PROCESS_CONNECTED = 2;
+  PROCESS_DISCONNECTED = 3;
 }
 
+// HandshakeInitiated - An event that marks the point in time, and the `address` of the process that 
+// has initiated a new connection to the system
 message HandshakeInitiated {
   string process_id = 1 [(validate.rules).string.uuid = true];
-
   string leader_address = 2;
-
   google.protobuf.Timestamp initiated_time = 3;
+}
+
+// ProcessConnected - An event that marks the point in time, of which the process is successful in establishing
+// a connection, and registerying is metadata to the registry
+message ProcessConnected {
+  string process_id = 1 [(validate.rules).string.uuid = true];
+  google.protobuf.Timestamp connected_at = 2;
+}
+
+// ProcessDisconnected - An event that marks the point in time, of which the process disconnets from the registry.
+message ProcessDisconnected {
+  string process_id = 1 [(validate.rules).string.uuid = true];
+  google.protobuf.Timestamp disconnected_at = 2;
 }
 
 ///////////
@@ -217,6 +242,7 @@ enum ProcessRunningState {
   PROCESS_STARTING = 1;
   PROCESS_TESTING = 2;
   PROCESS_RUNNING = 3;
+  PROCESS_DICONNECTED = 4;
 }
 
 enum ProcessHealthState {
@@ -264,11 +290,7 @@ message Token {
   option (gorm.opts).ormable = true;
 
   string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
-
-  //
-  string token = 3;
-
-  // 
+  string jwt = 3;
   string nonce = 4;
 }
 

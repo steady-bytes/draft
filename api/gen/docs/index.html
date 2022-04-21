@@ -318,7 +318,15 @@
                 </li>
               
                 <li>
+                  <a href="#api.ProcessConnected"><span class="badge">M</span>ProcessConnected</a>
+                </li>
+              
+                <li>
                   <a href="#api.ProcessDetails"><span class="badge">M</span>ProcessDetails</a>
+                </li>
+              
+                <li>
+                  <a href="#api.ProcessDisconnected"><span class="badge">M</span>ProcessDisconnected</a>
                 </li>
               
                 <li>
@@ -1668,7 +1676,7 @@ registered and running. </p></td>
         
       
         <h3 id="api.HandshakeInitiated">HandshakeInitiated</h3>
-        <p></p>
+        <p>HandshakeInitiated - An event that marks the point in time, and the `address` of the process that </p><p>has initiated a new connection to the system</p>
 
         
           <table class="field-table">
@@ -2118,6 +2126,64 @@ registered and running. </p></td>
 
         
       
+        <h3 id="api.ProcessConnected">ProcessConnected</h3>
+        <p>ProcessConnected - An event that marks the point in time, of which the process is successful in establishing</p><p>a connection, and registerying is metadata to the registry</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>connected_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
+          
+
+        
+      
         <h3 id="api.ProcessDetails">ProcessDetails</h3>
         <p></p>
 
@@ -2166,6 +2232,64 @@ registered and running. </p></td>
             </tbody>
           </table>
 
+          
+
+        
+      
+        <h3 id="api.ProcessDisconnected">ProcessDisconnected</h3>
+        <p>ProcessDisconnected - An event that marks the point in time, of which the process disconnets from the registry.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>disconnected_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+            
+            
+            <h4>Validated Fields</h4>
+            <table>
+              <thead>
+                <tr>
+                  <td>Field</td>
+                  <td>Validations</td>
+                </tr>
+              </thead>
+              <tbody>
+              
+                <tr>
+                  <td>process_id</td>
+                  <td>
+                    <ul>
+                    
+                      <li>string.uuid: true</li>
+                    
+                    </ul>
+                  </td>
+                </tr>
+              
+              </tbody>
+            </table>
+            
           
 
         
@@ -2281,7 +2405,7 @@ registered and running. </p></td>
                 </tr>
               
                 <tr>
-                  <td>token</td>
+                  <td>jwt</td>
                   <td><a href="#string">string</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -2400,7 +2524,7 @@ registered and running. </p></td>
 
       
         <h3 id="api.AggregateKind">AggregateKind</h3>
-        <p></p>
+        <p>AggregateKind - Is the registered type in the system that defines some kind of data that is stored. Each `Aggregate`</p><p>is mutable through the `Writer`, and readable from the `Reader`.</p><p>An example of this is a `User` aggregate that can will contain default `CRUDL` methods that can be chained together</p><p>to implement any sort of business logic. Secondarly, side effacts can be issued in the form of `Event`s when a specific</p><p>interesting point in time of the aggregates lifespan occures.</p>
         <table class="enum-table">
           <thead>
             <tr><td>Name</td><td>Number</td><td>Description</td></tr>
@@ -2439,6 +2563,18 @@ registered and running. </p></td>
               <tr>
                 <td>HANDSHAKE_INITIATED</td>
                 <td>1</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROCESS_CONNECTED</td>
+                <td>2</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROCESS_DISCONNECTED</td>
+                <td>3</td>
                 <td><p></p></td>
               </tr>
             
@@ -2556,6 +2692,12 @@ registered and running. </p></td>
               <tr>
                 <td>PROCESS_RUNNING</td>
                 <td>3</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>PROCESS_DICONNECTED</td>
+                <td>4</td>
                 <td><p></p></td>
               </tr>
             

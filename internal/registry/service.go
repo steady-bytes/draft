@@ -9,9 +9,10 @@ import (
 	"io"
 	"time"
 
+	api "github.com/steady-bytes/draft/api/gen/go"
+
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
-	api "github.com/steady-bytes/draft/api/gen/go"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -132,52 +133,148 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 
 // ConnectProcess - Uses the
 func (s *service) ConnectProcess(stream api.Registry_ConnectProcessServer) error {
+	var processID string
 	for {
 		msg, closer := stream.Recv()
 		if closer == io.EOF {
 			return stream.SendAndClose(&api.Empty{})
 		}
 		if closer != nil {
-			fmt.Println("stream closed")
+			fmt.Println("stream closing")
+
+			req, err := s.buildProcessDisconnectedEventRequest(processID)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+
+			ctx := context.Background()
+			// emit event to the `EventStore`
+			res, err := s.eventStoreClient.Create(ctx, req)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+
+			// update left_time in the database
+			if err := s.updateLeftTimeStamp(ctx, res.GetResult().GetCreatedAt().AsTime(), res.GetResult().GetAggregateId()); err != nil {
+				fmt.Println(err)
+				return err
+			}
+
+			// close the connection by returning the closer
 			return closer
 		} else {
-			fmt.Println("status: ", msg)
+			fmt.Println("")
+			fmt.Println("status: \n", msg)
+			processID = msg.GetProcessId()
+			if processID == "" {
+				msg := "process id is invalid"
+				fmt.Println(msg)
+				return errors.New(msg)
+			}
 
 			// If the `ProcessDetails` contain the correct `nonce`, and `token` then update the `last_status_time` field
 			if err := s.updateProcessDetails(msg); err != nil {
 				fmt.Println("process details failed to update")
+
+				// emit an event "SYSTEM_UPDATE_FAILUER"
+
 				return err
 			}
+
+			// emit event `PROCESS_CONNECTED`
 		}
 	}
 }
 
+func (s *service) buildProcessDisconnectedEventRequest(processID string) (*api.CreateEventRequest, error) {
+	// emit event `PROCESS_DISCONNECTED`
+	evtData := &api.ProcessDisconnected{
+		ProcessId:      processID,
+		DisconnectedAt: timestamppb.Now(),
+	}
+
+	// marshal event data
+	evtDataJson, err := protojson.Marshal(evtData)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// build event struct
+	evt := &api.Event{
+		Id:          uuid.NewString(),
+		AggregateId: processID,
+		// NOTE: this may need to chanage
+		TransactionId: uuid.NewString(),
+		Data:          string(evtDataJson),
+		CreatedAt:     timestamppb.Now(),
+		AggregateKind: api.AggregateKind_REGISTRY,
+		EventCode:     api.EventCode_PROCESS_DISCONNECTED,
+		SideAffect:    false,
+	}
+
+	// return built event request
+	return &api.CreateEventRequest{
+		Payload: evt,
+	}, nil
+}
+
+func (s *service) updateLeftTimeStamp(ctx context.Context, t time.Time, processID string) error {
+	model := &api.ProcessORM{
+		Id:           processID,
+		LeftTime:     &t,
+		RunningState: api.ProcessRunningState_value["PROCESS_DICONNECTED"],
+	}
+
+	// find by process id, and update it's values
+	db := s.DB.Save(&model)
+	if db.Error != nil {
+		fmt.Println("when updating the disconnecting process in the db and error occured", db.Error)
+		return db.Error
+	}
+
+	return nil
+}
+
 func (s *service) updateProcessDetails(details *api.ProcessDetails) error {
-	return s.DB.Transaction(func(tx *gorm.DB) error {
-		// db.Where(&User{Name: "jinzhu", Age: 20}).First(&user)
-		// db.First(&user, "id = ?", "string_primary_key")
-		//// SELECT * FROM users WHERE id = 'string_primary_key';
+	p := &api.Process{
+		Id: details.GetProcessId(),
+	}
 
-		p := &api.Process{}
-		tx = tx.First(p, "id = ?", details.GetProcessId())
-		if tx.Error != nil {
-			fmt.Println("and error occured when finding the process by it's primary key")
-			return tx.Error
-		}
+	ctx := context.Background()
+	var err error
+	p, err = api.DefaultReadProcess(ctx, p, s.DB)
+	if err != nil {
+		fmt.Println("error: ", err)
+		return err
+	}
 
-		// if both the `token` and `nonce` are valid, update `last_status_time`
-		if p.GetToken().GetToken() == details.GetToken() && p.GetToken().GetNonce() == details.GetNonce() {
-			// change the `last_status_time`
-			p.LastStatusTime = timestamppb.Now()
-			// TODO: update other fields from the details as well
-			tx = tx.Update(p)
-			if tx.Error != nil {
-				fmt.Println("and error occured when updating the process last_status_time")
-				return tx.Error
-			}
+	fmt.Println("found process: \n", p)
+
+	model, err := p.ToORM(ctx)
+	if err != nil {
+		fmt.Println("error converting to orm type", err)
+	}
+
+	// if both the `token` and `nonce` are valid, update `last_status_time`
+	if model.Token.Jwt == details.GetToken() && model.Token.Nonce == details.GetNonce() {
+		model.RunningState = api.ProcessRunningState_value[details.GetRunningState().String()]
+		model.ProcessHealth = api.ProcessHealthState_value[details.GetProcessHealth().String()]
+		now := time.Now()
+		model.LastStatusTime = &now
+
+		db := s.DB.Save(&model)
+		if db.Error != nil {
+			fmt.Println("when updating the last_status_time and error occured", db.Error)
+			return db.Error
 		}
-		return nil
-	})
+	}
+
+	fmt.Println("update process: \n", p)
+
+	return nil
 }
 
 func (s *service) Disconnect(ctx context.Context, req *api.DisconnectRequest) (*api.Disconnected, error) {
@@ -220,7 +317,7 @@ func NewProcessFromHandshakePayload(process *api.Process) (*api.Process, error) 
 	// you would like it to contain.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"registry": pid,
-		"nbf":      time.Date(2015, 10, 10, 12, 0, 0, 0, time.UTC).Unix(),
+		"nbf":      time.Date(2022, 10, 10, 12, 0, 0, 0, time.UTC).Unix(),
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
@@ -230,7 +327,7 @@ func NewProcessFromHandshakePayload(process *api.Process) (*api.Process, error) 
 	}
 
 	// set the token as a string
-	apiToken.Token = tokenString
+	apiToken.Jwt = tokenString
 
 	// set the generated token
 	process.Token = apiToken

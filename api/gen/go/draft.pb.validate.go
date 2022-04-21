@@ -1312,6 +1312,306 @@ var _ interface {
 	ErrorName() string
 } = HandshakeInitiatedValidationError{}
 
+// Validate checks the field values on ProcessConnected with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *ProcessConnected) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ProcessConnected with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ProcessConnectedMultiError, or nil if none found.
+func (m *ProcessConnected) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ProcessConnected) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetProcessId()); err != nil {
+		err = ProcessConnectedValidationError{
+			field:  "ProcessId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetConnectedAt()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ProcessConnectedValidationError{
+					field:  "ConnectedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ProcessConnectedValidationError{
+					field:  "ConnectedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetConnectedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ProcessConnectedValidationError{
+				field:  "ConnectedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return ProcessConnectedMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ProcessConnected) _validateUuid(uuid string) error {
+	if matched := _draft_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ProcessConnectedMultiError is an error wrapping multiple validation errors
+// returned by ProcessConnected.ValidateAll() if the designated constraints
+// aren't met.
+type ProcessConnectedMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ProcessConnectedMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ProcessConnectedMultiError) AllErrors() []error { return m }
+
+// ProcessConnectedValidationError is the validation error returned by
+// ProcessConnected.Validate if the designated constraints aren't met.
+type ProcessConnectedValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ProcessConnectedValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ProcessConnectedValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ProcessConnectedValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ProcessConnectedValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ProcessConnectedValidationError) ErrorName() string { return "ProcessConnectedValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ProcessConnectedValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sProcessConnected.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ProcessConnectedValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ProcessConnectedValidationError{}
+
+// Validate checks the field values on ProcessDisconnected with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ProcessDisconnected) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ProcessDisconnected with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ProcessDisconnectedMultiError, or nil if none found.
+func (m *ProcessDisconnected) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ProcessDisconnected) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetProcessId()); err != nil {
+		err = ProcessDisconnectedValidationError{
+			field:  "ProcessId",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetDisconnectedAt()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ProcessDisconnectedValidationError{
+					field:  "DisconnectedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ProcessDisconnectedValidationError{
+					field:  "DisconnectedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetDisconnectedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ProcessDisconnectedValidationError{
+				field:  "DisconnectedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return ProcessDisconnectedMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *ProcessDisconnected) _validateUuid(uuid string) error {
+	if matched := _draft_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// ProcessDisconnectedMultiError is an error wrapping multiple validation
+// errors returned by ProcessDisconnected.ValidateAll() if the designated
+// constraints aren't met.
+type ProcessDisconnectedMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ProcessDisconnectedMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ProcessDisconnectedMultiError) AllErrors() []error { return m }
+
+// ProcessDisconnectedValidationError is the validation error returned by
+// ProcessDisconnected.Validate if the designated constraints aren't met.
+type ProcessDisconnectedValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ProcessDisconnectedValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ProcessDisconnectedValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ProcessDisconnectedValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ProcessDisconnectedValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ProcessDisconnectedValidationError) ErrorName() string {
+	return "ProcessDisconnectedValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ProcessDisconnectedValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sProcessDisconnected.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ProcessDisconnectedValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ProcessDisconnectedValidationError{}
+
 // Validate checks the field values on JournalQueryRequest with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -2878,7 +3178,7 @@ func (m *Token) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for Token
+	// no validation rules for Jwt
 
 	// no validation rules for Nonce
 

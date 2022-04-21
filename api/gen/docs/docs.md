@@ -39,7 +39,9 @@
     - [MonitorRequest](#api.MonitorRequest)
     - [Output](#api.Output)
     - [Process](#api.Process)
+    - [ProcessConnected](#api.ProcessConnected)
     - [ProcessDetails](#api.ProcessDetails)
+    - [ProcessDisconnected](#api.ProcessDisconnected)
     - [Query](#api.Query)
     - [ReadAggreageByIDRequest](#api.ReadAggreageByIDRequest)
     - [ReadAggregateByIDRespose](#api.ReadAggregateByIDRespose)
@@ -468,7 +470,8 @@ the `Event` is stored and forwarded to the correct consumer.
 <a name="api.HandshakeInitiated"></a>
 
 ### HandshakeInitiated
-
+HandshakeInitiated - An event that marks the point in time, and the `address` of the process that 
+has initiated a new connection to the system
 
 
 | Field | Type | Label | Description |
@@ -605,6 +608,23 @@ the `Event` is stored and forwarded to the correct consumer.
 
 
 
+<a name="api.ProcessConnected"></a>
+
+### ProcessConnected
+ProcessConnected - An event that marks the point in time, of which the process is successful in establishing
+a connection, and registerying is metadata to the registry
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process_id | [string](#string) |  |  |
+| connected_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+
+
+
+
+
+
 <a name="api.ProcessDetails"></a>
 
 ### ProcessDetails
@@ -618,6 +638,22 @@ the `Event` is stored and forwarded to the correct consumer.
 | process_health | [ProcessHealthState](#api.ProcessHealthState) |  |  |
 | token | [string](#string) |  |  |
 | nonce | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.ProcessDisconnected"></a>
+
+### ProcessDisconnected
+ProcessDisconnected - An event that marks the point in time, of which the process disconnets from the registry.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process_id | [string](#string) |  |  |
+| disconnected_at | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
 
 
 
@@ -690,7 +726,7 @@ the `Event` is stored and forwarded to the correct consumer.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | id | [string](#string) |  |  |
-| token | [string](#string) |  |  |
+| jwt | [string](#string) |  |  |
 | nonce | [string](#string) |  |  |
 
 
@@ -719,7 +755,12 @@ the `Event` is stored and forwarded to the correct consumer.
 <a name="api.AggregateKind"></a>
 
 ### AggregateKind
+AggregateKind - Is the registered type in the system that defines some kind of data that is stored. Each `Aggregate`
+is mutable through the `Writer`, and readable from the `Reader`.
 
+An example of this is a `User` aggregate that can will contain default `CRUDL` methods that can be chained together
+to implement any sort of business logic. Secondarly, side effacts can be issued in the form of `Event`s when a specific
+interesting point in time of the aggregates lifespan occures.
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
@@ -737,6 +778,8 @@ the `Event` is stored and forwarded to the correct consumer.
 | ---- | ------ | ----------- |
 | INVALID_EVENT_CODE | 0 |  |
 | HANDSHAKE_INITIATED | 1 |  |
+| PROCESS_CONNECTED | 2 |  |
+| PROCESS_DISCONNECTED | 3 |  |
 
 
 
@@ -781,6 +824,7 @@ the `Event` is stored and forwarded to the correct consumer.
 | PROCESS_STARTING | 1 |  |
 | PROCESS_TESTING | 2 |  |
 | PROCESS_RUNNING | 3 |  |
+| PROCESS_DICONNECTED | 4 |  |
 
 
  

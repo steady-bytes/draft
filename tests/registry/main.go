@@ -48,6 +48,8 @@ func testConnect(handshake *api.Handshake) {
 			ProcessId:     handshake.GetProcessId(),
 			RunningState:  2,
 			ProcessHealth: 1,
+			Token:         handshake.GetToken().GetJwt(),
+			Nonce:         handshake.GetToken().GetNonce(),
 		}
 
 		fmt.Println("sending status: ", status)
@@ -92,20 +94,13 @@ func testInitateHandshake() (*api.Handshake, error) {
 					Value: "test",
 				},
 			},
-			JoinedTime: &timestamppb.Timestamp{
-				Seconds: 0,
-				Nanos:   0,
-			},
-			LeftTime: &timestamppb.Timestamp{
-				Seconds: 0,
-				Nanos:   0,
-			},
+			JoinedTime:    timestamppb.Now(),
 			Version:       "1.0.0",
 			RunningState:  1,
 			ProcessHealth: 1,
 			Token: &api.Token{
 				Id:    clientID,
-				Token: "",
+				Jwt:   "",
 				Nonce: "",
 			},
 		},
