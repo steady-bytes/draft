@@ -44,9 +44,9 @@ func NewService() (*service, error) {
 const clientID = "78f5b6e1-3096-4d40-8bdc-8061d2cc0751"
 
 // InitiateHandshake -
-func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandshake) (*api.Handshake, error) {
+func (s *service) InitiateHandshake(ctx context.Context, handshake *api.RequestHandshake) (*api.Handshake, error) {
 	// unpack request payload
-	payload := req.GetPayload()
+	payload := handshake.GetPayload()
 
 	// validate
 	if err := payload.Validate(); err != nil {
@@ -59,8 +59,6 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 	if payload.GetId() != clientID {
 		return nil, errors.New("internal error, invalid client id")
 	}
-
-	fmt.Println("payload validated")
 
 	// create api token
 	process, err := NewProcessFromHandshakePayload(payload)
@@ -75,9 +73,32 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 		return nil, errors.New(msg)
 	}
 
+	req, err := s.buildHandshakeInititatedEventRequest(process.GetId())
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// emit and event to the eventstore service
+	res, err := s.eventStoreClient.Create(ctx, req)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	return &api.Handshake{
+		ProcessId: process.GetId(),
+		// TODO: change this to some method that will fetch dynamicly
+		LeaderAddress: "http://[::1]:50002",
+		Token:         process.GetToken(),
+		TransactionId: res.GetResult().GetTransactionId(),
+	}, nil
+}
+
+func (s *service) buildHandshakeInititatedEventRequest(pid string) (*api.CreateEventRequest, error) {
 	// init handshake started event
 	evtData := &api.HandshakeInitiated{
-		ProcessId:     process.GetId(),
+		ProcessId:     pid,
 		LeaderAddress: "http://[::1]:50002",
 		InitiatedTime: timestamppb.Now(),
 	}
@@ -92,7 +113,7 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 	// init event
 	evt := &api.Event{
 		Id:            uuid.NewString(),
-		AggregateId:   process.GetId(),
+		AggregateId:   pid,
 		TransactionId: uuid.NewString(),
 		Data:          string(evtDataJson),
 		CreatedAt:     timestamppb.Now(),
@@ -102,38 +123,15 @@ func (s *service) InitiateHandshake(ctx context.Context, req *api.RequestHandsha
 	}
 
 	// wrap event in req
-	esReq := &api.CreateEventRequest{
+	return &api.CreateEventRequest{
 		Payload: evt,
-	}
-
-	fmt.Println("sending event")
-
-	// emit and event to the eventstore service
-	res, err := s.eventStoreClient.Create(ctx, esReq)
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	fmt.Println("event sent")
-
-	// iniate the `Handshake`
-	handshake := &api.Handshake{
-		ProcessId: process.GetId(),
-		// TODO: change this to some method that will fetch dynamicly
-		LeaderAddress: "http://[::1]:50002",
-		Token:         process.GetToken(),
-		TransactionId: res.GetResult().GetTransactionId(),
-	}
-
-	fmt.Println("handshake: ", handshake)
-
-	return handshake, nil
+	}, nil
 }
 
 // ConnectProcess - Uses the
 func (s *service) ConnectProcess(stream api.Registry_ConnectProcessServer) error {
-	var processID string
+	processID := ""
+	isConnected := false
 	for {
 		msg, closer := stream.Recv()
 		if closer == io.EOF {
@@ -165,8 +163,7 @@ func (s *service) ConnectProcess(stream api.Registry_ConnectProcessServer) error
 			// close the connection by returning the closer
 			return closer
 		} else {
-			fmt.Println("")
-			fmt.Println("status: \n", msg)
+			fmt.Println("\n status: ", msg)
 			processID = msg.GetProcessId()
 			if processID == "" {
 				msg := "process id is invalid"
@@ -178,14 +175,66 @@ func (s *service) ConnectProcess(stream api.Registry_ConnectProcessServer) error
 			if err := s.updateProcessDetails(msg); err != nil {
 				fmt.Println("process details failed to update")
 
-				// emit an event "SYSTEM_UPDATE_FAILUER"
+				// TODO: emit an event "SYSTEM_UPDATE_FAILUER"
 
 				return err
 			}
 
-			// emit event `PROCESS_CONNECTED`
+			// if `isConnected` is not true, emit event `PROCESS_CONNECTED` to update the `EventStore`
+			// this is also considered the first message received on the rpc stream
+			if !isConnected {
+				req, err := s.buildProcessConnectedEventRequest(processID)
+				if err != nil {
+					fmt.Println("error: ", err)
+					return err
+				}
+
+				ctx := context.Background()
+				// emit event to the `EventStore`
+				// TODO: determin what to do with the create event response, if anything needs to be done
+				_, err = s.eventStoreClient.Create(ctx, req)
+				if err != nil {
+					fmt.Println(err)
+					return err
+				}
+			}
+
+			// set to true, given all required actions for the connection to be established have succeded
+			isConnected = true
 		}
 	}
+}
+
+func (s *service) buildProcessConnectedEventRequest(processID string) (*api.CreateEventRequest, error) {
+	// emit event `PROCESS_CONNECTED`
+	evtData := &api.ProcessConnected{
+		ProcessId:   processID,
+		ConnectedAt: timestamppb.Now(),
+	}
+
+	// marshal event data
+	evtDataJson, err := protojson.Marshal(evtData)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// build event struct
+	evt := &api.Event{
+		Id:            uuid.NewString(),
+		AggregateId:   processID,
+		TransactionId: uuid.NewString(),
+		Data:          string(evtDataJson),
+		CreatedAt:     timestamppb.Now(),
+		AggregateKind: api.AggregateKind_REGISTRY,
+		EventCode:     api.EventCode_PROCESS_CONNECTED,
+		SideAffect:    false,
+	}
+
+	// return built event request
+	return &api.CreateEventRequest{
+		Payload: evt,
+	}, nil
 }
 
 func (s *service) buildProcessDisconnectedEventRequest(processID string) (*api.CreateEventRequest, error) {
@@ -204,9 +253,8 @@ func (s *service) buildProcessDisconnectedEventRequest(processID string) (*api.C
 
 	// build event struct
 	evt := &api.Event{
-		Id:          uuid.NewString(),
-		AggregateId: processID,
-		// NOTE: this may need to chanage
+		Id:            uuid.NewString(),
+		AggregateId:   processID,
 		TransactionId: uuid.NewString(),
 		Data:          string(evtDataJson),
 		CreatedAt:     timestamppb.Now(),
@@ -225,11 +273,11 @@ func (s *service) updateLeftTimeStamp(ctx context.Context, t time.Time, processI
 	model := &api.ProcessORM{
 		Id:           processID,
 		LeftTime:     &t,
-		RunningState: api.ProcessRunningState_value["PROCESS_DICONNECTED"],
+		RunningState: api.ProcessRunningState_name[int32(api.ProcessRunningState_PROCESS_DICONNECTED)],
 	}
 
 	// find by process id, and update it's values
-	db := s.DB.Save(&model)
+	db := s.DB.Model(&model).Updates(*model)
 	if db.Error != nil {
 		fmt.Println("when updating the disconnecting process in the db and error occured", db.Error)
 		return db.Error
@@ -260,8 +308,8 @@ func (s *service) updateProcessDetails(details *api.ProcessDetails) error {
 
 	// if both the `token` and `nonce` are valid, update `last_status_time`
 	if model.Token.Jwt == details.GetToken() && model.Token.Nonce == details.GetNonce() {
-		model.RunningState = api.ProcessRunningState_value[details.GetRunningState().String()]
-		model.ProcessHealth = api.ProcessHealthState_value[details.GetProcessHealth().String()]
+		model.RunningState = api.ProcessRunningState_name[int32(details.GetRunningState())]
+		model.ProcessHealth = api.ProcessHealthState_name[int32(details.GetProcessHealth())]
 		now := time.Now()
 		model.LastStatusTime = &now
 

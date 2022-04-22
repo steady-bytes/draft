@@ -2524,7 +2524,7 @@ registered and running. </p></td>
 
       
         <h3 id="api.AggregateKind">AggregateKind</h3>
-        <p>AggregateKind - Is the registered type in the system that defines some kind of data that is stored. Each `Aggregate`</p><p>is mutable through the `Writer`, and readable from the `Reader`.</p><p>An example of this is a `User` aggregate that can will contain default `CRUDL` methods that can be chained together</p><p>to implement any sort of business logic. Secondarly, side effacts can be issued in the form of `Event`s when a specific</p><p>interesting point in time of the aggregates lifespan occures.</p>
+        <p>AggregateKind - Is the registered type in the system that defines some kind of data that is stored. Each `Aggregate`</p><p>is mutable through the `Writer`, and readable from the `Reader`.</p><p>An example of this is a `User` aggregate that can will contain default `CRUDL` methods that can be chained together</p><p>to implement any sort of business logic. Secondarly, side effacts can be issued in the form of `Event`s when a specific</p><p>interesting point in time of the aggregates lifespan occures.</p><p>A default topic is created for each `AggregateKind` this allows for a simple decoupling of the data, events, and individual</p><p>`Processes`. In the future this default may be configurable; however, it's currently not. `Queues` also need to be considered</p><p>when implementing a new `AggregateKind`.</p>
         <table class="enum-table">
           <thead>
             <tr><td>Name</td><td>Number</td><td>Description</td></tr>

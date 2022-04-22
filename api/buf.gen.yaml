@@ -16,6 +16,7 @@ plugins:
     opt: 
       - paths=source_relative 
       - engine=postgres
+      - enums=string
 
   - name: doc
     out: ./gen/docs/

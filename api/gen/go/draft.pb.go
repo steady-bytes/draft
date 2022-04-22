@@ -30,6 +30,10 @@ const (
 // An example of this is a `User` aggregate that can will contain default `CRUDL` methods that can be chained together
 // to implement any sort of business logic. Secondarly, side effacts can be issued in the form of `Event`s when a specific
 // interesting point in time of the aggregates lifespan occures.
+//
+// A default topic is created for each `AggregateKind` this allows for a simple decoupling of the data, events, and individual
+// `Processes`. In the future this default may be configurable; however, it's currently not. `Queues` also need to be considered
+// when implementing a new `AggregateKind`.
 type AggregateKind int32
 
 const (
