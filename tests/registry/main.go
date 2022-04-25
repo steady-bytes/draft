@@ -21,9 +21,34 @@ func main() {
 	fmt.Println("hanshake: ", res)
 
 	testConnect(res)
+
+	fmt.Println("connection passed")
+
+	testQueryJournal(res.GetProcessId())
+
+	fmt.Println("query passed")
 }
 
-func testConnect(handshake *api.Handshake) {
+func testQueryJournal(pid string) {
+	client := buildRegistryClient()
+
+	req := &api.JournalQueryRequest{
+		Query: &api.Query{
+			Option: &api.Query_Id{
+				Id: pid,
+			},
+		},
+	}
+
+	res, err := client.QuerySystemJournal(context.Background(), req)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("query response: ", res)
+}
+
+func buildRegistryClient() api.RegistryClient {
 	// create url
 	url := fmt.Sprintf("%s:%d", "localhost", 50000)
 
@@ -34,7 +59,11 @@ func testConnect(handshake *api.Handshake) {
 		panic(err)
 	}
 
-	client := api.NewRegistryClient(conn)
+	return api.NewRegistryClient(conn)
+}
+
+func testConnect(handshake *api.Handshake) {
+	client := buildRegistryClient()
 
 	stream, err := client.ConnectProcess(context.Background())
 	if err != nil {
@@ -43,13 +72,21 @@ func testConnect(handshake *api.Handshake) {
 
 	fmt.Println("enter forever loop")
 
+	count := 0
 	for {
+		count++
+
+		// exit
+		if count == 10 {
+			return
+		}
+
 		status := &api.ProcessDetails{
-			ProcessId:     handshake.GetProcessId(),
-			RunningState:  2,
-			ProcessHealth: 1,
-			Token:         handshake.GetToken().GetJwt(),
-			Nonce:         handshake.GetToken().GetNonce(),
+			ProcessId:    handshake.GetProcessId(),
+			RunningState: 2,
+			HealthState:  1,
+			Token:        handshake.GetToken().GetJwt(),
+			Nonce:        handshake.GetToken().GetNonce(),
 		}
 
 		fmt.Println("sending status: ", status)
@@ -60,24 +97,12 @@ func testConnect(handshake *api.Handshake) {
 		}
 
 		time.Sleep(5 * time.Second)
-
 	}
 }
 
 func testInitateHandshake() (*api.Handshake, error) {
-	// create url
-	url := fmt.Sprintf("%s:%d", "localhost", 50000)
-
-	// create the grpc client
-	conn, err := grpc.Dial(url, grpc.WithInsecure())
-	if err != nil {
-		fmt.Printf("[%s] Dial failed: %v", url, err)
-		return nil, err
-	}
-
+	client := buildRegistryClient()
 	clientID := "78f5b6e1-3096-4d40-8bdc-8061d2cc0751"
-
-	client := api.NewRegistryClient(conn)
 
 	req := &api.RequestHandshake{
 		Payload: &api.Process{
@@ -94,10 +119,10 @@ func testInitateHandshake() (*api.Handshake, error) {
 					Value: "test",
 				},
 			},
-			JoinedTime:    timestamppb.Now(),
-			Version:       "1.0.0",
-			RunningState:  1,
-			ProcessHealth: 1,
+			JoinedTime:   timestamppb.Now(),
+			Version:      "1.0.0",
+			RunningState: 1,
+			HealthState:  1,
 			Token: &api.Token{
 				Id:    clientID,
 				Jwt:   "",

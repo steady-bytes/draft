@@ -493,7 +493,7 @@ has initiated a new connection to the system
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| look_up | [Query](#api.Query) |  |  |
+| query | [Query](#api.Query) |  |  |
 
 
 
@@ -600,7 +600,7 @@ has initiated a new connection to the system
 | last_status_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
 | version | [string](#string) |  |  |
 | running_state | [ProcessRunningState](#api.ProcessRunningState) |  |  |
-| process_health | [ProcessHealthState](#api.ProcessHealthState) |  |  |
+| health_state | [ProcessHealthState](#api.ProcessHealthState) |  |  |
 | token | [Token](#api.Token) |  |  |
 
 
@@ -635,7 +635,8 @@ a connection, and registerying is metadata to the registry
 | ----- | ---- | ----- | ----------- |
 | process_id | [string](#string) |  |  |
 | running_state | [ProcessRunningState](#api.ProcessRunningState) |  |  |
-| process_health | [ProcessHealthState](#api.ProcessHealthState) |  |  |
+| health_state | [ProcessHealthState](#api.ProcessHealthState) |  |  |
+| process_kind | [ProcessKind](#api.ProcessKind) |  |  |
 | token | [string](#string) |  |  |
 | nonce | [string](#string) |  |  |
 

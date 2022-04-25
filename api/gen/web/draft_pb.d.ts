@@ -283,10 +283,10 @@ export namespace ProcessDisconnected {
 }
 
 export class JournalQueryRequest extends jspb.Message {
-  getLookUp(): Query | undefined;
-  setLookUp(value?: Query): JournalQueryRequest;
-  hasLookUp(): boolean;
-  clearLookUp(): JournalQueryRequest;
+  getQuery(): Query | undefined;
+  setQuery(value?: Query): JournalQueryRequest;
+  hasQuery(): boolean;
+  clearQuery(): JournalQueryRequest;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): JournalQueryRequest.AsObject;
@@ -298,7 +298,7 @@ export class JournalQueryRequest extends jspb.Message {
 
 export namespace JournalQueryRequest {
   export type AsObject = {
-    lookUp?: Query.AsObject,
+    query?: Query.AsObject,
   }
 }
 
@@ -434,8 +434,11 @@ export class ProcessDetails extends jspb.Message {
   getRunningState(): ProcessRunningState;
   setRunningState(value: ProcessRunningState): ProcessDetails;
 
-  getProcessHealth(): ProcessHealthState;
-  setProcessHealth(value: ProcessHealthState): ProcessDetails;
+  getHealthState(): ProcessHealthState;
+  setHealthState(value: ProcessHealthState): ProcessDetails;
+
+  getProcessKind(): ProcessKind;
+  setProcessKind(value: ProcessKind): ProcessDetails;
 
   getToken(): string;
   setToken(value: string): ProcessDetails;
@@ -455,7 +458,8 @@ export namespace ProcessDetails {
   export type AsObject = {
     processId: string,
     runningState: ProcessRunningState,
-    processHealth: ProcessHealthState,
+    healthState: ProcessHealthState,
+    processKind: ProcessKind,
     token: string,
     nonce: string,
   }
@@ -556,8 +560,8 @@ export class Process extends jspb.Message {
   getRunningState(): ProcessRunningState;
   setRunningState(value: ProcessRunningState): Process;
 
-  getProcessHealth(): ProcessHealthState;
-  setProcessHealth(value: ProcessHealthState): Process;
+  getHealthState(): ProcessHealthState;
+  setHealthState(value: ProcessHealthState): Process;
 
   getToken(): Token | undefined;
   setToken(value?: Token): Process;
@@ -586,7 +590,7 @@ export namespace Process {
     lastStatusTime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
     version: string,
     runningState: ProcessRunningState,
-    processHealth: ProcessHealthState,
+    healthState: ProcessHealthState,
     token?: Token.AsObject,
   }
 }

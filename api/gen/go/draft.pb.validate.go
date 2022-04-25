@@ -1635,11 +1635,11 @@ func (m *JournalQueryRequest) validate(all bool) error {
 	var errors []error
 
 	if all {
-		switch v := interface{}(m.GetLookUp()).(type) {
+		switch v := interface{}(m.GetQuery()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, JournalQueryRequestValidationError{
-					field:  "LookUp",
+					field:  "Query",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -1647,16 +1647,16 @@ func (m *JournalQueryRequest) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, JournalQueryRequestValidationError{
-					field:  "LookUp",
+					field:  "Query",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetLookUp()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetQuery()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return JournalQueryRequestValidationError{
-				field:  "LookUp",
+				field:  "Query",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -2438,7 +2438,9 @@ func (m *ProcessDetails) validate(all bool) error {
 
 	// no validation rules for RunningState
 
-	// no validation rules for ProcessHealth
+	// no validation rules for HealthState
+
+	// no validation rules for ProcessKind
 
 	// no validation rules for Token
 
@@ -3029,7 +3031,7 @@ func (m *Process) validate(all bool) error {
 
 	// no validation rules for RunningState
 
-	// no validation rules for ProcessHealth
+	// no validation rules for HealthState
 
 	if all {
 		switch v := interface{}(m.GetToken()).(type) {

@@ -14,10 +14,10 @@ import (
 
 type EventORM struct {
 	AggregateId   string `gorm:"type:uuid"`
-	AggregateKind string
+	AggregateKind int32
 	CreatedAt     *time.Time
 	Data          string `gorm:"type:jsonb"`
-	EventCode     string
+	EventCode     int32
 	Id            string `gorm:"type:uuid;primary_key"`
 	PublishedAt   *time.Time
 	SideAffect    bool
@@ -51,8 +51,8 @@ func (m *Event) ToORM(ctx context.Context) (EventORM, error) {
 		t := m.PublishedAt.AsTime()
 		to.PublishedAt = &t
 	}
-	to.AggregateKind = AggregateKind_name[int32(m.AggregateKind)]
-	to.EventCode = EventCode_name[int32(m.EventCode)]
+	to.AggregateKind = int32(m.AggregateKind)
+	to.EventCode = int32(m.EventCode)
 	to.SideAffect = m.SideAffect
 	if posthook, ok := interface{}(m).(EventWithAfterToORM); ok {
 		err = posthook.AfterToORM(ctx, &to)
@@ -80,8 +80,8 @@ func (m *EventORM) ToPB(ctx context.Context) (Event, error) {
 	if m.PublishedAt != nil {
 		to.PublishedAt = timestamppb.New(*m.PublishedAt)
 	}
-	to.AggregateKind = AggregateKind(AggregateKind_value[m.AggregateKind])
-	to.EventCode = EventCode(EventCode_value[m.EventCode])
+	to.AggregateKind = AggregateKind(m.AggregateKind)
+	to.EventCode = EventCode(m.EventCode)
 	to.SideAffect = m.SideAffect
 	if posthook, ok := interface{}(m).(EventWithAfterToPB); ok {
 		err = posthook.AfterToPB(ctx, &to)
@@ -114,6 +114,7 @@ type EventWithAfterToPB interface {
 
 type ProcessORM struct {
 	Group          string
+	HealthState    int32
 	Id             string `gorm:"type:uuid;primary_key"`
 	IpAddress      string
 	JoinedTime     *time.Time `gorm:"type:timestamp"`
@@ -121,9 +122,8 @@ type ProcessORM struct {
 	LeftTime       *time.Time `gorm:"type:timestamp"`
 	Local          string
 	Name           string
-	ProcessHealth  string
-	ProcessKind    string
-	RunningState   string
+	ProcessKind    int32
+	RunningState   int32
 	Tags           []*MetadataORM `gorm:"foreignkey:ProcessId;association_foreignkey:Id"`
 	Token          *TokenORM      `gorm:"foreignkey:ProcessId;association_foreignkey:Id"`
 	Version        string
@@ -149,7 +149,7 @@ func (m *Process) ToORM(ctx context.Context) (ProcessORM, error) {
 	to.Group = m.Group
 	to.Local = m.Local
 	to.IpAddress = m.IpAddress
-	to.ProcessKind = ProcessKind_name[int32(m.ProcessKind)]
+	to.ProcessKind = int32(m.ProcessKind)
 	for _, v := range m.Tags {
 		if v != nil {
 			if tempTags, cErr := v.ToORM(ctx); cErr == nil {
@@ -174,8 +174,8 @@ func (m *Process) ToORM(ctx context.Context) (ProcessORM, error) {
 		to.LastStatusTime = &t
 	}
 	to.Version = m.Version
-	to.RunningState = ProcessRunningState_name[int32(m.RunningState)]
-	to.ProcessHealth = ProcessHealthState_name[int32(m.ProcessHealth)]
+	to.RunningState = int32(m.RunningState)
+	to.HealthState = int32(m.HealthState)
 	if m.Token != nil {
 		tempToken, err := m.Token.ToORM(ctx)
 		if err != nil {
@@ -204,7 +204,7 @@ func (m *ProcessORM) ToPB(ctx context.Context) (Process, error) {
 	to.Group = m.Group
 	to.Local = m.Local
 	to.IpAddress = m.IpAddress
-	to.ProcessKind = ProcessKind(ProcessKind_value[m.ProcessKind])
+	to.ProcessKind = ProcessKind(m.ProcessKind)
 	for _, v := range m.Tags {
 		if v != nil {
 			if tempTags, cErr := v.ToPB(ctx); cErr == nil {
@@ -226,8 +226,8 @@ func (m *ProcessORM) ToPB(ctx context.Context) (Process, error) {
 		to.LastStatusTime = timestamppb.New(*m.LastStatusTime)
 	}
 	to.Version = m.Version
-	to.RunningState = ProcessRunningState(ProcessRunningState_value[m.RunningState])
-	to.ProcessHealth = ProcessHealthState(ProcessHealthState_value[m.ProcessHealth])
+	to.RunningState = ProcessRunningState(m.RunningState)
+	to.HealthState = ProcessHealthState(m.HealthState)
 	if m.Token != nil {
 		tempToken, err := m.Token.ToPB(ctx)
 		if err != nil {
@@ -1233,8 +1233,8 @@ func DefaultApplyFieldMaskProcess(ctx context.Context, patchee *Process, patcher
 			patchee.RunningState = patcher.RunningState
 			continue
 		}
-		if f == prefix+"ProcessHealth" {
-			patchee.ProcessHealth = patcher.ProcessHealth
+		if f == prefix+"HealthState" {
+			patchee.HealthState = patcher.HealthState
 			continue
 		}
 		if !updatedToken && strings.HasPrefix(f, prefix+"Token.") {

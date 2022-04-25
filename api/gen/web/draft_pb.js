@@ -2659,7 +2659,7 @@ proto.api.JournalQueryRequest.prototype.toObject = function(opt_includeInstance)
  */
 proto.api.JournalQueryRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    lookUp: (f = msg.getLookUp()) && proto.api.Query.toObject(includeInstance, f)
+    query: (f = msg.getQuery()) && proto.api.Query.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -2699,7 +2699,7 @@ proto.api.JournalQueryRequest.deserializeBinaryFromReader = function(msg, reader
     case 1:
       var value = new proto.api.Query;
       reader.readMessage(value,proto.api.Query.deserializeBinaryFromReader);
-      msg.setLookUp(value);
+      msg.setQuery(value);
       break;
     default:
       reader.skipField();
@@ -2730,7 +2730,7 @@ proto.api.JournalQueryRequest.prototype.serializeBinary = function() {
  */
 proto.api.JournalQueryRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getLookUp();
+  f = message.getQuery();
   if (f != null) {
     writer.writeMessage(
       1,
@@ -2742,10 +2742,10 @@ proto.api.JournalQueryRequest.serializeBinaryToWriter = function(message, writer
 
 
 /**
- * optional Query look_up = 1;
+ * optional Query query = 1;
  * @return {?proto.api.Query}
  */
-proto.api.JournalQueryRequest.prototype.getLookUp = function() {
+proto.api.JournalQueryRequest.prototype.getQuery = function() {
   return /** @type{?proto.api.Query} */ (
     jspb.Message.getWrapperField(this, proto.api.Query, 1));
 };
@@ -2755,7 +2755,7 @@ proto.api.JournalQueryRequest.prototype.getLookUp = function() {
  * @param {?proto.api.Query|undefined} value
  * @return {!proto.api.JournalQueryRequest} returns this
 */
-proto.api.JournalQueryRequest.prototype.setLookUp = function(value) {
+proto.api.JournalQueryRequest.prototype.setQuery = function(value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
 
@@ -2764,8 +2764,8 @@ proto.api.JournalQueryRequest.prototype.setLookUp = function(value) {
  * Clears the message field making it undefined.
  * @return {!proto.api.JournalQueryRequest} returns this
  */
-proto.api.JournalQueryRequest.prototype.clearLookUp = function() {
-  return this.setLookUp(undefined);
+proto.api.JournalQueryRequest.prototype.clearQuery = function() {
+  return this.setQuery(undefined);
 };
 
 
@@ -2773,7 +2773,7 @@ proto.api.JournalQueryRequest.prototype.clearLookUp = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.api.JournalQueryRequest.prototype.hasLookUp = function() {
+proto.api.JournalQueryRequest.prototype.hasQuery = function() {
   return jspb.Message.getField(this, 1) != null;
 };
 
@@ -3759,9 +3759,10 @@ proto.api.ProcessDetails.toObject = function(includeInstance, msg) {
   var f, obj = {
     processId: jspb.Message.getFieldWithDefault(msg, 1, ""),
     runningState: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    processHealth: jspb.Message.getFieldWithDefault(msg, 3, 0),
-    token: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    nonce: jspb.Message.getFieldWithDefault(msg, 5, "")
+    healthState: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    processKind: jspb.Message.getFieldWithDefault(msg, 4, 0),
+    token: jspb.Message.getFieldWithDefault(msg, 5, ""),
+    nonce: jspb.Message.getFieldWithDefault(msg, 6, "")
   };
 
   if (includeInstance) {
@@ -3808,13 +3809,17 @@ proto.api.ProcessDetails.deserializeBinaryFromReader = function(msg, reader) {
       break;
     case 3:
       var value = /** @type {!proto.api.ProcessHealthState} */ (reader.readEnum());
-      msg.setProcessHealth(value);
+      msg.setHealthState(value);
       break;
     case 4:
+      var value = /** @type {!proto.api.ProcessKind} */ (reader.readEnum());
+      msg.setProcessKind(value);
+      break;
+    case 5:
       var value = /** @type {string} */ (reader.readString());
       msg.setToken(value);
       break;
-    case 5:
+    case 6:
       var value = /** @type {string} */ (reader.readString());
       msg.setNonce(value);
       break;
@@ -3861,24 +3866,31 @@ proto.api.ProcessDetails.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getProcessHealth();
+  f = message.getHealthState();
   if (f !== 0.0) {
     writer.writeEnum(
       3,
       f
     );
   }
+  f = message.getProcessKind();
+  if (f !== 0.0) {
+    writer.writeEnum(
+      4,
+      f
+    );
+  }
   f = message.getToken();
   if (f.length > 0) {
     writer.writeString(
-      4,
+      5,
       f
     );
   }
   f = message.getNonce();
   if (f.length > 0) {
     writer.writeString(
-      5,
+      6,
       f
     );
   }
@@ -3922,10 +3934,10 @@ proto.api.ProcessDetails.prototype.setRunningState = function(value) {
 
 
 /**
- * optional ProcessHealthState process_health = 3;
+ * optional ProcessHealthState health_state = 3;
  * @return {!proto.api.ProcessHealthState}
  */
-proto.api.ProcessDetails.prototype.getProcessHealth = function() {
+proto.api.ProcessDetails.prototype.getHealthState = function() {
   return /** @type {!proto.api.ProcessHealthState} */ (jspb.Message.getFieldWithDefault(this, 3, 0));
 };
 
@@ -3934,34 +3946,34 @@ proto.api.ProcessDetails.prototype.getProcessHealth = function() {
  * @param {!proto.api.ProcessHealthState} value
  * @return {!proto.api.ProcessDetails} returns this
  */
-proto.api.ProcessDetails.prototype.setProcessHealth = function(value) {
+proto.api.ProcessDetails.prototype.setHealthState = function(value) {
   return jspb.Message.setProto3EnumField(this, 3, value);
 };
 
 
 /**
- * optional string token = 4;
+ * optional ProcessKind process_kind = 4;
+ * @return {!proto.api.ProcessKind}
+ */
+proto.api.ProcessDetails.prototype.getProcessKind = function() {
+  return /** @type {!proto.api.ProcessKind} */ (jspb.Message.getFieldWithDefault(this, 4, 0));
+};
+
+
+/**
+ * @param {!proto.api.ProcessKind} value
+ * @return {!proto.api.ProcessDetails} returns this
+ */
+proto.api.ProcessDetails.prototype.setProcessKind = function(value) {
+  return jspb.Message.setProto3EnumField(this, 4, value);
+};
+
+
+/**
+ * optional string token = 5;
  * @return {string}
  */
 proto.api.ProcessDetails.prototype.getToken = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.api.ProcessDetails} returns this
- */
-proto.api.ProcessDetails.prototype.setToken = function(value) {
-  return jspb.Message.setProto3StringField(this, 4, value);
-};
-
-
-/**
- * optional string nonce = 5;
- * @return {string}
- */
-proto.api.ProcessDetails.prototype.getNonce = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
 };
 
@@ -3970,8 +3982,26 @@ proto.api.ProcessDetails.prototype.getNonce = function() {
  * @param {string} value
  * @return {!proto.api.ProcessDetails} returns this
  */
-proto.api.ProcessDetails.prototype.setNonce = function(value) {
+proto.api.ProcessDetails.prototype.setToken = function(value) {
   return jspb.Message.setProto3StringField(this, 5, value);
+};
+
+
+/**
+ * optional string nonce = 6;
+ * @return {string}
+ */
+proto.api.ProcessDetails.prototype.getNonce = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.api.ProcessDetails} returns this
+ */
+proto.api.ProcessDetails.prototype.setNonce = function(value) {
+  return jspb.Message.setProto3StringField(this, 6, value);
 };
 
 
@@ -4388,7 +4418,7 @@ proto.api.Process.toObject = function(includeInstance, msg) {
     lastStatusTime: (f = msg.getLastStatusTime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
     version: jspb.Message.getFieldWithDefault(msg, 11, ""),
     runningState: jspb.Message.getFieldWithDefault(msg, 12, 0),
-    processHealth: jspb.Message.getFieldWithDefault(msg, 13, 0),
+    healthState: jspb.Message.getFieldWithDefault(msg, 13, 0),
     token: (f = msg.getToken()) && proto.api.Token.toObject(includeInstance, f)
   };
 
@@ -4480,7 +4510,7 @@ proto.api.Process.deserializeBinaryFromReader = function(msg, reader) {
       break;
     case 13:
       var value = /** @type {!proto.api.ProcessHealthState} */ (reader.readEnum());
-      msg.setProcessHealth(value);
+      msg.setHealthState(value);
       break;
     case 14:
       var value = new proto.api.Token;
@@ -4604,7 +4634,7 @@ proto.api.Process.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getProcessHealth();
+  f = message.getHealthState();
   if (f !== 0.0) {
     writer.writeEnum(
       13,
@@ -4916,10 +4946,10 @@ proto.api.Process.prototype.setRunningState = function(value) {
 
 
 /**
- * optional ProcessHealthState process_health = 13;
+ * optional ProcessHealthState health_state = 13;
  * @return {!proto.api.ProcessHealthState}
  */
-proto.api.Process.prototype.getProcessHealth = function() {
+proto.api.Process.prototype.getHealthState = function() {
   return /** @type {!proto.api.ProcessHealthState} */ (jspb.Message.getFieldWithDefault(this, 13, 0));
 };
 
@@ -4928,7 +4958,7 @@ proto.api.Process.prototype.getProcessHealth = function() {
  * @param {!proto.api.ProcessHealthState} value
  * @return {!proto.api.Process} returns this
  */
-proto.api.Process.prototype.setProcessHealth = function(value) {
+proto.api.Process.prototype.setHealthState = function(value) {
   return jspb.Message.setProto3EnumField(this, 13, value);
 };
 

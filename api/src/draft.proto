@@ -190,7 +190,7 @@ service Registry {
 }
 
 message JournalQueryRequest {
-  Query look_up = 1;
+  Query query = 1;
 }
 
 message JournalQueryResponse {
@@ -229,10 +229,11 @@ message ProcessDetails {
   string process_id = 1;
   
   ProcessRunningState running_state = 2;
-  ProcessHealthState process_health = 3;
+  ProcessHealthState health_state = 3;
+  ProcessKind process_kind = 4;
 
-  string token = 4;
-  string nonce = 5;
+  string token = 5;
+  string nonce = 6;
 }
 
 message Empty {}
@@ -281,7 +282,7 @@ message Process {
   string version = 11;
 
   ProcessRunningState running_state = 12;
-  ProcessHealthState process_health = 13;
+  ProcessHealthState health_state = 13;
 
   Token token = 14;
 }
