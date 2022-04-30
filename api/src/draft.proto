@@ -7,7 +7,6 @@ option go_package = "v1/api";
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 import "validate/validate.proto";
-import "gorm/options.proto";
 
 /////////
 // WRITER
@@ -47,54 +46,51 @@ message Transaction {
 // READER
 /////////
 
-// service Reader {
-  // rpc ReadAggregateByID() returns () {}
-  /* rpc ReadAllByFields() returns () {}
-   * rpc ReadAll() returns () {} */
-// }
+// Reader will look up all 
+service Reader {
+  rpc Read() returns () {}
+}
 
-message ReadAggreageByIDRequest {
+message ReadRequest {
   string aggregate = 1;
 }
 
-message ReadAggregateByIDRespose {}
+message ReadRespose {}
 
-///////
-// EVENT_STORE
-//////
-/* The storage, and routing interface of all `Event`'s in the system.
- * When an event has been emitted it's stored, and routed to the correct event stream */
-service EventStore {
-  option (gorm.server).autogen = true;
-  // Create - Allows a producer to `Emit` an `Event` making the remaing system aware of a change
-  // to the system
-  rpc Create(CreateEventRequest) returns (CreateEventResponse) {}
+//////////
+// EVENTER 
+//////////
+
+// The storage, and routing interface of all `Event`'s in the system.
+// When an event has been emitted it's stored, and routed to the correct event stream/mailbox
+service Eventer {
+  // Enables a producer to `Emit` an `Event` making the remaing system aware of some change
+  rpc Emit(EmitEventRequest) returns (EmitEventResponse) {}
 
   // Snapshot takes a aggregate_id, and a date-time range queries all event's and returns the list of values
-  // rpc Snapshot(SnapshotRequest) returns (SnapshotResponse) {}
+  rpc Snapshot(SnapshotRequest) returns (SnapshotResponse) {}
 
   // Replay takes a list of events and will replay all event's that don't have the `side_effect` flag enabled.
-  // rpc Replay(ReplayRequest) returns (ReplayResponse) {}
+  rpc Replay(ReplayRequest) returns (ReplayResponse) {}
 }
 
-/* A generic message type that act's as a wrapper for all system events. When an event is `Emit`'ed by a producer
- * the `Event` is stored and forwarded to the correct consumer. */
+// A generic message type that act's as a wrapper for all system events. When an event is `Emit`'ed by a producer
+// the `Event` is stored and forwarded to the correct consumer.
 message Event {
-  option (gorm.opts).ormable = true;
   // id - is a uuid to identify each event of the system
-  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
+  string id = 1 [(validate.rules).string.uuid = true];
 
   // aggregate_id - is the identifier of the aggregate the `Event` relates to.
-  string aggregate_id = 2 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid"}];
+  string aggregate_id = 2 [(validate.rules).string.uuid = true];
 
   // transaction_id - is a uuid for each transaction that can be used to string together many differnt events to one executed command
-  string transaction_id = 3 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid"}];
+  string transaction_id = 3 [(validate.rules).string.uuid = true];
 
   // data - the `data` payload of the event system that can be of any message type
   // the consumer will only be interested in specific types of `Events` from a specifc source.
   // the `event_type` is used as the deserialization/serialization as the type identifier of 
   // the `data` value.
-  string data = 4 [(gorm.field).tag = {type: "jsonb"}];
+  string data = 4;
   
   // The datetime when the event was stored
   google.protobuf.Timestamp created_at = 5;
@@ -261,9 +257,8 @@ message Disconnected {
 }
 
 message Process {
-  option (gorm.opts).ormable = true;
   // id - is a uuid to identify each process of the system
-  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
+  string id = 1 [(validate.rules).string.uuid = true];
   
   string name = 2;
   string group = 3;
@@ -275,9 +270,9 @@ message Process {
 
   repeated Metadata tags = 7;
 
-  google.protobuf.Timestamp joined_time = 8 [(gorm.field).tag = {type: "timestamp"}];
-  google.protobuf.Timestamp left_time = 9 [(gorm.field).tag = {type: "timestamp"}];
-  google.protobuf.Timestamp last_status_time = 10 [(gorm.field).tag = {type: "timestamp"}];
+  google.protobuf.Timestamp joined_time = 8;
+  google.protobuf.Timestamp left_time = 9;
+  google.protobuf.Timestamp last_status_time = 10;
 
   string version = 11;
 
@@ -288,9 +283,7 @@ message Process {
 }
 
 message Token {
-  option (gorm.opts).ormable = true;
-
-  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
+  string id = 1 [(validate.rules).string.uuid = true];
   string jwt = 3;
   string nonce = 4;
 }
@@ -306,15 +299,15 @@ enum ProcessKind {
 }
 
 message Metadata {
-  option (gorm.opts).ormable = true;
   // id - is a uuid to identify each process of the system
-  string id = 1 [(validate.rules).string.uuid = true, (gorm.field).tag = {type: "uuid" primary_key: true}];
-  
+  string id = 1 [(validate.rules).string.uuid = true]; 
   string key = 2;
   string value = 3;
 }
 
 // CRUDLAggregate - A generic interface that can be implemented by any `Aggregate` 
+// NOTE: I'm not sure crud really had a place here. It seems like aggregates, and entities are always
+// going to need some specific tailoring.
 /* service CRUDLAggregate {
  *   rpc Create() returns {}
  *   rpc Read() returns {}
@@ -322,5 +315,3 @@ message Metadata {
  *   rpc Deltete() returns {}
  *   rpc List() returns {}
  * } */
-
-// 

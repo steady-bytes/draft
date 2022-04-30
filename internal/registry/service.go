@@ -162,17 +162,16 @@ func (s *service) Monitor(req *api.MonitorRequest, stream api.Registry_MonitorSe
 	return errors.New("implement me")
 }
 
+// QuerySystemJournal - Handles three different kinds of quries. `getProcessById`, `getProcessByGroup`, and `getAllProcesses`.
 func (s *service) QuerySystemJournal(ctx context.Context, req *api.JournalQueryRequest) (*api.JournalQueryResponse, error) {
 	switch req.GetQuery().GetOption().(type) {
 	case *api.Query_Id:
-		fmt.Println("id?")
+		return s.getProcessById(ctx, req.GetQuery().GetId())
 	case *api.Query_Group:
-		fmt.Println("group?")
+		return s.getProcessesByGroup(ctx, req.GetQuery().GetGroup())
 	case *api.Query_All:
-		fmt.Println("all?")
+		return s.getAllProcesses(ctx)
 	default:
-		fmt.Println("default value")
+		return nil, errors.New("query type not handled")
 	}
-
-	return nil, errors.New("implement me")
 }

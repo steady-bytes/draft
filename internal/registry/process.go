@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -155,4 +156,32 @@ func (s *service) updateProcessDetails(details *api.ProcessDetails) error {
 	fmt.Println("update process: \n", p)
 
 	return nil
+}
+
+func (s *service) getProcessById(ctx context.Context, pid string) (*api.JournalQueryResponse, error) {
+	p := &api.Process{
+		Id: pid,
+	}
+
+	// TODO: change this to use gorm directly
+	p, err := api.DefaultReadProcess(ctx, p, s.DB)
+	if err != nil {
+		fmt.Println("error: ", err)
+		return nil, err
+	}
+
+	result := make(map[string]*api.Process)
+	result[pid] = p
+
+	return &api.JournalQueryResponse{
+		Result: result,
+	}, nil
+}
+
+func (s *service) getProcessesByGroup(ctx context.Context, group string) (*api.JournalQueryResponse, error) {
+	return nil, errors.New("implement query by group")
+}
+
+func (s *service) getAllProcesses(ctx context.Context) (*api.JournalQueryResponse, error) {
+	return nil, errors.New("implement query all processes")
 }
