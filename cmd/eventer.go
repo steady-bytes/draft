@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	es "github.com/steady-bytes/draft/internal/event_store"
+	es "github.com/steady-bytes/draft/internal/eventer"
 
 	"github.com/spf13/cobra"
 )
@@ -12,7 +12,7 @@ func init() {
 }
 
 var eventStore = &cobra.Command{
-	Use:   "event_store",
+	Use:   "eventer",
 	Short: "run the event store component of `draft`.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name = "event_store"

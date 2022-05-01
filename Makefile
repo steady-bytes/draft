@@ -16,11 +16,11 @@ infra-stop:
 registry:
 	go run main.go registry -r 50000
 
-event_store:
-	go run main.go event_store -r 50001
+eventer:
+	go run main.go eventer -r 50001
 
 local:
-	make -j 2 registry event_store
+	make -j 2 registry eventer
 
 test:
 	cd tests/registry && go run main.go 

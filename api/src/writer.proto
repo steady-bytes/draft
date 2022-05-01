@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package api;
+
+option go_package = "v1/api";
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+/////////
+// WRITER
+/////////
+
+// All system writes can go through two different methods. Exec, or ExecSaga.
+// `Writes` are segregated from `Reads` following the `CQRS`.
+service Writer {
+  // Executes a syncrounus command. Meaning the response is expected to
+  // contain a result message containing some details. The client will
+  // not be expecting the server to response with more data.
+  rpc Exec(Command) returns (Output) {}
+
+  // ExecSaga - Invokes a command using the asyncrounus `Saga` pattern. So a `transaction_id`,
+  // and `aggregate_id` are returned, and can then be used by the client to filter streaming
+  // results for specific responses
+  rpc ExecSaga(Command) returns (Transaction) {}
+}
+
+message Command {
+  string name = 1;
+  google.protobuf.Any arguments = 2;
+}
+
+message Output {
+  string transaction_id = 1 [(validate.rules).string.uuid = true];
+  string aggregate_id = 2 [(validate.rules).string.uuid = true];
+  google.protobuf.Any result = 3;
+}
+
+message Transaction {
+  string transaction_id = 1 [(validate.rules).string.uuid = true];
+  string aggregate_id = 2 [(validate.rules).string.uuid = true];
+}

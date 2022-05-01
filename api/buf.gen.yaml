@@ -11,11 +11,11 @@ plugins:
       - paths=source_relative
       - require_unimplemented_servers=false
 
-  - name: gorm
-    out: ./gen/go
-    opt: 
-      - paths=source_relative 
-      - engine=postgres
+  # - name: gorm
+  #   out: ./gen/go
+  #   opt:
+  #     - paths=source_relative
+  #     - engine=postgres
 
   - name: doc
     out: ./gen/docs/
