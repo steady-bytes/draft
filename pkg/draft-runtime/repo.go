@@ -1,9 +1,12 @@
 package draft_runtime
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/jinzhu/gorm"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/driver/pgdriver"
 )
 
 // REPO - Mechanismes used to persists any type of data. From S3 files storage, NoSQL databases, and SQL databases.
@@ -31,13 +34,14 @@ const (
 	NullRepoType RepoType = iota
 	Postgres
 	PostgresGorm
+	PostgresBun
 	Scylla
 	Mongo
 )
 
 // String - get the human readable value for `RepoType`
 func (rt RepoType) String() string {
-	return []string{"null", "postgres", "postgres_gorm", "scylla", "mongo"}[rt]
+	return []string{"null", "postgres", "postgres_gorm", "postgres_bun", "scylla", "mongo"}[rt]
 }
 
 // WithRepo - Connects to the plugins repo of choice with the runtime
@@ -66,6 +70,19 @@ func (c *Commet) withRepo(registrar RepoPluginRegistrar) {
 		if err := registrar.RegisterDB(db); err != nil {
 			panic(err)
 		}
+
+	} else if repoType == PostgresBun {
+		if cfg.SSL {
+			panic("ssl configuration for postgres is not implemented")
+		}
+
+		addr := fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=disable", cfg.Protocol, cfg.User, cfg.Domain, cfg.Port, cfg.Server)
+
+		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(addr)))
+
+		db := bun.NewDB(sqldb, pgdialect.New())
+
+		c.bun = db
 
 	} else {
 		panic("a valid repo was not configured")

@@ -1,4 +1,4 @@
-package registry
+package registrar
 
 import (
 	"context"
@@ -37,7 +37,7 @@ func (s *service) closeProcess(pid string) error {
 	return nil
 }
 
-func (s *service) buildProcessConnectedEventRequest(processID string) (*api.CreateEventRequest, error) {
+func (s *service) buildProcessConnectedEventRequest(processID string) (*api.EmitEventRequest, error) {
 	// emit event `PROCESS_CONNECTED`
 	evtData := &api.ProcessConnected{
 		ProcessId:   processID,
@@ -64,12 +64,12 @@ func (s *service) buildProcessConnectedEventRequest(processID string) (*api.Crea
 	}
 
 	// return built event request
-	return &api.CreateEventRequest{
+	return &api.EmitEventRequest{
 		Payload: evt,
 	}, nil
 }
 
-func (s *service) buildProcessDisconnectedEventRequest(processID string) (*api.CreateEventRequest, error) {
+func (s *service) buildProcessDisconnectedEventRequest(processID string) (*api.EmitEventRequest, error) {
 	// emit event `PROCESS_DISCONNECTED`
 	evtData := &api.ProcessDisconnected{
 		ProcessId:      processID,
@@ -96,7 +96,7 @@ func (s *service) buildProcessDisconnectedEventRequest(processID string) (*api.C
 	}
 
 	// return built event request
-	return &api.CreateEventRequest{
+	return &api.EmitEventRequest{
 		Payload: evt,
 	}, nil
 }

@@ -1,4 +1,4 @@
-package registry
+package registrar
 
 import (
 	"context"
@@ -13,13 +13,13 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type service struct {
+type registrarController struct {
 	api.RegistryServer
 	DB               *gorm.DB
 	eventStoreClient api.EventStoreClient
 }
 
-func NewService() (*service, error) {
+func NewRegistrarController() (*registrarController, error) {
 	url := fmt.Sprintf("%s:%d", "localhost", 50001)
 	conn, err := grpc.Dial(url, grpc.WithInsecure())
 	if err != nil {

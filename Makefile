@@ -13,14 +13,14 @@ infra:
 infra-stop:
 	./scripts/stop_development.sh
 
-registry:
-	go run main.go registry -r 50000
+registrar:
+	go run main.go registrar -r 50000
 
 eventer:
 	go run main.go eventer -r 50001
 
 local:
-	make -j 2 registry eventer
+	make -j 2 registrar eventer
 
 test:
 	cd tests/registry && go run main.go 

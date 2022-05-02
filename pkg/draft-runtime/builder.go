@@ -22,6 +22,7 @@ type Commet struct {
 
 	tcp  net.Listener
 	gorm *gorm.DB
+
 	rpc  *grpc.Server
 	nats *nats.Conn
 	http *fiber.App

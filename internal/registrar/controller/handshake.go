@@ -1,4 +1,4 @@
-package registry
+package registrar
 
 import (
 	"crypto/rand"
@@ -62,7 +62,7 @@ func NewProcessFromHandshakePayload(process *api.Process) (*api.Process, error) 
 	return process, nil
 }
 
-func (s *service) buildHandshakeInititatedEventRequest(pid string) (*api.CreateEventRequest, error) {
+func (s *service) buildHandshakeInititatedEventRequest(pid string) (*api.EmitEventRequest, error) {
 	// init handshake started event
 	evtData := &api.HandshakeInitiated{
 		ProcessId:     pid,
@@ -90,7 +90,7 @@ func (s *service) buildHandshakeInititatedEventRequest(pid string) (*api.CreateE
 	}
 
 	// wrap event in req
-	return &api.CreateEventRequest{
+	return &api.EmitEventRequest{
 		Payload: evt,
 	}, nil
 }

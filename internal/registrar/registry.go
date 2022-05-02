@@ -1,4 +1,4 @@
-package registry
+package registrar
 
 import (
 	"errors"
@@ -34,21 +34,6 @@ type registry struct {
 	service *service
 }
 
-type ProcessTest struct {
-	gorm.Model
-	Group       string
-	HealthState string
-	Tags        []*MetadataTest
-	Version     string
-}
-
-type MetadataTest struct {
-	gorm.Model
-	Key           string
-	ProcessTestId uint
-	Value         string
-}
-
 func (r *registry) RegisterDB(db interface{}) error {
 	if db == nil {
 		return errors.New("db interface is nil")
@@ -56,13 +41,13 @@ func (r *registry) RegisterDB(db interface{}) error {
 
 	if db, ok := db.(*gorm.DB); ok {
 		fmt.Println("migrate process")
-		db = db.AutoMigrate(&api.ProcessORM{})
+		db = db.AutoMigrate(&Process{})
 
 		fmt.Println("migrate process metadata")
-		db = db.AutoMigrate(&api.MetadataORM{})
+		db = db.AutoMigrate(&Metadata{})
 
 		fmt.Println("migrate process metadata")
-		db = db.AutoMigrate(&api.TokenORM{})
+		db = db.AutoMigrate(&Token{})
 
 		r.service.DB = db
 	}
