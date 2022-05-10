@@ -6,6 +6,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
@@ -45,6 +46,8 @@ func (rt RepoType) String() string {
 }
 
 // WithRepo - Connects to the plugins repo of choice with the runtime
+// TODO: Change this method body to be a switch statement that will call specific bootstrapping
+// methods for each type of repo instead of keeping itall in
 func (c *Commet) withRepo(registrar RepoPluginRegistrar) {
 	repoType := registrar.GetRepoType()
 
@@ -72,6 +75,8 @@ func (c *Commet) withRepo(registrar RepoPluginRegistrar) {
 		}
 
 	} else if repoType == PostgresBun {
+		cfg := c.config.Repos[Postgres.String()].Postgres
+
 		if cfg.SSL {
 			panic("ssl configuration for postgres is not implemented")
 		}

@@ -7,6 +7,7 @@ import (
 	fiber "github.com/gofiber/fiber/v2"
 	"github.com/jinzhu/gorm"
 	"github.com/nats-io/nats.go"
+	"github.com/uptrace/bun"
 	"google.golang.org/grpc"
 
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -20,8 +21,10 @@ import (
 type Commet struct {
 	config *Config
 
-	tcp  net.Listener
+	tcp net.Listener
+
 	gorm *gorm.DB
+	bun  *bun.DB
 
 	rpc  *grpc.Server
 	nats *nats.Conn

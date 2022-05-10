@@ -89,6 +89,7 @@ enum EventCode {
   HANDSHAKE_INITIATED = 1;
   PROCESS_CONNECTED = 2;
   PROCESS_DISCONNECTED = 3;
+  AGGREGATE_READY = 4;
 }
 
 // HandshakeInitiated - An event that marks the point in time, and the `address` of the process that 
@@ -110,4 +111,12 @@ message ProcessConnected {
 message ProcessDisconnected {
   string process_id = 1 [(validate.rules).string.uuid = true];
   google.protobuf.Timestamp disconnected_at = 2;
+}
+
+// AggregateReady - Is a message to let the `reader` and `writer` interface know that new `quires`, and `commands`
+// can be executed.
+message AggregateReady {
+  string pid = 1;
+  string name = 2;
+  string address = 3;
 }

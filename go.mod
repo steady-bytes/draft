@@ -61,6 +61,7 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/uptrace/bun v1.1.4 // indirect
+	github.com/uptrace/bun/dialect/pgdialect v1.1.4 // indirect
 	github.com/uptrace/bun/driver/pgdriver v1.1.4 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.34.0 // indirect
