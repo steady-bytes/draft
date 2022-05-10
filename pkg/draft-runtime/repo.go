@@ -19,8 +19,6 @@ type RepoPluginRegistrar interface {
 
 	// RegisterDB - gives the plugin the option to use many differnt types of orms/db client. A type assertion can
 	// be used at the client level configure the runtime.
-	//
-	// TODO: Make this parameter an actual type, and not a generic interface
 	RegisterDB(interface{}) error
 }
 
@@ -49,47 +47,57 @@ func (rt RepoType) String() string {
 // TODO: Change this method body to be a switch statement that will call specific bootstrapping
 // methods for each type of repo instead of keeping itall in
 func (c *Commet) withRepo(registrar RepoPluginRegistrar) {
-	repoType := registrar.GetRepoType()
-
-	if repoType == NullRepoType {
+	switch registrar.GetRepoType() {
+	case NullRepoType:
 		return
-	} else if repoType == PostgresGorm {
-		// set value to local variable
-		cfg := c.config.Repos[Postgres.String()].Postgres
-
-		if cfg.SSL {
-			panic("ssl configuration for postgres is not implemented")
-		}
-
-		addr := fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=disable", cfg.Protocol, cfg.User, cfg.Domain, cfg.Port, cfg.Server)
-
-		db, err := gorm.Open("postgres", addr)
-		if err != nil {
-			panic("failed to connect to posgres")
-		}
-
-		c.gorm = db
-
-		if err := registrar.RegisterDB(db); err != nil {
-			panic(err)
-		}
-
-	} else if repoType == PostgresBun {
-		cfg := c.config.Repos[Postgres.String()].Postgres
-
-		if cfg.SSL {
-			panic("ssl configuration for postgres is not implemented")
-		}
-
-		addr := fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=disable", cfg.Protocol, cfg.User, cfg.Domain, cfg.Port, cfg.Server)
-
-		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(addr)))
-
-		db := bun.NewDB(sqldb, pgdialect.New())
-
-		c.bun = db
-
-	} else {
+	case PostgresGorm:
+		c.bootstrapPostgresGorm(registrar)
+	case PostgresBun:
+		c.bootstrapPostgresBun(registrar)
+	default:
 		panic("a valid repo was not configured")
+	}
+}
+
+// bootstrapPostgresGorm - A utility for registering `GORM` with the `draft` runtime.
+// This method does not return anything but can panic because it's considered a fatal issue
+// if the db can't be configured and setup correctly in the runtime.
+func (c *Commet) bootstrapPostgresGorm(registrar RepoPluginRegistrar) {
+	// set value to local variable
+	cfg := c.config.Repos[Postgres.String()].Postgres
+
+	if cfg.SSL {
+		panic("ssl configuration for postgres is not implemented")
+	}
+
+	addr := fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=disable", cfg.Protocol, cfg.User, cfg.Domain, cfg.Port, cfg.Server)
+
+	db, err := gorm.Open("postgres", addr)
+	if err != nil {
+		panic("failed to connect to posgres")
+	}
+
+	c.gorm = db
+
+	if err := registrar.RegisterDB(db); err != nil {
+		panic(err)
+	}
+}
+
+// bootstrapPostgresBun - A utility for registering `bun` orm with the `draft` runtime.
+func (c *Commet) bootstrapPostgresBun(registrar RepoPluginRegistrar) {
+	cfg := c.config.Repos[Postgres.String()].Postgres
+
+	if cfg.SSL {
+		panic("ssl configuration for postgres is not implemented")
+	}
+
+	addr := fmt.Sprintf("%s://%s@%s:%d/%s?sslmode=disable", cfg.Protocol, cfg.User, cfg.Domain, cfg.Port, cfg.Server)
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(addr)))
+	db := bun.NewDB(sqldb, pgdialect.New())
+	c.bun = db
+
+	if err := registrar.RegisterDB(db); err != nil {
+		panic(err)
 	}
 }
