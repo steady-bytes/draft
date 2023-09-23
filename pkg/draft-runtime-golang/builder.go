@@ -102,16 +102,16 @@ func (d *DefaultRuntimeBuilder) RegisterBroker(broker interface{}) error {
 func (c *Runtime) Start() error {
 	fmt.Println("start called")
 
-	/* if c.http != nil {
-	 *   port := fmt.Sprintf(":%d", c.config.Service.HTTPPort)
-	 *   go c.http.Listen(port)
-	 * } */
-
-	if c.rpc != nil {
-		fmt.Println("starting")
-		c.rpc.Serve(c.tcp)
-		fmt.Println("started this will never be called")
+	if c.http != nil {
+		port := fmt.Sprintf(":%d", c.config.Service.Port)
+		go c.http.Run(port)
 	}
+
+	// if c.rpc != nil {
+	// 	fmt.Println("starting")
+	// 	c.rpc.Serve(c.tcp)
+	// 	fmt.Println("started this will never be called")
+	// }
 
 	return nil
 }

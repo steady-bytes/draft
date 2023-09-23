@@ -42,8 +42,8 @@ var rootCmd = &cobra.Command{
 }
 
 var eventStore = &cobra.Command{
-	Use:   "eventer",
-	Short: "run the event store component of `draft`.",
+	Use:   "gateway",
+	Short: "run the draft gateway",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name = "event_store"
 
