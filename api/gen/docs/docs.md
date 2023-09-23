@@ -3,8 +3,16 @@
 
 ## Table of Contents
 
-- [draft.proto](#draft.proto)
-- [eventer.proto](#eventer.proto)
+- [draft/command_handler/v1/writer.proto](#draft/command_handler/v1/writer.proto)
+    - [Command](#api.Command)
+    - [Output](#api.Output)
+    - [Transaction](#api.Transaction)
+  
+    - [Writer](#api.Writer)
+  
+- [draft/draft.proto](#draft/draft.proto)
+- [draft/event_store/v1/eventer.proto](#draft/event_store/v1/eventer.proto)
+    - [AggregateReady](#api.AggregateReady)
     - [EmitEventRequest](#api.EmitEventRequest)
     - [EmitEventResponse](#api.EmitEventResponse)
     - [Event](#api.Event)
@@ -16,6 +24,34 @@
     - [EventCode](#api.EventCode)
   
     - [Eventer](#api.Eventer)
+  
+- [draft/query_handler/v1/reader.proto](#draft/query_handler/v1/reader.proto)
+    - [ReadRequest](#api.ReadRequest)
+    - [ReadResponse](#api.ReadResponse)
+  
+    - [Reader](#api.Reader)
+  
+- [draft/service_registry/v1/registrar.proto](#draft/service_registry/v1/registrar.proto)
+    - [DisconnectRequest](#api.DisconnectRequest)
+    - [Disconnected](#api.Disconnected)
+    - [Empty](#api.Empty)
+    - [Handshake](#api.Handshake)
+    - [JournalQueryRequest](#api.JournalQueryRequest)
+    - [JournalQueryResponse](#api.JournalQueryResponse)
+    - [JournalQueryResponse.ResultEntry](#api.JournalQueryResponse.ResultEntry)
+    - [Metadata](#api.Metadata)
+    - [MonitorRequest](#api.MonitorRequest)
+    - [Process](#api.Process)
+    - [ProcessDetails](#api.ProcessDetails)
+    - [Query](#api.Query)
+    - [RequestHandshake](#api.RequestHandshake)
+    - [Token](#api.Token)
+  
+    - [ProcessHealthState](#api.ProcessHealthState)
+    - [ProcessKind](#api.ProcessKind)
+    - [ProcessRunningState](#api.ProcessRunningState)
+  
+    - [Registry](#api.Registry)
   
 - [gorm/options.proto](#gorm/options.proto)
     - [AutoServerOptions](#gorm.AutoServerOptions)
@@ -44,49 +80,70 @@
     - [UUID](#gorm.types.UUID)
     - [UUIDValue](#gorm.types.UUIDValue)
   
-- [reader.proto](#reader.proto)
-    - [ReadRequest](#api.ReadRequest)
-    - [ReadResponse](#api.ReadResponse)
+- [users/user.proto](#users/user.proto)
+    - [NewUser](#api.NewUser)
+    - [UserDetails](#api.UserDetails)
+    - [UserID](#api.UserID)
   
-    - [Reader](#api.Reader)
-  
-- [registrar.proto](#registrar.proto)
-    - [DisconnectRequest](#api.DisconnectRequest)
-    - [Disconnected](#api.Disconnected)
-    - [Empty](#api.Empty)
-    - [Handshake](#api.Handshake)
-    - [JournalQueryRequest](#api.JournalQueryRequest)
-    - [JournalQueryResponse](#api.JournalQueryResponse)
-    - [JournalQueryResponse.ResultEntry](#api.JournalQueryResponse.ResultEntry)
-    - [Metadata](#api.Metadata)
-    - [MonitorRequest](#api.MonitorRequest)
-    - [Process](#api.Process)
-    - [ProcessDetails](#api.ProcessDetails)
-    - [Query](#api.Query)
-    - [RequestHandshake](#api.RequestHandshake)
-    - [Token](#api.Token)
-  
-    - [ProcessHealthState](#api.ProcessHealthState)
-    - [ProcessKind](#api.ProcessKind)
-    - [ProcessRunningState](#api.ProcessRunningState)
-  
-    - [Registry](#api.Registry)
-  
-- [writer.proto](#writer.proto)
-    - [Command](#api.Command)
-    - [Output](#api.Output)
-    - [Transaction](#api.Transaction)
-  
-    - [Writer](#api.Writer)
+    - [User](#api.User)
   
 - [Scalar Value Types](#scalar-value-types)
 
 
 
-<a name="draft.proto"></a>
+<a name="draft/command_handler/v1/writer.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## draft.proto
+## draft/command_handler/v1/writer.proto
+
+
+
+<a name="api.Command"></a>
+
+### Command
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+| arguments | [google.protobuf.Any](#google.protobuf.Any) |  |  |
+
+
+
+
+
+
+<a name="api.Output"></a>
+
+### Output
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| transaction_id | [string](#string) |  |  |
+| aggregate_id | [string](#string) |  |  |
+| result | [google.protobuf.Any](#google.protobuf.Any) |  |  |
+
+
+
+
+
+
+<a name="api.Transaction"></a>
+
+### Transaction
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| transaction_id | [string](#string) |  |  |
+| aggregate_id | [string](#string) |  |  |
+
+
+
 
 
  
@@ -95,14 +152,60 @@
 
  
 
+
+<a name="api.Writer"></a>
+
+### Writer
+All system writes can go through two different methods. Exec, or ExecSaga.
+`Writes` are segregated from `Reads` following the `CQRS`.
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| Exec | [Command](#api.Command) | [Output](#api.Output) | Executes a syncrounus command. Meaning the response is expected to contain a result message containing some details. The client will not be expecting the server to response with more data. |
+| ExecSaga | [Command](#api.Command) | [Transaction](#api.Transaction) | ExecSaga - Invokes a command using the asyncrounus `Saga` pattern. So a `transaction_id`, and `aggregate_id` are returned, and can then be used by the client to filter streaming results for specific responses |
+
  
 
 
 
-<a name="eventer.proto"></a>
+<a name="draft/draft.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## eventer.proto
+## draft/draft.proto
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+
+
+<a name="draft/event_store/v1/eventer.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## draft/event_store/v1/eventer.proto
+
+
+
+<a name="api.AggregateReady"></a>
+
+### AggregateReady
+AggregateReady - Is a message to let the `reader` and `writer` interface know that new `quires`, and `commands`
+can be executed.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| pid | [string](#string) |  |  |
+| name | [string](#string) |  |  |
+| address | [string](#string) |  |  |
+
+
+
 
 
 
@@ -245,6 +348,7 @@ when implementing a new `AggregateKind`.
 | HANDSHAKE_INITIATED | 1 |  |
 | PROCESS_CONNECTED | 2 |  |
 | PROCESS_DISCONNECTED | 3 |  |
+| AGGREGATE_READY | 4 |  |
 
 
  
@@ -261,6 +365,368 @@ When an event has been emitted it&#39;s stored, and routed to the correct event 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | Emit | [EmitEventRequest](#api.EmitEventRequest) | [EmitEventResponse](#api.EmitEventResponse) | Enables a producer to `Emit` an `Event` making the remaing system aware of some change |
+
+ 
+
+
+
+<a name="draft/query_handler/v1/reader.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## draft/query_handler/v1/reader.proto
+
+
+
+<a name="api.ReadRequest"></a>
+
+### ReadRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| aggregate | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.ReadResponse"></a>
+
+### ReadResponse
+
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+
+<a name="api.Reader"></a>
+
+### Reader
+Reader will look up all
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| Read | [ReadRequest](#api.ReadRequest) | [ReadResponse](#api.ReadResponse) |  |
+
+ 
+
+
+
+<a name="draft/service_registry/v1/registrar.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## draft/service_registry/v1/registrar.proto
+
+
+
+<a name="api.DisconnectRequest"></a>
+
+### DisconnectRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.Disconnected"></a>
+
+### Disconnected
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.Empty"></a>
+
+### Empty
+
+
+
+
+
+
+
+<a name="api.Handshake"></a>
+
+### Handshake
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process_id | [string](#string) |  | the process_id is assigned when the join request is successful however it does not mean that the process is registered and running. |
+| leader_address | [string](#string) |  | the address the client must stream it&#39;s status messages to |
+| token | [Token](#api.Token) |  |  |
+| transaction_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.JournalQueryRequest"></a>
+
+### JournalQueryRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| query | [Query](#api.Query) |  |  |
+
+
+
+
+
+
+<a name="api.JournalQueryResponse"></a>
+
+### JournalQueryResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| result | [JournalQueryResponse.ResultEntry](#api.JournalQueryResponse.ResultEntry) | repeated |  |
+
+
+
+
+
+
+<a name="api.JournalQueryResponse.ResultEntry"></a>
+
+### JournalQueryResponse.ResultEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [Process](#api.Process) |  |  |
+
+
+
+
+
+
+<a name="api.Metadata"></a>
+
+### Metadata
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  | id - is a uuid to identify each process of the system |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.MonitorRequest"></a>
+
+### MonitorRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| look_up | [Query](#api.Query) |  |  |
+
+
+
+
+
+
+<a name="api.Process"></a>
+
+### Process
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  | id - is a uuid to identify each process of the system |
+| name | [string](#string) |  |  |
+| group | [string](#string) |  |  |
+| local | [string](#string) |  |  |
+| ip_address | [string](#string) |  |  |
+| process_kind | [ProcessKind](#api.ProcessKind) |  |  |
+| tags | [Metadata](#api.Metadata) | repeated |  |
+| joined_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+| left_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+| last_status_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+| version | [string](#string) |  |  |
+| running_state | [ProcessRunningState](#api.ProcessRunningState) |  |  |
+| health_state | [ProcessHealthState](#api.ProcessHealthState) |  |  |
+| token | [Token](#api.Token) |  |  |
+
+
+
+
+
+
+<a name="api.ProcessDetails"></a>
+
+### ProcessDetails
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process_id | [string](#string) |  |  |
+| running_state | [ProcessRunningState](#api.ProcessRunningState) |  |  |
+| health_state | [ProcessHealthState](#api.ProcessHealthState) |  |  |
+| process_kind | [ProcessKind](#api.ProcessKind) |  |  |
+| token | [string](#string) |  |  |
+| nonce | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.Query"></a>
+
+### Query
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  |  |
+| group | [string](#string) |  |  |
+| all | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.RequestHandshake"></a>
+
+### RequestHandshake
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| payload | [Process](#api.Process) |  |  |
+
+
+
+
+
+
+<a name="api.Token"></a>
+
+### Token
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  |  |
+| jwt | [string](#string) |  |  |
+| nonce | [string](#string) |  |  |
+
+
+
+
+
+ 
+
+
+<a name="api.ProcessHealthState"></a>
+
+### ProcessHealthState
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| INVALID_PROCESS_HEALTH_STATE | 0 |  |
+| PROCESS_HEALTHY | 1 |  |
+| PROCESS_UNHEALTHY | 2 |  |
+
+
+
+<a name="api.ProcessKind"></a>
+
+### ProcessKind
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| INVALID_PROCESS_KIND | 0 |  |
+| AGGREGATE_PROCESS | 1 |  |
+| CONSUMER_PROCESS | 2 |  |
+| PROJECTION_PROCESS | 3 |  |
+| RPC_PROCESS | 4 |  |
+| HTTP_PROCESS | 5 |  |
+| DEFAULT_PROCESS | 6 |  |
+
+
+
+<a name="api.ProcessRunningState"></a>
+
+### ProcessRunningState
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| INVALID_PROCESS_RUNNING_STATE | 0 |  |
+| PROCESS_STARTING | 1 |  |
+| PROCESS_TESTING | 2 |  |
+| PROCESS_RUNNING | 3 |  |
+| PROCESS_DICONNECTED | 4 |  |
+
+
+ 
+
+ 
+
+
+<a name="api.Registry"></a>
+
+### Registry
+Process registry
+For a process to connect to the registry it&#39;s required to 
+`InitiateHandshake`, and then use the `Handshake` details to `Connect` and stream process details to the registry on a set
+interval notifiing the registry of the processes state
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| InitiateHandshake | [RequestHandshake](#api.RequestHandshake) | [Handshake](#api.Handshake) | Initiate the connection process to the registry. After registration is complete, a process will be able to send and receive messages. |
+| ConnectProcess | [ProcessDetails](#api.ProcessDetails) stream | [Empty](#api.Empty) | The process that has joined the cluster must send connections details of it&#39;s ability to process requests, or perform the business logic it&#39;s supposted to |
+| Disconnect | [DisconnectRequest](#api.DisconnectRequest) | [Disconnected](#api.Disconnected) | Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or receive a message from the system. |
+| Monitor | [MonitorRequest](#api.MonitorRequest) | [Process](#api.Process) stream | used by external clients to monitor the status of one, or many processes |
+| QuerySystemJournal | [JournalQueryRequest](#api.JournalQueryRequest) | [JournalQueryResponse](#api.JournalQueryResponse) | Query the registries journal of processes |
 
  
 
@@ -633,418 +1099,56 @@ When an event has been emitted it&#39;s stored, and routed to the correct event 
 
 
 
-<a name="reader.proto"></a>
+<a name="users/user.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## reader.proto
+## users/user.proto
 
 
 
-<a name="api.ReadRequest"></a>
+<a name="api.NewUser"></a>
 
-### ReadRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| aggregate | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="api.ReadResponse"></a>
-
-### ReadResponse
-
-
-
-
-
-
- 
-
- 
-
- 
-
-
-<a name="api.Reader"></a>
-
-### Reader
-Reader will look up all
-
-| Method Name | Request Type | Response Type | Description |
-| ----------- | ------------ | ------------- | ------------|
-| Read | [ReadRequest](#api.ReadRequest) | [ReadResponse](#api.ReadResponse) |  |
-
- 
-
-
-
-<a name="registrar.proto"></a>
-<p align="right"><a href="#top">Top</a></p>
-
-## registrar.proto
-
-
-
-<a name="api.DisconnectRequest"></a>
-
-### DisconnectRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| process_id | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="api.Disconnected"></a>
-
-### Disconnected
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| process_id | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="api.Empty"></a>
-
-### Empty
-
-
-
-
-
-
-
-<a name="api.Handshake"></a>
-
-### Handshake
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| process_id | [string](#string) |  | the process_id is assigned when the join request is successful however it does not mean that the process is registered and running. |
-| leader_address | [string](#string) |  | the address the client must stream it&#39;s status messages to |
-| token | [Token](#api.Token) |  |  |
-| transaction_id | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="api.JournalQueryRequest"></a>
-
-### JournalQueryRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| query | [Query](#api.Query) |  |  |
-
-
-
-
-
-
-<a name="api.JournalQueryResponse"></a>
-
-### JournalQueryResponse
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| result | [JournalQueryResponse.ResultEntry](#api.JournalQueryResponse.ResultEntry) | repeated |  |
-
-
-
-
-
-
-<a name="api.JournalQueryResponse.ResultEntry"></a>
-
-### JournalQueryResponse.ResultEntry
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| key | [string](#string) |  |  |
-| value | [Process](#api.Process) |  |  |
-
-
-
-
-
-
-<a name="api.Metadata"></a>
-
-### Metadata
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  | id - is a uuid to identify each process of the system |
-| key | [string](#string) |  |  |
-| value | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="api.MonitorRequest"></a>
-
-### MonitorRequest
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| look_up | [Query](#api.Query) |  |  |
-
-
-
-
-
-
-<a name="api.Process"></a>
-
-### Process
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  | id - is a uuid to identify each process of the system |
-| name | [string](#string) |  |  |
-| group | [string](#string) |  |  |
-| local | [string](#string) |  |  |
-| ip_address | [string](#string) |  |  |
-| process_kind | [ProcessKind](#api.ProcessKind) |  |  |
-| tags | [Metadata](#api.Metadata) | repeated |  |
-| joined_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
-| left_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
-| last_status_time | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
-| version | [string](#string) |  |  |
-| running_state | [ProcessRunningState](#api.ProcessRunningState) |  |  |
-| health_state | [ProcessHealthState](#api.ProcessHealthState) |  |  |
-| token | [Token](#api.Token) |  |  |
-
-
-
-
-
-
-<a name="api.ProcessDetails"></a>
-
-### ProcessDetails
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| process_id | [string](#string) |  |  |
-| running_state | [ProcessRunningState](#api.ProcessRunningState) |  |  |
-| health_state | [ProcessHealthState](#api.ProcessHealthState) |  |  |
-| process_kind | [ProcessKind](#api.ProcessKind) |  |  |
-| token | [string](#string) |  |  |
-| nonce | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="api.Query"></a>
-
-### Query
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  |  |
-| group | [string](#string) |  |  |
-| all | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="api.RequestHandshake"></a>
-
-### RequestHandshake
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| payload | [Process](#api.Process) |  |  |
-
-
-
-
-
-
-<a name="api.Token"></a>
-
-### Token
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| id | [string](#string) |  |  |
-| jwt | [string](#string) |  |  |
-| nonce | [string](#string) |  |  |
-
-
-
-
-
- 
-
-
-<a name="api.ProcessHealthState"></a>
-
-### ProcessHealthState
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| INVALID_PROCESS_HEALTH_STATE | 0 |  |
-| PROCESS_HEALTHY | 1 |  |
-| PROCESS_UNHEALTHY | 2 |  |
-
-
-
-<a name="api.ProcessKind"></a>
-
-### ProcessKind
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| INVALID_PROCESS_KIND | 0 |  |
-| AGGREGATE_PROCESS | 1 |  |
-| CONSUMER_PROCESS | 2 |  |
-| PROJECTION_PROCESS | 3 |  |
-| RPC_PROCESS | 4 |  |
-| HTTP_PROCESS | 5 |  |
-| DEFAULT_PROCESS | 6 |  |
-
-
-
-<a name="api.ProcessRunningState"></a>
-
-### ProcessRunningState
-
-
-| Name | Number | Description |
-| ---- | ------ | ----------- |
-| INVALID_PROCESS_RUNNING_STATE | 0 |  |
-| PROCESS_STARTING | 1 |  |
-| PROCESS_TESTING | 2 |  |
-| PROCESS_RUNNING | 3 |  |
-| PROCESS_DICONNECTED | 4 |  |
-
-
- 
-
- 
-
-
-<a name="api.Registry"></a>
-
-### Registry
-Process registry
-For a process to connect to the registry it&#39;s required to 
-`InitiateHandshake`, and then use the `Handshake` details to `Connect` and stream process details to the registry on a set
-interval notifiing the registry of the processes state
-
-| Method Name | Request Type | Response Type | Description |
-| ----------- | ------------ | ------------- | ------------|
-| InitiateHandshake | [RequestHandshake](#api.RequestHandshake) | [Handshake](#api.Handshake) | Initiate the connection process to the registry. After registration is complete, a process will be able to send and receive messages. |
-| ConnectProcess | [ProcessDetails](#api.ProcessDetails) stream | [Empty](#api.Empty) | The process that has joined the cluster must send connections details of it&#39;s ability to process requests, or perform the business logic it&#39;s supposted to |
-| Disconnect | [DisconnectRequest](#api.DisconnectRequest) | [Disconnected](#api.Disconnected) | Disconnect a process from the registry. When a process disconnects. It will no longer be able to send, or receive a message from the system. |
-| Monitor | [MonitorRequest](#api.MonitorRequest) | [Process](#api.Process) stream | used by external clients to monitor the status of one, or many processes |
-| QuerySystemJournal | [JournalQueryRequest](#api.JournalQueryRequest) | [JournalQueryResponse](#api.JournalQueryResponse) | Query the registries journal of processes |
-
- 
-
-
-
-<a name="writer.proto"></a>
-<p align="right"><a href="#top">Top</a></p>
-
-## writer.proto
-
-
-
-<a name="api.Command"></a>
-
-### Command
+### NewUser
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
-| arguments | [google.protobuf.Any](#google.protobuf.Any) |  |  |
+| email | [string](#string) |  |  |
+| password | [string](#string) |  |  |
 
 
 
 
 
 
-<a name="api.Output"></a>
+<a name="api.UserDetails"></a>
 
-### Output
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| transaction_id | [string](#string) |  |  |
-| aggregate_id | [string](#string) |  |  |
-| result | [google.protobuf.Any](#google.protobuf.Any) |  |  |
-
-
-
-
-
-
-<a name="api.Transaction"></a>
-
-### Transaction
+### UserDetails
 
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| transaction_id | [string](#string) |  |  |
-| aggregate_id | [string](#string) |  |  |
+| id | [string](#string) |  |  |
+| name | [string](#string) |  |  |
+| email | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="api.UserID"></a>
+
+### UserID
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  |  |
 
 
 
@@ -1057,16 +1161,15 @@ interval notifiing the registry of the processes state
  
 
 
-<a name="api.Writer"></a>
+<a name="api.User"></a>
 
-### Writer
-All system writes can go through two different methods. Exec, or ExecSaga.
-`Writes` are segregated from `Reads` following the `CQRS`.
+### User
+
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
-| Exec | [Command](#api.Command) | [Output](#api.Output) | Executes a syncrounus command. Meaning the response is expected to contain a result message containing some details. The client will not be expecting the server to response with more data. |
-| ExecSaga | [Command](#api.Command) | [Transaction](#api.Transaction) | ExecSaga - Invokes a command using the asyncrounus `Saga` pattern. So a `transaction_id`, and `aggregate_id` are returned, and can then be used by the client to filter streaming results for specific responses |
+| RegisterNewUser | [NewUser](#api.NewUser) | [UserDetails](#api.UserDetails) | option(draft.api.writer) = { // enable this method on the `writer` interface writer: true // change the default policy from `private` to `public` allowing all // external clients to execute this method regardless of it&#39;s permissions // and authentication state. policy: &#34;public&#34; } |
+| GetUserById | [UserID](#api.UserID) | [UserDetails](#api.UserDetails) | option(draft.api.reader) = { // enable this method on the `reader` interface reader: true // this method is private, therefor before it&#39;s executed by the // `reader` interface the client must be authenticated, and be assigend to // the correct policy. } |
 
  
 

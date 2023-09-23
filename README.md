@@ -1,28 +1,35 @@
 # Draft
 
-1. EventStore -> Store and forward all events
+# Components of draft
+* gateway -> A single entry point to the system
+
+* service_registry -> A
+
+* event_store -> Store and forward all events
 	a. rpc
 	b. repo
 	c. publisher broker
 
-2. writer -> Entrypoint to the write path of the system
+* command_handler -> Entrypoint to the write path of the system
 	a. rpc
 
-3. aggregate
+* query_handler -> handle incoming queries of the system 
+
+* aggregate
 	a. rpc -> read, write
 	b. repo
 
-4. projection
+* projection
 	a. rpc -> read
 	b. repo
 	c. subscriber broker
 
-5. Worker
+* consumer 
 	a. repo
 	b. subscriber broker
 
-6. Reader
-  a. rpc -> read
+* producer
+
 
 ## Project Structure
 ```sh

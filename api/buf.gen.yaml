@@ -34,12 +34,12 @@ plugins:
       - lang=go
 
   # js - uses `protoc` standard, and not an individual plugin
-  - name: js
-    out: ./gen/web
-    opt: import_style=commonjs
+  # - name: js
+  #   out: ./gen/web
+  #   opt: import_style=commonjs
 
-  - name: grpc-web
-    out: ./gen/web
-    opt:
-      - import_style=commonjs+dts
-      - mode=grpcwebtext
+  # - name: grpc-web
+  #   out: ./gen/web
+  #   opt:
+  #     - import_style=commonjs+dts
+  #     - mode=grpcwebtext
