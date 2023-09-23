@@ -1,14 +1,30 @@
 package service
 
 import (
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
-
 	"fmt"
 	"os"
+
+	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+var (
+	configFile string
+	Runtime    *draft.Runtime
+
+	name string
+	port int32
+)
+
+func init() {
+	cobra.OnInitialize(initConfig)
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is config.yaml")
+
+	rootCmd.AddCommand(eventStore)
+	eventStore.Flags().Int32VarP(&port, "port", "p", 3001, "rpc port override, by default the rpc port is 3001")
+}
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
@@ -31,28 +47,12 @@ var eventStore = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name = "event_store"
 
-		if err := Runtime.DefaultBuilder(es.NewPlugin()).Start(); err != nil {
+		if err := Runtime.DefaultBuilder(NewService()).Start(); err != nil {
 			panic(err)
 		}
 
 		return nil
 	},
-}
-
-var (
-	configFile string
-	Runtime    *draft.Commet
-
-	name string
-	port int32
-)
-
-func init() {
-	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is config.yaml")
-
-	rootCmd.AddCommand(eventStore)
-	eventStore.Flags().Int32VarP(&port, "port", "p", 3001, "rpc port override, by default the rpc port is 3001")
 }
 
 func initConfig() {
@@ -69,7 +69,7 @@ func initConfig() {
 		os.Exit(1)
 	}
 
-	cfg := draft.NewConfig(name, rpcPort, httpPort)
+	cfg := draft.NewConfig(name, port)
 
 	rt, err := draft.New(cfg)
 	if err != nil {

@@ -14,16 +14,21 @@ import (
 // Implementing the `draft.Plugin` interface so it can be run by the runtime
 
 // Constructor to build a plugin that can be used by the runtime
-func NewPlugin() draft.DefaultPluginRegistrar {
-	return &eventStorePlugin{
-		service: NewService(),
+func NewService() draft.DefaultPluginRegistrar {
+	return &service{
+		// model:      NewModel(),
+		// controller: NewController(),
+		// handler: NewHandler(),
+		// consumer:   NewConsumer(),
+		// publisher:  NewPublisher(),
 	}
 }
 
 // eventStorePlugin is configuration for what features are enabeld in the runtime
-type eventStorePlugin struct {
+type eventStore struct {
 	*draft.DefaultRuntimeBuilder
-	service *service
+	// controller *controller
+	handler *handler
 }
 
 // Override the `ReisterDB` default behavior for the `DefaultRuntimebuilder`
@@ -57,4 +62,18 @@ func (s *eventStorePlugin) RegisterBroker(broker interface{}) error {
 	s.service.msg.broker = broker.(*nats.Conn)
 
 	return nil
+}
+
+func (s *eventStor)
+
+type service struct {
+	rpc *api.EventStoreDefaultServer
+	msg *eventStoreMessagePublisher
+}
+
+func NewService() *service {
+	return &service{
+		rpc: NewRPC(),
+		msg: NewMessagePublisher(),
+	}
 }

@@ -1,4 +1,4 @@
-package draft_runtime
+package draft_runtime_golang
 
 import "github.com/nats-io/nats.go"
 
@@ -25,7 +25,7 @@ type BrokerPluginRegistrar interface {
 	RegisterBroker(interface{}) error
 }
 
-func (c *DraftRuntime) withBroker(registrar BrokerPluginRegistrar) {
+func (c *Runtime) withBroker(registrar BrokerPluginRegistrar) {
 	// if nats is the desired broker then connect to it
 	if registrar.GetBrokerType() == Nats {
 		nc, err := nats.Connect(nats.DefaultURL)

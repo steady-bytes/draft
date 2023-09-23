@@ -1,4 +1,4 @@
-package draft_runtime
+package draft_runtime_golang
 
 import (
 	"fmt"
@@ -24,8 +24,7 @@ type Service struct {
 	// default "localhost"
 	Name string
 	// Port that is accepting requests on
-	RPCPort  int32
-	HTTPPort int32
+	Port int32
 }
 
 // gateway
@@ -61,14 +60,13 @@ type PostgresConnectionConfig struct {
 	Migrate  bool
 }
 
-func NewConfig(name string, rpcPort, httpPort int32) *Config {
-	fmt.Println("rpc port: ", rpcPort)
+func NewConfig(name string, port int32) *Config {
+	fmt.Println("rpc port: ", port)
 
 	config := &Config{
 		Service: &Service{
-			Name:     name,
-			RPCPort:  rpcPort,
-			HTTPPort: httpPort,
+			Name: name,
+			Port: port,
 		},
 		Repos:    readRepoConfig(),
 		Gateways: readGatewayConfig(),

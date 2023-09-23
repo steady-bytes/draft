@@ -8,18 +8,6 @@ import (
 	api "github.com/steady-bytes/draft/api/gen/go"
 )
 
-type service struct {
-	rpc *api.EventStoreDefaultServer
-	msg *eventStoreMessagePublisher
-}
-
-func NewService() *service {
-	return &service{
-		rpc: NewRPC(),
-		msg: NewMessagePublisher(),
-	}
-}
-
 // create the default crud implementation
 func NewRPC() *api.EventStoreDefaultServer {
 	return &api.EventStoreDefaultServer{}

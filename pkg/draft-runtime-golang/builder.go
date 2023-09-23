@@ -1,4 +1,4 @@
-package draft_runtime
+package draft_runtime_golang
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ import (
 // TODO -> implement a graceful shutdown process
 // TODO -> add ssl support on postgres
 
-type DraftRuntime struct {
+type Runtime struct {
 	config *Config
 
 	tcp net.Listener
@@ -33,8 +33,8 @@ type DraftRuntime struct {
 	defaultPlugin DefaultPluginRegistrar
 }
 
-func New(config *Config) (*DraftRuntime, error) {
-	return &DraftRuntime{
+func New(config *Config) (*Runtime, error) {
+	return &Runtime{
 		config: config,
 		gorm:   nil,
 		rpc:    nil,
@@ -51,9 +51,9 @@ type DefaultPluginRegistrar interface {
 	BrokerPluginRegistrar
 }
 
-// DefaultRpcPlugin - Is used to register the plugin with the DraftRuntime runtime. DraftRuntime will save off an reference to the plugin interface for
+// DefaultRpcPlugin - Is used to register the plugin with the Runtime runtime. Runtime will save off an reference to the plugin interface for
 // each bootstrapping. This is generally the first method that is called with the `Runtime`.
-func (c *DraftRuntime) DefaultBuilder(plugin DefaultPluginRegistrar) *DraftRuntime {
+func (c *Runtime) DefaultBuilder(plugin DefaultPluginRegistrar) *Runtime {
 	c.withRepo(plugin)
 	c.withRpc(plugin)
 	c.withHttp(plugin)
@@ -99,7 +99,7 @@ func (d *DefaultRuntimeBuilder) RegisterBroker(broker interface{}) error {
 }
 
 // Start the runtime of the service. This will do things like fire up the grpc/http servers and put them on a background routine's
-func (c *DraftRuntime) Start() error {
+func (c *Runtime) Start() error {
 	fmt.Println("start called")
 
 	/* if c.http != nil {
@@ -116,4 +116,4 @@ func (c *DraftRuntime) Start() error {
 	return nil
 }
 
-func (c *DraftRuntime) Stop() {}
+func (c *Runtime) Stop() {}

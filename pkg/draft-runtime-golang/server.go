@@ -1,4 +1,4 @@
-package draft_runtime
+package draft_runtime_golang
 
 import (
 	"fmt"
@@ -21,11 +21,12 @@ type ServerPluginRegistrar interface {
 	RegisterHTTP() *gin.Engine
 }
 
-func (c *DraftRuntime) withRpc(registrar ServerPluginRegistrar) {
+func (c *Runtime) withRpc(registrar ServerPluginRegistrar) {
 	var err error
+
 	// If the builder has not already created a tcp connection then go ahead and start that now
 	if c.tcp == nil {
-		c.tcp, err = net.Listen("tcp", fmt.Sprintf(":%d", c.config.Service.RPCPort))
+		c.tcp, err = net.Listen("tcp", fmt.Sprintf(":%d", c.config.Service.Port))
 		if err != nil {
 			panic(err)
 		}
@@ -34,6 +35,6 @@ func (c *DraftRuntime) withRpc(registrar ServerPluginRegistrar) {
 	c.rpc = registrar.RegisterRPC()
 }
 
-func (c *DraftRuntime) withHttp(registrar ServerPluginRegistrar) {
+func (c *Runtime) withHttp(registrar ServerPluginRegistrar) {
 	c.http = registrar.RegisterHTTP()
 }
