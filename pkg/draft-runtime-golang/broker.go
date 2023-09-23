@@ -25,7 +25,7 @@ type BrokerPluginRegistrar interface {
 	RegisterBroker(interface{}) error
 }
 
-func (c *Commet) withBroker(registrar BrokerPluginRegistrar) {
+func (c *DraftRuntime) withBroker(registrar BrokerPluginRegistrar) {
 	// if nats is the desired broker then connect to it
 	if registrar.GetBrokerType() == Nats {
 		nc, err := nats.Connect(nats.DefaultURL)

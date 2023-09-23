@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	fiber "github.com/gofiber/fiber/v2"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/nats-io/nats.go"
 	"github.com/uptrace/bun"
@@ -18,7 +18,7 @@ import (
 // TODO -> implement a graceful shutdown process
 // TODO -> add ssl support on postgres
 
-type Commet struct {
+type DraftRuntime struct {
 	config *Config
 
 	tcp net.Listener
@@ -28,13 +28,13 @@ type Commet struct {
 
 	rpc  *grpc.Server
 	nats *nats.Conn
-	http *fiber.App
+	http *gin.Engine
 
 	defaultPlugin DefaultPluginRegistrar
 }
 
-func New(config *Config) (*Commet, error) {
-	return &Commet{
+func New(config *Config) (*DraftRuntime, error) {
+	return &DraftRuntime{
 		config: config,
 		gorm:   nil,
 		rpc:    nil,
@@ -44,16 +44,16 @@ func New(config *Config) (*Commet, error) {
 }
 
 // DefaultPluginRegistrar - An interface that can be implemented by a service to register a `Repo`, `Rpc` interface, and a `Consumer`.
-// This is kind of like the kictchen sink interface for services that have many different requirments.
+// This is kind of like the kitchen sink interface for services that have many different requirement.
 type DefaultPluginRegistrar interface {
 	RepoPluginRegistrar
 	ServerPluginRegistrar
 	BrokerPluginRegistrar
 }
 
-// DefaultRpcPlugin - Is used to reigister the plugin with the commet runtime. Commet will save off an refernce to the plugin interface for
+// DefaultRpcPlugin - Is used to register the plugin with the DraftRuntime runtime. DraftRuntime will save off an reference to the plugin interface for
 // each bootstrapping. This is generally the first method that is called with the `Runtime`.
-func (c *Commet) DefaultBuilder(plugin DefaultPluginRegistrar) *Commet {
+func (c *DraftRuntime) DefaultBuilder(plugin DefaultPluginRegistrar) *DraftRuntime {
 	c.withRepo(plugin)
 	c.withRpc(plugin)
 	c.withHttp(plugin)
@@ -86,7 +86,7 @@ func (s *DefaultRuntimeBuilder) IsHttp() bool {
 	return false
 }
 
-func (d *DefaultRuntimeBuilder) RegisterHTTP() *fiber.App {
+func (d *DefaultRuntimeBuilder) RegisterHTTP() *gin.Engine {
 	return nil
 }
 
@@ -99,7 +99,7 @@ func (d *DefaultRuntimeBuilder) RegisterBroker(broker interface{}) error {
 }
 
 // Start the runtime of the service. This will do things like fire up the grpc/http servers and put them on a background routine's
-func (c *Commet) Start() error {
+func (c *DraftRuntime) Start() error {
 	fmt.Println("start called")
 
 	/* if c.http != nil {
@@ -116,4 +116,4 @@ func (c *Commet) Start() error {
 	return nil
 }
 
-func (c *Commet) Stop() {}
+func (c *DraftRuntime) Stop() {}

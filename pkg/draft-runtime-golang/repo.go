@@ -46,7 +46,7 @@ func (rt RepoType) String() string {
 // WithRepo - Connects to the plugins repo of choice with the runtime
 // TODO: Change this method body to be a switch statement that will call specific bootstrapping
 // methods for each type of repo instead of keeping itall in
-func (c *Commet) withRepo(registrar RepoPluginRegistrar) {
+func (c *DraftRuntime) withRepo(registrar RepoPluginRegistrar) {
 	switch registrar.GetRepoType() {
 	case NullRepoType:
 		return
@@ -62,7 +62,7 @@ func (c *Commet) withRepo(registrar RepoPluginRegistrar) {
 // bootstrapPostgresGorm - A utility for registering `GORM` with the `draft` runtime.
 // This method does not return anything but can panic because it's considered a fatal issue
 // if the db can't be configured and setup correctly in the runtime.
-func (c *Commet) bootstrapPostgresGorm(registrar RepoPluginRegistrar) {
+func (c *DraftRuntime) bootstrapPostgresGorm(registrar RepoPluginRegistrar) {
 	// set value to local variable
 	cfg := c.config.Repos[Postgres.String()].Postgres
 
@@ -85,7 +85,7 @@ func (c *Commet) bootstrapPostgresGorm(registrar RepoPluginRegistrar) {
 }
 
 // bootstrapPostgresBun - A utility for registering `bun` orm with the `draft` runtime.
-func (c *Commet) bootstrapPostgresBun(registrar RepoPluginRegistrar) {
+func (c *DraftRuntime) bootstrapPostgresBun(registrar RepoPluginRegistrar) {
 	cfg := c.config.Repos[Postgres.String()].Postgres
 
 	if cfg.SSL {
