@@ -34,20 +34,20 @@ func Execute() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "draft",
-	Short: "draft a really cool way to build distributed systems",
+	Use:   "gateway",
+	Short: "gateway is the entry point to the draft system",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Usage()
 	},
 }
 
 var eventStore = &cobra.Command{
-	Use:   "gateway",
+	Use:   "run",
 	Short: "run the draft gateway",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name = "event_store"
-
-		if err := Runtime.DefaultBuilder(NewService()).Start(); err != nil {
+		if err := Runtime.DefaultBuilder(
+			NewService(),
+		).Start(); err != nil {
 			panic(err)
 		}
 
@@ -68,6 +68,8 @@ func initConfig() {
 		fmt.Printf("unable to read config: %v\n", err)
 		os.Exit(1)
 	}
+
+	name = "gateway"
 
 	cfg := draft.NewConfig(name, port)
 
