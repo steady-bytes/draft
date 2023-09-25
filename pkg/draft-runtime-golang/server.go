@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	ginzerolog "github.com/dn365/gin-zerolog"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 )
@@ -24,6 +25,8 @@ type ServerPluginRegistrar interface {
 func (c *Runtime) withRpc(registrar ServerPluginRegistrar) {
 	var err error
 
+	// add log statement
+
 	// If the builder has not already created a tcp connection then go ahead and start that now
 	if c.tcp == nil {
 		c.tcp, err = net.Listen("tcp", fmt.Sprintf(":%d", c.config.Service.Port))
@@ -37,4 +40,6 @@ func (c *Runtime) withRpc(registrar ServerPluginRegistrar) {
 
 func (c *Runtime) withHttp(registrar ServerPluginRegistrar) {
 	c.http = registrar.RegisterHTTP()
+	// add zeo-logger to gin via middleware
+	c.http.Use(ginzerolog.Logger("gin"))
 }

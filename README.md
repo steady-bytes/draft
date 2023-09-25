@@ -1,92 +1,58 @@
+## TODO:
+* Adding super token integration
+	- manual super token integration
+	- add super token to backend
+	- deploy super token
+	- integrate super token to db
+
 # Draft
+A framework for building reliable, efficient, scalable, and real-time distributed systems.
 
-# Components of draft
-* gateway -> A single entry point to the system
+## Components of draft
 
-* service_registry -> A
+* Gateway: 
+	The public entrypoint to the system. A fully stateless service capable
 
-* event_store -> Store and forward all events
-	a. rpc
-	b. repo
-	c. publisher broker
+	- CommandHandler: The interface to invoke a command, or a write to the system.
+	- QueryHandler: The interface to invoke a query, or a read from the system.
+	- Authentication: The user authentication interface.
+	- FileHost: A host for static assets, public or private.
 
-* command_handler -> Entrypoint to the write path of the system
-	a. rpc
+* EventStore: 
+	The means to which each event is `emitted` (stored, and forwarded). It's a similar concept to the
+	write ahead log for all the events in the system. The underlying storage for now will be scylla db.
 
-* query_handler -> handle incoming queries of the system 
+* SubscriberGateway: 
+	The public entrypoint for a client to consume public events. The subscriber_gateway authenticates user
+	request to connect, and handles the persistent connect between the client, and server.
 
-* aggregate
-	a. rpc -> read, write
-	b. repo
+* ServiceRegistry: 
+	A key/value storage that also validates service are alive and serving traffic. This gives the system a single pane
+	of glass to pin point specific failures or running state of the system.
 
-* projection
-	a. rpc -> read
-	b. repo
-	c. subscriber broker
+## Storage Components
+* Inserter: A consumer service that is responsible for writing data to a specific type of database
+	- postgres
+	- scylla
+	- tikv
+	- clickhouse
 
-* consumer 
-	a. repo
-	b. subscriber broker
+* Selector: A consumer service that is responsible for resolving quires for integrated databases
+	- postgres
+	- scylla
+	- tikv
+	- clickhouse
 
-* producer
+* Updater:
+	- postgres
+	- scylla
+	- tikv
+	- clickhouse
 
+* Deleter: A consumer service that is responsible for finding and deleting values by it's primary key
 
-## Project Structure
-```sh
-├── api
-│   ├── buf.gen.yaml
-│   ├── buf.lock
-│   ├── buf.yaml
-│   ├── Dockerfile
-│   ├── gen
-│   │   ├── docs
-│   │   │   ├── docs.md
-│   │   │   └── index.html
-│   │   └── go
-│   │       ├── event_store_grpc.pb.go
-│   │       ├── event_store.pb.go
-│   │       ├── event_store.pb.gorm.go
-│   │       ├── gorm
-│   │       │   └── gorm.pb.go
-│   │       └── querier.pb.go
-│   ├── go.mod
-│   ├── GOPATH
-│   ├── go.sum
-│   ├── Makefile
-│   ├── README.md
-│   ├── src
-│   │   ├── event_store.proto
-│   │   ├── gateway.proto
-│   │   ├── querier.proto
-│   │   └── writer.proto
-│   ├── tools.go
-│   └── vendor
-│       └── gorm
-│           └── gorm.proto
-├── cmd
-│   ├── root.go
-│   └── serve.go
-├── deployments
-├── docs
-├── go.mod
-├── go.sum
-├── internal
-│   ├── event_store
-│   │   ├── controller.go
-│   │   ├── model.go
-│   │   └── rpc.go
-│   ├── gateway
-│   ├── querier
-│   └── writer
-├── LICENSE.md
-├── main.go
-└── README.md
-```
-
-## Api
-Definitions of `RPC` interfaces, over the wire request/response message types, events, `validation` interface, and 
-`Aggregate` structures/models. We may also create our `AST` types so they can be sent over the wire efficiently 
-and used in many different languages.
+## Api/src/draft
+Definitions of `RPC` interfaces, over the wire request/response message types, events, and internal models.
 
 The `/api` directory contains it's own `Makefile` that contains a few `targets` for code generation, and
 environment setup. A `Dockerfile` is provided to serve as the code gen build agent, it can be run in a CI/CD
@@ -98,42 +64,20 @@ Run targets
 ```
 # Build the docker image locally, and store in your local registry as apibuilder:v1
 $ make compiler
-```
 
-Now that you have the build agent ready. You can compile the `go` code from our `proto`'s.
-```
-# if succesful the `protoc` compiler will be invoked with each plugin that has been configured in the `buf.gen.yaml`
-# configuration file
+# Now that you have the code compiler/build agent ready. You can compile the `go` code from our `proto`'s.
+# Invoke the below target to generate all of our api code
 $ make api
-```
 
-If you want to clean your generated code run the following.
-```
-# Clean generated code
+# If you want to clean your generated code run the following.
 $ make clean
 ```
-## Cmd
-The command directory is the `cli` input to the application. Each one of the system components can be executed from the same
-binary.
-
-For example if you would like run the `event_store` service then all you have to do is run the following.
-```sh
-$ draft event_store
-```
-
-Each process has defaults configurations if a argument/flag is __not__ set, or config file is __not__ used. So for example 
-the `event_store` by default will run on port `50001`. If you want to change that then use the following arguments.
-
-```sh
-$ draft event_store --port 8080
-# or, using shorthand
-$ draft event_store -p 8080
-```
-
-This will run the `draft event_store` service on port `8080` instead.
 
 ## Internal
-Each directory is a self contained implementation of one of the system components.
+Each directory is a self contained implementation of one of the system components. Each component is a cli command that
+can be executed on it's own, or in a greater environment. For each component command the draft runtime is invoked meaning
+it's capable of reading static configuration, and binding to os sockets. The goal of this design is to make each service
+testable, composable, and responsible for only one thing.
 
 ## Pkg
 Contains internal reusable packages that different components of the system can share. A good example of something that might

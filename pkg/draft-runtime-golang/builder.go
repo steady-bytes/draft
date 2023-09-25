@@ -1,7 +1,6 @@
 package draft_runtime_golang
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/gin-gonic/gin"
@@ -43,6 +42,8 @@ func New(config *Config) (*Runtime, error) {
 	}, nil
 }
 
+// type Logger *logrus.Logger
+
 // DefaultPluginRegistrar - An interface that can be implemented by a service to register a `Repo`, `Rpc` interface, and a `Consumer`.
 // This is kind of like the kitchen sink interface for services that have many different requirement.
 type DefaultPluginRegistrar interface {
@@ -70,7 +71,7 @@ func (d *DefaultRuntimeBuilder) GetRepoType() RepoType {
 	return PostgresGorm
 }
 
-func (d *DefaultRuntimeBuilder) RegisterDB(db interface{}) error {
+func (d *DefaultRuntimeBuilder) RegisterRepo(db interface{}) error {
 	return nil
 }
 
@@ -99,12 +100,13 @@ func (d *DefaultRuntimeBuilder) RegisterBroker(broker interface{}) error {
 }
 
 // Start the runtime of the service. This will do things like fire up the grpc/http servers and put them on a background routine's
+// TODO -> figure out how to run grpc + http on the same port
+// TODO -> figure out how to run everything on a background thread so the runtime can be shutdown
 func (c *Runtime) Start() error {
-	fmt.Println("start called")
 
 	if c.http != nil {
-		port := fmt.Sprintf(":%d", c.config.Service.Port)
-		go c.http.Run(port)
+		// port := fmt.Sprintf(":%d", c.config.Service.Port)
+		c.http.Run()
 	}
 
 	// if c.rpc != nil {

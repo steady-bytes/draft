@@ -3,6 +3,8 @@ package draft_runtime_golang
 import (
 	"fmt"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -61,7 +63,9 @@ type PostgresConnectionConfig struct {
 }
 
 func NewConfig(name string, port int32) *Config {
-	fmt.Println("rpc port: ", port)
+	// logger
+	// UNIX Time is faster and smaller than most timestamps
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
 	config := &Config{
 		Service: &Service{
@@ -72,7 +76,11 @@ func NewConfig(name string, port int32) *Config {
 		Gateways: readGatewayConfig(),
 	}
 
-	fmt.Println("config: ", config)
+	log.
+		Debug().
+		Str("name", config.Service.Name).
+		Int32("port", config.Service.Port).
+		Msg("service config initialized")
 
 	return config
 }

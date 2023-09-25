@@ -9,8 +9,10 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "main.go",
-            "cwd": "${workspaceFolder}/internal/gateway"
+            "program": "internal/gateway/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "args": ["run"]
         }
     ]
 }

@@ -19,7 +19,7 @@ type RepoPluginRegistrar interface {
 
 	// RegisterDB - gives the plugin the option to use many different types of orms/db client. A type assertion can
 	// be used at the client level configure the runtime.
-	RegisterDB(interface{}) error
+	RegisterRepo(interface{}) error
 }
 
 // RepoType - selects the type of persistent's layer the service will need
@@ -79,7 +79,7 @@ func (c *Runtime) bootstrapPostgresGorm(registrar RepoPluginRegistrar) {
 
 	c.gorm = db
 
-	if err := registrar.RegisterDB(db); err != nil {
+	if err := registrar.RegisterRepo(db); err != nil {
 		panic(err)
 	}
 }
@@ -97,7 +97,7 @@ func (c *Runtime) bootstrapPostgresBun(registrar RepoPluginRegistrar) {
 	db := bun.NewDB(sqldb, pgdialect.New())
 	c.bun = db
 
-	if err := registrar.RegisterDB(db); err != nil {
+	if err := registrar.RegisterRepo(db); err != nil {
 		panic(err)
 	}
 }
