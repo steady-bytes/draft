@@ -1,18 +1,52 @@
 package service
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
+	"github.com/rs/zerolog/log"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 
 	ginzerolog "github.com/dn365/gin-zerolog"
 	"github.com/gin-gonic/gin"
+	"github.com/supertokens/supertokens-golang/recipe/dashboard"
+	"github.com/supertokens/supertokens-golang/recipe/emailpassword"
+	"github.com/supertokens/supertokens-golang/recipe/session"
+	"github.com/supertokens/supertokens-golang/recipe/session/sessmodels"
+	"github.com/supertokens/supertokens-golang/supertokens"
 )
 
 // Implementing the `draft.Plugin` interface so it can be run by the runtime
 
 // Constructor to build a plugin that can be used by the runtime
 func NewService() draft.DefaultPluginRegistrar {
+	apiBasePath := "/auth"
+	websiteBasePath := "/auth"
+	err := supertokens.Init(supertokens.TypeInput{
+		Supertokens: &supertokens.ConnectionInfo{
+			// https://try.supertokens.com is for demo purposes. Replace this with the address of your core instance (sign up on supertokens.com), or self host a core.
+			ConnectionURI: "http://localhost:3567",
+			// APIKey: <API_KEY(if configured)>,
+		},
+		AppInfo: supertokens.AppInfo{
+			AppName:         "draft",
+			APIDomain:       "http://localhost:8080",
+			WebsiteDomain:   "http://localhost:3000",
+			APIBasePath:     &apiBasePath,
+			WebsiteBasePath: &websiteBasePath,
+		},
+		RecipeList: []supertokens.Recipe{
+			emailpassword.Init(nil),
+			session.Init(nil),
+			dashboard.Init(nil),
+		},
+	})
+
+	if err != nil {
+		panic(err.Error())
+	}
+
 	return &gateway{}
 }
 
@@ -25,17 +59,74 @@ func (g *gateway) RegisterHTTP() *gin.Engine {
 }
 
 func NewRouter() *gin.Engine {
-	gin.SetMode(gin.ReleaseMode)
+	// TODO -> env flag this
+	// gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+
+	// crash safety
 	r.Use(gin.Recovery())
-	r.Use(ginzerolog.Logger(name))
+
+	// logging
+	r.Use(ginzerolog.Logger("gateway"))
+
+	// cors
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{"http://localhost:3000", "http://localhost:8000"},
+		AllowMethods: []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
+		AllowHeaders: append([]string{"content-type"},
+			supertokens.GetAllCORSHeaders()...),
+		AllowCredentials: true,
+	}))
+
+	// supertoken auth middleware
+
+	r.Use(func(c *gin.Context) {
+		supertokens.Middleware(http.HandlerFunc(
+			func(rw http.ResponseWriter, r *http.Request) {
+				c.Next()
+			})).ServeHTTP(c.Writer, c.Request)
+
+		// we call Abort so that the next handler in the chain is not called, unless we call Next explicitly
+		c.Abort()
+	})
+
+	// public get just for testing at this point
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
 		})
 	})
 
+	// a protected endpoint
+	r.POST("/likecomment", verifySession(nil), likeCommentAPI)
+
 	return r
+}
+
+// This is a function that wraps the supertokens verification function
+// to work the gin
+func verifySession(options *sessmodels.VerifySessionOptions) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fmt.Println("test")
+		session.VerifySession(options, func(rw http.ResponseWriter, r *http.Request) {
+			c.Request = c.Request.WithContext(r.Context())
+			c.Next()
+		})(c.Writer, c.Request)
+		// we call Abort so that the next handler in the chain is not called, unless we call Next explicitly
+		c.Abort()
+	}
+}
+
+func likeCommentAPI(c *gin.Context) {
+	// retrieve the session object as shown below
+	sessionContainer := session.GetSessionFromRequestContext(c.Request.Context())
+
+	userID := sessionContainer.GetUserID()
+
+	log.
+		Debug().
+		Str("userID", userID).
+		Msg("testing")
 }
 
 func (g *gateway) GetRepoType() draft.RepoType {

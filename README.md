@@ -1,8 +1,8 @@
 ## TODO:
 * Adding super token integration
 	- manual super token integration
-	- add super token to backend
 	- deploy super token
+	- add super token to backend
 	- integrate super token to db
 
 # Draft
@@ -30,7 +30,15 @@ A framework for building reliable, efficient, scalable, and real-time distribute
 	A key/value storage that also validates service are alive and serving traffic. This gives the system a single pane
 	of glass to pin point specific failures or running state of the system.
 
+* CLI:
+	A cli tool for building, operating, and testing the components of draft.
+
 ## Storage Components
+In an effort to increase the separation of concerns throughout the whole system. Each supported data store will have it's own
+implementation for `Insert`, `Select`, `Update`, and `Delete` operations. The general idea is to consume different events to
+perform different storage operations. A central tenant of `Draft` is to keep things simple, and avoid complexity in any way
+possible.
+
 * Inserter: A consumer service that is responsible for writing data to a specific type of database
 	- postgres
 	- scylla
@@ -78,6 +86,9 @@ Each directory is a self contained implementation of one of the system component
 can be executed on it's own, or in a greater environment. For each component command the draft runtime is invoked meaning
 it's capable of reading static configuration, and binding to os sockets. The goal of this design is to make each service
 testable, composable, and responsible for only one thing.
+
+## User Authentication
+
 
 ## Pkg
 Contains internal reusable packages that different components of the system can share. A good example of something that might

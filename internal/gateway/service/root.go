@@ -23,7 +23,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is config.yaml")
 
 	rootCmd.AddCommand(eventStore)
-	eventStore.Flags().Int32VarP(&port, "port", "p", 3001, "rpc port override, by default the rpc port is 3001")
+	eventStore.Flags().Int32VarP(&port, "port", "p", 8000, "rpc port override, by default the rpc port is 800ß0")
 }
 
 func Execute() {

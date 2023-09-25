@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/nats-io/nats.go"
+	"github.com/rs/zerolog/log"
 	"github.com/uptrace/bun"
 	"google.golang.org/grpc"
 
@@ -106,7 +107,9 @@ func (c *Runtime) Start() error {
 
 	if c.http != nil {
 		// port := fmt.Sprintf(":%d", c.config.Service.Port)
-		c.http.Run()
+		if err := c.http.Run(); err != nil {
+			log.Error().Err(err).Msg("failed to start http service")
+		}
 	}
 
 	// if c.rpc != nil {
