@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-contrib/cors"
@@ -27,7 +26,7 @@ func NewService() draft.DefaultPluginRegistrar {
 		Supertokens: &supertokens.ConnectionInfo{
 			// https://try.supertokens.com is for demo purposes. Replace this with the address of your core instance (sign up on supertokens.com), or self host a core.
 			ConnectionURI: "http://localhost:3567",
-			// APIKey: <API_KEY(if configured)>,
+			APIKey:        "some_key",
 		},
 		AppInfo: supertokens.AppInfo{
 			AppName:         "draft",
@@ -91,14 +90,16 @@ func NewRouter() *gin.Engine {
 	})
 
 	// public get just for testing at this point
-	r.GET("/ping", func(c *gin.Context) {
+	r.GET("/api/v1/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
 		})
 	})
 
+	log.Debug().Msg("open route")
+
 	// a protected endpoint
-	r.POST("/likecomment", verifySession(nil), likeCommentAPI)
+	r.POST("/api/v1/likecomment", verifySession(nil), likeCommentAPI)
 
 	return r
 }
@@ -107,7 +108,6 @@ func NewRouter() *gin.Engine {
 // to work the gin
 func verifySession(options *sessmodels.VerifySessionOptions) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Println("test")
 		session.VerifySession(options, func(rw http.ResponseWriter, r *http.Request) {
 			c.Request = c.Request.WithContext(r.Context())
 			c.Next()
@@ -126,7 +126,11 @@ func likeCommentAPI(c *gin.Context) {
 	log.
 		Debug().
 		Str("userID", userID).
-		Msg("testing")
+		Msg("protected route")
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "protected route",
+	})
 }
 
 func (g *gateway) GetRepoType() draft.RepoType {
