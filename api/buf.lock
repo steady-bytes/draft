@@ -14,5 +14,10 @@ deps:
   - remote: buf.build
     owner: grpc-ecosystem
     repository: grpc-gateway
-    commit: f460f71081c14a80b66cc72526e0b322
-    digest: shake256:122def85e91fc3ef4ab351680060b8f70e9d09a7ae6d1412aeb2bddfeee5c4d3fc8819da33fef56192cec0a817ac0c3e6d49bb2acf02eb5c9e9131739a60ddfc
+    commit: 048ae6ff94ca4476b3225904b1078fad
+    digest: shake256:e5250bf2d999516c02206d757502b902e406f35c099d0e869dc3e4f923f6870fe0805a9974c27df0695462937eae90cd4d9db90bb9a03489412560baa74a87b6
+  - remote: buf.build
+    owner: srikrsna
+    repository: protoc-gen-gotag
+    commit: 7a85d3ad2e7642c198480e92bf730c14
+    digest: shake256:059f136681cd47abe2d6e83d20b9594071c481572d16cebfafbc81ba3d3e7924aef6974f99da53d67a01d033e30b7bf57985a206b4e856fc82508545de84a70c

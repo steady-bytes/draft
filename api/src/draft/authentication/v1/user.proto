@@ -30,3 +30,7 @@ message GetRequest {
 message UserID {
   string id = 1;
 }
+
+message UserDetails {
+  string id = 1;
+}

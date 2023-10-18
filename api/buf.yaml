@@ -1,36 +1,24 @@
-# https://docs.buf.build/lint-usage/
-version: v1beta1
-name: buf.build/firegraph/api
-deps:
-  - buf.build/googleapis/googleapis
-  - buf.build/envoyproxy/protoc-gen-validate
-  - buf.build/grpc-ecosystem/grpc-gateway
-build:
-  roots:
-    - src 
-    - vendor
-lint:
-  use:
-    - DEFAULT
-  ignore:
-    - github.com/infobloxopen
-    - github.com/grpc-ecosystem
-    - protoc-gen-openapiv2
-    - github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options/openapiv2.proto
-    - google
-    - github.com/gogo
-  ignore_only:
-    PACKAGE_DIRECTORY_MATCH:
-    - options
-    - postgres_arrays
-    - types
-    PACKAGE_VERSION_SUFFIX:
-    - options
-    - postgres_arrays
-    - types
-    - user
-    - google/api/annotations.proto
-    - google/api/http.proto
+version: v1
 breaking:
   use:
     - FILE
+lint:
+  use:
+    - DEFAULT
+  except:
+    - ENUM_VALUE_PREFIX
+    - ENUM_PASCAL_CASE
+    - ENUM_VALUE_UPPER_SNAKE_CASE
+  ignore:
+    - vendor/
+    - shared/timestamppb/
+  allow_comment_ignores: true
+build:
+  excludes:
+    - gen/
+    - vendor/
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/grpc-ecosystem/grpc-gateway
+  - buf.build/srikrsna/protoc-gen-gotag
+  - buf.build/envoyproxy/protoc-gen-validate

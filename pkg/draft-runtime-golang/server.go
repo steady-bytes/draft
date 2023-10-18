@@ -25,8 +25,6 @@ type ServerPluginRegistrar interface {
 func (c *Runtime) withRpc(registrar ServerPluginRegistrar) {
 	var err error
 
-	// add log statement
-
 	// If the builder has not already created a tcp connection then go ahead and start that now
 	if c.tcp == nil {
 		c.tcp, err = net.Listen("tcp", fmt.Sprintf(":%d", c.config.Service.Port))

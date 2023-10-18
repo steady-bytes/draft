@@ -10,25 +10,32 @@ A framework for building reliable, efficient, scalable, and real-time distribute
 
 ## Components of draft
 
-* Gateway: 
-	The public entrypoint to the system. A fully stateless service capable
+* Gateway:
+	The public entrypoint to the system. This component uses the `envoy` proxy with either static, or dynamic
+	configuration.
 
-	- CommandHandler: The interface to invoke a command, or a write to the system.
-	- QueryHandler: The interface to invoke a query, or a read from the system.
+* Control Plane:
+	The dynamic controller of `envoy` 
+
+* Service Registry: 
+	A key/value storage that also validates service are alive and serving traffic. This gives the system a single pane
+	of glass to pin point specific failures or running state of the system. Routing is also configured with the `Control Plane`
+	so that traffic can be routed to the accepting service.
+
+* Host: 
 	- Authentication: The user authentication interface.
 	- FileHost: A host for static assets, public or private.
 
-* EventStore: 
+* Command Handler: The interface to invoke a command, or a write to the system.
+* Query Handler: The interface to invoke a query, or a read from the system.
+
+* Event Store: 
 	The means to which each event is `emitted` (stored, and forwarded). It's a similar concept to the
 	write ahead log for all the events in the system. The underlying storage for now will be scylla db.
 
-* SubscriberGateway: 
+* Subscriber Gateway: 
 	The public entrypoint for a client to consume public events. The subscriber_gateway authenticates user
 	request to connect, and handles the persistent connect between the client, and server.
-
-* ServiceRegistry: 
-	A key/value storage that also validates service are alive and serving traffic. This gives the system a single pane
-	of glass to pin point specific failures or running state of the system.
 
 * CLI:
 	A cli tool for building, operating, and testing the components of draft.
