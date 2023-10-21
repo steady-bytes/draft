@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package golf_app.shot_tracker.v1;
+
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+//////////////
+/// INTERFACES
+//////////////
+
+service Courses {
+    rpc Save(SaveCourseRequest) returns (SaveCourseResponse) {}
+    rpc Update(UpdateCourseRequest) returns (UpdateCourseResponse) {}
+    rpc List(ListCoursesRequest) returns (ListCoursesResponse) {}
+}
+
+service Holes {
+    rpc Save() returns () {}
+    rpc Update() returns () {}
+    rpc List() returns () {}
+}
+
+service ShotTracker {
+    rpc StartRound() returns () {}
+    rpc TrackShot() returns () {}
+    rpc EndRound() returns () {}
+}
+
+//////////
+/// MODLES
+//////////
+
+////////////////
+/// SHOT TRACKER
+////////////////
+
+// `ScoreCard` is created when the golfer startes a round
+message ScoreCard {
+    // primary key
+    ID id = 1;
+    // forgin key
+    ID course_id = 2;
+
+    // Shot data
+    repeated Shot = 3;
+
+    google.protobuf.Timestamp start_time = 4;
+    google.protobuf.Timestamp end_time = 5;
+}
+
+// A linking table between `Hole`, `TeeBox`, and `Shot`
+message ShotTrace {
+    // primary key
+    ID id = 1;
+    // forgin key to `Hole``
+    ID hole_id = 2;
+    // forgin key to `TeeBox`
+    ID tee_box_id = 3; 
+    // forgin key to `Shot`
+    ID shot_id =4;
+}
+
+// Shot is a tracked shot
+message Shot {
+    ID id = 1;
+
+    Coordinates start = 2;
+    Coordinates end = 3;
+
+    // TODO: Return to how we want to model a shot
+}
+
+/////////////////
+/// COURSE LAYOUT
+/////////////////
+
+// A `Course` is a layout of holes. In most cases a course contains 18 holes played in two groups.
+// (i.e Front/Back) 
+message Course {
+    // primary key
+    ID id = 1;
+    // A side is considered a group of holes that should be played together
+    repeated HoleSet sides = 2;
+}
+
+// A `HoleSet` is a grouping of holes to be playes. In most courses this
+// would be equal to a side, or nine holes. Sometimes, course break their
+// set's up into 3, or 4. And they are played many different times.
+message HoleSet {
+    ID id = 1;
+
+    string name = 2;
+    int32 order = 3;
+    map<ID,Hole> holes = 4;
+}
+
+// A `Hole` is one single golf hole tha can be played.
+message Hole {
+    // Primary key for a specific hole
+    ID id = 1; 
+    // order of the hole that should be played
+    int32 order = 2; 
+    // each hole can have different `TeeBox`'es and each `TeeBox` contains different
+    // par, handicap, and slop rating.
+    repeated TeeBox tee_boxes = 3;
+}
+
+// A `TeeBox` is a potiential starting point for each hole. It cantains it's own par, distance, color, and handicap. 
+message TeeBox {
+    // primary key
+    ID id = 1;
+    // forgin key to the hole
+    ID hole_id = 2;
+
+    // Metadata
+    int32 distance = 3; 
+    string color = 4;
+    int32 handicap = 5;
+    int32 par = 6;
+}
+
+/////////////
+/// UTILITIES
+/////////////
+
+// Standard ID to be used in the whole system
+message ID {
+    // generated system uuid
+    string uuid = 1 [(validate.rules).string.uuid = true];
+}
+
+// A map point
+message Coordinates {
+    float32 lat = 1;
+    float32 lng = 3;
+}
