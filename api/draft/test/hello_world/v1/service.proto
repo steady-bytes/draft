@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+// and the course creator -> A golf course architect assembling a new course
+package test.hello_world.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/test/hello_world/v1";
+
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+service HelloWorld {
+    rpc Hello(HelloRequest) returns (HelloResponse) {}
+}
+
+message HelloRequest {
+    string name = 1;
+}
+
+message HelloResponse {
+    string greeting = 1;
+}

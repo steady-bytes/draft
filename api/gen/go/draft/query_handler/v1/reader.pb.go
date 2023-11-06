@@ -28,7 +28,7 @@ type ReadRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Aggregate string `protobuf:"bytes,1,opt,name=aggregate,proto3" json:"aggregate" yaml:"aggregate" csv:"aggregate" pg:"aggregate" bun:"aggregate"`
+	Aggregate string `protobuf:"bytes,1,opt,name=aggregate,proto3" json:"aggregate" bun:"aggregate" yaml:"aggregate" csv:"aggregate" pg:"aggregate"`
 }
 
 func (x *ReadRequest) Reset() {

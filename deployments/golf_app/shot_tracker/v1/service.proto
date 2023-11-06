@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package golf_app.shot_tracker.v1;
+
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+//////////////
+/// INTERFACES
+//////////////
+
+service ShotTracker {
+    rpc StartRound(StartRoundRequest) returns (StartRoundResponse) {}
+    rpc TrackShot(TrackShotRequest) returns (TrackShotsResponse) {}
+    rpc CompleteRound(CompleteRoundRequest) returns (CompleteRoundResponse) {}
+}

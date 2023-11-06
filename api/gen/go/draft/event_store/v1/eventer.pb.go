@@ -142,11 +142,11 @@ type Event struct {
 	unknownFields protoimpl.UnknownFields
 
 	// id - is a uuid to identify each event of the system
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" csv:"id" pg:"id" bun:"id" yaml:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
 	// aggregate_id - is the identifier of the aggregate the `Event` relates to.
-	AggregateId string `protobuf:"bytes,2,opt,name=aggregate_id,json=aggregateId,proto3" json:"aggregate_id" yaml:"aggregate_id" csv:"aggregate_id" pg:"aggregate_id" bun:"aggregate_id"`
+	AggregateId string `protobuf:"bytes,2,opt,name=aggregate_id,json=aggregateId,proto3" json:"aggregate_id" pg:"aggregate_id" bun:"aggregate_id" yaml:"aggregate_id" csv:"aggregate_id"`
 	// transaction_id - is a uuid for each transaction that can be used to string together many differnt events to one executed command
-	TransactionId string `protobuf:"bytes,3,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id" yaml:"transaction_id" csv:"transaction_id" pg:"transaction_id" bun:"transaction_id"`
+	TransactionId string `protobuf:"bytes,3,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id" pg:"transaction_id" bun:"transaction_id" yaml:"transaction_id" csv:"transaction_id"`
 	// data - the `data` payload of the event system that can be of any message type
 	// the consumer will only be interested in specific types of `Events` from a specifc source.
 	// the `event_type` is used as the deserialization/serialization as the type identifier of
@@ -156,7 +156,7 @@ type Event struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at" pg:"created_at" bun:"created_at" yaml:"created_at" csv:"created_at"`
 	// The datetime when the event was published to it's event stream for processing
 	PublishedAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=published_at,json=publishedAt,proto3" json:"published_at" pg:"published_at" bun:"published_at" yaml:"published_at" csv:"published_at"`
-	AggregateKind AggregateKind          `protobuf:"varint,7,opt,name=aggregate_kind,json=aggregateKind,proto3,enum=api.AggregateKind" json:"aggregate_kind" pg:"aggregate_kind" bun:"aggregate_kind" yaml:"aggregate_kind" csv:"aggregate_kind"`
+	AggregateKind AggregateKind          `protobuf:"varint,7,opt,name=aggregate_kind,json=aggregateKind,proto3,enum=api.AggregateKind" json:"aggregate_kind" csv:"aggregate_kind" pg:"aggregate_kind" bun:"aggregate_kind" yaml:"aggregate_kind"`
 	EventCode     EventCode              `protobuf:"varint,8,opt,name=event_code,json=eventCode,proto3,enum=api.EventCode" json:"event_code" pg:"event_code" bun:"event_code" yaml:"event_code" csv:"event_code"`
 	// used to determin reply strategy
 	SideAffect bool `protobuf:"varint,9,opt,name=side_affect,json=sideAffect,proto3" json:"side_affect" pg:"side_affect" bun:"side_affect" yaml:"side_affect" csv:"side_affect"`
@@ -310,7 +310,7 @@ type EmitEventResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Result *Event `protobuf:"bytes,1,opt,name=result,proto3" json:"result" pg:"result" bun:"result" yaml:"result" csv:"result"`
+	Result *Event `protobuf:"bytes,1,opt,name=result,proto3" json:"result" csv:"result" pg:"result" bun:"result" yaml:"result"`
 }
 
 func (x *EmitEventResponse) Reset() {
@@ -359,8 +359,8 @@ type HandshakeInitiated struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ProcessId     string                 `protobuf:"bytes,1,opt,name=process_id,json=processId,proto3" json:"process_id" csv:"process_id" pg:"process_id" bun:"process_id" yaml:"process_id"`
-	LeaderAddress string                 `protobuf:"bytes,2,opt,name=leader_address,json=leaderAddress,proto3" json:"leader_address" bun:"leader_address" yaml:"leader_address" csv:"leader_address" pg:"leader_address"`
+	ProcessId     string                 `protobuf:"bytes,1,opt,name=process_id,json=processId,proto3" json:"process_id" pg:"process_id" bun:"process_id" yaml:"process_id" csv:"process_id"`
+	LeaderAddress string                 `protobuf:"bytes,2,opt,name=leader_address,json=leaderAddress,proto3" json:"leader_address" pg:"leader_address" bun:"leader_address" yaml:"leader_address" csv:"leader_address"`
 	InitiatedTime *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=initiated_time,json=initiatedTime,proto3" json:"initiated_time" pg:"initiated_time" bun:"initiated_time" yaml:"initiated_time" csv:"initiated_time"`
 }
 
@@ -424,8 +424,8 @@ type ProcessConnected struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ProcessId   string                 `protobuf:"bytes,1,opt,name=process_id,json=processId,proto3" json:"process_id" pg:"process_id" bun:"process_id" yaml:"process_id" csv:"process_id"`
-	ConnectedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=connected_at,json=connectedAt,proto3" json:"connected_at" pg:"connected_at" bun:"connected_at" yaml:"connected_at" csv:"connected_at"`
+	ProcessId   string                 `protobuf:"bytes,1,opt,name=process_id,json=processId,proto3" json:"process_id" yaml:"process_id" csv:"process_id" pg:"process_id" bun:"process_id"`
+	ConnectedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=connected_at,json=connectedAt,proto3" json:"connected_at" yaml:"connected_at" csv:"connected_at" pg:"connected_at" bun:"connected_at"`
 }
 
 func (x *ProcessConnected) Reset() {
@@ -537,8 +537,8 @@ type AggregateReady struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Pid     string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" csv:"pid" pg:"pid" bun:"pid" yaml:"pid"`
-	Name    string `protobuf:"bytes,2,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
+	Pid     string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" pg:"pid" bun:"pid" yaml:"pid" csv:"pid"`
+	Name    string `protobuf:"bytes,2,opt,name=name,proto3" json:"name" csv:"name" pg:"name" bun:"name" yaml:"name"`
 	Address string `protobuf:"bytes,3,opt,name=address,proto3" json:"address" pg:"address" bun:"address" yaml:"address" csv:"address"`
 }
 

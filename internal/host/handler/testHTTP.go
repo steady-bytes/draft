@@ -1,32 +1,39 @@
-package service
+package handler
 
 import (
 	"net/http"
 
-	"github.com/gin-contrib/cors"
-	"github.com/rs/zerolog/log"
+	c "github.com/steady-bytes/draft/internal/host/controller"
+
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
-	"google.golang.org/grpc"
 
 	ginzerolog "github.com/dn365/gin-zerolog"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"github.com/supertokens/supertokens-golang/recipe/dashboard"
 	"github.com/supertokens/supertokens-golang/recipe/emailpassword"
 	"github.com/supertokens/supertokens-golang/recipe/session"
 	"github.com/supertokens/supertokens-golang/supertokens"
 )
 
-// Implementing the `draft.Plugin` interface so it can be run as a plugin to the draft Runtime
-type gateway struct {
-	*draft.DefaultRuntimeBuilder
+type (
+	TestHTTPHandler interface {
+		draft.HTTPRegistrar
+	}
+
+	testHTTPHandler struct {
+		testCtrl c.TestController
+	}
+)
+
+func NewTestView(testCtrl c.TestController) TestHTTPHandler {
+	return &testHTTPHandler{
+		testCtrl: testCtrl,
+	}
 }
 
-// Constructor to build a plugin that can be used by the runtime
-func New() draft.Default {
-	return &gateway{}
-}
-
-func (g *gateway) HTTP() *gin.Engine {
+func (v *testHTTPHandler) RegisterHTTP() *gin.Engine {
 	apiBasePath := "/auth"
 	websiteBasePath := "/auth"
 	if err := supertokens.Init(supertokens.TypeInput{
@@ -85,24 +92,9 @@ func (g *gateway) HTTP() *gin.Engine {
 	log.Debug().Msg("open route")
 
 	// a protected endpoint using local middleware
-	r.POST("/auth/likecomment", verifySession(nil), likeCommentAPI)
+	// r.POST("/auth/likecomment", verifySession(nil), likeCommentAPI)
 	// host the web-client assets
 	r.Static("/assets", "./web-client/build")
 
 	return r
-}
-
-func (g *gateway) RPC() *grpc.Server {
-	// server := grpc.NewServer()
-	// api.RegisterRegistryServer(server, g.service)
-
-	return nil
-}
-
-// func (g *gateway) RepoKind() draft.RepoKind {
-// 	return draft.NullRepoType
-// }
-
-func (g *gateway) BrokerType() draft.BrokerType {
-	return draft.NullBrokerType
 }

@@ -10,27 +10,25 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
-// REPO - Mechanismes used to persists any type of data. From S3 files storage, NoSQL databases, and SQL databases.
+// REPO - Mechanism used to persists any type of data. From S3 files storage, NoSQL databases, and SQL databases.
 
-// RepoPluginRegistrar
-type RepoPluginRegistrar interface {
-	// GetRepoType - is used to determin how to integrate the default rpc handler, and the orm
-	GetRepoType() RepoType
-
-	// RegisterDB - gives the plugin the option to use many different types of orms/db client. A type assertion can
+// RepoRegistrar -
+type RepoRegistrar interface {
+	// RegisterRepo - gives the plugin the option to use many different types of orms/db client. A type assertion can
 	// be used at the client level configure the runtime.
 	RegisterRepo(interface{}) error
 }
 
 // RepoType - selects the type of persistent's layer the service will need
-type RepoType int
+type RepoKind int
 
 // Options for repositories that can be used in a service
 // NOTE: When adding, or removing a value in `RepoType` make sure
-//       to update the corresponding `String()` method. If they are out
-//			 of sync then a potential "out of bounds" error will occur.
+//
+//	      to update the corresponding `String()` method. If they are out
+//				 of sync then a potential "out of bounds" error will occur.
 const (
-	NullRepoType RepoType = iota
+	NullRepoType RepoKind = iota
 	Postgres
 	PostgresGorm
 	PostgresBun
@@ -39,15 +37,17 @@ const (
 )
 
 // String - get the human readable value for `RepoType`
-func (rt RepoType) String() string {
+func (rt RepoKind) String() string {
 	return []string{"null", "postgres", "postgres_gorm", "postgres_bun", "scylla", "mongo"}[rt]
 }
 
 // WithRepo - Connects to the plugins repo of choice with the runtime
 // TODO: Change this method body to be a switch statement that will call specific bootstrapping
 // methods for each type of repo instead of keeping itall in
-func (c *Runtime) withRepo(registrar RepoPluginRegistrar) {
-	switch registrar.GetRepoType() {
+func (c *Runtime) withRepo(kind RepoKind, registrar RepoRegistrar) {
+	c.repoKind = kind
+
+	switch c.repoKind {
 	case NullRepoType:
 		return
 	case PostgresGorm:
@@ -62,7 +62,7 @@ func (c *Runtime) withRepo(registrar RepoPluginRegistrar) {
 // bootstrapPostgresGorm - A utility for registering `GORM` with the `draft` runtime.
 // This method does not return anything but can panic because it's considered a fatal issue
 // if the db can't be configured and setup correctly in the runtime.
-func (c *Runtime) bootstrapPostgresGorm(registrar RepoPluginRegistrar) {
+func (c *Runtime) bootstrapPostgresGorm(registrar RepoRegistrar) {
 	// set value to local variable
 	cfg := c.config.Repos[Postgres.String()].Postgres
 
@@ -85,7 +85,7 @@ func (c *Runtime) bootstrapPostgresGorm(registrar RepoPluginRegistrar) {
 }
 
 // bootstrapPostgresBun - A utility for registering `bun` orm with the `draft` runtime.
-func (c *Runtime) bootstrapPostgresBun(registrar RepoPluginRegistrar) {
+func (c *Runtime) bootstrapPostgresBun(registrar RepoRegistrar) {
 	cfg := c.config.Repos[Postgres.String()].Postgres
 
 	if cfg.SSL {

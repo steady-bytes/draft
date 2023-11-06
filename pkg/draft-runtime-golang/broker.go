@@ -20,14 +20,15 @@ func (pt BrokerType) String() string {
 	return []string{"null", "nats"}[pt]
 }
 
-type BrokerPluginRegistrar interface {
-	GetBrokerType() BrokerType
+type BrokerRegistrar interface {
+	// SetBrokerType - gives the running service an opportunity to
+	SetBrokerType() BrokerType
 	RegisterBroker(interface{}) error
 }
 
-func (c *Runtime) withBroker(registrar BrokerPluginRegistrar) {
+func (c *Runtime) withBroker(registrar BrokerRegistrar) {
 	// if nats is the desired broker then connect to it
-	if registrar.GetBrokerType() == Nats {
+	if registrar.SetBrokerType() == Nats {
 		nc, err := nats.Connect(nats.DefaultURL)
 		if err != nil {
 			panic(err)

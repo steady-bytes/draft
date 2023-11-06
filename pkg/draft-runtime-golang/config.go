@@ -62,15 +62,21 @@ type PostgresConnectionConfig struct {
 	Migrate  bool
 }
 
-func NewConfig(name string, port int32) *Config {
+func NewConfig(name string) *Config {
 	// logger
 	// UNIX Time is faster and smaller than most timestamps
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
+	// read default config file
+
+	// connect to registry
+	// - if registry.url == ""
+	// 		assume its the registry service, or a service that is being run in stand along mode
+
 	config := &Config{
 		Service: &Service{
 			Name: name,
-			Port: port,
+			Port: 8080,
 		},
 		Repos:    readRepoConfig(),
 		Gateways: readGatewayConfig(),

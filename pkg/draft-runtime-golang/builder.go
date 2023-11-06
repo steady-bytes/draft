@@ -23,52 +23,70 @@ type Runtime struct {
 
 	tcp net.Listener
 
-	gorm *gorm.DB
-	bun  *bun.DB
+	gorm     *gorm.DB
+	bun      *bun.DB
+	repoKind RepoKind
 
 	rpc  *grpc.Server
 	nats *nats.Conn
 	http *gin.Engine
 
-	defaultPlugin DefaultPluginRegistrar
+	plugin Default
 }
 
-func New(config *Config) (*Runtime, error) {
-	return &Runtime{
-		config: config,
-		gorm:   nil,
+func New(name string) *Runtime {
+	rt := &Runtime{
+		config: NewConfig(name),
+		bun:    nil,
 		rpc:    nil,
 		tcp:    nil,
 		http:   nil,
-	}, nil
+	}
+
+	return rt
 }
 
-// type Logger *logrus.Logger
-
-// DefaultPluginRegistrar - An interface that can be implemented by a service to register a `Repo`, `Rpc` interface, and a `Consumer`.
+// Default - An interface that can be implemented by a service to register a `Repo`, `Rpc` interface, and a `Consumer`.
 // This is kind of like the kitchen sink interface for services that have many different requirement.
-type DefaultPluginRegistrar interface {
-	RepoPluginRegistrar
-	ServerPluginRegistrar
-	BrokerPluginRegistrar
+type Default interface {
+	RepoRegistrar
+	HttpRegistrar
+	RpcRegistrar
+	BrokerRegistrar
 }
 
 // DefaultRpcPlugin - Is used to register the plugin with the Runtime runtime. Runtime will save off an reference to the plugin interface for
 // each bootstrapping. This is generally the first method that is called with the `Runtime`.
-func (c *Runtime) DefaultBuilder(plugin DefaultPluginRegistrar) *Runtime {
-	c.withRepo(plugin)
-	c.withRpc(plugin)
-	c.withHttp(plugin)
-	c.withBroker(plugin)
+// func (c *Runtime) Build() *Runtime {
+// 	if c.repoKind != NullRepoType {
+// 		c.withRepo(c.plugin)
+// 	}
 
-	c.defaultPlugin = plugin
+// 	c.withRpc(c.plugin)
+// 	c.withHttp(c.plugin)
+// 	c.withBroker(c.plugin)
 
+// 	return c
+// }
+
+func (c *Runtime) WithRepo(kind RepoKind, plugin RepoRegistrar) *Runtime {
+	c.withRepo(kind, plugin)
+	return c
+}
+
+func (c *Runtime) WithHTTPHandler(kind HTTPHandlerKind, plugin HTTPRegistrar) *Runtime {
+	c.withHTTPHandler(kind, plugin)
+	return c
+}
+
+func (c *Runtime) WithRPCHandler(kind RPCHandlerKind, plugin RPCRegistrar) *Runtime {
+	c.withRPCHandler(kind, plugin)
 	return c
 }
 
 type DefaultRuntimeBuilder struct{}
 
-func (d *DefaultRuntimeBuilder) GetRepoType() RepoType {
+func (d *DefaultRuntimeBuilder) SetRepoType() RepoKind {
 	return PostgresGorm
 }
 
@@ -76,23 +94,15 @@ func (d *DefaultRuntimeBuilder) RegisterRepo(db interface{}) error {
 	return nil
 }
 
-func (d *DefaultRuntimeBuilder) IsRpc() bool {
-	return false
-}
-
 func (d *DefaultRuntimeBuilder) RegisterRPC() *grpc.Server {
 	return nil
-}
-
-func (s *DefaultRuntimeBuilder) IsHttp() bool {
-	return false
 }
 
 func (d *DefaultRuntimeBuilder) RegisterHTTP() *gin.Engine {
 	return nil
 }
 
-func (d *DefaultRuntimeBuilder) GetBrokerType() BrokerType {
+func (d *DefaultRuntimeBuilder) SetBrokerType() BrokerType {
 	return Nats
 }
 
@@ -108,7 +118,7 @@ func (c *Runtime) Start() error {
 	if c.http != nil {
 		// port := fmt.Sprintf(":%d", c.config.Service.Port)
 		if err := c.http.Run(); err != nil {
-			log.Error().Err(err).Msg("failed to start http service")
+			log.Panic().Msg("failed to start http service")
 		}
 	}
 

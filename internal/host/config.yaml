@@ -1,8 +1,18 @@
 # Service - high level metadata for the process
-Service:
-  Name: client_host
-  Port: 3001
+service:
+  name: host 
+  default_port: 8080
+  static_files_directory: "./web-client/build"
 
+registry:
+  url: "http://localhost:8500"
+
+# ROUTES: A map of routes, 
+http_routes:
+  - path: /home/app
+    handler_method: method_name
+    http_method: GET
+    
 # REPOS: A list of configurations for a thick client that will include repo integrations for each db type.
 # A repo in this system is defined as a persistence layer like the following:
 # *[CockroachDB](https://www.cockroachlabs.com/docs/stable/developer-guide-overview.html)
@@ -11,21 +21,22 @@ Service:
 #
 # Implementations:
 # * postgres (Sql database) 
+# 
 # * cockroachdb (Distributed Sql database)
 # * scylladb (NoSql database)
 # * clickhoust (olap dbms)
 # 
 
-Repos:
-  postgres:
-    dbType: postgres
-    protocol: postgresql
-    user: draft
-    domain: localhost
-    port: 26257
-    server: draft
-    logMode: true
-    ssl: false
+# repos:
+#   postgres:
+#     db_type: postgres
+#     protocol: postgresql
+#     user: draft
+#     domain: localhost
+#     port: 26257
+#     server: draft
+#     log_mode: true
+#     ssl: false
 
 # PRODUCERS: A list of configurations for 
 # Implementations:

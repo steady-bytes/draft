@@ -2,7 +2,7 @@ module github.com/steady-bytes/draft
 
 go 1.19
 
-replace github.com/steady-bytes/draft/pkg/draft-runtime v0.0.1 => ./pkg/draft-runtime
+replace github.com/steady-bytes/draft/pkg/draft-runtime v0.0.1 => ./pkg/draft-runtime-golang
 replace github.com/steady-bytes/draft/api/gen/go v1.0.0 => ./api/gen/go
 
 require (
