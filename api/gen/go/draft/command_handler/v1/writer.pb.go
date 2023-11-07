@@ -28,7 +28,7 @@ type Command struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name      string     `protobuf:"bytes,1,opt,name=name,proto3" json:"name" csv:"name" pg:"name" bun:"name" yaml:"name"`
+	Name      string     `protobuf:"bytes,1,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
 	Arguments *anypb.Any `protobuf:"bytes,2,opt,name=arguments,proto3" json:"arguments" pg:"arguments" bun:"arguments" yaml:"arguments" csv:"arguments"`
 }
 
@@ -85,7 +85,7 @@ type Output struct {
 
 	TransactionId string     `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id" yaml:"transaction_id" csv:"transaction_id" pg:"transaction_id" bun:"transaction_id"`
 	AggregateId   string     `protobuf:"bytes,2,opt,name=aggregate_id,json=aggregateId,proto3" json:"aggregate_id" pg:"aggregate_id" bun:"aggregate_id" yaml:"aggregate_id" csv:"aggregate_id"`
-	Result        *anypb.Any `protobuf:"bytes,3,opt,name=result,proto3" json:"result" pg:"result" bun:"result" yaml:"result" csv:"result"`
+	Result        *anypb.Any `protobuf:"bytes,3,opt,name=result,proto3" json:"result" csv:"result" pg:"result" bun:"result" yaml:"result"`
 }
 
 func (x *Output) Reset() {
@@ -146,8 +146,8 @@ type Transaction struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TransactionId string `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id" pg:"transaction_id" bun:"transaction_id" yaml:"transaction_id" csv:"transaction_id"`
-	AggregateId   string `protobuf:"bytes,2,opt,name=aggregate_id,json=aggregateId,proto3" json:"aggregate_id" yaml:"aggregate_id" csv:"aggregate_id" pg:"aggregate_id" bun:"aggregate_id"`
+	TransactionId string `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id" bun:"transaction_id" yaml:"transaction_id" csv:"transaction_id" pg:"transaction_id"`
+	AggregateId   string `protobuf:"bytes,2,opt,name=aggregate_id,json=aggregateId,proto3" json:"aggregate_id" pg:"aggregate_id" bun:"aggregate_id" yaml:"aggregate_id" csv:"aggregate_id"`
 }
 
 func (x *Transaction) Reset() {

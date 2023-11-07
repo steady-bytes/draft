@@ -12,19 +12,19 @@ import (
 
 func main() {
 	var (
-		model       m.TestModel
-		ctrl        c.TestController
-		testHandler h.TestHTTPHandler
+		model           m.TestModel
+		ctrl            c.TestController
+		testHTTPHandler h.TestHTTPHandler
 	)
 
 	model = m.NewTestModel()
 	ctrl = c.New(model)
-	testHandler = h.NewTestView(ctrl)
+	testHTTPHandler = h.NewTestView(ctrl)
 
 	defer draft.New("host").
 		WithRepo(draft.PostgresBun, model).
-		WithHTTPHandler(draft.Gin, testHandler).
-		// WithRPCHandler(draft.Grpc, view).
+		WithHTTPHandler(draft.Gin, testHTTPHandler).
+		WithRPCHandler(draft.Grpc, view).
 		Start()
 }
 

@@ -1,4 +1,4 @@
-module github.com/steady-bytes/draft/api/gen/go
+module github.com/steady-bytes/draft/api
 
 go 1.21.3
 

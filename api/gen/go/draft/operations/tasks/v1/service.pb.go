@@ -111,7 +111,7 @@ type TaskAvailable struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" yaml:"uuid" csv:"uuid" pg:"uuid" bun:"uuid"`
+	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" pg:"uuid" bun:"uuid" yaml:"uuid" csv:"uuid"`
 	Task *Task  `protobuf:"bytes,2,opt,name=task,proto3" json:"task" pg:"task" bun:"task" yaml:"task" csv:"task"`
 }
 
@@ -168,7 +168,7 @@ type TaskAssigned struct {
 	unknownFields protoimpl.UnknownFields
 
 	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" pg:"uuid" bun:"uuid" yaml:"uuid" csv:"uuid"`
-	Task *Task  `protobuf:"bytes,2,opt,name=task,proto3" json:"task" pg:"task" bun:"task" yaml:"task" csv:"task"`
+	Task *Task  `protobuf:"bytes,2,opt,name=task,proto3" json:"task" yaml:"task" csv:"task" pg:"task" bun:"task"`
 }
 
 func (x *TaskAssigned) Reset() {
@@ -223,8 +223,8 @@ type TaskStarted struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" pg:"uuid" bun:"uuid" yaml:"uuid" csv:"uuid"`
-	Task *Task  `protobuf:"bytes,2,opt,name=task,proto3" json:"task" csv:"task" pg:"task" bun:"task" yaml:"task"`
+	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" bun:"uuid" yaml:"uuid" csv:"uuid" pg:"uuid"`
+	Task *Task  `protobuf:"bytes,2,opt,name=task,proto3" json:"task" pg:"task" bun:"task" yaml:"task" csv:"task"`
 }
 
 func (x *TaskStarted) Reset() {
@@ -279,8 +279,8 @@ type TaskCompleted struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" pg:"uuid" bun:"uuid" yaml:"uuid" csv:"uuid"`
-	Task *Task  `protobuf:"bytes,2,opt,name=task,proto3" json:"task" yaml:"task" csv:"task" pg:"task" bun:"task"`
+	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" bun:"uuid" yaml:"uuid" csv:"uuid" pg:"uuid"`
+	Task *Task  `protobuf:"bytes,2,opt,name=task,proto3" json:"task" bun:"task" yaml:"task" csv:"task" pg:"task"`
 }
 
 func (x *TaskCompleted) Reset() {
@@ -335,7 +335,7 @@ type TaskAssignmentCanceled struct {
 	unknownFields protoimpl.UnknownFields
 
 	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" pg:"uuid" bun:"uuid" yaml:"uuid" csv:"uuid"`
-	Task *Task  `protobuf:"bytes,2,opt,name=task,proto3" json:"task" yaml:"task" csv:"task" pg:"task" bun:"task"`
+	Task *Task  `protobuf:"bytes,2,opt,name=task,proto3" json:"task" pg:"task" bun:"task" yaml:"task" csv:"task"`
 }
 
 func (x *TaskAssignmentCanceled) Reset() {
@@ -389,25 +389,25 @@ type Task struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" csv:"uuid" pg:"uuid" bun:"uuid,pk,type:uuid,default:uuid_generate_v4()" yaml:"uuid"`
+	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" pg:"uuid" bun:"uuid,pk,type:uuid,default:uuid_generate_v4()" yaml:"uuid" csv:"uuid"`
 	// string value of the `Status`
-	Status     string  `protobuf:"bytes,2,opt,name=status,proto3" json:"status" bun:"status" yaml:"status" csv:"status" pg:"status"`
-	AssignedTo *uint64 `protobuf:"varint,3,opt,name=assigned_to,json=assignedTo,proto3,oneof" json:"assigned_to" yaml:"assigned_to" csv:"assigned_to" pg:"assigned_to" bun:"assigned_to"`
+	Status     string  `protobuf:"bytes,2,opt,name=status,proto3" json:"status" pg:"status" bun:"status" yaml:"status" csv:"status"`
+	AssignedTo *uint64 `protobuf:"varint,3,opt,name=assigned_to,json=assignedTo,proto3,oneof" json:"assigned_to" pg:"assigned_to" bun:"assigned_to" yaml:"assigned_to" csv:"assigned_to"`
 	// A time when the task will expire after it's been assigned, and not started.
-	ExpiresAt *int64 `protobuf:"varint,4,opt,name=expires_at,json=expiresAt,proto3,oneof" json:"expires_at" yaml:"expires_at" csv:"expires_at" pg:"expires_at" bun:"expires_at"`
-	VehicleId uint64 `protobuf:"varint,5,opt,name=vehicle_id,json=vehicleId,proto3" json:"vehicle_id" bun:"type:bigint" yaml:"vehicle_id" csv:"vehicle_id" pg:"vehicle_id"`
+	ExpiresAt *int64 `protobuf:"varint,4,opt,name=expires_at,json=expiresAt,proto3,oneof" json:"expires_at" pg:"expires_at" bun:"expires_at" yaml:"expires_at" csv:"expires_at"`
+	VehicleId uint64 `protobuf:"varint,5,opt,name=vehicle_id,json=vehicleId,proto3" json:"vehicle_id" pg:"vehicle_id" bun:"type:bigint" yaml:"vehicle_id" csv:"vehicle_id"`
 	// The uuid of the aggregate this task is related to
 	// the aggegate_uuid is the form data
 	AggregateUuid *string `protobuf:"bytes,6,opt,name=aggregate_uuid,json=aggregateUuid,proto3,oneof" json:"aggregate_uuid" pg:"aggregate_uuid" bun:"type:uuid" yaml:"aggregate_uuid" csv:"aggregate_uuid"`
-	KindUuid      string  `protobuf:"bytes,7,opt,name=kind_uuid,json=kindUuid,proto3" json:"kind_uuid" pg:"kind_uuid" bun:"type:uuid" yaml:"kind_uuid" csv:"kind_uuid"`
+	KindUuid      string  `protobuf:"bytes,7,opt,name=kind_uuid,json=kindUuid,proto3" json:"kind_uuid" bun:"type:uuid" yaml:"kind_uuid" csv:"kind_uuid" pg:"kind_uuid"`
 	// related entities
-	Kind         *TaskKind         `protobuf:"bytes,8,opt,name=kind,proto3" json:"kind" pg:"kind" bun:"rel:has-one,join:kind_uuid=uuid" yaml:"kind" csv:"kind"`
-	Logs         []*TaskLog        `protobuf:"bytes,9,rep,name=logs,proto3" json:"logs" csv:"logs" pg:"logs" bun:"rel:has-many,join:uuid=task_uuid" yaml:"logs"`
-	PayoutDetail *TaskPayoutDetail `protobuf:"bytes,10,opt,name=payout_detail,json=payoutDetail,proto3,oneof" json:"payout_detail" pg:"payout_detail" bun:"rel:has-one,join:uuid=task_uuid" yaml:"payout_detail" csv:"payout_detail"`
-	Location     *Coordinates      `protobuf:"bytes,11,opt,name=location,proto3,oneof" json:"location" bun:"location" yaml:"location" csv:"location" pg:"location"`
+	Kind         *TaskKind         `protobuf:"bytes,8,opt,name=kind,proto3" json:"kind" yaml:"kind" csv:"kind" pg:"kind" bun:"rel:has-one,join:kind_uuid=uuid"`
+	Logs         []*TaskLog        `protobuf:"bytes,9,rep,name=logs,proto3" json:"logs" pg:"logs" bun:"rel:has-many,join:uuid=task_uuid" yaml:"logs" csv:"logs"`
+	PayoutDetail *TaskPayoutDetail `protobuf:"bytes,10,opt,name=payout_detail,json=payoutDetail,proto3,oneof" json:"payout_detail" csv:"payout_detail" pg:"payout_detail" bun:"rel:has-one,join:uuid=task_uuid" yaml:"payout_detail"`
+	Location     *Coordinates      `protobuf:"bytes,11,opt,name=location,proto3,oneof" json:"location" pg:"location" bun:"location" yaml:"location" csv:"location"`
 	Ismi         *int64            `protobuf:"varint,12,opt,name=ismi,proto3,oneof" json:"ismi" pg:"ismi" bun:"type:bigint" yaml:"ismi" csv:"ismi"`
 	// The amount of money in cents that the task is worth to the user
-	PayoutAmount *uint32 `protobuf:"varint,13,opt,name=payout_amount,json=payoutAmount,proto3,oneof" json:"payout_amount" pg:"payout_amount" bun:"-" yaml:"payout_amount" csv:"payout_amount"`
+	PayoutAmount *uint32 `protobuf:"varint,13,opt,name=payout_amount,json=payoutAmount,proto3,oneof" json:"payout_amount" yaml:"payout_amount" csv:"payout_amount" pg:"payout_amount" bun:"-"`
 	// The fleet number of the vehicle
 	FleetNumber string `protobuf:"bytes,14,opt,name=fleet_number,json=fleetNumber,proto3" json:"fleet_number" bun:"fleet_number" yaml:"fleet_number" csv:"fleet_number" pg:"fleet_number"`
 }
@@ -547,8 +547,8 @@ type Coordinates struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Latitude  float64 `protobuf:"fixed64,1,opt,name=latitude,proto3" json:"latitude" bun:"latitude" yaml:"latitude" csv:"latitude" pg:"latitude"`
-	Longitude float64 `protobuf:"fixed64,2,opt,name=longitude,proto3" json:"longitude" csv:"longitude" pg:"longitude" bun:"longitude" yaml:"longitude"`
+	Latitude  float64 `protobuf:"fixed64,1,opt,name=latitude,proto3" json:"latitude" csv:"latitude" pg:"latitude" bun:"latitude" yaml:"latitude"`
+	Longitude float64 `protobuf:"fixed64,2,opt,name=longitude,proto3" json:"longitude" pg:"longitude" bun:"longitude" yaml:"longitude" csv:"longitude"`
 }
 
 func (x *Coordinates) Reset() {
@@ -602,7 +602,7 @@ type TaskKind struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" yaml:"uuid" csv:"uuid" pg:"uuid" bun:"uuid,pk,type:uuid,default:uuid_generate_v4()"`
+	Uuid string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" pg:"uuid" bun:"uuid,pk,type:uuid,default:uuid_generate_v4()" yaml:"uuid" csv:"uuid"`
 	// (i.e "Default Monthly Inspection", "Quick Inspection")
 	FormName string `protobuf:"bytes,2,opt,name=form_name,json=formName,proto3" json:"form_name" pg:"form_name" bun:"form_name" yaml:"form_name" csv:"form_name"`
 	// length of how long a task can be assigned to a user before they have to "start" it
@@ -610,11 +610,11 @@ type TaskKind struct {
 	DurationToStart uint64 `protobuf:"varint,3,opt,name=duration_to_start,json=durationToStart,proto3" json:"duration_to_start" pg:"duration_to_start" bun:"duration_to_start" yaml:"duration_to_start" csv:"duration_to_start"`
 	// NOTES: These are values the business needs to define still
 	// base payout for doing the task
-	BasePayout uint32 `protobuf:"varint,4,opt,name=base_payout,json=basePayout,proto3" json:"base_payout" bun:"base_payout" yaml:"base_payout" csv:"base_payout" pg:"base_payout"`
+	BasePayout uint32 `protobuf:"varint,4,opt,name=base_payout,json=basePayout,proto3" json:"base_payout" pg:"base_payout" bun:"base_payout" yaml:"base_payout" csv:"base_payout"`
 	// i.e If 5 we would then payout $5 per mile traveled by the user to do the task
 	MileagePayout uint32 `protobuf:"varint,5,opt,name=mileage_payout,json=mileagePayout,proto3" json:"mileage_payout" pg:"mileage_payout" bun:"mileage_payout" yaml:"mileage_payout" csv:"mileage_payout"`
 	// additional payout for promoting a task higher in the task queue
-	UrgencyPayout *uint32 `protobuf:"varint,6,opt,name=urgency_payout,json=urgencyPayout,proto3,oneof" json:"urgency_payout" csv:"urgency_payout" pg:"urgency_payout" bun:"urgency_payout" yaml:"urgency_payout"`
+	UrgencyPayout *uint32 `protobuf:"varint,6,opt,name=urgency_payout,json=urgencyPayout,proto3,oneof" json:"urgency_payout" pg:"urgency_payout" bun:"urgency_payout" yaml:"urgency_payout" csv:"urgency_payout"`
 }
 
 func (x *TaskKind) Reset() {
@@ -697,11 +697,11 @@ type TaskLog struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uuid     string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" csv:"uuid" pg:"uuid" bun:"uuid,pk,type:uuid,default:uuid_generate_v4()" yaml:"uuid"`
-	TaskUuid string `protobuf:"bytes,2,opt,name=task_uuid,json=taskUuid,proto3" json:"task_uuid" csv:"task_uuid" pg:"task_uuid" bun:"task_uuid,type:uuid" yaml:"task_uuid"`
-	LogTime  uint64 `protobuf:"varint,3,opt,name=log_time,json=logTime,proto3" json:"log_time" csv:"log_time" pg:"log_time" bun:"log_time" yaml:"log_time"`
+	Uuid     string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" pg:"uuid" bun:"uuid,pk,type:uuid,default:uuid_generate_v4()" yaml:"uuid" csv:"uuid"`
+	TaskUuid string `protobuf:"bytes,2,opt,name=task_uuid,json=taskUuid,proto3" json:"task_uuid" yaml:"task_uuid" csv:"task_uuid" pg:"task_uuid" bun:"task_uuid,type:uuid"`
+	LogTime  uint64 `protobuf:"varint,3,opt,name=log_time,json=logTime,proto3" json:"log_time" pg:"log_time" bun:"log_time" yaml:"log_time" csv:"log_time"`
 	// string value of the `Status`
-	Status string  `protobuf:"bytes,4,opt,name=status,proto3" json:"status" pg:"status" bun:"status" yaml:"status" csv:"status"`
+	Status string  `protobuf:"bytes,4,opt,name=status,proto3" json:"status" csv:"status" pg:"status" bun:"status" yaml:"status"`
 	UserId *uint64 `protobuf:"varint,5,opt,name=user_id,json=userId,proto3,oneof" json:"user_id" pg:"user_id" bun:"user_id" yaml:"user_id" csv:"user_id"`
 }
 
@@ -779,9 +779,9 @@ type TaskPayoutDetail struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uuid     string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" yaml:"uuid" csv:"uuid" pg:"uuid" bun:"uuid,pk,type:uuid,default:uuid_generate_v4()"`
-	TaskUuid string `protobuf:"bytes,2,opt,name=task_uuid,json=taskUuid,proto3" json:"task_uuid" pg:"task_uuid" bun:"type:uuid" yaml:"task_uuid" csv:"task_uuid"`
-	Amount   int32  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount" csv:"amount" pg:"amount" bun:"amount" yaml:"amount"`
+	Uuid     string `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid" pg:"uuid" bun:"uuid,pk,type:uuid,default:uuid_generate_v4()" yaml:"uuid" csv:"uuid"`
+	TaskUuid string `protobuf:"bytes,2,opt,name=task_uuid,json=taskUuid,proto3" json:"task_uuid" bun:"type:uuid" yaml:"task_uuid" csv:"task_uuid" pg:"task_uuid"`
+	Amount   int32  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount" yaml:"amount" csv:"amount" pg:"amount" bun:"amount"`
 }
 
 func (x *TaskPayoutDetail) Reset() {

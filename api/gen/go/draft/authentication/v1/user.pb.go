@@ -25,8 +25,8 @@ type RegisterRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name     string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" csv:"name" pg:"name" bun:"name" yaml:"name"`
-	Email    string `protobuf:"bytes,2,opt,name=email,proto3" json:"email" bun:"email" yaml:"email" csv:"email" pg:"email"`
+	Name     string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
+	Email    string `protobuf:"bytes,2,opt,name=email,proto3" json:"email" pg:"email" bun:"email" yaml:"email" csv:"email"`
 	Password string `protobuf:"bytes,3,opt,name=password,proto3" json:"password" pg:"password" bun:"password" yaml:"password" csv:"password"`
 }
 
@@ -88,7 +88,7 @@ type RegisterResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id    string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bun:"id" yaml:"id" csv:"id" pg:"id"`
+	Id    string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" csv:"id" pg:"id" bun:"id" yaml:"id"`
 	Name  string `protobuf:"bytes,2,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
 	Email string `protobuf:"bytes,3,opt,name=email,proto3" json:"email" pg:"email" bun:"email" yaml:"email" csv:"email"`
 }
@@ -218,7 +218,7 @@ type UserID struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bun:"id" yaml:"id" csv:"id" pg:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" csv:"id" pg:"id" bun:"id" yaml:"id"`
 }
 
 func (x *UserID) Reset() {
@@ -265,7 +265,7 @@ type UserDetails struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" yaml:"id" csv:"id" pg:"id" bun:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
 }
 
 func (x *UserDetails) Reset() {
