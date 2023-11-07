@@ -76,7 +76,7 @@ type HelloResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Greeting string `protobuf:"bytes,1,opt,name=greeting,proto3" json:"greeting" pg:"greeting" bun:"greeting" yaml:"greeting" csv:"greeting"`
+	Greeting string `protobuf:"bytes,1,opt,name=greeting,proto3" json:"greeting" bun:"greeting" yaml:"greeting" csv:"greeting" pg:"greeting"`
 }
 
 func (x *HelloResponse) Reset() {

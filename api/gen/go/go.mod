@@ -4,7 +4,6 @@ go 1.21.3
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.0.2
-	github.com/srikrsna/protoc-gen-gotag v0.6.2
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
 )

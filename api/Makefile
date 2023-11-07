@@ -12,6 +12,9 @@ install:
 
 ## go install github.com/fluidtruck/protoc-gen-go-timestamppb-sql@v1.0.0
 
+clean:
+	rm -rf gen/go
+
 go:
 	rm -rf gen/go
 	buf mod update
