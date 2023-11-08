@@ -1,6 +1,6 @@
 module draft_runtime_golang
 
-go 1.19
+go 1.21.3
 
 require (
 	github.com/dn365/gin-zerolog v0.0.0-20171227063204-b43714b00db1
