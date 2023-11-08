@@ -4,7 +4,6 @@ go 1.19
 
 replace (
 	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1 => ../../pkg/draft-runtime-golang
-	github.com/steady-bytes/draft/api v0.0.1 => ../../api/gen/go
 )
 
 require (
@@ -14,7 +13,6 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1
-	github.com/steady-bytes/draft/api v0.0.1
 	github.com/supertokens/supertokens-golang v0.14.0
 )
 

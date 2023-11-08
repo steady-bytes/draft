@@ -50,8 +50,8 @@ func New(name string) *Runtime {
 // This is kind of like the kitchen sink interface for services that have many different requirement.
 type Default interface {
 	RepoRegistrar
-	HttpRegistrar
-	RpcRegistrar
+	HTTPRegistrar
+	RPCRegistrar
 	BrokerRegistrar
 }
 

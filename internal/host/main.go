@@ -24,7 +24,7 @@ func main() {
 	defer draft.New("host").
 		WithRepo(draft.PostgresBun, model).
 		WithHTTPHandler(draft.Gin, testHTTPHandler).
-		WithRPCHandler(draft.Grpc, view).
+		//WithRPCHandler(draft.Grpc, view).
 		Start()
 }
 

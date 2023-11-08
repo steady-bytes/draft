@@ -3,4 +3,5 @@ go 1.21.3
 use (
     ./api/gen/go
     ./internal/host
+    ./pkg/draft-runtime-golang
 )
