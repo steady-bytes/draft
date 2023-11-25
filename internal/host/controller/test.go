@@ -16,7 +16,7 @@ type (
 	}
 )
 
-func New(testModel model.TestModel) TestController {
+func NewTestCtrl(testModel model.TestModel) TestController {
 	return &testController{
 		testModel: testModel,
 	}

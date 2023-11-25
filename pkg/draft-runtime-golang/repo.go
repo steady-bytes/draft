@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dgraph-io/badger"
 	"github.com/jinzhu/gorm"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -22,13 +23,21 @@ type RepoRegistrar interface {
 // RepoType - selects the type of persistent's layer the service will need
 type RepoKind int
 
-// Options for repositories that can be used in a service
+// Options for repositories that can be used in a service.
+// Since services will need to have many different kinds of persistence
+// options. To control what clients can be supported seemed ideal to
+// add a builder for the supported kinds.
+//
+// Long term the idea of the platform is to detect what kind of persistence
+// layer is needed from the infrastructure and it
+//
 // NOTE: When adding, or removing a value in `RepoType` make sure
 //
 //	      to update the corresponding `String()` method. If they are out
-//				 of sync then a potential "out of bounds" error will occur.
+//		  of sync then a potential "out of bounds" error will occur.
 const (
 	NullRepoType RepoKind = iota
+	Badger
 	Postgres
 	PostgresGorm
 	PostgresBun
@@ -38,7 +47,7 @@ const (
 
 // String - get the human readable value for `RepoType`
 func (rt RepoKind) String() string {
-	return []string{"null", "postgres", "postgres_gorm", "postgres_bun", "scylla", "mongo"}[rt]
+	return []string{"null", "badger", "postgres", "postgres_gorm", "postgres_bun", "scylla", "mongo"}[rt]
 }
 
 // WithRepo - Connects to the plugins repo of choice with the runtime
@@ -50,12 +59,28 @@ func (c *Runtime) withRepo(kind RepoKind, registrar RepoRegistrar) {
 	switch c.repoKind {
 	case NullRepoType:
 		return
+	case Badger:
+		c.bootstrapBadger(registrar)
 	case PostgresGorm:
 		c.bootstrapPostgresGorm(registrar)
 	case PostgresBun:
 		c.bootstrapPostgresBun(registrar)
 	default:
 		panic("a valid repo was not configured")
+	}
+}
+
+func (c *Runtime) bootstrapBadger(registrar RepoRegistrar) {
+	badgerOpt := badger.DefaultOptions(c.Title())
+	db, err := badger.Open(badgerOpt)
+	if err != nil {
+		panic(err)
+	}
+
+	c.badger = db
+
+	if err := registrar.RegisterRepo(db); err != nil {
+		panic(err)
 	}
 }
 

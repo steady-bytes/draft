@@ -23,14 +23,8 @@ type HTTPRegistrar interface {
 	RegisterHTTP() *gin.Engine
 }
 
-func (c *Runtime) withHTTPHandler(kind HTTPHandlerKind, plugin HTTPRegistrar) {
-	if kind == Gin {
-		c.withHTTPGin(plugin)
-	} else if kind == Fiber {
-		c.withHTTPFiber(plugin)
-	} else {
-		panic("handler not registered with a valid kind")
-	}
+func (c *Runtime) withHTTPHandler(plugin HTTPRegistrar) {
+	c.withHTTPGin(plugin)
 }
 
 func (c *Runtime) withHTTPGin(registrar HTTPRegistrar) {
@@ -53,15 +47,17 @@ const (
 type RPCRegistrar interface {
 	// RegisterRPC - returns a `grpc.Server` after the concrete implementation has been registered with the grpc registrar.
 	// The returned `grpc.Server` can then be used to run the implementation.
-	RegisterRPC() *grpc.Server
+	RegisterRPC(server *grpc.Server)
 }
 
-func (c *Runtime) withRPCHandler(kind RPCHandlerKind, plugin RPCRegistrar) {
+func (c *Runtime) withRPCHandler(plugin RPCRegistrar) {
 	c.withRpc(plugin)
 }
 
 func (c *Runtime) withRpc(registrar RPCRegistrar) {
 	var err error
+
+	c.rpc = grpc.NewServer()
 
 	// If the builder has not already created a tcp connection then go ahead and start that now
 	if c.tcp == nil {
@@ -71,5 +67,5 @@ func (c *Runtime) withRpc(registrar RPCRegistrar) {
 		}
 	}
 
-	c.rpc = registrar.RegisterRPC()
+	registrar.RegisterRPC(c.rpc)
 }

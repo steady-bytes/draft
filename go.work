@@ -3,5 +3,6 @@ go 1.21.3
 use (
     ./api/gen/go
     ./internal/host
+    ./internal/blueprint
     ./pkg/draft-runtime-golang
 )

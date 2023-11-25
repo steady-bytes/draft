@@ -28,14 +28,12 @@ func NewProcessFromHandshakePayload(process *api.Process) (*api.Process, error) 
 	apiToken.Id = pid.String()
 
 	// Example: this will give us a 44 byte, base64 encoded output
-	nonce, err := GenerateRandomStringURLSafe(32)
+	apiToken.Nonce, err = GenerateRandomStringURLSafe(32)
 	if err != nil {
 		// Serve an appropriately vague error to the
 		// user, but log the details internally.
 		return nil, err
 	}
-
-	apiToken.Nonce = nonce
 
 	// Create  new token object, specifying signing method and the claims
 	// you would like it to contain.
@@ -45,13 +43,10 @@ func NewProcessFromHandshakePayload(process *api.Process) (*api.Process, error) 
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString([]byte(nonce))
+	apiToken.Jwt, err = token.SignedString([]byte(apiToken.Nonce))
 	if err != nil {
 		return nil, err
 	}
-
-	// set the token as a string
-	apiToken.Jwt = tokenString
 
 	// set the generated token
 	process.Token = apiToken

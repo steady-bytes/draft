@@ -1,4 +1,4 @@
-module draft_api_golang 
+module github.com/steady-bytes/draft/api
 
 go 1.21.3
 

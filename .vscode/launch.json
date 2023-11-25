@@ -22,6 +22,15 @@
             "program": "internal/host/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+        },
+        {
+            "name": "Blueprint",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "internal/blueprint/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
         }
     ]
 }

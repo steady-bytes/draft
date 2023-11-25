@@ -10,20 +10,23 @@ import (
 
 func main() {
 	var (
-		model           m.TestModel
-		ctrl            c.TestController
+		name            = "host"
+		testModel       m.TestModel
+		testCtrl        c.TestController
 		testHTTPHandler h.TestHTTPHandler
 		testRPCHandler  h.TestRPCHandler
 	)
 
-	model = m.NewTestModel()
-	ctrl = c.New(model)
-	testHTTPHandler = h.NewTestView(ctrl)
+	testModel = m.NewTestModel()
+	testCtrl = c.NewTestCtrl(testModel)
+	testHTTPHandler = h.NewTestView(testCtrl)
 	testRPCHandler = h.NewTestRPCHandler()
 
-	defer draft.New("host").
-		WithRepo(draft.PostgresBun, model).
-		WithHTTPHandler(draft.Gin, testHTTPHandler).
-		WithRPCHandler(draft.Grpc, testRPCHandler).
+	defer draft.New(name, "").
+		WithRepo(draft.PostgresBun, testModel).
+		WithHTTPHandler(testHTTPHandler).
+		WithRPCHandler(testRPCHandler).
+		// WithConsumer().
+		// WithProducer().
 		Start()
 }
