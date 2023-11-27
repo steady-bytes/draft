@@ -14,8 +14,10 @@ func main() {
 	model := m.NewKeyValueModel()
 
 	defer draft.New(name, "").
+		// setup the persistence layer
+		// Since the consensus module is in draft. It might be worth moving
 		WithRepo(draft.Badger, model).
-		WithConsensus(draft.Raft).
-		// WithRPCHandler(raftHandler).
+		WithConsensus(draft.Raft, model).
+		WithRPCHandler(model).
 		Start()
 }

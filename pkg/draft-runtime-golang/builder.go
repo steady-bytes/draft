@@ -47,7 +47,7 @@ func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *
 type DefaultRuntimeBuilder struct{}
 
 func (d *DefaultRuntimeBuilder) SetRepoType() RepoKind {
-	return PostgresGorm
+	return PostgresGORM
 }
 
 func (d *DefaultRuntimeBuilder) RegisterRepo(db interface{}) error {

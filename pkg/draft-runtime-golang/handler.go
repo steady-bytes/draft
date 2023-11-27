@@ -57,7 +57,9 @@ func (c *Runtime) withRPCHandler(plugin RPCRegistrar) {
 func (c *Runtime) withRpc(registrar RPCRegistrar) {
 	var err error
 
-	c.rpc = grpc.NewServer()
+	if c.rpc == nil {
+		c.rpc = grpc.NewServer()
+	}
 
 	// If the builder has not already created a tcp connection then go ahead and start that now
 	if c.tcp == nil {

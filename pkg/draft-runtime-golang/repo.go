@@ -3,6 +3,7 @@ package draft_runtime_golang
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	"github.com/dgraph-io/badger"
 	"github.com/jinzhu/gorm"
@@ -13,10 +14,11 @@ import (
 
 // REPO - Mechanism used to persists any type of data. From S3 files storage, NoSQL databases, and SQL databases.
 
-// RepoRegistrar -
+// RepoRegistrar - The interface to implement if the service needs persistent data storage
 type RepoRegistrar interface {
 	// RegisterRepo - gives the plugin the option to use many different types of orms/db client. A type assertion can
 	// be used at the client level configure the runtime.
+	// If
 	RegisterRepo(interface{}) error
 }
 
@@ -37,22 +39,26 @@ type RepoKind int
 //		  of sync then a potential "out of bounds" error will occur.
 const (
 	NullRepoType RepoKind = iota
+	// FULLY SUPPORTED
 	Badger
-	Postgres
-	PostgresGorm
-	PostgresBun
+	// NOT SUPPORTED BUT MIGHT
+	PostgresSQLX
+	// FULLY SUPPORTED BUT DEPRECATING
+	PostgresGORM
+	// FULLY SUPPORTED
+	PostgresBUN
+	// NOT SUPPORTED BUT MIGHT
 	Scylla
+	// NOT SUPPORTED BUT MIGHT
 	Mongo
 )
 
 // String - get the human readable value for `RepoType`
 func (rt RepoKind) String() string {
-	return []string{"null", "badger", "postgres", "postgres_gorm", "postgres_bun", "scylla", "mongo"}[rt]
+	return []string{"null", "badger", "postgres_sqlx", "postgres_gorm", "postgres_bun", "scylla", "mongo"}[rt]
 }
 
 // WithRepo - Connects to the plugins repo of choice with the runtime
-// TODO: Change this method body to be a switch statement that will call specific bootstrapping
-// methods for each type of repo instead of keeping itall in
 func (c *Runtime) withRepo(kind RepoKind, registrar RepoRegistrar) {
 	c.repoKind = kind
 
@@ -61,35 +67,48 @@ func (c *Runtime) withRepo(kind RepoKind, registrar RepoRegistrar) {
 		return
 	case Badger:
 		c.bootstrapBadger(registrar)
-	case PostgresGorm:
+	case PostgresGORM:
 		c.bootstrapPostgresGorm(registrar)
-	case PostgresBun:
+	case PostgresBUN:
 		c.bootstrapPostgresBun(registrar)
 	default:
 		panic("a valid repo was not configured")
 	}
 }
 
+// bootstrapBadger - Open up a connection with the default options for `Badger`
+// This will setup things like file system bindings so badger can write data
+// to the file system.
 func (c *Runtime) bootstrapBadger(registrar RepoRegistrar) {
-	badgerOpt := badger.DefaultOptions(c.Title())
+	nodeID := os.Getenv(nodeIDEnv)
+	if nodeID == "" {
+		panic("raft node id not set")
+	}
+
+	badgerOpt := badger.DefaultOptions(nodeID)
 	db, err := badger.Open(badgerOpt)
 	if err != nil {
 		panic(err)
 	}
-
+	// store a reference of badger into the runtime
 	c.badger = db
-
+	// close when called by the os
+	go func() {
+		if err := c.badger.Close(); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "error close badgerDB: %s\n", err.Error())
+		}
+	}()
+	// Call `RegisterRepo` function that should be implemented by
+	// the consuming service
 	if err := registrar.RegisterRepo(db); err != nil {
 		panic(err)
 	}
 }
 
 // bootstrapPostgresGorm - A utility for registering `GORM` with the `draft` runtime.
-// This method does not return anything but can panic because it's considered a fatal issue
-// if the db can't be configured and setup correctly in the runtime.
 func (c *Runtime) bootstrapPostgresGorm(registrar RepoRegistrar) {
 	// set value to local variable
-	cfg := c.config.Repos[Postgres.String()].Postgres
+	cfg := c.config.Repos[PostgresGORM.String()].Postgres
 
 	if cfg.SSL {
 		panic("ssl configuration for postgres is not implemented")
@@ -111,7 +130,7 @@ func (c *Runtime) bootstrapPostgresGorm(registrar RepoRegistrar) {
 
 // bootstrapPostgresBun - A utility for registering `bun` orm with the `draft` runtime.
 func (c *Runtime) bootstrapPostgresBun(registrar RepoRegistrar) {
-	cfg := c.config.Repos[Postgres.String()].Postgres
+	cfg := c.config.Repos[PostgresBUN.String()].Postgres
 
 	if cfg.SSL {
 		panic("ssl configuration for postgres is not implemented")

@@ -2,6 +2,8 @@ package draft_runtime_golang
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -11,6 +13,8 @@ import (
 const (
 	// PANIC: failure to read configuration
 	ErrorCode int16 = 1
+	// serverPortEnv - is used to run the http/rpc servers
+	serverPortEnv = "SERVER_PORT"
 )
 
 // config
@@ -73,10 +77,21 @@ func NewConfig(name string) *Config {
 	// - if registry.url == ""
 	// 		assume its the registry service, or a service that is being run in stand along mode
 
+	serverPortStr := os.Getenv(serverPortEnv)
+	if serverPortStr == "" {
+		panic("failed to read the server port env var")
+	}
+
+	// string to int
+	serverPort, err := strconv.Atoi(serverPortStr)
+	if err != nil {
+		panic(err)
+	}
+
 	config := &Config{
 		Service: &Service{
 			Name: name,
-			Port: 8080,
+			Port: int32(serverPort),
 		},
 		Repos:    readRepoConfig(),
 		Gateways: readGatewayConfig(),
@@ -142,7 +157,7 @@ func readRepoConfig() map[string]Repo {
 	for k, v := range configRepos {
 		var newRepo Repo
 
-		if k == Postgres.String() {
+		if k == PostgresBUN.String() {
 			for key, val := range v.(map[string]interface{}) {
 				switch key {
 				case "dbtype":
@@ -164,7 +179,7 @@ func readRepoConfig() map[string]Repo {
 				case "migrate":
 					newRepo.Postgres.Migrate = val.(bool)
 				default:
-					fmt.Sprintf("key: [%s] is not found in %s repo options", key, Postgres.String())
+					fmt.Sprintf("key: [%s] is not found in %s repo options", key, PostgresBUN.String())
 				}
 			}
 		} else if k == Scylla.String() {

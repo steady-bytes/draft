@@ -24,13 +24,46 @@
             "debugAdapter": "dlv-dap",
         },
         {
-            "name": "Blueprint",
+            "name": "Blueprint - 1",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "internal/blueprint/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "env": {
+                "RAFT_PORT": "1111",
+                "SERVER_PORT": "2221",
+                "RAFT_NODE_ID": "node_1"
+            },  
+        },
+        {
+            "name": "Blueprint - 2",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "internal/blueprint/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "RAFT_PORT": "1112",
+                "SERVER_PORT": "2222",
+                "RAFT_NODE_ID": "node_2"
+            },  
+        },
+        {
+            "name": "Blueprint - 3",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "internal/blueprint/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "RAFT_PORT": "1113",
+                "SERVER_PORT": "2223",
+                "RAFT_NODE_ID": "node_3"
+            },  
         }
     ]
 }

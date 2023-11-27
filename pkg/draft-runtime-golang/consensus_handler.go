@@ -48,5 +48,15 @@ func (r *raftRPCHandler) Remove(ctx context.Context, req *rfv1.RemoveRequest) (*
 }
 
 func (r *raftRPCHandler) Stats(ctx context.Context, req *rfv1.StatsRequest) (*rfv1.StatsResponse, error) {
-	return nil, errors.New("implement me")
+	var (
+		nodeID = req.GetNodeId()
+	)
+	stats := r.raftController.Stats(ctx)
+
+	return &rfv1.StatsResponse{
+		NodeId: nodeID,
+		Stats: &rfv1.Stats{
+			Stats: stats,
+		},
+	}, nil
 }

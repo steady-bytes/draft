@@ -33,7 +33,8 @@ type Runtime struct {
 	nats *nats.Conn
 	http *gin.Engine
 
-	consensusKind ConsensusKind
+	consensusKind        ConsensusKind
+	raftAdvertiseAddress *net.TCPAddr
 
 	plugin Default
 }
