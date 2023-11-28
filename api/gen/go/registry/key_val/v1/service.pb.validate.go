@@ -518,6 +518,8 @@ func (m *Data) validate(all bool) error {
 
 	var errors []error
 
+	// no validation rules for Data
+
 	if len(errors) > 0 {
 		return DataMultiError(errors)
 	}

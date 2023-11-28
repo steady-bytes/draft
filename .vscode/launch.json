@@ -34,7 +34,8 @@
             "env": {
                 "RAFT_PORT": "1111",
                 "SERVER_PORT": "2221",
-                "RAFT_NODE_ID": "node_1"
+                "RAFT_NODE_ID": "node_1",
+                "BOOTSTRAP_RAFT": "true"
             },  
         },
         {

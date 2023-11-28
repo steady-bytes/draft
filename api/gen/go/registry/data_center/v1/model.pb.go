@@ -84,10 +84,10 @@ type DataCenter struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" csv:"id" pg:"id" bun:"id" yaml:"id"`
 	// public address a data center can be found at
-	Domain string           `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain" bun:"domain" yaml:"domain" csv:"domain" pg:"domain"`
-	Status DataCenterStatus `protobuf:"varint,3,opt,name=status,proto3,enum=registry.data_center.v1.DataCenterStatus" json:"status" bun:"status" yaml:"status" csv:"status" pg:"status"`
+	Domain string           `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain" yaml:"domain" csv:"domain" pg:"domain" bun:"domain"`
+	Status DataCenterStatus `protobuf:"varint,3,opt,name=status,proto3,enum=registry.data_center.v1.DataCenterStatus" json:"status" yaml:"status" csv:"status" pg:"status" bun:"status"`
 }
 
 func (x *DataCenter) Reset() {

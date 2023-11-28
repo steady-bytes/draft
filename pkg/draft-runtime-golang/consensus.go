@@ -137,7 +137,10 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 		},
 	}
 
-	raftServer.BootstrapCluster(configuration)
+	bootstrap := os.Getenv("BOOTSTRAP_RAFT")
+	if bootstrap == "true" {
+		raftServer.BootstrapCluster(configuration)
+	}
 
 	// todo -> figure out how to let the upper layer of the service implement `raft.FSM` so that it can determine how
 	// the storage facility works

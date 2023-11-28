@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/dgraph-io/badger/v2"
@@ -42,10 +43,6 @@ func NewKeyValueModel() KeyValueModel {
 }
 
 func (r *keyValueModel) Delete(ctx context.Context, req *kvv1.DeleteRequest) (*kvv1.DeleteResponse, error) {
-	return nil, errors.New("implement me")
-}
-
-func (r *keyValueModel) Get(ctx context.Context, req *kvv1.GetRequest) (*kvv1.GetResponse, error) {
 	return nil, errors.New("implement me")
 }
 
@@ -114,6 +111,28 @@ func (r *keyValueModel) Set(ctx context.Context, req *kvv1.SetRequest) (*kvv1.Se
 	}, nil
 }
 
+func (r *keyValueModel) Get(ctx context.Context, req *kvv1.GetRequest) (*kvv1.GetResponse, error) {
+	var (
+		key = strings.TrimSpace(req.GetKey())
+	)
+
+	value, err := r.get(key)
+	if err != nil {
+		fmt.Println("error reading: ", err)
+		return nil, errors.New("failed to get value for key")
+	}
+
+	fmt.Println("value: ", string(value))
+
+	return &kvv1.GetResponse{
+		Response: &kvv1.GetResponse_Data{
+			Data: &kvv1.Data{
+				Data: value,
+			},
+		},
+	}, nil
+}
+
 // Implement the the `draft.ConsensusRegister` interface so that the underlying infrastructure
 // is put into place before the service is running. To run this service as a replicated service
 // that can share, and agree on.
@@ -168,7 +187,38 @@ func (r *keyValueModel) set(key string, value interface{}) error {
 		return err
 	}
 
-	return txn.Commit()
+	if err := txn.Commit(); err != nil {
+		txn.Discard()
+		return err
+	}
+
+	return nil
+}
+
+func (r *keyValueModel) get(key string) ([]byte, error) {
+	var keyByte = []byte(key)
+
+	txn := r.db.NewTransaction(false)
+	defer func() {
+		_ = txn.Commit()
+	}()
+
+	item, err := txn.Get(keyByte)
+	if err != nil {
+		return nil, err
+	}
+
+	var value = make([]byte, 0)
+	err = item.Value(func(val []byte) error {
+		value = append(value, val...)
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return value, err
 }
 
 // ==================================================
@@ -189,8 +239,9 @@ func (r *keyValueModel) Apply(log *raft.Log) interface{} {
 		case Set:
 			if err := r.set(payload.Key, payload.Value); err != nil {
 				fmt.Println(err)
+
 				return &ApplyResponse{
-					Error: err,
+					Error: errors.New("failed to set key/val"),
 					Data:  payload,
 				}
 			} else {
@@ -201,6 +252,11 @@ func (r *keyValueModel) Apply(log *raft.Log) interface{} {
 			}
 
 		case Get:
+			data, err := r.get(payload.Key)
+			return &ApplyResponse{
+				Error: err,
+				Data:  data,
+			}
 		case NullOperation:
 			fmt.Println("null operation received from log")
 		}

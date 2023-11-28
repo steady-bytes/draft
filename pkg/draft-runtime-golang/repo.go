@@ -92,12 +92,7 @@ func (c *Runtime) bootstrapBadger(registrar RepoRegistrar) {
 	}
 	// store a reference of badger into the runtime
 	c.badger = db
-	// close when called by the os
-	go func() {
-		if err := c.badger.Close(); err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "error close badgerDB: %s\n", err.Error())
-		}
-	}()
+
 	// Call `RegisterRepo` function that should be implemented by
 	// the consuming service
 	if err := registrar.RegisterRepo(db); err != nil {

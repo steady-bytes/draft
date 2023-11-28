@@ -119,7 +119,7 @@ type SetRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key   string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
+	Key   string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" bun:"key" yaml:"key" csv:"key" pg:"key"`
 	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value" pg:"value" bun:"value" yaml:"value" csv:"value"`
 }
 
@@ -174,7 +174,7 @@ type SetResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" csv:"key" pg:"key" bun:"key" yaml:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
 }
 
 func (x *SetResponse) Reset() {
@@ -221,7 +221,7 @@ type GetRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" bun:"key" yaml:"key" csv:"key" pg:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
 }
 
 func (x *GetRequest) Reset() {
@@ -333,11 +333,11 @@ type isGetResponse_Response interface {
 }
 
 type GetResponse_Data struct {
-	Data *Data `protobuf:"bytes,1,opt,name=data,proto3,oneof" bun:"data" yaml:"data" csv:"data" json:"data" pg:"data"`
+	Data *Data `protobuf:"bytes,1,opt,name=data,proto3,oneof" pg:"data" bun:"data" yaml:"data" csv:"data" json:"data"`
 }
 
 type GetResponse_Error struct {
-	Error GetError `protobuf:"varint,2,opt,name=error,proto3,enum=registry.key_value.v1.GetError,oneof" json:"error" pg:"error" bun:"error" yaml:"error" csv:"error"`
+	Error GetError `protobuf:"varint,2,opt,name=error,proto3,enum=registry.key_value.v1.GetError,oneof" pg:"error" bun:"error" yaml:"error" csv:"error" json:"error"`
 }
 
 func (*GetResponse_Data) isGetResponse_Response() {}
@@ -349,7 +349,7 @@ type Data struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Data [][]byte `protobuf:"bytes,1,rep,name=data,proto3" json:"data" pg:"data" bun:"data" yaml:"data" csv:"data"`
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data" yaml:"data" csv:"data" pg:"data" bun:"data"`
 }
 
 func (x *Data) Reset() {
@@ -384,7 +384,7 @@ func (*Data) Descriptor() ([]byte, []int) {
 	return file_registry_key_val_v1_service_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *Data) GetData() [][]byte {
+func (x *Data) GetData() []byte {
 	if x != nil {
 		return x.Data
 	}
@@ -512,7 +512,7 @@ type DeleteResponse_Key struct {
 }
 
 type DeleteResponse_Error struct {
-	Error DeleteError `protobuf:"varint,2,opt,name=error,proto3,enum=registry.key_value.v1.DeleteError,oneof" yaml:"error" csv:"error" json:"error" pg:"error" bun:"error"`
+	Error DeleteError `protobuf:"varint,2,opt,name=error,proto3,enum=registry.key_value.v1.DeleteError,oneof" pg:"error" bun:"error" yaml:"error" csv:"error" json:"error"`
 }
 
 func (*DeleteResponse_Key) isDeleteResponse_Response() {}
@@ -546,7 +546,7 @@ var file_registry_key_val_v1_service_proto_rawDesc = []byte{
 	0x75, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x48, 0x00,
 	0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f,
 	0x6e, 0x73, 0x65, 0x22, 0x1a, 0x0a, 0x04, 0x44, 0x61, 0x74, 0x61, 0x12, 0x12, 0x0a, 0x04, 0x64,
-	0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22,
+	0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22,
 	0x21, 0x0a, 0x0d, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
 	0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b,
 	0x65, 0x79, 0x22, 0x6c, 0x0a, 0x0e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70,
