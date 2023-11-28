@@ -125,6 +125,7 @@ func (r *keyValueModel) RegisterRepo(dbConn interface{}) error {
 	if dbConn == nil {
 		return errors.New("db interface is nil")
 	} else {
+		// todo -> figure out why I'm getting a !ok here
 		if db, ok := dbConn.(*badger.DB); ok {
 			r.db = db
 		}
