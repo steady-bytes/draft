@@ -63,7 +63,7 @@ func (c *Runtime) withRpc(registrar RPCRegistrar) {
 
 	// If the builder has not already created a tcp connection then go ahead and start that now
 	if c.tcp == nil {
-		c.tcp, err = net.Listen("tcp", fmt.Sprintf(":%d", c.config.Service.Port))
+		c.tcp, err = net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", c.config.Service.Port))
 		if err != nil {
 			panic(err)
 		}

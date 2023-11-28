@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/v2"
 	"github.com/jinzhu/gorm"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"

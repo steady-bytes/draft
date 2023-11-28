@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/dgraph-io/badger/v2"
@@ -64,9 +65,23 @@ const (
 )
 
 type ApplyResponse struct {
+	Error error
+	Data  interface{}
 }
 
+// ==== RPC HANDLER METHODS ==== //
+
+// Set - Responds to the rpc method `Set`. The request is checked to see if it's running on the leader
+// if not then an error is returned. After, the leader is validated the payload is transformed to the `CommandPayload`
+// and then apply'ed to the raft log. If that is successful then it's considered committed to the cluster.
 func (r *keyValueModel) Set(ctx context.Context, req *kvv1.SetRequest) (*kvv1.SetResponse, error) {
+	if r.raft.State() != raft.Leader {
+		fmt.Println("no leader")
+		// todo -> redirect request to leader, or just return an error that the client
+		// can then call the leader
+		fmt.Println("leader address: ", r.raft.Leader())
+		return nil, errors.New("call leader to set data")
+	}
 
 	// create `fsm.CommandPayload`
 	payload := &CommandPayload{
@@ -107,12 +122,12 @@ func (r *keyValueModel) RegisterConsensus(raftConn interface{}) error {
 		// this is not working for some reason
 		if raft, ok := raftConn.(*raft.Raft); ok {
 			r.raft = raft
+			return nil
 		} else {
 			return errors.New("failed to register raft with the service")
 		}
 	}
-
-	return nil
+	return errors.New("raft connection is nill")
 }
 
 func (r *keyValueModel) RegisterRPC(server *grpc.Server) {
@@ -122,16 +137,38 @@ func (r *keyValueModel) RegisterRPC(server *grpc.Server) {
 // Implement the the `draft.RepoRegister` interface so that the underlying infrastructure
 // is put into place before the service is running.
 func (r *keyValueModel) RegisterRepo(dbConn interface{}) error {
-	if dbConn == nil {
-		return errors.New("db interface is nil")
-	} else {
+	if dbConn != nil {
 		// todo -> figure out why I'm getting a !ok here
 		if db, ok := dbConn.(*badger.DB); ok {
 			r.db = db
+			return nil
+		} else {
+			return errors.New("db connection is not the expected type")
 		}
 	}
+	return errors.New("db connection is nil")
+}
 
-	return nil
+// ==== MODEL OPERATIONS ==== //
+func (r *keyValueModel) set(key string, value interface{}) error {
+	var data = make([]byte, 0)
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	if data == nil || len(data) <= 0 {
+		return nil
+	}
+
+	txn := r.db.NewTransaction(true)
+	err = txn.Set([]byte(key), data)
+	if err != nil {
+		txn.Discard()
+		return err
+	}
+
+	return txn.Commit()
 }
 
 // ==================================================
@@ -140,8 +177,35 @@ func (r *keyValueModel) RegisterRepo(dbConn interface{}) error {
 // ==================================================
 
 func (r *keyValueModel) Apply(log *raft.Log) interface{} {
-	// switch/route on command type
-	// SET/UPDATE/DELETE commands
+	switch log.Type {
+	case raft.LogCommand:
+		var payload = CommandPayload{}
+		if err := json.Unmarshal(log.Data, &payload); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "error marshalling store payload %s\n", err.Error())
+			return nil
+		}
+
+		switch payload.Operation {
+		case Set:
+			if err := r.set(payload.Key, payload.Value); err != nil {
+				fmt.Println(err)
+				return &ApplyResponse{
+					Error: err,
+					Data:  payload,
+				}
+			} else {
+				return &ApplyResponse{
+					Error: nil,
+					Data:  payload,
+				}
+			}
+
+		case Get:
+		case NullOperation:
+			fmt.Println("null operation received from log")
+		}
+	}
+
 	return nil
 }
 
