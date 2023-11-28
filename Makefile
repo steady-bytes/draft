@@ -25,6 +25,24 @@ local:
 test:
 	cd tests/registry && go run main.go 
 
+clean_blueprint:
+	rm -rf node_1 && rm -rf node_2 && rm -rf node_3
+
+blueprint: clean_blueprint blueprint_1 blueprint_2 blueprint_3
+
+blueprint_1:
+	RAFT_PORT=1111 SERVER_PORT=2221 RAFT_NODE_ID="node_1" go run internal/blueprint/main.go
+
+blueprint_2:
+	RAFT_PORT=1112 SERVER_PORT=2222 RAFT_NODE_ID="node_2" go run internal/blueprint/main.go
+
+blueprint_3:
+	RAFT_PORT=1113 SERVER_PORT=2223 RAFT_NODE_ID="node_3" go run internal/blueprint/main.go
+
+blueprint_register_leader:
+	go run pkg/blueprint-client/main.go
+
+
 #####
 # API
 #####
