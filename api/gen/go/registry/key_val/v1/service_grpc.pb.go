@@ -25,8 +25,8 @@ type KeyValueServiceClient interface {
 	// SET - A key/val pair
 	Set(ctx context.Context, in *SetRequest, opts ...grpc.CallOption) (*SetResponse, error)
 	// GET - A key/val pair
-	// If key is not found, an error is returned
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
+	// DELETE - remove a key, and it's associated value
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 }
 
@@ -72,8 +72,8 @@ type KeyValueServiceServer interface {
 	// SET - A key/val pair
 	Set(context.Context, *SetRequest) (*SetResponse, error)
 	// GET - A key/val pair
-	// If key is not found, an error is returned
 	Get(context.Context, *GetRequest) (*GetResponse, error)
+	// DELETE - remove a key, and it's associated value
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	mustEmbedUnimplementedKeyValueServiceServer()
 }

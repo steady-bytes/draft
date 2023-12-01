@@ -26,7 +26,7 @@ type RegisterRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// uniqe name the registering data_center will be known as
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" bun:"name" yaml:"name" csv:"name" pg:"name"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
 }
 
 func (x *RegisterRequest) Reset() {
@@ -121,7 +121,7 @@ type DeregisterRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	DataCenterId string `protobuf:"bytes,1,opt,name=data_center_id,json=dataCenterId,proto3" json:"data_center_id" pg:"data_center_id" bun:"data_center_id" yaml:"data_center_id" csv:"data_center_id"`
+	DataCenterId string `protobuf:"bytes,1,opt,name=data_center_id,json=dataCenterId,proto3" json:"data_center_id" bun:"data_center_id" yaml:"data_center_id" csv:"data_center_id" pg:"data_center_id"`
 }
 
 func (x *DeregisterRequest) Reset() {
@@ -168,7 +168,7 @@ type DeregisterResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	DataCenterId string           `protobuf:"bytes,1,opt,name=data_center_id,json=dataCenterId,proto3" json:"data_center_id" bun:"data_center_id" yaml:"data_center_id" csv:"data_center_id" pg:"data_center_id"`
+	DataCenterId string           `protobuf:"bytes,1,opt,name=data_center_id,json=dataCenterId,proto3" json:"data_center_id" pg:"data_center_id" bun:"data_center_id" yaml:"data_center_id" csv:"data_center_id"`
 	Status       DataCenterStatus `protobuf:"varint,2,opt,name=status,proto3,enum=registry.data_center.v1.DataCenterStatus" json:"status" pg:"status" bun:"status" yaml:"status" csv:"status"`
 }
 

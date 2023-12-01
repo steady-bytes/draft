@@ -4,16 +4,12 @@ package registry.key_value.v1;
 
 option go_package = "github.com/steady-bytes/draft/api/registry/key_value/v1";
 
-import "google/protobuf/timestamp.proto";
-import "validate/validate.proto";
-
 service KeyValueService {
     // SET - A key/val pair
     rpc Set(SetRequest) returns (SetResponse) {}
     // GET - A key/val pair
-    // If key is not found, an error is returned
     rpc Get(GetRequest) returns (GetResponse) {}
-
+    // DELETE - remove a key, and it's associated value
     rpc Delete(DeleteRequest) returns (DeleteResponse) {}
     // At this point I'm not sure how this is gonna work with the FSM, BadgerDB
     // I'm thinking we will have a way to trigger some type of change/updated event
@@ -32,17 +28,21 @@ message SetResponse {
 
 message GetRequest {
     string key = 1;
+    GetFilter filter =2;
+}
+
+enum GetFilter {
+    UNSPECIFIED_GET_FILTER = 0;
+    BYTES_GET_FILTER = 1;
+    STRING_GET_FILTER = 2;
 }
 
 message GetResponse {
     oneof response {
-        Data data = 1;
-        GetError error = 2;
+        bytes as_bytes = 1;
+        string as_string = 2;
+        GetError error = 3;
     }
-}
-
-message Data {
-    bytes data = 1;
 }
 
 enum GetError {

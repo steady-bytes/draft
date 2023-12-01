@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	rfv1 "github.com/steady-bytes/draft/api/gen/go/consensus/raft/v1"
 	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_val/v1"
 
@@ -46,13 +48,58 @@ func main() {
 	time.Sleep(1 * time.Second)
 
 	// call key/val client
-	res, err := keyValClient.Set(context.Background(), &kvv1.SetRequest{
-		Key:   "test",
-		Value: "test value",
+	var (
+		key = "test"
+		val = "test value"
+	)
+	setRes, err := keyValClient.Set(context.Background(), &kvv1.SetRequest{
+		Key:   key,
+		Value: val,
 	})
 	if err != nil {
 		fmt.Println("failed to save key")
 	}
 
-	fmt.Println("res: ", res)
+	fmt.Println("res: ", setRes)
+
+	keys := make([]string, 0)
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		k := uuid.NewString()
+		v := uuid.NewString()
+
+		go func() {
+			defer wg.Done()
+
+			setRes, err := keyValClient.Set(context.Background(), &kvv1.SetRequest{
+				Key:   k,
+				Value: v,
+			})
+			if err != nil {
+				fmt.Println("failed to save key")
+			}
+
+			fmt.Println(setRes)
+
+			keys = append(keys, k)
+
+		}()
+	}
+
+	wg.Wait()
+
+	for _, i := range keys {
+		getRes, err := keyValClient.Get(context.Background(), &kvv1.GetRequest{
+			Key:    i,
+			Filter: kvv1.GetFilter_STRING_GET_FILTER,
+		})
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println("res:  ", i, getRes.GetAsString())
+	}
 }

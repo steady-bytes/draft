@@ -191,8 +191,8 @@ type InitRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// unique service name
-	Name   string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" csv:"name" pg:"name" bun:"name" yaml:"name"`
-	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peer_id" csv:"peer_id" pg:"peer_id" bun:"peer_id" yaml:"peer_id"`
+	Name   string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" yaml:"name" csv:"name" pg:"name" bun:"name"`
+	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peer_id" pg:"peer_id" bun:"peer_id" yaml:"peer_id" csv:"peer_id"`
 }
 
 func (x *InitRequest) Reset() {
@@ -248,7 +248,7 @@ type InitResponse struct {
 
 	// the process_id is assigned when the join request is successful however it does not mean that the process registered, running
 	// and in a stage ready for
-	ServiceId string `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id" csv:"service_id" pg:"service_id" bun:"service_id" yaml:"service_id"`
+	ServiceId string `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id" pg:"service_id" bun:"service_id" yaml:"service_id" csv:"service_id"`
 	// the address the registering process must stream it's health, and status messages to
 	RegistryAddress string `protobuf:"bytes,2,opt,name=registry_address,json=registryAddress,proto3" json:"registry_address" pg:"registry_address" bun:"registry_address" yaml:"registry_address" csv:"registry_address"`
 	// that must be present
@@ -360,7 +360,7 @@ type JournalQueryResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Result map[string]*Process `protobuf:"bytes,1,rep,name=result,proto3" json:"result" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" yaml:"result" csv:"result" pg:"result" bun:"result"`
+	Result map[string]*Process `protobuf:"bytes,1,rep,name=result,proto3" json:"result" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" csv:"result" pg:"result" bun:"result" yaml:"result"`
 }
 
 func (x *JournalQueryResponse) Reset() {
@@ -527,15 +527,15 @@ type isQuery_Option interface {
 }
 
 type Query_Id struct {
-	Id string `protobuf:"bytes,1,opt,name=id,proto3,oneof" bun:"id" yaml:"id" csv:"id" json:"id" pg:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3,oneof" pg:"id" bun:"id" yaml:"id" csv:"id" json:"id"`
 }
 
 type Query_Group struct {
-	Group string `protobuf:"bytes,2,opt,name=group,proto3,oneof" pg:"group" bun:"group" yaml:"group" csv:"group" json:"group"`
+	Group string `protobuf:"bytes,2,opt,name=group,proto3,oneof" json:"group" pg:"group" bun:"group" yaml:"group" csv:"group"`
 }
 
 type Query_All struct {
-	All string `protobuf:"bytes,3,opt,name=all,proto3,oneof" pg:"all" bun:"all" yaml:"all" csv:"all" json:"all"`
+	All string `protobuf:"bytes,3,opt,name=all,proto3,oneof" yaml:"all" csv:"all" json:"all" pg:"all" bun:"all"`
 }
 
 func (*Query_Id) isQuery_Option() {}
@@ -549,11 +549,11 @@ type ProcessDetails struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ProcessId    string              `protobuf:"bytes,1,opt,name=process_id,json=processId,proto3" json:"process_id" csv:"process_id" pg:"process_id" bun:"process_id" yaml:"process_id"`
+	ProcessId    string              `protobuf:"bytes,1,opt,name=process_id,json=processId,proto3" json:"process_id" yaml:"process_id" csv:"process_id" pg:"process_id" bun:"process_id"`
 	RunningState ProcessRunningState `protobuf:"varint,2,opt,name=running_state,json=runningState,proto3,enum=registry.service_discovery.v1.ProcessRunningState" json:"running_state" pg:"running_state" bun:"running_state" yaml:"running_state" csv:"running_state"`
-	HealthState  ProcessHealthState  `protobuf:"varint,3,opt,name=health_state,json=healthState,proto3,enum=registry.service_discovery.v1.ProcessHealthState" json:"health_state" bun:"health_state" yaml:"health_state" csv:"health_state" pg:"health_state"`
-	ProcessKind  ProcessKind         `protobuf:"varint,4,opt,name=process_kind,json=processKind,proto3,enum=registry.service_discovery.v1.ProcessKind" json:"process_kind" bun:"process_kind" yaml:"process_kind" csv:"process_kind" pg:"process_kind"`
-	Token        string              `protobuf:"bytes,5,opt,name=token,proto3" json:"token" bun:"token" yaml:"token" csv:"token" pg:"token"`
+	HealthState  ProcessHealthState  `protobuf:"varint,3,opt,name=health_state,json=healthState,proto3,enum=registry.service_discovery.v1.ProcessHealthState" json:"health_state" pg:"health_state" bun:"health_state" yaml:"health_state" csv:"health_state"`
+	ProcessKind  ProcessKind         `protobuf:"varint,4,opt,name=process_kind,json=processKind,proto3,enum=registry.service_discovery.v1.ProcessKind" json:"process_kind" pg:"process_kind" bun:"process_kind" yaml:"process_kind" csv:"process_kind"`
+	Token        string              `protobuf:"bytes,5,opt,name=token,proto3" json:"token" csv:"token" pg:"token" bun:"token" yaml:"token"`
 	Nonce        string              `protobuf:"bytes,6,opt,name=nonce,proto3" json:"nonce" pg:"nonce" bun:"nonce" yaml:"nonce" csv:"nonce"`
 }
 
@@ -674,7 +674,7 @@ type DisconnectRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ProcessId string `protobuf:"bytes,1,opt,name=process_id,json=processId,proto3" json:"process_id" pg:"process_id" bun:"process_id" yaml:"process_id" csv:"process_id"`
+	ProcessId string `protobuf:"bytes,1,opt,name=process_id,json=processId,proto3" json:"process_id" csv:"process_id" pg:"process_id" bun:"process_id" yaml:"process_id"`
 }
 
 func (x *DisconnectRequest) Reset() {
@@ -769,19 +769,19 @@ type Process struct {
 	unknownFields protoimpl.UnknownFields
 
 	// id - is a uuid to identify each process of the system
-	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
-	Group          string                 `protobuf:"bytes,3,opt,name=group,proto3" json:"group" yaml:"group" csv:"group" pg:"group" bun:"group"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id" yaml:"id" csv:"id" pg:"id" bun:"id"`
+	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name" bun:"name" yaml:"name" csv:"name" pg:"name"`
+	Group          string                 `protobuf:"bytes,3,opt,name=group,proto3" json:"group" csv:"group" pg:"group" bun:"group" yaml:"group"`
 	Local          string                 `protobuf:"bytes,4,opt,name=local,proto3" json:"local" pg:"local" bun:"local" yaml:"local" csv:"local"`
 	IpAddress      string                 `protobuf:"bytes,5,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address" pg:"ip_address" bun:"ip_address" yaml:"ip_address" csv:"ip_address"`
-	ProcessKind    ProcessKind            `protobuf:"varint,6,opt,name=process_kind,json=processKind,proto3,enum=registry.service_discovery.v1.ProcessKind" json:"process_kind" pg:"process_kind" bun:"process_kind" yaml:"process_kind" csv:"process_kind"`
-	Tags           []*Metadata            `protobuf:"bytes,7,rep,name=tags,proto3" json:"tags" pg:"tags" bun:"tags" yaml:"tags" csv:"tags"`
+	ProcessKind    ProcessKind            `protobuf:"varint,6,opt,name=process_kind,json=processKind,proto3,enum=registry.service_discovery.v1.ProcessKind" json:"process_kind" yaml:"process_kind" csv:"process_kind" pg:"process_kind" bun:"process_kind"`
+	Tags           []*Metadata            `protobuf:"bytes,7,rep,name=tags,proto3" json:"tags" bun:"tags" yaml:"tags" csv:"tags" pg:"tags"`
 	JoinedTime     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=joined_time,json=joinedTime,proto3" json:"joined_time" pg:"joined_time" bun:"joined_time" yaml:"joined_time" csv:"joined_time"`
 	LeftTime       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=left_time,json=leftTime,proto3" json:"left_time" pg:"left_time" bun:"left_time" yaml:"left_time" csv:"left_time"`
-	LastStatusTime *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=last_status_time,json=lastStatusTime,proto3" json:"last_status_time" pg:"last_status_time" bun:"last_status_time" yaml:"last_status_time" csv:"last_status_time"`
-	RunningState   ProcessRunningState    `protobuf:"varint,12,opt,name=running_state,json=runningState,proto3,enum=registry.service_discovery.v1.ProcessRunningState" json:"running_state" pg:"running_state" bun:"running_state" yaml:"running_state" csv:"running_state"`
+	LastStatusTime *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=last_status_time,json=lastStatusTime,proto3" json:"last_status_time" bun:"last_status_time" yaml:"last_status_time" csv:"last_status_time" pg:"last_status_time"`
+	RunningState   ProcessRunningState    `protobuf:"varint,12,opt,name=running_state,json=runningState,proto3,enum=registry.service_discovery.v1.ProcessRunningState" json:"running_state" yaml:"running_state" csv:"running_state" pg:"running_state" bun:"running_state"`
 	HealthState    ProcessHealthState     `protobuf:"varint,13,opt,name=health_state,json=healthState,proto3,enum=registry.service_discovery.v1.ProcessHealthState" json:"health_state" csv:"health_state" pg:"health_state" bun:"health_state" yaml:"health_state"`
-	Token          *Token                 `protobuf:"bytes,14,opt,name=token,proto3" json:"token" pg:"token" bun:"token" yaml:"token" csv:"token"`
+	Token          *Token                 `protobuf:"bytes,14,opt,name=token,proto3" json:"token" csv:"token" pg:"token" bun:"token" yaml:"token"`
 }
 
 func (x *Process) Reset() {
@@ -913,7 +913,7 @@ type Token struct {
 	unknownFields protoimpl.UnknownFields
 
 	Id    string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
-	Jwt   string `protobuf:"bytes,3,opt,name=jwt,proto3" json:"jwt" pg:"jwt" bun:"jwt" yaml:"jwt" csv:"jwt"`
+	Jwt   string `protobuf:"bytes,3,opt,name=jwt,proto3" json:"jwt" bun:"jwt" yaml:"jwt" csv:"jwt" pg:"jwt"`
 	Nonce string `protobuf:"bytes,4,opt,name=nonce,proto3" json:"nonce" pg:"nonce" bun:"nonce" yaml:"nonce" csv:"nonce"`
 }
 
@@ -977,7 +977,7 @@ type Metadata struct {
 
 	// id - is a uuid to identify each process of the system
 	Id    string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
-	Key   string `protobuf:"bytes,2,opt,name=key,proto3" json:"key" csv:"key" pg:"key" bun:"key" yaml:"key"`
+	Key   string `protobuf:"bytes,2,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
 	Value string `protobuf:"bytes,3,opt,name=value,proto3" json:"value" pg:"value" bun:"value" yaml:"value" csv:"value"`
 }
 

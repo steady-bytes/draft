@@ -23,10 +23,9 @@ go:
 	$(MAKE) init-go-mod
 
 js:
-	rm -rf gen/go
+	rm -rf gen/js
 	buf mod update
-	buf generate --template buf.gen.local.js.yaml
-	$(MAKE) init-go-mod
+	buf generate --template buf.gen.js.yaml
 
 go-diff:
 	rm -f gen/go/go.mod
