@@ -27,6 +27,11 @@ js:
 	buf mod update
 	buf generate --template buf.gen.js.yaml
 
+rust:
+	rm -rf gen/rust/registry
+	mkdir gen/rust/registry
+	cargo build
+
 go-diff:
 	rm -f gen/go/go.mod
 	rm -f gen/go/go.sum
