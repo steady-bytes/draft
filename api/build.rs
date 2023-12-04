@@ -14,6 +14,10 @@ fn build_draft() -> Result<(), Box<dyn std::error::Error>> {
   tonic_build::configure()
       .out_dir(out_dir)
       .include_file(includes)
+      // uncomment if building a server with grpc
+      // currently rust-wasm grpc-web support is not there
+      // so we are going back to js. :(
+      // .build_server(false)
       .compile(&[
         "./registry/key_val/v1/service.proto",
       ], &["."])?;
