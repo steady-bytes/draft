@@ -3,6 +3,7 @@ package draft_runtime_golang
 import (
 	"fmt"
 	"net"
+	"net/http"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/gin-gonic/gin"
@@ -29,7 +30,9 @@ type Runtime struct {
 	bun      *bun.DB
 	repoKind RepoKind
 
-	rpc  *grpc.Server
+	rpc       *grpc.Server
+	rpcServer *http.Server
+
 	nats *nats.Conn
 	http *gin.Engine
 

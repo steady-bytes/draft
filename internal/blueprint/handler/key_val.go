@@ -46,6 +46,8 @@ func (h *handler) Set(ctx context.Context, req *kvv1.SetRequest) (*kvv1.SetRespo
 		key = strings.TrimSpace(req.GetKey())
 	)
 
+	fmt.Println("req: ", key)
+
 	payload := &c.CommandPayload{
 		Operation: c.Set,
 		Key:       key,

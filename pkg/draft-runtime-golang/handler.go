@@ -1,11 +1,11 @@
 package draft_runtime_golang
 
 import (
-	"fmt"
-	"net"
+	"net/http"
 
 	ginzerolog "github.com/dn365/gin-zerolog"
 	"github.com/gin-gonic/gin"
+	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"google.golang.org/grpc"
 )
 
@@ -55,19 +55,19 @@ func (c *Runtime) withRPCHandler(plugin RPCRegistrar) {
 }
 
 func (c *Runtime) withRpc(registrar RPCRegistrar) {
-	var err error
-
 	if c.rpc == nil {
 		c.rpc = grpc.NewServer()
 	}
 
-	// If the builder has not already created a tcp connection then go ahead and start that now
-	if c.tcp == nil {
-		c.tcp, err = net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", c.config.Service.Port))
-		if err != nil {
-			panic(err)
-		}
-	}
-
 	registrar.RegisterRPC(c.rpc)
+
+	grpcWebServer := grpcweb.WrapServer(
+		c.rpc,
+		// Enable CORS
+		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
+	)
+
+	c.rpcServer = &http.Server{
+		Handler: grpcWebServer,
+	}
 }
