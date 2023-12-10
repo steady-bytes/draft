@@ -8,7 +8,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import MetricsPage from './Metrics';
 // application components
 import Copyright from '../components/Copyright';
-import { defaultTheme } from '../theme';
+import { defaultTheme } from '../index';
 import MainAppBar from '../components/MainAppBar';
 
 export default function Dashboard() {
