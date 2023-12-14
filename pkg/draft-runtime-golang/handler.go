@@ -5,8 +5,6 @@ import (
 
 	ginzerolog "github.com/dn365/gin-zerolog"
 	"github.com/gin-gonic/gin"
-	"github.com/improbable-eng/grpc-web/go/grpcweb"
-	"google.golang.org/grpc"
 )
 
 type HTTPHandlerKind int
@@ -47,7 +45,7 @@ const (
 type RPCRegistrar interface {
 	// RegisterRPC - returns a `grpc.Server` after the concrete implementation has been registered with the grpc registrar.
 	// The returned `grpc.Server` can then be used to run the implementation.
-	RegisterRPC(server *grpc.Server)
+	RegisterRPC(server *http.ServeMux) (string, http.Handler)
 }
 
 func (c *Runtime) withRPCHandler(plugin RPCRegistrar) {
@@ -56,18 +54,12 @@ func (c *Runtime) withRPCHandler(plugin RPCRegistrar) {
 
 func (c *Runtime) withRpc(registrar RPCRegistrar) {
 	if c.rpc == nil {
-		c.rpc = grpc.NewServer()
+		c.rpc = http.NewServeMux()
 	}
 
-	registrar.RegisterRPC(c.rpc)
+	// the call up to the server implementation
+	path, handler := registrar.RegisterRPC(c.rpc)
 
-	grpcWebServer := grpcweb.WrapServer(
-		c.rpc,
-		// Enable CORS
-		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
-	)
+	c.rpc.Handle(path, handler)
 
-	c.rpcServer = &http.Server{
-		Handler: grpcWebServer,
-	}
 }

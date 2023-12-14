@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 
-	api "github.com/steady-bytes/draft/api/gen/go"
+	api "github.com/steady-bytes/draft/api/go"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime"
 
 	"github.com/jinzhu/gorm"

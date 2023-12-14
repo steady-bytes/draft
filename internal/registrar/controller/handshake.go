@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
-	api "github.com/steady-bytes/draft/api/gen/go"
+	api "github.com/steady-bytes/draft/api/go"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

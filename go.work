@@ -1,8 +1,10 @@
 go 1.21.3
 
 use (
-    ./api/gen/go
-    ./internal/host
-    ./internal/blueprint
-    ./pkg/draft-runtime-golang
+	./api/gen/go
+	./internal/blueprint
+	./internal/host
+	./pkg/draft-runtime-golang
 )
+
+replace github.com/steady-bytes/draft/api/gen/go v0.0.1 => ./api/gen/go

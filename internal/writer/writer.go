@@ -1,7 +1,7 @@
 package writer
 
 import (
-	api "github.com/steady-bytes/draft/api/gen/go"
+	api "github.com/steady-bytes/draft/api/go"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime"
 
 	"google.golang.org/grpc"

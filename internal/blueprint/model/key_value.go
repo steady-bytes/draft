@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_val/v1"
+	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 
 	"github.com/dgraph-io/badger/v2"

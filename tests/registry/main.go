@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	api "github.com/steady-bytes/draft/api/gen/go"
+	api "github.com/steady-bytes/draft/api/go"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"

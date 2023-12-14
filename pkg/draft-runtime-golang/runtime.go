@@ -11,7 +11,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/nats-io/nats.go"
 	"github.com/uptrace/bun"
-	"google.golang.org/grpc"
 )
 
 // TODO -> add logger with json formatting
@@ -30,7 +29,7 @@ type Runtime struct {
 	bun      *bun.DB
 	repoKind RepoKind
 
-	rpc       *grpc.Server
+	rpc       *http.ServeMux
 	rpcServer *http.Server
 
 	nats *nats.Conn

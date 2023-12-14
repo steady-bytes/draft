@@ -5,25 +5,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	c "github.com/steady-bytes/draft/blueprint/controller"
 
-	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_val/v1"
+	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
+	apiconnect "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1/v1connect"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
-
-	"google.golang.org/grpc"
 )
 
 type (
 	KeyValueHandler interface {
 		draft.RPCRegistrar
+		apiconnect.KeyValueServiceHandler
 	}
 
 	handler struct {
-		kvv1.UnimplementedKeyValueServiceServer
-
 		keyValueController c.KeyValueController
 	}
 )
@@ -34,16 +34,17 @@ func New(ctr c.KeyValueController) KeyValueHandler {
 	}
 }
 
-func (h *handler) RegisterRPC(server *grpc.Server) {
-	kvv1.RegisterKeyValueServiceServer(server, h)
+func (h *handler) RegisterRPC(server *http.ServeMux) (string, http.Handler) {
+	return apiconnect.NewKeyValueServiceHandler(h)
 }
 
 // Set - Responds to the rpc method `Set`. The request is checked to see if it's running on the leader
 // if not then an error is returned. After, the leader is validated the payload is transformed to the `CommandPayload`
 // and then apply'ed to the raft log. If that is successful then it's considered committed to the cluster.
-func (h *handler) Set(ctx context.Context, req *kvv1.SetRequest) (*kvv1.SetResponse, error) {
+func (h *handler) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*connect.Response[kvv1.SetResponse], error) {
 	var (
-		key = strings.TrimSpace(req.GetKey())
+		key   = strings.TrimSpace(req.Msg.GetKey())
+		value = req.Msg.GetValue()
 	)
 
 	fmt.Println("req: ", key)
@@ -51,7 +52,7 @@ func (h *handler) Set(ctx context.Context, req *kvv1.SetRequest) (*kvv1.SetRespo
 	payload := &c.CommandPayload{
 		Operation: c.Set,
 		Key:       key,
-		Value:     req.GetValue(),
+		Value:     value,
 	}
 
 	data, err := json.Marshal(payload)
@@ -66,16 +67,16 @@ func (h *handler) Set(ctx context.Context, req *kvv1.SetRequest) (*kvv1.SetRespo
 		return nil, err
 	}
 
-	return &kvv1.SetResponse{
+	return connect.NewResponse[kvv1.SetResponse](&kvv1.SetResponse{
 		Key: key,
-	}, nil
+	}), nil
 }
 
 // Get - Looks for a key that maybe in the `Log` and if found returns the associated value
-func (h *handler) Get(ctx context.Context, req *kvv1.GetRequest) (*kvv1.GetResponse, error) {
+func (h *handler) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
 	var (
-		key    = strings.TrimSpace(req.GetKey())
-		filter = req.GetFilter()
+		key    = strings.TrimSpace(req.Msg.GetKey())
+		filter = req.Msg.GetFilter()
 	)
 
 	value, err := h.keyValueController.Get(key)
@@ -95,5 +96,9 @@ func (h *handler) Get(ctx context.Context, req *kvv1.GetRequest) (*kvv1.GetRespo
 		}
 	}
 
-	return res, nil
+	return connect.NewResponse[kvv1.GetResponse](res), nil
+}
+
+func (h *handler) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteRequest]) (*connect.Response[kvv1.DeleteResponse], error) {
+	return nil, errors.New("not implemented")
 }

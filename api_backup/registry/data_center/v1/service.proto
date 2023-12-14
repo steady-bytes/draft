@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package registry.data_center.v1;
 
-option go_package = "github.com/steady-bytes/draft/api/registry/data_center/v1";
+option go_package = "github.com/steady-bytes/draft/api";
 
 import "registry/data_center/v1/model.proto";
 

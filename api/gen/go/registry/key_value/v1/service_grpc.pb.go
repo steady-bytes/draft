@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: registry/key_val/v1/service.proto
+// source: registry/key_value/v1/service.proto
 
 package v1
 
@@ -179,5 +179,5 @@ var KeyValueService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "registry/key_val/v1/service.proto",
+	Metadata: "registry/key_value/v1/service.proto",
 }

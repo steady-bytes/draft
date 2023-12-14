@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package registry.key_value.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1";
+
+service KeyValueService {
+    // SET - A key/val pair
+    rpc Set(SetRequest) returns (SetResponse) {}
+    // GET - A key/val pair
+    rpc Get(GetRequest) returns (GetResponse) {}
+    // DELETE - remove a key, and it's associated value
+    rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+    // At this point I'm not sure how this is gonna work with the FSM, BadgerDB
+    // I'm thinking we will have a way to trigger some type of change/updated event
+    // on a channel then push the new configuration down to the watchers.
+    // rpc Watch() returns () {}
+}
+
+message SetRequest {
+    string key = 1;
+    string value = 2;
+}
+
+message SetResponse {
+    string key = 1;
+}
+
+message GetRequest {
+    string key = 1;
+    GetFilter filter =2;
+}
+
+enum GetFilter {
+    UNSPECIFIED_GET_FILTER = 0;
+    BYTES_GET_FILTER = 1;
+    STRING_GET_FILTER = 2;
+}
+
+message GetResponse {
+    oneof response {
+        bytes as_bytes = 1;
+        string as_string = 2;
+        GetError error = 3;
+    }
+}
+
+enum GetError {
+    UNSPECIFIED_GET_ERROR = 0;
+    KEY_NOT_FOUND_GET_ERROR = 1;
+}
+
+message DeleteRequest {
+    string key = 1;
+}
+
+message DeleteResponse {
+    oneof response {
+        string key = 1;
+        DeleteError error = 2;
+    }
+}
+
+enum DeleteError {
+    UNSPECIFIED_DELETE_ERROR = 0;
+    KEY_NOT_FOUND_DELETE_ERROR = 1;
+}

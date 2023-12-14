@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/steady-bytes/draft/api/gen/go"
+	api "github.com/steady-bytes/draft/api/go"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/encoding/protojson"

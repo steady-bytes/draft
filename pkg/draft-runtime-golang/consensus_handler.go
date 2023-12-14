@@ -3,20 +3,20 @@ package draft_runtime_golang
 import (
 	"context"
 	"errors"
+	"net/http"
+
+	cnt "connectrpc.com/connect"
 
 	rfv1 "github.com/steady-bytes/draft/api/gen/go/consensus/raft/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	connect "github.com/steady-bytes/draft/api/gen/go/consensus/raft/v1/v1connect"
 )
 
 type (
 	RaftRPCHandler interface {
 		RPCRegistrar
-		rfv1.RaftServiceServer
+		connect.RaftServiceHandler
 	}
 	raftRPCHandler struct {
-		rfv1.UnimplementedRaftServiceServer
-
 		raftController RaftController
 	}
 )
@@ -27,36 +27,43 @@ func NewRaftRPCHandler(raftController RaftController) RaftRPCHandler {
 	}
 }
 
-func (r *raftRPCHandler) RegisterRPC(server *grpc.Server) {
-	rfv1.RegisterRaftServiceServer(server, r)
-	reflection.Register(server)
+func (r *raftRPCHandler) RegisterRPC(server *http.ServeMux) (string, http.Handler) {
+	// rfv1.RegisterRaftServiceServer(server, r)
+	// reflection.Register(server)
+	return connect.NewRaftServiceHandler(r)
 }
 
-func (r *raftRPCHandler) Join(ctx context.Context, req *rfv1.JoinRequest) (*rfv1.JoinResponse, error) {
-	if err := r.raftController.Join(ctx, req.GetNodeId(), req.GetRaftAddress()); err != nil {
+func (r *raftRPCHandler) Join(ctx context.Context, req *cnt.Request[rfv1.JoinRequest]) (*cnt.Response[rfv1.JoinResponse], error) {
+	var (
+		nodeID      = req.Msg.GetNodeId()
+		raftAddress = req.Msg.GetRaftAddress()
+	)
+
+	if err := r.raftController.Join(ctx, nodeID, raftAddress); err != nil {
 		return nil, errors.New("failed to join cluster")
 	}
 
-	return &rfv1.JoinResponse{
-		NodeId:      req.GetNodeId(),
-		RaftAddress: req.GetRaftAddress(),
-	}, nil
+	return cnt.NewResponse(&rfv1.JoinResponse{
+		NodeId:      nodeID,
+		RaftAddress: raftAddress,
+	}), nil
 }
 
-func (r *raftRPCHandler) Remove(ctx context.Context, req *rfv1.RemoveRequest) (*rfv1.RemoveResponse, error) {
+func (r *raftRPCHandler) Remove(ctx context.Context, req *cnt.Request[rfv1.RemoveRequest]) (*cnt.Response[rfv1.RemoveResponse], error) {
 	return nil, errors.New("implement me")
 }
 
-func (r *raftRPCHandler) Stats(ctx context.Context, req *rfv1.StatsRequest) (*rfv1.StatsResponse, error) {
+func (r *raftRPCHandler) Stats(ctx context.Context, req *cnt.Request[rfv1.StatsRequest]) (*cnt.Response[rfv1.StatsResponse], error) {
 	var (
-		nodeID = req.GetNodeId()
+		nodeID = req.Msg.GetNodeId()
 	)
+
 	stats := r.raftController.Stats(ctx)
 
-	return &rfv1.StatsResponse{
+	return cnt.NewResponse(&rfv1.StatsResponse{
 		NodeId: nodeID,
 		Stats: &rfv1.Stats{
 			Stats: stats,
 		},
-	}, nil
+	}), nil
 }

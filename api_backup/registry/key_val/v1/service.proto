@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package registry.key_value.v1;
 
-option go_package = "github.com/steady-bytes/draft/api/registry/key_value/v1";
+option go_package = "github.com/steady-bytes/draft/api/registry/key_value";
 
 service KeyValueService {
     // SET - A key/val pair

@@ -3,7 +3,7 @@ package model
 import (
 	"fmt"
 
-	api "github.com/steady-bytes/draft/api/gen/go"
+	api "github.com/steady-bytes/draft/api/go"
 )
 
 type Token struct {

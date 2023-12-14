@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	api "github.com/steady-bytes/draft/api/gen/go"
+	api "github.com/steady-bytes/draft/api/go"
 
 	"google.golang.org/grpc"
 

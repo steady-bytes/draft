@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	api "github.com/steady-bytes/draft/api/gen/go"
+	api "github.com/steady-bytes/draft/api/go"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime"
 
 	fiber "github.com/gofiber/fiber/v2"

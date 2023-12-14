@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	rfv1 "github.com/steady-bytes/draft/api/gen/go/consensus/raft/v1"
-	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_val/v1"
+	rfv1 "github.com/steady-bytes/draft/api/go/consensus/raft/v1"
+	kvv1 "github.com/steady-bytes/draft/api/go/registry/key_value/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

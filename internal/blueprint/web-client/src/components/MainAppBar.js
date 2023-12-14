@@ -17,6 +17,7 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Badge from '@mui/material/Badge';
 import MuiAppBar from '@mui/material/AppBar';
+import { Routes, Route, Outlet, Link } from "react-router-dom";
 
 const AppBar = styled(MuiAppBar, {shouldForwardProp: (prop) => prop !== 'open', })(({ theme, open }) => ({
     zIndex: theme.zIndex.drawer + 1,
@@ -69,29 +70,36 @@ export default function MainAppBar(props) {
               }}
             >
               <MenuList dense sx={{width: 300, maxWidth: '100%'}}>
-                <MenuItem>
-                  <ListItemIcon>
-                    <LegendToggleIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Metrics</ListItemText>
-                  <Typography variant="body2" color="text.secondary">⌘M</Typography>
-                </MenuItem>
 
-                <MenuItem>
-                  <ListItemIcon>
-                    <AccountTreeIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Services</ListItemText>
-                  <Typography variant="body2" color="text.secondary">⌘X</Typography>
-                </MenuItem>
+                <Link to="/">
+                  <MenuItem>
+                    <ListItemIcon>
+                      <LegendToggleIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Metrics</ListItemText>
+                    <Typography variant="body2" color="text.secondary">⌘M</Typography>
+                  </MenuItem>
+                </Link>
 
-                <MenuItem>
-                  <ListItemIcon>
-                    <DeblurIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Key/Values</ListItemText>
-                  <Typography variant="body2" color="text.secondary">⌘K</Typography>
-                </MenuItem>
+                <Link to="/service-registry">
+                  <MenuItem>
+                    <ListItemIcon>
+                      <AccountTreeIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Services</ListItemText>
+                    <Typography variant="body2" color="text.secondary">⌘X</Typography>
+                  </MenuItem>
+                </Link>
+
+                <Link to="/key-values">
+                  <MenuItem>
+                    <ListItemIcon>
+                      <DeblurIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Key/Values</ListItemText>
+                    <Typography variant="body2" color="text.secondary">⌘K</Typography>
+                  </MenuItem>
+                </Link>
 
                 <Divider />
                 <MenuItem>

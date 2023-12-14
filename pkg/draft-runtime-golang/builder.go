@@ -2,10 +2,12 @@ package draft_runtime_golang
 
 import (
 	"fmt"
-	"net"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -77,15 +79,13 @@ func (d *DefaultRuntimeBuilder) RegisterBroker(broker interface{}) error {
 // TODO -> figure out how to run grpc + http on the same port
 // TODO -> figure out how to run everything on a background thread so the runtime can be shutdown
 func (c *Runtime) Start() error {
-	var err error
-
 	// If the builder has not already created a tcp connection then go ahead and start that now
-	if c.tcp == nil {
-		c.tcp, err = net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", c.config.Service.Port))
-		if err != nil {
-			log.Panic().Msg(fmt.Sprintf("failed to start a tcp connection: %s", err.Error()))
-		}
-	}
+	// if c.tcp == nil {
+	// 	c.tcp, err = net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", c.config.Service.Port))
+	// 	if err != nil {
+	// 		log.Panic().Msg(fmt.Sprintf("failed to start a tcp connection: %s", err.Error()))
+	// 	}
+	// }
 
 	if c.http != nil {
 		if err := c.http.Run(); err != nil {
@@ -95,6 +95,15 @@ func (c *Runtime) Start() error {
 
 	if c.rpcServer != nil {
 		c.rpcServer.Serve(c.tcp)
+
+		http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", c.config.Service.Port), h2c.NewHandler(c.rpc, &http2.Server{}))
+	}
+
+	if c.rpc != nil {
+		// c.rpcServer.Serve(c.tcp)
+		if err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", c.config.Service.Port), h2c.NewHandler(c.rpc, &http2.Server{})); err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	return nil

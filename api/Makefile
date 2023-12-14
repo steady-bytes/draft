@@ -9,11 +9,13 @@ install:
 	go install github.com/srikrsna/protoc-gen-gotag@v0.6.2
 	go install github.com/envoyproxy/protoc-gen-validate@v0.9.0
 	go install github.com/sorcererxw/protoc-gen-go-grpc-mock@latest
+	go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
 
 ## go install github.com/fluidtruck/protoc-gen-go-timestamppb-sql@v1.0.0
 
 clean:
 	rm -rf gen/go
+	rm -rf gen/go-connect
 
 go:
 	rm -rf gen/go
@@ -21,6 +23,7 @@ go:
 	buf generate --template buf.gen.go.yaml
 	buf generate --template buf.gen.gotag.yaml
 	$(MAKE) init-go-mod
+	$(MAKE) init-go-connect-mod
 
 js:
 	rm -rf gen/js
@@ -40,4 +43,7 @@ go-diff:
 	$(MAKE) init-go-mod
 
 init-go-mod:
-	cd gen/go; go mod init github.com/steady-bytes/draft/api; go mod tidy
+	cd gen/go; go mod init github.com/steady-bytes/draft/api/gen/go; go mod tidy
+
+# init-go-connect-mod:
+# 	cd gen/go-connect; go mod init github.com/steady-bytes/draft/api/go-connect; go mod tidy;

@@ -9,7 +9,7 @@ import (
 
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 
-	hwv1 "github.com/steady-bytes/draft/api/gen/go/test/hello_world/v1"
+	hwv1 "github.com/steady-bytes/draft/api/go/test/hello_world/v1"
 )
 
 type (

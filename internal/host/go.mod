@@ -3,7 +3,7 @@ module github.com/steady-bytes/draft/internal/host
 go 1.21.3
 
 replace (
-	github.com/steady-bytes/draft/api/gen/go v0.0.1 => ../../api/gen/go
+	github.com/steady-bytes/draft/api/go v0.0.1 => ../../api/gen/go
 	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1 => ../../pkg/draft-runtime-golang
 )
 
@@ -12,7 +12,7 @@ require (
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/rs/zerolog v1.31.0
-	github.com/steady-bytes/draft/api/gen/go v0.0.1
+	github.com/steady-bytes/draft/api/go v0.0.1
 	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1
 	github.com/supertokens/supertokens-golang v0.14.0
 	github.com/uptrace/bun v1.1.16

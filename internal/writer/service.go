@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	api "github.com/steady-bytes/draft/api/gen/go"
+	api "github.com/steady-bytes/draft/api/go"
 )
 
 func NewService() *service {

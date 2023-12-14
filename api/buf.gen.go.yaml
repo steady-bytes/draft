@@ -10,6 +10,11 @@ plugins:
     out: gen/go
     opt:
       - paths=source_relative
+  # go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+  - plugin: connect-go
+    out: gen/go
+    opt: 
+      - paths=source_relative
   - name: grpc-gateway
     out: gen/go
     opt:
