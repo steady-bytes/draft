@@ -10,7 +10,11 @@
   },
   "author": "Andrew Meiling",
   "license": "MIT",
+  "proxy": "http://localhost:2221",
   "dependencies": {
+    "@bufbuild/protobuf": "^1.6.0",
+    "@connectrpc/connect": "^1.2.0",
+    "@connectrpc/connect-web": "^1.2.0",
     "@emotion/styled": "^11.11.0",
     "@fontsource/roboto": "^5.0.8",
     "@mui/icons-material": "^5.14.19",

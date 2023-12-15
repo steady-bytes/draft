@@ -56,7 +56,3 @@ api: compiler
 # build the compiler
 compiler:
 	docker build -t apibuilder:v1 -f ./Dockerfile.compiler .;
-
-# cleanup generated code
-clean:
-	sudo rm -rf ./api/gen/

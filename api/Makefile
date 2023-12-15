@@ -16,6 +16,7 @@ install:
 clean:
 	rm -rf gen/go
 	rm -rf gen/go-connect
+	rm -rf gen/web
 
 go:
 	rm -rf gen/go
@@ -25,10 +26,14 @@ go:
 	$(MAKE) init-go-mod
 	$(MAKE) init-go-connect-mod
 
-js:
-	rm -rf gen/js
+
+# todo -> run this before compiling the web code
+# this adds all the generators to node_modules
+# PATH=$PATH:$(pwd)/node_modules/.bin
+web:
+	rm -rf gen/web
 	buf mod update
-	buf generate --template buf.gen.js.yaml
+	buf generate --template buf.gen.web.yaml
 
 rust:
 	rm -rf gen/rust/registry
