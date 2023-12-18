@@ -5,38 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
-	c "github.com/steady-bytes/draft/blueprint/controller"
-
 	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
-	apiconnect "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1/v1connect"
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	c "github.com/steady-bytes/draft/blueprint/controller"
 )
-
-type (
-	KeyValueHandler interface {
-		draft.RPCRegistrar
-		apiconnect.KeyValueServiceHandler
-	}
-
-	handler struct {
-		keyValueController c.KeyValueController
-	}
-)
-
-func New(ctr c.KeyValueController) KeyValueHandler {
-	return &handler{
-		keyValueController: ctr,
-	}
-}
-
-func (h *handler) RegisterRPC(server *http.ServeMux) (string, http.Handler) {
-	return apiconnect.NewKeyValueServiceHandler(h)
-}
 
 // Set - Responds to the rpc method `Set`. The request is checked to see if it's running on the leader
 // if not then an error is returned. After, the leader is validated the payload is transformed to the `CommandPayload`
@@ -61,7 +36,7 @@ func (h *handler) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]
 		return nil, err
 	}
 
-	_, err = c.KeyValueController.Set(h.keyValueController, data, 500*time.Millisecond)
+	_, err = c.KeyValueController.Set(h.controller, data, 500*time.Millisecond)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -79,7 +54,7 @@ func (h *handler) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]
 		filter = req.Msg.GetFilter()
 	)
 
-	value, err := h.keyValueController.Get(key)
+	value, err := h.controller.Get(key)
 	if err != nil {
 		fmt.Println("error reading: ", err)
 		return nil, errors.New("failed to get value for key")

@@ -21,3 +21,6 @@ plugins:
     opt:
       # Add more plugin options here
       - target=js
+  - name: connect-query
+    out: gen/web
+    opt: target=js

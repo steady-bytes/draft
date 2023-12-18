@@ -27,10 +27,10 @@ func NewRaftRPCHandler(raftController RaftController) RaftRPCHandler {
 	}
 }
 
-func (r *raftRPCHandler) RegisterRPC(server *http.ServeMux) (string, http.Handler) {
+func (r *raftRPCHandler) RegisterRPC(server *http.ServeMux) {
 	// rfv1.RegisterRaftServiceServer(server, r)
 	// reflection.Register(server)
-	return connect.NewRaftServiceHandler(r)
+	server.Handle(connect.NewRaftServiceHandler(r))
 }
 
 func (r *raftRPCHandler) Join(ctx context.Context, req *cnt.Request[rfv1.JoinRequest]) (*cnt.Response[rfv1.JoinResponse], error) {

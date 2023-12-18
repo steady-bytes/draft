@@ -45,7 +45,7 @@ const (
 type RPCRegistrar interface {
 	// RegisterRPC - returns a `grpc.Server` after the concrete implementation has been registered with the grpc registrar.
 	// The returned `grpc.Server` can then be used to run the implementation.
-	RegisterRPC(server *http.ServeMux) (string, http.Handler)
+	RegisterRPC(server *http.ServeMux)
 }
 
 func (c *Runtime) withRPCHandler(plugin RPCRegistrar) {
@@ -58,8 +58,5 @@ func (c *Runtime) withRpc(registrar RPCRegistrar) {
 	}
 
 	// the call up to the server implementation
-	path, handler := registrar.RegisterRPC(c.rpc)
-
-	c.rpc.Handle(path, handler)
-
+	registrar.RegisterRPC(c.rpc)
 }

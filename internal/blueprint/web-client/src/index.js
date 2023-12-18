@@ -1,27 +1,20 @@
-import * as React from 'react';
-import * as ReactDOM from "react-dom/client";
+import React from 'react';
+import { createRoot }from 'react-dom/client';
 import { BrowserRouter } from "react-router-dom";
 import { createTheme } from '@mui/material/styles';
-
+import { createConnectTransport } from "@connectrpc/connect-web";
+import { TransportProvider } from "@connectrpc/connect-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Dashboard from './pages/DashboardViewport';
 
-export const defaultTheme = createTheme({
-    // palette: {
-    //     mode: 'dark',
-    // },
-});
+export const defaultTheme = createTheme({});
 
-// const router = createBrowserRouter([
-//   {
-//     path: "/",
-//     element: <MetricsDashboard />,
-//     errorElement: <ErrorPage />,
-//   }
-// ]);
+const rootElement = document.getElementById("root");
+const root = createRoot(rootElement);
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+root.render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter> 
       <Dashboard />
     </BrowserRouter>
   </React.StrictMode>

@@ -1,34 +1,32 @@
 import * as React from 'react';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
+import { createConnectTransport } from "@connectrpc/connect-web";
+import { createCallbackClient } from '@connectrpc/connect';
+import { KeyValueService } from '../grpc/registry/key_value/v1/service_connect';
 
 import Chart from '../components/Chart';
 import ClusterNodes from '../components/ClusterNodes';
 import ClusterNodesList from '../components/ClusterNodesList';
 
-import { createCallbackClient } from '@connectrpc/connect';
-import { createConnectTransport } from "@connectrpc/connect-web";
-import { KeyValueService } from '../grpc/registry/key_value/v1/service_connect';
-
-// This transport is going to be used throughout the app
-const transport = createConnectTransport({
-    baseUrl: "http://localhost:2221",
-  });
-
 export default function MetricsPage() {
-    const client = createCallbackClient(KeyValueService, transport);
-    
+    // TODO -> make a grpc provider
+    const transport = createConnectTransport({
+        baseUrl: "http://localhost:2221",
+    });
+
+    const key_value_client = createCallbackClient(KeyValueService, transport);
+
     const handleClick = () => {
-        client.set({key: "andrew", value: "needs to take a break"}, (err, res) => {
+        key_value_client.set({key: "andrew", value: "needs to take a break"}, (err, res) => {
             if (!err) {
                 console.log(res);
-              }
+            }
         })
     }
 
     return (
         <Grid container spacing={3}>
-            <button onClick={handleClick}>Click Me</button>
             <Grid item xs={12} md={8} lg={9}>
             <Paper sx={{p: 2, display: 'flex', flexDirection: 'column', height: 240}}>
                 <Chart />
@@ -38,6 +36,7 @@ export default function MetricsPage() {
             <Grid item xs={12} md={4} lg={3}>
                 <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 240 }} >
                     <ClusterNodes />
+                    <button onClick={handleClick}>Click me</button>
                 </Paper>
             </Grid>
 

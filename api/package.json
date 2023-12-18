@@ -2,7 +2,8 @@
   "devDependencies": {
     "@bufbuild/buf": "^1.28.1",
     "@bufbuild/protoc-gen-es": "^1.6.0",
-    "@connectrpc/protoc-gen-connect-es": "^1.2.0"
+    "@connectrpc/protoc-gen-connect-es": "^1.2.0",
+    "@connectrpc/protoc-gen-connect-query": "^1.1.0"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1.6.0",
