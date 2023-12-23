@@ -25,3 +25,16 @@ PRs welcome! :smiley:
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+
+## Architecture
+
+Libs:
+* react
+* react-router
+* rtk
+* redux
+* redux-query
+* material-ui
+* grpc-web
+* grpc-web-connect
+

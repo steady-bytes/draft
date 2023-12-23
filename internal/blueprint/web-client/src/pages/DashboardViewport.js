@@ -14,7 +14,7 @@ import ErrorPage from './ErrorPage';
 
 // application components
 import Copyright from '../components/Copyright';
-import { defaultTheme } from '../index';
+import { defaultTheme } from '../theme';
 import MainAppBar from '../components/MainAppBar';
 
 export default function Dashboard() {
