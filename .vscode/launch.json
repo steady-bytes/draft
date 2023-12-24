@@ -34,6 +34,7 @@
             "env": {
                 "RAFT_PORT": "1111",
                 "SERVER_PORT": "2221",
+                "RAFT_IP": "localhost",
                 "RAFT_NODE_ID": "node_1",
                 "BOOTSTRAP_RAFT": "true"
             },  
@@ -48,6 +49,7 @@
             "debugAdapter": "dlv-dap",
             "env": {
                 "RAFT_PORT": "1112",
+                "RAFT_IP": "localhost",
                 "SERVER_PORT": "2222",
                 "RAFT_NODE_ID": "node_2"
             },  
@@ -62,6 +64,7 @@
             "debugAdapter": "dlv-dap",
             "env": {
                 "RAFT_PORT": "1113",
+                "RAFT_IP": "localhost",
                 "SERVER_PORT": "2223",
                 "RAFT_NODE_ID": "node_3"
             },  

@@ -9,14 +9,25 @@ import Paper from '@mui/material/Paper';
 import { useGetValuesQuery } from '../services/key_value_rpc';
 import { decrement, increment, incrementByAmount } from '../store/counter';
 
+import { GetRequest, GetResponse, GetFilter } from '../grpc/registry/key_value/v1/service_pb';
+
 export default function KeyValuesPage () {
     const count = useSelector((state) => state.counter.value)
     const dispatch = useDispatch();
 
-    const {data, error, isLoading } = useGetValuesQuery({key: "Andrew"})
+    const {
+        data: GetValue, 
+        error: GetValueError, 
+        isLoading: GetValueIsLoading
+    } = useGetValuesQuery(
+        {
+            key: "5851a421-8b7a-4d70-8ad7-004932aeedd0",
+            filter: GetFilter[2],
+        }
+    )
 
     const clickApi = () => {
-        console.log(data)
+        console.log(GetValue)
     }
 
     return (

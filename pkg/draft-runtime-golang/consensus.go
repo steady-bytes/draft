@@ -64,9 +64,11 @@ const (
 
 func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 	var (
-		raftConf                           = raft.DefaultConfig()
-		raftPortStr, raftIPStr, raftNodeID = os.Getenv(raftPortEnv), os.Getenv(raftIPEnv), os.Getenv(nodeIDEnv)
-		raftBinAddr                        = ""
+		raftConf    = raft.DefaultConfig()
+		raftPortStr = os.Getenv(raftPortEnv)
+		raftIPStr   = os.Getenv(raftIPEnv)
+		raftNodeID  = os.Getenv(nodeIDEnv)
+		raftBinAddr = ""
 	)
 	// current implementation of consensus uses hashicorp raft which means
 	// we also require an instance of badger. This also right now should be
@@ -164,6 +166,4 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 	// if err := srv.Start(); err != nil {
 	// 	log.Fatal(err)
 	// }
-
-	return
 }
