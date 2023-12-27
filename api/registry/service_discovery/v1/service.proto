@@ -1,0 +1,147 @@
+syntax = "proto3";
+
+package registry.service_discovery.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/registry/service_discovery";
+
+import "google/protobuf/timestamp.proto";
+
+///////////////////
+// ServiceDiscovery
+///////////////////
+
+// An interface to connect a process to the registry.
+// `Init`, the connection process and then use the `InitResponse` details to 
+// `Connect` to the process to the `SystemJournal`.
+service ServiceDiscoveryService {
+  // The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
+  // business logic it's supposted to
+  rpc Connect(stream ProcessDetails) returns (Empty) {}
+  // Gracefully `Disconnect` the process from the registry
+  rpc Disconnect(DisconnectRequest) returns (DisconnectResponse) {}
+  // Initiate the connection process to the registry. 
+  rpc Init(InitRequest) returns (InitResponse) {}
+  // Query the registries journal of processes
+  rpc QuerySystemJournal(JournalQueryRequest) returns (JournalQueryResponse) {}
+}
+
+message InitRequest {
+  // unique service name
+  string name = 1;
+}
+
+message InitResponse  {
+  // the process_id is assigned when the join request is successful
+  // however it does not mean that the process registered, running
+  // and in a stage ready to receive traffic
+  string pid = 1;
+  // the address the registering process must stream it's health, and status messages to
+  string registry_address = 2;
+  // that must be present 
+  Token token = 3;
+}
+
+message JournalQueryRequest {
+  Query query = 1;
+}
+
+message JournalQueryResponse {
+  map<string, Process> result = 1;
+}
+
+message MonitorRequest {
+  Query look_up = 1;
+}
+
+message Query {
+  oneof option {
+    string id = 1;
+    string group = 2;
+    string all = 3;
+  } 
+}
+
+message ProcessDetails {
+  string process_id = 1;
+  
+  ProcessRunningState running_state = 2;
+  ProcessHealthState health_state = 3;
+  ProcessKind process_kind = 4;
+
+  string token = 5;
+  string nonce = 6;
+}
+
+message Empty {}
+
+enum ProcessRunningState {
+  INVALID_PROCESS_RUNNING_STATE = 0;
+  PROCESS_STARTING = 1;
+  PROCESS_TESTING = 2;
+  PROCESS_RUNNING = 3;
+  PROCESS_DICONNECTED = 4;
+}
+
+enum ProcessHealthState {
+  INVALID_PROCESS_HEALTH_STATE = 0;
+  PROCESS_HEALTHY = 1;
+  PROCESS_UNHEALTHY = 2;
+}
+
+message DisconnectRequest {
+  string process_id = 1;
+}
+
+message DisconnectResponse {
+  Disconnected process = 1;
+}
+
+message Disconnected {
+  string process_id = 1;
+}
+
+message Process {
+  // id - is a uuid to identify each process of the system
+  string id = 1;
+  
+  string name = 2;
+  string group = 3;
+  string local = 4;
+
+  string ip_address = 5;
+
+  ProcessKind process_kind = 6;
+
+  repeated Metadata tags = 7;
+
+  google.protobuf.Timestamp joined_time = 8;
+  google.protobuf.Timestamp left_time = 9;
+  google.protobuf.Timestamp last_status_time = 10;
+
+  ProcessRunningState running_state = 12;
+  ProcessHealthState health_state = 13;
+
+  Token token = 14;
+}
+
+message Token {
+  string id = 1;
+  string jwt = 3;
+  string nonce = 4;
+}
+
+enum ProcessKind {
+  INVALID_PROCESS_KIND = 0;
+  AGGREGATE_PROCESS_KIND = 1;
+  CONSUMER_PROCESS_KIND = 2;
+  PROJECTION_PROCESS_KIND = 3;
+  RPC_PROCESS_KIND = 4;
+  HTTP_PROCESS_KIND = 5;
+}
+
+message Metadata {
+  // id - is a uuid to identify each process of the system
+  string id = 1; 
+  string key = 2;
+  string value = 3;
+}
