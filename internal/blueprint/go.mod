@@ -1,6 +1,6 @@
 module github.com/steady-bytes/draft/blueprint
 
-go 1.21.3
+go 1.21.5
 
 replace (
 	github.com/steady-bytes/draft/api/gen/go v0.0.1 => ../../api/gen/go
@@ -8,22 +8,19 @@ replace (
 )
 
 require (
+	connectrpc.com/connect v1.13.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/hashicorp/raft v1.6.0
 	github.com/steady-bytes/draft/api/gen/go v0.0.1
 	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1
-	google.golang.org/grpc v1.59.0
 )
 
 require (
-	connectrpc.com/connect v1.13.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
-	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
-	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dn365/gin-zerolog v0.0.0-20171227063204-b43714b00db1 // indirect
@@ -44,10 +41,10 @@ require (
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
 	github.com/hashicorp/go-msgpack/v2 v2.1.1 // indirect
+	github.com/hashicorp/go-uuid v1.0.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/raft-boltdb v0.0.0-20231115180007-027066e4d245 // indirect
-	github.com/improbable-eng/grpc-web v0.15.0 // indirect
 	github.com/jinzhu/gorm v1.9.16 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -93,11 +90,11 @@ require (
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
+	google.golang.org/grpc v1.60.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	mellium.im/sasl v0.3.1 // indirect
-	nhooyr.io/websocket v1.8.6 // indirect
 )
