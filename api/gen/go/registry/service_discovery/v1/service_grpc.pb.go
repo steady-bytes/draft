@@ -4,7 +4,7 @@
 // - protoc             (unknown)
 // source: registry/service_discovery/v1/service.proto
 
-package service_discovery
+package v1
 
 import (
 	context "context"

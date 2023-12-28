@@ -2,13 +2,13 @@
 //
 // Source: registry/service_discovery/v1/service.proto
 
-package service_discoveryconnect
+package v1connect
 
 import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	service_discovery "github.com/steady-bytes/draft/api/registry/service_discovery"
+	v1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
 	http "net/http"
 	strings "strings"
 )
@@ -49,7 +49,7 @@ const (
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	serviceDiscoveryServiceServiceDescriptor                  = service_discovery.File_registry_service_discovery_v1_service_proto.Services().ByName("ServiceDiscoveryService")
+	serviceDiscoveryServiceServiceDescriptor                  = v1.File_registry_service_discovery_v1_service_proto.Services().ByName("ServiceDiscoveryService")
 	serviceDiscoveryServiceConnectMethodDescriptor            = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Connect")
 	serviceDiscoveryServiceDisconnectMethodDescriptor         = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Disconnect")
 	serviceDiscoveryServiceInitMethodDescriptor               = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Init")
@@ -61,13 +61,13 @@ var (
 type ServiceDiscoveryServiceClient interface {
 	// The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
 	// business logic it's supposted to
-	Connect(context.Context) *connect.ClientStreamForClient[service_discovery.ProcessDetails, service_discovery.Empty]
+	Connect(context.Context) *connect.ClientStreamForClient[v1.ProcessDetails, v1.Empty]
 	// Gracefully `Disconnect` the process from the registry
-	Disconnect(context.Context, *connect.Request[service_discovery.DisconnectRequest]) (*connect.Response[service_discovery.DisconnectResponse], error)
+	Disconnect(context.Context, *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error)
 	// Initiate the connection process to the registry.
-	Init(context.Context, *connect.Request[service_discovery.InitRequest]) (*connect.Response[service_discovery.InitResponse], error)
+	Init(context.Context, *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error)
 	// Query the registries journal of processes
-	QuerySystemJournal(context.Context, *connect.Request[service_discovery.JournalQueryRequest]) (*connect.Response[service_discovery.JournalQueryResponse], error)
+	QuerySystemJournal(context.Context, *connect.Request[v1.JournalQueryRequest]) (*connect.Response[v1.JournalQueryResponse], error)
 }
 
 // NewServiceDiscoveryServiceClient constructs a client for the
@@ -81,25 +81,25 @@ type ServiceDiscoveryServiceClient interface {
 func NewServiceDiscoveryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ServiceDiscoveryServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &serviceDiscoveryServiceClient{
-		connect: connect.NewClient[service_discovery.ProcessDetails, service_discovery.Empty](
+		connect: connect.NewClient[v1.ProcessDetails, v1.Empty](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceConnectProcedure,
 			connect.WithSchema(serviceDiscoveryServiceConnectMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		disconnect: connect.NewClient[service_discovery.DisconnectRequest, service_discovery.DisconnectResponse](
+		disconnect: connect.NewClient[v1.DisconnectRequest, v1.DisconnectResponse](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceDisconnectProcedure,
 			connect.WithSchema(serviceDiscoveryServiceDisconnectMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		init: connect.NewClient[service_discovery.InitRequest, service_discovery.InitResponse](
+		init: connect.NewClient[v1.InitRequest, v1.InitResponse](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceInitProcedure,
 			connect.WithSchema(serviceDiscoveryServiceInitMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		querySystemJournal: connect.NewClient[service_discovery.JournalQueryRequest, service_discovery.JournalQueryResponse](
+		querySystemJournal: connect.NewClient[v1.JournalQueryRequest, v1.JournalQueryResponse](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceQuerySystemJournalProcedure,
 			connect.WithSchema(serviceDiscoveryServiceQuerySystemJournalMethodDescriptor),
@@ -110,30 +110,30 @@ func NewServiceDiscoveryServiceClient(httpClient connect.HTTPClient, baseURL str
 
 // serviceDiscoveryServiceClient implements ServiceDiscoveryServiceClient.
 type serviceDiscoveryServiceClient struct {
-	connect            *connect.Client[service_discovery.ProcessDetails, service_discovery.Empty]
-	disconnect         *connect.Client[service_discovery.DisconnectRequest, service_discovery.DisconnectResponse]
-	init               *connect.Client[service_discovery.InitRequest, service_discovery.InitResponse]
-	querySystemJournal *connect.Client[service_discovery.JournalQueryRequest, service_discovery.JournalQueryResponse]
+	connect            *connect.Client[v1.ProcessDetails, v1.Empty]
+	disconnect         *connect.Client[v1.DisconnectRequest, v1.DisconnectResponse]
+	init               *connect.Client[v1.InitRequest, v1.InitResponse]
+	querySystemJournal *connect.Client[v1.JournalQueryRequest, v1.JournalQueryResponse]
 }
 
 // Connect calls registry.service_discovery.v1.ServiceDiscoveryService.Connect.
-func (c *serviceDiscoveryServiceClient) Connect(ctx context.Context) *connect.ClientStreamForClient[service_discovery.ProcessDetails, service_discovery.Empty] {
+func (c *serviceDiscoveryServiceClient) Connect(ctx context.Context) *connect.ClientStreamForClient[v1.ProcessDetails, v1.Empty] {
 	return c.connect.CallClientStream(ctx)
 }
 
 // Disconnect calls registry.service_discovery.v1.ServiceDiscoveryService.Disconnect.
-func (c *serviceDiscoveryServiceClient) Disconnect(ctx context.Context, req *connect.Request[service_discovery.DisconnectRequest]) (*connect.Response[service_discovery.DisconnectResponse], error) {
+func (c *serviceDiscoveryServiceClient) Disconnect(ctx context.Context, req *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error) {
 	return c.disconnect.CallUnary(ctx, req)
 }
 
 // Init calls registry.service_discovery.v1.ServiceDiscoveryService.Init.
-func (c *serviceDiscoveryServiceClient) Init(ctx context.Context, req *connect.Request[service_discovery.InitRequest]) (*connect.Response[service_discovery.InitResponse], error) {
+func (c *serviceDiscoveryServiceClient) Init(ctx context.Context, req *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error) {
 	return c.init.CallUnary(ctx, req)
 }
 
 // QuerySystemJournal calls
 // registry.service_discovery.v1.ServiceDiscoveryService.QuerySystemJournal.
-func (c *serviceDiscoveryServiceClient) QuerySystemJournal(ctx context.Context, req *connect.Request[service_discovery.JournalQueryRequest]) (*connect.Response[service_discovery.JournalQueryResponse], error) {
+func (c *serviceDiscoveryServiceClient) QuerySystemJournal(ctx context.Context, req *connect.Request[v1.JournalQueryRequest]) (*connect.Response[v1.JournalQueryResponse], error) {
 	return c.querySystemJournal.CallUnary(ctx, req)
 }
 
@@ -142,13 +142,13 @@ func (c *serviceDiscoveryServiceClient) QuerySystemJournal(ctx context.Context, 
 type ServiceDiscoveryServiceHandler interface {
 	// The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
 	// business logic it's supposted to
-	Connect(context.Context, *connect.ClientStream[service_discovery.ProcessDetails]) (*connect.Response[service_discovery.Empty], error)
+	Connect(context.Context, *connect.ClientStream[v1.ProcessDetails]) (*connect.Response[v1.Empty], error)
 	// Gracefully `Disconnect` the process from the registry
-	Disconnect(context.Context, *connect.Request[service_discovery.DisconnectRequest]) (*connect.Response[service_discovery.DisconnectResponse], error)
+	Disconnect(context.Context, *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error)
 	// Initiate the connection process to the registry.
-	Init(context.Context, *connect.Request[service_discovery.InitRequest]) (*connect.Response[service_discovery.InitResponse], error)
+	Init(context.Context, *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error)
 	// Query the registries journal of processes
-	QuerySystemJournal(context.Context, *connect.Request[service_discovery.JournalQueryRequest]) (*connect.Response[service_discovery.JournalQueryResponse], error)
+	QuerySystemJournal(context.Context, *connect.Request[v1.JournalQueryRequest]) (*connect.Response[v1.JournalQueryResponse], error)
 }
 
 // NewServiceDiscoveryServiceHandler builds an HTTP handler from the service implementation. It
@@ -200,18 +200,18 @@ func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts 
 // UnimplementedServiceDiscoveryServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedServiceDiscoveryServiceHandler struct{}
 
-func (UnimplementedServiceDiscoveryServiceHandler) Connect(context.Context, *connect.ClientStream[service_discovery.ProcessDetails]) (*connect.Response[service_discovery.Empty], error) {
+func (UnimplementedServiceDiscoveryServiceHandler) Connect(context.Context, *connect.ClientStream[v1.ProcessDetails]) (*connect.Response[v1.Empty], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.Connect is not implemented"))
 }
 
-func (UnimplementedServiceDiscoveryServiceHandler) Disconnect(context.Context, *connect.Request[service_discovery.DisconnectRequest]) (*connect.Response[service_discovery.DisconnectResponse], error) {
+func (UnimplementedServiceDiscoveryServiceHandler) Disconnect(context.Context, *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.Disconnect is not implemented"))
 }
 
-func (UnimplementedServiceDiscoveryServiceHandler) Init(context.Context, *connect.Request[service_discovery.InitRequest]) (*connect.Response[service_discovery.InitResponse], error) {
+func (UnimplementedServiceDiscoveryServiceHandler) Init(context.Context, *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.Init is not implemented"))
 }
 
-func (UnimplementedServiceDiscoveryServiceHandler) QuerySystemJournal(context.Context, *connect.Request[service_discovery.JournalQueryRequest]) (*connect.Response[service_discovery.JournalQueryResponse], error) {
+func (UnimplementedServiceDiscoveryServiceHandler) QuerySystemJournal(context.Context, *connect.Request[v1.JournalQueryRequest]) (*connect.Response[v1.JournalQueryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.QuerySystemJournal is not implemented"))
 }

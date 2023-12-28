@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package registry.service_discovery.v1;
 
-option go_package = "github.com/steady-bytes/draft/api/registry/service_discovery";
+option go_package = "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1";
 
 import "google/protobuf/timestamp.proto";
 
