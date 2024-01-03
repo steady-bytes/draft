@@ -19,5 +19,6 @@ func main() {
 		WithRepo(draft.Badger, mdl).
 		WithConsensus(draft.Raft, ctr).
 		WithRPCHandler(hnd).
+		WithSecretStore(ctr).
 		Start()
 }

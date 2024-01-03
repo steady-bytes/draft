@@ -64,7 +64,7 @@ type ServiceDiscoveryServiceClient interface {
 	Connect(context.Context) *connect.ClientStreamForClient[v1.ProcessDetails, v1.Empty]
 	// Gracefully `Disconnect` the process from the registry
 	Disconnect(context.Context, *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error)
-	// Initiate the connection process to the registry.
+	// Initiate the registeration of the process to the registry.
 	Init(context.Context, *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error)
 	// Query the registries journal of processes
 	QuerySystemJournal(context.Context, *connect.Request[v1.JournalQueryRequest]) (*connect.Response[v1.JournalQueryResponse], error)
@@ -145,7 +145,7 @@ type ServiceDiscoveryServiceHandler interface {
 	Connect(context.Context, *connect.ClientStream[v1.ProcessDetails]) (*connect.Response[v1.Empty], error)
 	// Gracefully `Disconnect` the process from the registry
 	Disconnect(context.Context, *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error)
-	// Initiate the connection process to the registry.
+	// Initiate the registeration of the process to the registry.
 	Init(context.Context, *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error)
 	// Query the registries journal of processes
 	QuerySystemJournal(context.Context, *connect.Request[v1.JournalQueryRequest]) (*connect.Response[v1.JournalQueryResponse], error)

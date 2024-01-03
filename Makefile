@@ -25,7 +25,7 @@ local:
 test:
 	cd tests/registry && go run main.go 
 
-clean_blueprint:
+clean:
 	rm -rf node_1 && rm -rf node_2 && rm -rf node_3
 
 blueprint: clean_blueprint blueprint_1 blueprint_2 blueprint_3

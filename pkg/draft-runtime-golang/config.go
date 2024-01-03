@@ -15,6 +15,8 @@ const (
 	ErrorCode int16 = 1
 	// serverPortEnv - is used to run the http/rpc servers
 	serverPortEnv = "SERVER_PORT"
+	// nonceEnv
+	NONCE = "NONCE_STR"
 )
 
 // config
@@ -87,6 +89,11 @@ func NewConfig(name string) *Config {
 	if err != nil {
 		panic(err)
 	}
+
+	// nonce := os.Getenv(NONCE)
+	// if nonce == "" {
+	// 	panic(errors.New("failed to read global system nonce"))
+	// }
 
 	config := &Config{
 		Service: &Service{

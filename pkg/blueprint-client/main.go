@@ -3,44 +3,78 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"net/http"
+	"os"
 	"sync"
 	"time"
 
+	cnt "connectrpc.com/connect"
 	"github.com/google/uuid"
-	rfv1 "github.com/steady-bytes/draft/api/go/consensus/raft/v1"
-	kvv1 "github.com/steady-bytes/draft/api/go/registry/key_value/v1"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	rfv1 "github.com/steady-bytes/draft/api/gen/go/consensus/raft/v1"
+	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
+	sdv1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
+
+	rfv1Cnt "github.com/steady-bytes/draft/api/go/consensus/raft/v1/v1connect"
+	kvv1Cnt "github.com/steady-bytes/draft/api/go/registry/key_value/v1/v1connect"
+	sdv1Cnt "github.com/steady-bytes/draft/api/go/registry/service_discovery/v1/v1connect"
+)
+
+const (
+	CMD            = "CMD"
+	SERVER_ADDRESS = "http://localhost:2221"
 )
 
 func main() {
-	fmt.Println("test blueprint")
-
-	// create grpc client
-	serverAddress := "localhost:2221"
-
-	conn, err := grpc.Dial(serverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+	cmd := os.Getenv(CMD)
+	if cmd == "" {
+		fmt.Println("enter a command")
+		return
 	}
 
-	raftClient := rfv1.NewRaftServiceClient(conn)
-	keyValClient := kvv1.NewKeyValueServiceClient(conn)
+	if cmd == "register" {
+		registerBlueprintNodes()
+	}
 
-	_, err = raftClient.Join(context.Background(), &rfv1.JoinRequest{
-		NodeId:      "node_2",
-		RaftAddress: "localhost:1112",
+	if cmd == "init" {
+		initService()
+	}
+}
+
+func initService() {
+	client := sdv1Cnt.NewServiceDiscoveryServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	req := cnt.NewRequest(&sdv1.InitRequest{
+		Name:  "test-registry",
+		Nonce: "BLUEPRINT",
 	})
+	res, err := client.Init(context.Background(), req)
+	if err != nil {
+		fmt.Println("failed to init a process")
+	}
+
+	fmt.Println(res)
+}
+
+func registerBlueprintNodes() {
+	fmt.Println("test blueprint")
+
+	raftClient := rfv1Cnt.NewRaftServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	keyValClient := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
+
+	req := cnt.NewRequest(
+		&rfv1.JoinRequest{
+			NodeId:      "node_2",
+			RaftAddress: "localhost:1112",
+		})
+	_, err := raftClient.Join(
+		context.Background(), req)
 	if err != nil {
 		fmt.Println("failed to connect to leader")
 	}
 
-	_, err = raftClient.Join(context.Background(), &rfv1.JoinRequest{
-		NodeId:      "node_3",
-		RaftAddress: "localhost:1113",
-	})
+	req.Msg.NodeId = "node_3"
+	req.Msg.RaftAddress = "localhost:1113"
+	_, err = raftClient.Join(context.Background(), req)
 	if err != nil {
 		fmt.Println("failed to connect to leader")
 	}
@@ -52,10 +86,13 @@ func main() {
 		key = "test"
 		val = "test value"
 	)
-	setRes, err := keyValClient.Set(context.Background(), &kvv1.SetRequest{
+
+	req2 := cnt.NewRequest(&kvv1.SetRequest{
 		Key:   key,
 		Value: val,
 	})
+
+	setRes, err := keyValClient.Set(context.Background(), req2)
 	if err != nil {
 		fmt.Println("failed to save key")
 	}
@@ -74,10 +111,11 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			setRes, err := keyValClient.Set(context.Background(), &kvv1.SetRequest{
+			req3 := cnt.NewRequest(&kvv1.SetRequest{
 				Key:   k,
 				Value: v,
 			})
+			setRes, err := keyValClient.Set(context.Background(), req3)
 			if err != nil {
 				fmt.Println("failed to save key")
 			}
@@ -92,14 +130,15 @@ func main() {
 	wg.Wait()
 
 	for _, i := range keys {
-		getRes, err := keyValClient.Get(context.Background(), &kvv1.GetRequest{
+		req4 := cnt.NewRequest(&kvv1.GetRequest{
 			Key:    i,
 			Filter: kvv1.GetFilter_STRING_GET_FILTER,
 		})
+		getRes, err := keyValClient.Get(context.Background(), req4)
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		fmt.Println("res:  ", i, getRes.GetAsString())
+		fmt.Println("res:  ", i, getRes.Msg.GetAsString())
 	}
 }

@@ -16,8 +16,18 @@ func (h *handler) Disconnect(ctx context.Context, req *cnt.Request[sdv1.Disconne
 }
 
 func (h *handler) Init(ctx context.Context, req *cnt.Request[sdv1.InitRequest]) (*cnt.Response[sdv1.InitResponse], error) {
-	var ()
-	return nil, nil
+	var (
+		nonce = req.Msg.Nonce
+		name  = req.Msg.Name
+	)
+
+	identity, err := h.controller.Init(ctx, nonce, name)
+	if err != nil {
+	}
+
+	return cnt.NewResponse[sdv1.InitResponse](&sdv1.InitResponse{
+		ProcessIdentity: identity,
+	}), nil
 }
 
 func (h *handler) QuerySystemJournal(ctx context.Context, req *cnt.Request[sdv1.JournalQueryRequest]) (*cnt.Response[sdv1.JournalQueryResponse], error) {

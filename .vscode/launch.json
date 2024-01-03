@@ -24,7 +24,31 @@
             "debugAdapter": "dlv-dap",
         },
         {
-            "name": "Blueprint - 1",
+            "name": "Blueprint Register Cluster",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "pkg/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "register"
+            }
+        },
+        {
+            "name": "Blueprint Init",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "pkg/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "init"
+            }
+        },
+        {
+            "name": "Blueprint_1",
             "type": "go",
             "request": "launch",
             "mode": "auto",
@@ -33,6 +57,7 @@
             "debugAdapter": "dlv-dap",
             "env": {
                 "RAFT_PORT": "1111",
+                "NONCE_STR": "test",
                 "SERVER_PORT": "2221",
                 "RAFT_IP": "localhost",
                 "RAFT_NODE_ID": "node_1",
@@ -40,7 +65,7 @@
             },  
         },
         {
-            "name": "Blueprint - 2",
+            "name": "Blueprint_2",
             "type": "go",
             "request": "launch",
             "mode": "auto",
@@ -50,12 +75,13 @@
             "env": {
                 "RAFT_PORT": "1112",
                 "RAFT_IP": "localhost",
+                "NONCE_STR": "test",
                 "SERVER_PORT": "2222",
                 "RAFT_NODE_ID": "node_2"
             },  
         },
         {
-            "name": "Blueprint - 3",
+            "name": "Blueprint_3",
             "type": "go",
             "request": "launch",
             "mode": "auto",
@@ -65,9 +91,19 @@
             "env": {
                 "RAFT_PORT": "1113",
                 "RAFT_IP": "localhost",
+                "NONCE_STR": "test",
                 "SERVER_PORT": "2223",
                 "RAFT_NODE_ID": "node_3"
             },  
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Blueprint Cluster",
+            "configurations": [
+                "Blueprint_1", "Blueprint_2", "Blueprint_3"
+            ],
+            "stopAll": true,
         }
     ]
 }

@@ -24,6 +24,8 @@ type Default interface {
 	ConsensusRegistrar
 }
 
+// Plugin Register Functions
+
 func (c *Runtime) WithRepo(kind RepoKind, plugin RepoRegistrar) *Runtime {
 	c.withRepo(kind, plugin)
 	return c
@@ -41,6 +43,15 @@ func (c *Runtime) WithRPCHandler(plugin RPCRegistrar) *Runtime {
 
 func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *Runtime {
 	c.withConsensus(kind, plugin)
+	return c
+}
+
+// State Providers
+
+// Init a connection to the `SecretStore`, load the secrets into memory, and pass
+// the storage interface up to the runtime for use in the service
+func (c *Runtime) WithSecretStore(setter SecretStoreSetter) *Runtime {
+	c.withSecretStore(setter)
 	return c
 }
 

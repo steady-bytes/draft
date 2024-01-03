@@ -22,8 +22,6 @@ func (h *handler) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]
 		value = req.Msg.GetValue()
 	)
 
-	fmt.Println("req: ", key)
-
 	payload := &c.CommandPayload{
 		Operation: c.Set,
 		Key:       key,

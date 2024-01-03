@@ -21,7 +21,7 @@ service ServiceDiscoveryService {
   rpc Connect(stream ProcessDetails) returns (Empty) {}
   // Gracefully `Disconnect` the process from the registry
   rpc Disconnect(DisconnectRequest) returns (DisconnectResponse) {}
-  // Initiate the connection process to the registry. 
+  // Initiate the registeration of the process to the registry. 
   rpc Init(InitRequest) returns (InitResponse) {}
   // Query the registries journal of processes
   rpc QuerySystemJournal(JournalQueryRequest) returns (JournalQueryResponse) {}
@@ -63,13 +63,19 @@ message InitRequest {
 // If the token is lost and the registry has not received a `ProcessDetails` message within a 2 mintues
 // of the token being forged then the client will have to reinit to connect to the registry/system.
 message InitResponse  {
+  // If the init request was succesful then an identity will be given to the process so that it
+  // can stream it's operational details to the registry
+  ProcessIdentity process_identity = 1;
+}
+
+message ProcessIdentity {
   // the process_id is assigned when the join request is successful
   // however it does not mean that the process registered, running
   // and in a stage ready to receive traffic
   string pid = 1;
   // the address the registering process must stream it's health, and status messages to
   string registry_address = 2;
-  // that must be present 
+  // authentication credentials that must be added to each request to the registry
   Token token = 3;
   // The `nonce` is not added to this message b/c it's added to the service environment
   // the and the chassis is responsible for reading at startup.
@@ -130,9 +136,9 @@ message Process {
 
   GeoPoint location = 8;
 
-  google.protobuf.Timestamp joined_time = 8;
-  google.protobuf.Timestamp left_time = 9;
-  google.protobuf.Timestamp last_status_time = 10;
+  google.protobuf.Timestamp joined_time = 9;
+  google.protobuf.Timestamp left_time = 10;
+  google.protobuf.Timestamp last_status_time = 11;
 
   ProcessRunningState running_state = 12;
   ProcessHealthState health_state = 13;
@@ -149,8 +155,8 @@ message Metadata {
 
 // GeoPoint - Is the location of something using standard lat/lng notion.
 message GeoPoint {
-  float32 lat = 1;
-  float32 lng = 2;
+  float lat = 1;
+  float lng = 2;
 }
 
 // Server currently falls into a category that is consuming requests from the outside world

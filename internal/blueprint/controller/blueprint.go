@@ -3,15 +3,17 @@ package controller
 import (
 	"errors"
 
-	m "github.com/steady-bytes/draft/blueprint/model"
-
 	"github.com/hashicorp/raft"
+	cmap "github.com/orcaman/concurrent-map/v2"
+	sdv1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
+	m "github.com/steady-bytes/draft/blueprint/model"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 )
 
 type (
 	Controller interface {
 		draft.ConsensusRegistrar
+		draft.SecretStoreSetter
 		raft.FSM
 
 		Blueprint
@@ -19,18 +21,28 @@ type (
 
 	Blueprint interface {
 		KeyValueController
+		ServiceDiscovery
 	}
 
 	controller struct {
-		db   m.KeyValueModel
-		raft *raft.Raft
+		db            m.KeyValueModel
+		raft          *raft.Raft
+		nonce         string
+		secretStore   draft.SecretStore
+		systemJournal cmap.ConcurrentMap[string, *sdv1.Process]
 	}
 )
 
 func New(db m.KeyValueModel) Controller {
 	return &controller{
-		db: db,
+		db:            db,
+		systemJournal: cmap.New[*sdv1.Process](),
 	}
+}
+
+// Accepts a `SecretStore` interface and adds it to the controller
+func (c *controller) SetSecretStore(s draft.SecretStore) {
+	c.secretStore = s
 }
 
 // Implement the the `draft.ConsensusRegister` interface so that the underlying infrastructure
