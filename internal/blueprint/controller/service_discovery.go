@@ -15,7 +15,8 @@ import (
 
 type (
 	ServiceDiscovery interface {
-		Init(ctx context.Context, nonce, name string) (*sdv1.ProcessIdentity, error)
+		Initialize(ctx context.Context, nonce, name string) (*sdv1.ProcessIdentity, error)
+		Synchronize(ctx context.Context, details *sdv1.ClientDetails)
 	}
 )
 
@@ -30,7 +31,7 @@ const (
 
 // Init - When a service starts and wants to register itself with the system then a uniqu name, and system nonce
 // can be provided to get `ProcessIdentity` details so that A process can then finalize service registration
-func (c *controller) Init(ctx context.Context, nonce, name string) (*sdv1.ProcessIdentity, error) {
+func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.ProcessIdentity, error) {
 	var (
 		pid = uuid.NewString()
 	)
@@ -66,7 +67,7 @@ func (c *controller) Init(ctx context.Context, nonce, name string) (*sdv1.Proces
 		Pid:          pid,
 		Name:         name,
 		ProcessKind:  sdv1.ProcessKind_SERVER_PROCESS,
-		Tags:         []*sdv1.Metadata{},
+		Metadata:     []*sdv1.Metadata{},
 		JoinedTime:   timestamppb.Now(),
 		RunningState: sdv1.ProcessRunningState_PROCESS_STARTING,
 		HealthState:  sdv1.ProcessHealthState_PROCESS_HEALTHY,
@@ -75,7 +76,7 @@ func (c *controller) Init(ctx context.Context, nonce, name string) (*sdv1.Proces
 
 	payload := &CommandPayload{
 		Operation: Set,
-		Key:       name,
+		Key:       pid,
 		Value:     value,
 	}
 
@@ -85,21 +86,69 @@ func (c *controller) Init(ctx context.Context, nonce, name string) (*sdv1.Proces
 		return nil, errors.New(failedToMarshalPayload)
 	}
 
-	// save details to the filestore
+	// save details to the systemJournal on the file system
 	_, err = c.Set(data, 500*time.Millisecond)
 	if err != nil {
 		fmt.Println(err)
 		return nil, errors.New(failedToSaveProcessDetails)
 	}
 
-	// add the process to the `SystemJournal`
-	c.systemJournal.Set(name, value)
-
-	return nil, nil
+	return &sdv1.ProcessIdentity{
+		Pid:             pid,
+		RegistryAddress: "localhost:2221",
+		Token:           token,
+	}, nil
 }
 
+func (c *controller) Synchronize(ctx context.Context, details *sdv1.ClientDetails) {
+	fmt.Println("client details: ", details)
+
+	// Look for the key, if not found return error
+	byt, err := c.Get(details.Pid)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	process := &sdv1.Process{}
+	if err := json.Unmarshal(byt, process); err != nil {
+		fmt.Println(err)
+	}
+
+	// ignore if the wrong token is sent
+	if process.Token.Jwt != details.Token {
+		return
+	}
+
+	process.HealthState = details.HealthState
+	process.Location = details.Location
+	process.Metadata = details.Metadata
+	process.ProcessKind = details.ProcessKind
+	process.RunningState = details.RunningState
+	process.LastStatusTime = timestamppb.Now()
+
+	payload := &CommandPayload{
+		Operation: Set,
+		Key:       process.Pid,
+		Value:     process,
+	}
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	_, err = c.Set(data, 500*time.Millisecond)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+// TODO -> Figure out how I want to generate a token for the process
+// Right now just return test
 func (c *controller) generateJWTToken() (string, error) {
 	// t := jwt.New(jwt.GetSigningMethod("RS256"))
 	// return t.SignedString(signKey)
-	return "", nil
+	return "test", nil
 }

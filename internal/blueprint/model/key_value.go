@@ -1,11 +1,10 @@
 package model
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
-	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 
 	"github.com/dgraph-io/badger/v2"
@@ -19,6 +18,8 @@ type (
 		Set(key string, value interface{}) error
 		// Retrieve a value by it's key
 		Get(key string) ([]byte, error)
+		// Delete removes a key forever
+		Delete(key string) error
 	}
 
 	model struct {
@@ -96,8 +97,16 @@ func (m *model) Get(key string) ([]byte, error) {
 	return value, err
 }
 
-func (m *model) Delete(ctx context.Context, req *kvv1.DeleteRequest) (*kvv1.DeleteResponse, error) {
-	return nil, errors.New("implement me")
+func (m *model) Delete(key string) error {
+	var keyByte = []byte(key)
+
+	txn := m.db.NewTransaction(true)
+	if err := txn.Delete(keyByte); err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	return nil
 }
 
 // type CommandPayload struct {

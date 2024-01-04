@@ -35,22 +35,22 @@ var (
 	_ = sort.Sort
 )
 
-// Validate checks the field values on ProcessDetails with the rules defined in
+// Validate checks the field values on ClientDetails with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *ProcessDetails) Validate() error {
+func (m *ClientDetails) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on ProcessDetails with the rules defined
+// ValidateAll checks the field values on ClientDetails with the rules defined
 // in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in ProcessDetailsMultiError,
-// or nil if none found.
-func (m *ProcessDetails) ValidateAll() error {
+// result is a list of violation errors wrapped in ClientDetailsMultiError, or
+// nil if none found.
+func (m *ClientDetails) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ProcessDetails) validate(all bool) error {
+func (m *ClientDetails) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -71,7 +71,7 @@ func (m *ProcessDetails) validate(all bool) error {
 		switch v := interface{}(m.GetLocation()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ProcessDetailsValidationError{
+				errors = append(errors, ClientDetailsValidationError{
 					field:  "Location",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -79,7 +79,7 @@ func (m *ProcessDetails) validate(all bool) error {
 			}
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
-				errors = append(errors, ProcessDetailsValidationError{
+				errors = append(errors, ClientDetailsValidationError{
 					field:  "Location",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -88,7 +88,7 @@ func (m *ProcessDetails) validate(all bool) error {
 		}
 	} else if v, ok := interface{}(m.GetLocation()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
-			return ProcessDetailsValidationError{
+			return ClientDetailsValidationError{
 				field:  "Location",
 				reason: "embedded message failed validation",
 				cause:  err,
@@ -96,49 +96,54 @@ func (m *ProcessDetails) validate(all bool) error {
 		}
 	}
 
-	if all {
-		switch v := interface{}(m.GetMetadata()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ProcessDetailsValidationError{
-					field:  "Metadata",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
+	for idx, item := range m.GetMetadata() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ClientDetailsValidationError{
+						field:  fmt.Sprintf("Metadata[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ClientDetailsValidationError{
+						field:  fmt.Sprintf("Metadata[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
 			}
-		case interface{ Validate() error }:
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				errors = append(errors, ProcessDetailsValidationError{
-					field:  "Metadata",
+				return ClientDetailsValidationError{
+					field:  fmt.Sprintf("Metadata[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
-				})
+				}
 			}
 		}
-	} else if v, ok := interface{}(m.GetMetadata()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ProcessDetailsValidationError{
-				field:  "Metadata",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
+
 	}
 
 	if len(errors) > 0 {
-		return ProcessDetailsMultiError(errors)
+		return ClientDetailsMultiError(errors)
 	}
 
 	return nil
 }
 
-// ProcessDetailsMultiError is an error wrapping multiple validation errors
-// returned by ProcessDetails.ValidateAll() if the designated constraints
+// ClientDetailsMultiError is an error wrapping multiple validation errors
+// returned by ClientDetails.ValidateAll() if the designated constraints
 // aren't met.
-type ProcessDetailsMultiError []error
+type ClientDetailsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ProcessDetailsMultiError) Error() string {
+func (m ClientDetailsMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -147,11 +152,11 @@ func (m ProcessDetailsMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ProcessDetailsMultiError) AllErrors() []error { return m }
+func (m ClientDetailsMultiError) AllErrors() []error { return m }
 
-// ProcessDetailsValidationError is the validation error returned by
-// ProcessDetails.Validate if the designated constraints aren't met.
-type ProcessDetailsValidationError struct {
+// ClientDetailsValidationError is the validation error returned by
+// ClientDetails.Validate if the designated constraints aren't met.
+type ClientDetailsValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -159,22 +164,22 @@ type ProcessDetailsValidationError struct {
 }
 
 // Field function returns field value.
-func (e ProcessDetailsValidationError) Field() string { return e.field }
+func (e ClientDetailsValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ProcessDetailsValidationError) Reason() string { return e.reason }
+func (e ClientDetailsValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ProcessDetailsValidationError) Cause() error { return e.cause }
+func (e ClientDetailsValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ProcessDetailsValidationError) Key() bool { return e.key }
+func (e ClientDetailsValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ProcessDetailsValidationError) ErrorName() string { return "ProcessDetailsValidationError" }
+func (e ClientDetailsValidationError) ErrorName() string { return "ClientDetailsValidationError" }
 
 // Error satisfies the builtin error interface
-func (e ProcessDetailsValidationError) Error() string {
+func (e ClientDetailsValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -186,14 +191,14 @@ func (e ProcessDetailsValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sProcessDetails.%s: %s%s",
+		"invalid %sClientDetails.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ProcessDetailsValidationError{}
+var _ error = ClientDetailsValidationError{}
 
 var _ interface {
 	Field() string
@@ -201,7 +206,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ProcessDetailsValidationError{}
+} = ClientDetailsValidationError{}
 
 // Validate checks the field values on Empty with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
@@ -301,22 +306,22 @@ var _ interface {
 	ErrorName() string
 } = EmptyValidationError{}
 
-// Validate checks the field values on InitRequest with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *InitRequest) Validate() error {
+// Validate checks the field values on InitializeRequest with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *InitializeRequest) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on InitRequest with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in InitRequestMultiError, or
-// nil if none found.
-func (m *InitRequest) ValidateAll() error {
+// ValidateAll checks the field values on InitializeRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// InitializeRequestMultiError, or nil if none found.
+func (m *InitializeRequest) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *InitRequest) validate(all bool) error {
+func (m *InitializeRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -328,18 +333,19 @@ func (m *InitRequest) validate(all bool) error {
 	// no validation rules for Nonce
 
 	if len(errors) > 0 {
-		return InitRequestMultiError(errors)
+		return InitializeRequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// InitRequestMultiError is an error wrapping multiple validation errors
-// returned by InitRequest.ValidateAll() if the designated constraints aren't met.
-type InitRequestMultiError []error
+// InitializeRequestMultiError is an error wrapping multiple validation errors
+// returned by InitializeRequest.ValidateAll() if the designated constraints
+// aren't met.
+type InitializeRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m InitRequestMultiError) Error() string {
+func (m InitializeRequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -348,11 +354,11 @@ func (m InitRequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m InitRequestMultiError) AllErrors() []error { return m }
+func (m InitializeRequestMultiError) AllErrors() []error { return m }
 
-// InitRequestValidationError is the validation error returned by
-// InitRequest.Validate if the designated constraints aren't met.
-type InitRequestValidationError struct {
+// InitializeRequestValidationError is the validation error returned by
+// InitializeRequest.Validate if the designated constraints aren't met.
+type InitializeRequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -360,22 +366,24 @@ type InitRequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e InitRequestValidationError) Field() string { return e.field }
+func (e InitializeRequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e InitRequestValidationError) Reason() string { return e.reason }
+func (e InitializeRequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e InitRequestValidationError) Cause() error { return e.cause }
+func (e InitializeRequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e InitRequestValidationError) Key() bool { return e.key }
+func (e InitializeRequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e InitRequestValidationError) ErrorName() string { return "InitRequestValidationError" }
+func (e InitializeRequestValidationError) ErrorName() string {
+	return "InitializeRequestValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e InitRequestValidationError) Error() string {
+func (e InitializeRequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -387,14 +395,14 @@ func (e InitRequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sInitRequest.%s: %s%s",
+		"invalid %sInitializeRequest.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = InitRequestValidationError{}
+var _ error = InitializeRequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -402,24 +410,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = InitRequestValidationError{}
+} = InitializeRequestValidationError{}
 
-// Validate checks the field values on InitResponse with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *InitResponse) Validate() error {
+// Validate checks the field values on InitializeResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *InitializeResponse) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on InitResponse with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in InitResponseMultiError, or
-// nil if none found.
-func (m *InitResponse) ValidateAll() error {
+// ValidateAll checks the field values on InitializeResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// InitializeResponseMultiError, or nil if none found.
+func (m *InitializeResponse) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *InitResponse) validate(all bool) error {
+func (m *InitializeResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -430,7 +438,7 @@ func (m *InitResponse) validate(all bool) error {
 		switch v := interface{}(m.GetProcessIdentity()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, InitResponseValidationError{
+				errors = append(errors, InitializeResponseValidationError{
 					field:  "ProcessIdentity",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -438,7 +446,7 @@ func (m *InitResponse) validate(all bool) error {
 			}
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
-				errors = append(errors, InitResponseValidationError{
+				errors = append(errors, InitializeResponseValidationError{
 					field:  "ProcessIdentity",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -447,7 +455,7 @@ func (m *InitResponse) validate(all bool) error {
 		}
 	} else if v, ok := interface{}(m.GetProcessIdentity()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
-			return InitResponseValidationError{
+			return InitializeResponseValidationError{
 				field:  "ProcessIdentity",
 				reason: "embedded message failed validation",
 				cause:  err,
@@ -456,18 +464,19 @@ func (m *InitResponse) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return InitResponseMultiError(errors)
+		return InitializeResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// InitResponseMultiError is an error wrapping multiple validation errors
-// returned by InitResponse.ValidateAll() if the designated constraints aren't met.
-type InitResponseMultiError []error
+// InitializeResponseMultiError is an error wrapping multiple validation errors
+// returned by InitializeResponse.ValidateAll() if the designated constraints
+// aren't met.
+type InitializeResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m InitResponseMultiError) Error() string {
+func (m InitializeResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -476,11 +485,11 @@ func (m InitResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m InitResponseMultiError) AllErrors() []error { return m }
+func (m InitializeResponseMultiError) AllErrors() []error { return m }
 
-// InitResponseValidationError is the validation error returned by
-// InitResponse.Validate if the designated constraints aren't met.
-type InitResponseValidationError struct {
+// InitializeResponseValidationError is the validation error returned by
+// InitializeResponse.Validate if the designated constraints aren't met.
+type InitializeResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -488,22 +497,24 @@ type InitResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e InitResponseValidationError) Field() string { return e.field }
+func (e InitializeResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e InitResponseValidationError) Reason() string { return e.reason }
+func (e InitializeResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e InitResponseValidationError) Cause() error { return e.cause }
+func (e InitializeResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e InitResponseValidationError) Key() bool { return e.key }
+func (e InitializeResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e InitResponseValidationError) ErrorName() string { return "InitResponseValidationError" }
+func (e InitializeResponseValidationError) ErrorName() string {
+	return "InitializeResponseValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e InitResponseValidationError) Error() string {
+func (e InitializeResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -515,14 +526,14 @@ func (e InitResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sInitResponse.%s: %s%s",
+		"invalid %sInitializeResponse.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = InitResponseValidationError{}
+var _ error = InitializeResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -530,7 +541,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = InitResponseValidationError{}
+} = InitializeResponseValidationError{}
 
 // Validate checks the field values on ProcessIdentity with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -1083,22 +1094,22 @@ var _ interface {
 	ErrorName() string
 } = JournalQueryResponseValidationError{}
 
-// Validate checks the field values on DisconnectRequest with the rules defined
+// Validate checks the field values on FinalizeRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
-func (m *DisconnectRequest) Validate() error {
+func (m *FinalizeRequest) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on DisconnectRequest with the rules
+// ValidateAll checks the field values on FinalizeRequest with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// DisconnectRequestMultiError, or nil if none found.
-func (m *DisconnectRequest) ValidateAll() error {
+// FinalizeRequestMultiError, or nil if none found.
+func (m *FinalizeRequest) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *DisconnectRequest) validate(all bool) error {
+func (m *FinalizeRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1108,19 +1119,19 @@ func (m *DisconnectRequest) validate(all bool) error {
 	// no validation rules for Pid
 
 	if len(errors) > 0 {
-		return DisconnectRequestMultiError(errors)
+		return FinalizeRequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// DisconnectRequestMultiError is an error wrapping multiple validation errors
-// returned by DisconnectRequest.ValidateAll() if the designated constraints
+// FinalizeRequestMultiError is an error wrapping multiple validation errors
+// returned by FinalizeRequest.ValidateAll() if the designated constraints
 // aren't met.
-type DisconnectRequestMultiError []error
+type FinalizeRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m DisconnectRequestMultiError) Error() string {
+func (m FinalizeRequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1129,11 +1140,11 @@ func (m DisconnectRequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m DisconnectRequestMultiError) AllErrors() []error { return m }
+func (m FinalizeRequestMultiError) AllErrors() []error { return m }
 
-// DisconnectRequestValidationError is the validation error returned by
-// DisconnectRequest.Validate if the designated constraints aren't met.
-type DisconnectRequestValidationError struct {
+// FinalizeRequestValidationError is the validation error returned by
+// FinalizeRequest.Validate if the designated constraints aren't met.
+type FinalizeRequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1141,24 +1152,22 @@ type DisconnectRequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e DisconnectRequestValidationError) Field() string { return e.field }
+func (e FinalizeRequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e DisconnectRequestValidationError) Reason() string { return e.reason }
+func (e FinalizeRequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e DisconnectRequestValidationError) Cause() error { return e.cause }
+func (e FinalizeRequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e DisconnectRequestValidationError) Key() bool { return e.key }
+func (e FinalizeRequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e DisconnectRequestValidationError) ErrorName() string {
-	return "DisconnectRequestValidationError"
-}
+func (e FinalizeRequestValidationError) ErrorName() string { return "FinalizeRequestValidationError" }
 
 // Error satisfies the builtin error interface
-func (e DisconnectRequestValidationError) Error() string {
+func (e FinalizeRequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1170,14 +1179,14 @@ func (e DisconnectRequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sDisconnectRequest.%s: %s%s",
+		"invalid %sFinalizeRequest.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = DisconnectRequestValidationError{}
+var _ error = FinalizeRequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -1185,24 +1194,24 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = DisconnectRequestValidationError{}
+} = FinalizeRequestValidationError{}
 
-// Validate checks the field values on DisconnectResponse with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *DisconnectResponse) Validate() error {
+// Validate checks the field values on FinalizeResponse with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *FinalizeResponse) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on DisconnectResponse with the rules
+// ValidateAll checks the field values on FinalizeResponse with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// DisconnectResponseMultiError, or nil if none found.
-func (m *DisconnectResponse) ValidateAll() error {
+// FinalizeResponseMultiError, or nil if none found.
+func (m *FinalizeResponse) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *DisconnectResponse) validate(all bool) error {
+func (m *FinalizeResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1212,19 +1221,19 @@ func (m *DisconnectResponse) validate(all bool) error {
 	// no validation rules for Pid
 
 	if len(errors) > 0 {
-		return DisconnectResponseMultiError(errors)
+		return FinalizeResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// DisconnectResponseMultiError is an error wrapping multiple validation errors
-// returned by DisconnectResponse.ValidateAll() if the designated constraints
+// FinalizeResponseMultiError is an error wrapping multiple validation errors
+// returned by FinalizeResponse.ValidateAll() if the designated constraints
 // aren't met.
-type DisconnectResponseMultiError []error
+type FinalizeResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m DisconnectResponseMultiError) Error() string {
+func (m FinalizeResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1233,11 +1242,11 @@ func (m DisconnectResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m DisconnectResponseMultiError) AllErrors() []error { return m }
+func (m FinalizeResponseMultiError) AllErrors() []error { return m }
 
-// DisconnectResponseValidationError is the validation error returned by
-// DisconnectResponse.Validate if the designated constraints aren't met.
-type DisconnectResponseValidationError struct {
+// FinalizeResponseValidationError is the validation error returned by
+// FinalizeResponse.Validate if the designated constraints aren't met.
+type FinalizeResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1245,24 +1254,22 @@ type DisconnectResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e DisconnectResponseValidationError) Field() string { return e.field }
+func (e FinalizeResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e DisconnectResponseValidationError) Reason() string { return e.reason }
+func (e FinalizeResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e DisconnectResponseValidationError) Cause() error { return e.cause }
+func (e FinalizeResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e DisconnectResponseValidationError) Key() bool { return e.key }
+func (e FinalizeResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e DisconnectResponseValidationError) ErrorName() string {
-	return "DisconnectResponseValidationError"
-}
+func (e FinalizeResponseValidationError) ErrorName() string { return "FinalizeResponseValidationError" }
 
 // Error satisfies the builtin error interface
-func (e DisconnectResponseValidationError) Error() string {
+func (e FinalizeResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1274,14 +1281,14 @@ func (e DisconnectResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sDisconnectResponse.%s: %s%s",
+		"invalid %sFinalizeResponse.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = DisconnectResponseValidationError{}
+var _ error = FinalizeResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -1289,7 +1296,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = DisconnectResponseValidationError{}
+} = FinalizeResponseValidationError{}
 
 // Validate checks the field values on Zone with the rules defined in the proto
 // definition for this message. If any rules are violated, the first error
@@ -1556,7 +1563,7 @@ func (m *Process) validate(all bool) error {
 
 	// no validation rules for ProcessKind
 
-	for idx, item := range m.GetTags() {
+	for idx, item := range m.GetMetadata() {
 		_, _ = idx, item
 
 		if all {
@@ -1564,7 +1571,7 @@ func (m *Process) validate(all bool) error {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
 					errors = append(errors, ProcessValidationError{
-						field:  fmt.Sprintf("Tags[%v]", idx),
+						field:  fmt.Sprintf("Metadata[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
@@ -1572,7 +1579,7 @@ func (m *Process) validate(all bool) error {
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
 					errors = append(errors, ProcessValidationError{
-						field:  fmt.Sprintf("Tags[%v]", idx),
+						field:  fmt.Sprintf("Metadata[%v]", idx),
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
@@ -1581,7 +1588,7 @@ func (m *Process) validate(all bool) error {
 		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ProcessValidationError{
-					field:  fmt.Sprintf("Tags[%v]", idx),
+					field:  fmt.Sprintf("Metadata[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

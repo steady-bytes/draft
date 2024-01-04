@@ -15,21 +15,22 @@ import "google/protobuf/timestamp.proto";
 // to the registry/system to provide operational details to the remaining system.
 // `Init`, the connection process and then use the `InitResponse` details to 
 // `Connect` the process to the `SystemJournal`.
+
+// The interface to 
 service ServiceDiscoveryService {
-  // The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
-  // business logic it's supposted to
-  rpc Connect(stream ProcessDetails) returns (Empty) {}
-  // Gracefully `Disconnect` the process from the registry
-  rpc Disconnect(DisconnectRequest) returns (DisconnectResponse) {}
-  // Initiate the registeration of the process to the registry. 
-  rpc Init(InitRequest) returns (InitResponse) {}
+  // Gracefully shutdown and `Finalize` the connection of the process to the registry
+  rpc Finalize(FinalizeRequest) returns (FinalizeResponse) {}
+  // Initialize the registeration of the process to the registry
+  rpc Initialize(InitializeRequest) returns (InitializeResponse) {}
   // Query the registries journal of processes
   rpc QuerySystemJournal(JournalQueryRequest) returns (JournalQueryResponse) {}
+  // synchronize the client state with the registry
+  rpc Synchronize(stream ClientDetails) returns (Empty) {}
 }
 
 // ProcessDetails - Messages that are sent from the `Process` to the registry. 
 // These details are basic operating messages
-message ProcessDetails {
+message ClientDetails {
   string pid = 1;
   // Ops details 
   ProcessRunningState running_state = 2;
@@ -40,7 +41,7 @@ message ProcessDetails {
 
   GeoPoint location = 7;
 
-  Metadata metadata = 8;
+  repeated Metadata metadata = 8;
 }
 
 // Empty - The `Connect` method is intentionally uni-directional from the process. In the future it might be worth
@@ -50,7 +51,7 @@ message Empty {}
 // InitRequest - Begin the service registry connection processes if sucessful
 // A `Token`, and a `pid` will be issues. 
 // the `Token` will expire.
-message InitRequest {
+message InitializeRequest {
   // unique service name
   string name = 1;
   // `nonce` that is loaded into the processes state when it's run.
@@ -62,7 +63,7 @@ message InitRequest {
 // InitResponse - Details used by the client to provided to complete the connection
 // If the token is lost and the registry has not received a `ProcessDetails` message within a 2 mintues
 // of the token being forged then the client will have to reinit to connect to the registry/system.
-message InitResponse  {
+message InitializeResponse  {
   // If the init request was succesful then an identity will be given to the process so that it
   // can stream it's operational details to the registry
   ProcessIdentity process_identity = 1;
@@ -100,11 +101,11 @@ message JournalQueryResponse {
   map<string, Process> data = 1;
 }
 
-message DisconnectRequest {
+message FinalizeRequest {
   string pid = 1;
 }
 
-message DisconnectResponse {
+message FinalizeResponse {
   string pid = 1;
 }
 
@@ -132,7 +133,7 @@ message Process {
 
   ProcessKind process_kind = 6;
 
-  repeated Metadata tags = 7;
+  repeated Metadata metadata = 7;
 
   GeoPoint location = 8;
 

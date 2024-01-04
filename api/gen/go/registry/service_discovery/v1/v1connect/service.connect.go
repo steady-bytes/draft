@@ -33,41 +33,40 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// ServiceDiscoveryServiceConnectProcedure is the fully-qualified name of the
-	// ServiceDiscoveryService's Connect RPC.
-	ServiceDiscoveryServiceConnectProcedure = "/registry.service_discovery.v1.ServiceDiscoveryService/Connect"
-	// ServiceDiscoveryServiceDisconnectProcedure is the fully-qualified name of the
-	// ServiceDiscoveryService's Disconnect RPC.
-	ServiceDiscoveryServiceDisconnectProcedure = "/registry.service_discovery.v1.ServiceDiscoveryService/Disconnect"
-	// ServiceDiscoveryServiceInitProcedure is the fully-qualified name of the ServiceDiscoveryService's
-	// Init RPC.
-	ServiceDiscoveryServiceInitProcedure = "/registry.service_discovery.v1.ServiceDiscoveryService/Init"
+	// ServiceDiscoveryServiceFinalizeProcedure is the fully-qualified name of the
+	// ServiceDiscoveryService's Finalize RPC.
+	ServiceDiscoveryServiceFinalizeProcedure = "/registry.service_discovery.v1.ServiceDiscoveryService/Finalize"
+	// ServiceDiscoveryServiceInitializeProcedure is the fully-qualified name of the
+	// ServiceDiscoveryService's Initialize RPC.
+	ServiceDiscoveryServiceInitializeProcedure = "/registry.service_discovery.v1.ServiceDiscoveryService/Initialize"
 	// ServiceDiscoveryServiceQuerySystemJournalProcedure is the fully-qualified name of the
 	// ServiceDiscoveryService's QuerySystemJournal RPC.
 	ServiceDiscoveryServiceQuerySystemJournalProcedure = "/registry.service_discovery.v1.ServiceDiscoveryService/QuerySystemJournal"
+	// ServiceDiscoveryServiceSynchronizeProcedure is the fully-qualified name of the
+	// ServiceDiscoveryService's Synchronize RPC.
+	ServiceDiscoveryServiceSynchronizeProcedure = "/registry.service_discovery.v1.ServiceDiscoveryService/Synchronize"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
 	serviceDiscoveryServiceServiceDescriptor                  = v1.File_registry_service_discovery_v1_service_proto.Services().ByName("ServiceDiscoveryService")
-	serviceDiscoveryServiceConnectMethodDescriptor            = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Connect")
-	serviceDiscoveryServiceDisconnectMethodDescriptor         = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Disconnect")
-	serviceDiscoveryServiceInitMethodDescriptor               = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Init")
+	serviceDiscoveryServiceFinalizeMethodDescriptor           = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Finalize")
+	serviceDiscoveryServiceInitializeMethodDescriptor         = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Initialize")
 	serviceDiscoveryServiceQuerySystemJournalMethodDescriptor = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("QuerySystemJournal")
+	serviceDiscoveryServiceSynchronizeMethodDescriptor        = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Synchronize")
 )
 
 // ServiceDiscoveryServiceClient is a client for the
 // registry.service_discovery.v1.ServiceDiscoveryService service.
 type ServiceDiscoveryServiceClient interface {
-	// The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
-	// business logic it's supposted to
-	Connect(context.Context) *connect.ClientStreamForClient[v1.ProcessDetails, v1.Empty]
-	// Gracefully `Disconnect` the process from the registry
-	Disconnect(context.Context, *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error)
-	// Initiate the registeration of the process to the registry.
-	Init(context.Context, *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error)
+	// Gracefully shutdown and `Finalize` the connection of the process to the registry
+	Finalize(context.Context, *connect.Request[v1.FinalizeRequest]) (*connect.Response[v1.FinalizeResponse], error)
+	// Initialize the registeration of the process to the registry
+	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	// Query the registries journal of processes
 	QuerySystemJournal(context.Context, *connect.Request[v1.JournalQueryRequest]) (*connect.Response[v1.JournalQueryResponse], error)
+	// synchronize the client state with the registry
+	Synchronize(context.Context) *connect.ClientStreamForClient[v1.ClientDetails, v1.Empty]
 }
 
 // NewServiceDiscoveryServiceClient constructs a client for the
@@ -81,22 +80,16 @@ type ServiceDiscoveryServiceClient interface {
 func NewServiceDiscoveryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ServiceDiscoveryServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &serviceDiscoveryServiceClient{
-		connect: connect.NewClient[v1.ProcessDetails, v1.Empty](
+		finalize: connect.NewClient[v1.FinalizeRequest, v1.FinalizeResponse](
 			httpClient,
-			baseURL+ServiceDiscoveryServiceConnectProcedure,
-			connect.WithSchema(serviceDiscoveryServiceConnectMethodDescriptor),
+			baseURL+ServiceDiscoveryServiceFinalizeProcedure,
+			connect.WithSchema(serviceDiscoveryServiceFinalizeMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		disconnect: connect.NewClient[v1.DisconnectRequest, v1.DisconnectResponse](
+		initialize: connect.NewClient[v1.InitializeRequest, v1.InitializeResponse](
 			httpClient,
-			baseURL+ServiceDiscoveryServiceDisconnectProcedure,
-			connect.WithSchema(serviceDiscoveryServiceDisconnectMethodDescriptor),
-			connect.WithClientOptions(opts...),
-		),
-		init: connect.NewClient[v1.InitRequest, v1.InitResponse](
-			httpClient,
-			baseURL+ServiceDiscoveryServiceInitProcedure,
-			connect.WithSchema(serviceDiscoveryServiceInitMethodDescriptor),
+			baseURL+ServiceDiscoveryServiceInitializeProcedure,
+			connect.WithSchema(serviceDiscoveryServiceInitializeMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		querySystemJournal: connect.NewClient[v1.JournalQueryRequest, v1.JournalQueryResponse](
@@ -105,30 +98,31 @@ func NewServiceDiscoveryServiceClient(httpClient connect.HTTPClient, baseURL str
 			connect.WithSchema(serviceDiscoveryServiceQuerySystemJournalMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		synchronize: connect.NewClient[v1.ClientDetails, v1.Empty](
+			httpClient,
+			baseURL+ServiceDiscoveryServiceSynchronizeProcedure,
+			connect.WithSchema(serviceDiscoveryServiceSynchronizeMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // serviceDiscoveryServiceClient implements ServiceDiscoveryServiceClient.
 type serviceDiscoveryServiceClient struct {
-	connect            *connect.Client[v1.ProcessDetails, v1.Empty]
-	disconnect         *connect.Client[v1.DisconnectRequest, v1.DisconnectResponse]
-	init               *connect.Client[v1.InitRequest, v1.InitResponse]
+	finalize           *connect.Client[v1.FinalizeRequest, v1.FinalizeResponse]
+	initialize         *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
 	querySystemJournal *connect.Client[v1.JournalQueryRequest, v1.JournalQueryResponse]
+	synchronize        *connect.Client[v1.ClientDetails, v1.Empty]
 }
 
-// Connect calls registry.service_discovery.v1.ServiceDiscoveryService.Connect.
-func (c *serviceDiscoveryServiceClient) Connect(ctx context.Context) *connect.ClientStreamForClient[v1.ProcessDetails, v1.Empty] {
-	return c.connect.CallClientStream(ctx)
+// Finalize calls registry.service_discovery.v1.ServiceDiscoveryService.Finalize.
+func (c *serviceDiscoveryServiceClient) Finalize(ctx context.Context, req *connect.Request[v1.FinalizeRequest]) (*connect.Response[v1.FinalizeResponse], error) {
+	return c.finalize.CallUnary(ctx, req)
 }
 
-// Disconnect calls registry.service_discovery.v1.ServiceDiscoveryService.Disconnect.
-func (c *serviceDiscoveryServiceClient) Disconnect(ctx context.Context, req *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error) {
-	return c.disconnect.CallUnary(ctx, req)
-}
-
-// Init calls registry.service_discovery.v1.ServiceDiscoveryService.Init.
-func (c *serviceDiscoveryServiceClient) Init(ctx context.Context, req *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error) {
-	return c.init.CallUnary(ctx, req)
+// Initialize calls registry.service_discovery.v1.ServiceDiscoveryService.Initialize.
+func (c *serviceDiscoveryServiceClient) Initialize(ctx context.Context, req *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error) {
+	return c.initialize.CallUnary(ctx, req)
 }
 
 // QuerySystemJournal calls
@@ -137,18 +131,22 @@ func (c *serviceDiscoveryServiceClient) QuerySystemJournal(ctx context.Context, 
 	return c.querySystemJournal.CallUnary(ctx, req)
 }
 
+// Synchronize calls registry.service_discovery.v1.ServiceDiscoveryService.Synchronize.
+func (c *serviceDiscoveryServiceClient) Synchronize(ctx context.Context) *connect.ClientStreamForClient[v1.ClientDetails, v1.Empty] {
+	return c.synchronize.CallClientStream(ctx)
+}
+
 // ServiceDiscoveryServiceHandler is an implementation of the
 // registry.service_discovery.v1.ServiceDiscoveryService service.
 type ServiceDiscoveryServiceHandler interface {
-	// The process that has joined the cluster must send connections details of it's ability to process requests, or perform the
-	// business logic it's supposted to
-	Connect(context.Context, *connect.ClientStream[v1.ProcessDetails]) (*connect.Response[v1.Empty], error)
-	// Gracefully `Disconnect` the process from the registry
-	Disconnect(context.Context, *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error)
-	// Initiate the registeration of the process to the registry.
-	Init(context.Context, *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error)
+	// Gracefully shutdown and `Finalize` the connection of the process to the registry
+	Finalize(context.Context, *connect.Request[v1.FinalizeRequest]) (*connect.Response[v1.FinalizeResponse], error)
+	// Initialize the registeration of the process to the registry
+	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	// Query the registries journal of processes
 	QuerySystemJournal(context.Context, *connect.Request[v1.JournalQueryRequest]) (*connect.Response[v1.JournalQueryResponse], error)
+	// synchronize the client state with the registry
+	Synchronize(context.Context, *connect.ClientStream[v1.ClientDetails]) (*connect.Response[v1.Empty], error)
 }
 
 // NewServiceDiscoveryServiceHandler builds an HTTP handler from the service implementation. It
@@ -157,22 +155,16 @@ type ServiceDiscoveryServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	serviceDiscoveryServiceConnectHandler := connect.NewClientStreamHandler(
-		ServiceDiscoveryServiceConnectProcedure,
-		svc.Connect,
-		connect.WithSchema(serviceDiscoveryServiceConnectMethodDescriptor),
+	serviceDiscoveryServiceFinalizeHandler := connect.NewUnaryHandler(
+		ServiceDiscoveryServiceFinalizeProcedure,
+		svc.Finalize,
+		connect.WithSchema(serviceDiscoveryServiceFinalizeMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
-	serviceDiscoveryServiceDisconnectHandler := connect.NewUnaryHandler(
-		ServiceDiscoveryServiceDisconnectProcedure,
-		svc.Disconnect,
-		connect.WithSchema(serviceDiscoveryServiceDisconnectMethodDescriptor),
-		connect.WithHandlerOptions(opts...),
-	)
-	serviceDiscoveryServiceInitHandler := connect.NewUnaryHandler(
-		ServiceDiscoveryServiceInitProcedure,
-		svc.Init,
-		connect.WithSchema(serviceDiscoveryServiceInitMethodDescriptor),
+	serviceDiscoveryServiceInitializeHandler := connect.NewUnaryHandler(
+		ServiceDiscoveryServiceInitializeProcedure,
+		svc.Initialize,
+		connect.WithSchema(serviceDiscoveryServiceInitializeMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	serviceDiscoveryServiceQuerySystemJournalHandler := connect.NewUnaryHandler(
@@ -181,16 +173,22 @@ func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts 
 		connect.WithSchema(serviceDiscoveryServiceQuerySystemJournalMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceDiscoveryServiceSynchronizeHandler := connect.NewClientStreamHandler(
+		ServiceDiscoveryServiceSynchronizeProcedure,
+		svc.Synchronize,
+		connect.WithSchema(serviceDiscoveryServiceSynchronizeMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/registry.service_discovery.v1.ServiceDiscoveryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case ServiceDiscoveryServiceConnectProcedure:
-			serviceDiscoveryServiceConnectHandler.ServeHTTP(w, r)
-		case ServiceDiscoveryServiceDisconnectProcedure:
-			serviceDiscoveryServiceDisconnectHandler.ServeHTTP(w, r)
-		case ServiceDiscoveryServiceInitProcedure:
-			serviceDiscoveryServiceInitHandler.ServeHTTP(w, r)
+		case ServiceDiscoveryServiceFinalizeProcedure:
+			serviceDiscoveryServiceFinalizeHandler.ServeHTTP(w, r)
+		case ServiceDiscoveryServiceInitializeProcedure:
+			serviceDiscoveryServiceInitializeHandler.ServeHTTP(w, r)
 		case ServiceDiscoveryServiceQuerySystemJournalProcedure:
 			serviceDiscoveryServiceQuerySystemJournalHandler.ServeHTTP(w, r)
+		case ServiceDiscoveryServiceSynchronizeProcedure:
+			serviceDiscoveryServiceSynchronizeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -200,18 +198,18 @@ func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts 
 // UnimplementedServiceDiscoveryServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedServiceDiscoveryServiceHandler struct{}
 
-func (UnimplementedServiceDiscoveryServiceHandler) Connect(context.Context, *connect.ClientStream[v1.ProcessDetails]) (*connect.Response[v1.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.Connect is not implemented"))
+func (UnimplementedServiceDiscoveryServiceHandler) Finalize(context.Context, *connect.Request[v1.FinalizeRequest]) (*connect.Response[v1.FinalizeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.Finalize is not implemented"))
 }
 
-func (UnimplementedServiceDiscoveryServiceHandler) Disconnect(context.Context, *connect.Request[v1.DisconnectRequest]) (*connect.Response[v1.DisconnectResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.Disconnect is not implemented"))
-}
-
-func (UnimplementedServiceDiscoveryServiceHandler) Init(context.Context, *connect.Request[v1.InitRequest]) (*connect.Response[v1.InitResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.Init is not implemented"))
+func (UnimplementedServiceDiscoveryServiceHandler) Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.Initialize is not implemented"))
 }
 
 func (UnimplementedServiceDiscoveryServiceHandler) QuerySystemJournal(context.Context, *connect.Request[v1.JournalQueryRequest]) (*connect.Response[v1.JournalQueryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.QuerySystemJournal is not implemented"))
+}
+
+func (UnimplementedServiceDiscoveryServiceHandler) Synchronize(context.Context, *connect.ClientStream[v1.ClientDetails]) (*connect.Response[v1.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.service_discovery.v1.ServiceDiscoveryService.Synchronize is not implemented"))
 }

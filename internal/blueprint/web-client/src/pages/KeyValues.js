@@ -21,7 +21,7 @@ export default function KeyValuesPage () {
         isLoading: GetValueIsLoading
     } = useGetValuesQuery(
         {
-            key: "9f60a04d-ac44-4488-a365-36dc16868ecb",
+            key: "217da09f-a8e6-472d-80bf-c15b9ce70716",
             filter: GetFilter[2],
         }
     )
