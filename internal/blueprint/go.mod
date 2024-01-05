@@ -9,14 +9,17 @@ replace (
 
 require (
 	connectrpc.com/connect v1.14.0
+	connectrpc.com/grpcreflect v1.2.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
+	github.com/google/uuid v1.3.1
 	github.com/hashicorp/raft v1.6.0
+	github.com/orcaman/concurrent-map/v2 v2.0.1
 	github.com/steady-bytes/draft/api/gen/go v0.0.1
 	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1
+	google.golang.org/protobuf v1.32.0
 )
 
 require (
-	connectrpc.com/grpcreflect v1.2.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
@@ -37,7 +40,6 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/uuid v1.3.1 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
@@ -65,7 +67,6 @@ require (
 	github.com/nats-io/nats.go v1.29.0 // indirect
 	github.com/nats-io/nkeys v0.4.6 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	github.com/orcaman/concurrent-map/v2 v2.0.1 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -94,7 +95,6 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
 	google.golang.org/grpc v1.60.1 // indirect
-	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

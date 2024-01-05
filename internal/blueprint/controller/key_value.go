@@ -36,7 +36,9 @@ func (c *controller) Get(key string) ([]byte, error) {
 }
 
 func (c *controller) Iterate() {
-	c.db.Iterate()
+	prefix := []byte("")
+
+	c.db.Iterate(prefix)
 }
 
 func (c *controller) Set(data []byte, timeout time.Duration) (*ApplyResponse, error) {

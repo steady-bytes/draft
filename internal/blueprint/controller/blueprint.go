@@ -4,8 +4,6 @@ import (
 	"errors"
 
 	"github.com/hashicorp/raft"
-	cmap "github.com/orcaman/concurrent-map/v2"
-	sdv1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
 	m "github.com/steady-bytes/draft/blueprint/model"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 )
@@ -25,18 +23,16 @@ type (
 	}
 
 	controller struct {
-		db            m.KeyValueModel
-		raft          *raft.Raft
-		nonce         string
-		secretStore   draft.SecretStore
-		systemJournal cmap.ConcurrentMap[string, *sdv1.Process]
+		db          m.KeyValueModel
+		raft        *raft.Raft
+		nonce       string
+		secretStore draft.SecretStore
 	}
 )
 
 func New(db m.KeyValueModel) Controller {
 	return &controller{
-		db:            db,
-		systemJournal: cmap.New[*sdv1.Process](),
+		db: db,
 	}
 }
 

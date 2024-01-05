@@ -24,7 +24,7 @@ type (
 
 const (
 	signKey                        = "TODO -> load this from the secret store"
-	failedNonce                    = "nonce failuer"
+	failedNonce                    = "nonce failure"
 	failedProcessAlreadyRegistered = "process has already be initialized"
 	failedToMarshalPayload         = "failed to marshal payload"
 	failedToSaveProcessDetails     = "failed to save process details"
@@ -56,9 +56,9 @@ func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.
 	}
 
 	// check to see if the name already exists
-	_, err = c.Get(name)
+	_, err = c.Get(c.keyName(name))
 	if err == nil {
-		// if this was not found then procced
+		// if this was not found then proceed
 		fmt.Println(failedProcessAlreadyRegistered)
 		return nil, errors.New(failedProcessAlreadyRegistered)
 	}
@@ -87,7 +87,7 @@ func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.
 
 	payload := &CommandPayload{
 		Operation: Set,
-		Key:       pid,
+		Key:       c.keyName(pid),
 		Value:     value,
 	}
 
@@ -111,11 +111,13 @@ func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.
 	}, nil
 }
 
-func (c *controller) Synchronize(ctx context.Context, details *sdv1.ClientDetails) {
-	fmt.Println("client details: ", details)
+func (c *controller) keyName(key string) string {
+	return "sd-" + key
+}
 
+func (c *controller) Synchronize(ctx context.Context, details *sdv1.ClientDetails) {
 	// Look for the key, if not found return error
-	byt, err := c.Get(details.Pid)
+	byt, err := c.Get(c.keyName(details.Pid))
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -141,7 +143,7 @@ func (c *controller) Synchronize(ctx context.Context, details *sdv1.ClientDetail
 
 	payload := &CommandPayload{
 		Operation: Set,
-		Key:       process.Pid,
+		Key:       c.keyName(process.Pid),
 		Value:     process,
 	}
 
@@ -167,5 +169,5 @@ func (c *controller) generateJWTToken() (string, error) {
 }
 
 func (c *controller) Query(ctx context.Context) {
-	c.db.Iterate()
+	c.db.Iterate([]byte("sd-"))
 }
