@@ -15,8 +15,10 @@ import (
 
 type (
 	ServiceDiscovery interface {
+		Finalize(ctx context.Context, pid string) error
 		Initialize(ctx context.Context, nonce, name string) (*sdv1.ProcessIdentity, error)
 		Synchronize(ctx context.Context, details *sdv1.ClientDetails)
+		Query(ctx context.Context)
 	}
 )
 
@@ -28,6 +30,16 @@ const (
 	failedToSaveProcessDetails     = "failed to save process details"
 	failedTokenForge               = "failed to forge the token"
 )
+
+// Finalize - Remove the process from the registry
+func (c *controller) Finalize(ctx context.Context, pid string) error {
+	if err := c.Delete(pid); err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	return nil
+}
 
 // Init - When a service starts and wants to register itself with the system then a uniqu name, and system nonce
 // can be provided to get `ProcessIdentity` details so that A process can then finalize service registration
@@ -58,9 +70,8 @@ func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.
 	}
 
 	token := &sdv1.Token{
-		Id:    uuid.NewString(),
-		Jwt:   jwt,
-		Nonce: nonce,
+		Id:  uuid.NewString(),
+		Jwt: jwt,
 	}
 
 	value := &sdv1.Process{
@@ -107,11 +118,13 @@ func (c *controller) Synchronize(ctx context.Context, details *sdv1.ClientDetail
 	byt, err := c.Get(details.Pid)
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 
 	process := &sdv1.Process{}
 	if err := json.Unmarshal(byt, process); err != nil {
 		fmt.Println(err)
+		return
 	}
 
 	// ignore if the wrong token is sent
@@ -151,4 +164,8 @@ func (c *controller) generateJWTToken() (string, error) {
 	// t := jwt.New(jwt.GetSigningMethod("RS256"))
 	// return t.SignedString(signKey)
 	return "test", nil
+}
+
+func (c *controller) Query(ctx context.Context) {
+	c.db.Iterate()
 }

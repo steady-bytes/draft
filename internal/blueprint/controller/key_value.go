@@ -10,10 +10,34 @@ import (
 
 type (
 	KeyValueController interface {
+		Delete(key string) error
 		Set(data []byte, timeout time.Duration) (*ApplyResponse, error)
 		Get(key string) ([]byte, error)
+		Iterate()
 	}
 )
+
+func (c *controller) Delete(key string) error {
+	if err := c.db.Delete(key); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *controller) Get(key string) ([]byte, error) {
+	val, err := c.db.Get(key)
+	if err != nil {
+		fmt.Println("error: ", err)
+		return nil, err
+	}
+
+	return val, nil
+}
+
+func (c *controller) Iterate() {
+	c.db.Iterate()
+}
 
 func (c *controller) Set(data []byte, timeout time.Duration) (*ApplyResponse, error) {
 	if c.raft.State() != raft.Leader {
@@ -36,14 +60,4 @@ func (c *controller) Set(data []byte, timeout time.Duration) (*ApplyResponse, er
 	}
 
 	return res, nil
-}
-
-func (c *controller) Get(key string) ([]byte, error) {
-	val, err := c.db.Get(key)
-	if err != nil {
-		fmt.Println("error: ", err)
-		return nil, err
-	}
-
-	return val, nil
 }

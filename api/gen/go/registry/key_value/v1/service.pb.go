@@ -269,7 +269,7 @@ type GetRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	Key    string    `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
-	Filter GetFilter `protobuf:"varint,2,opt,name=filter,proto3,enum=registry.key_value.v1.GetFilter" json:"filter" pg:"filter" bun:"filter" yaml:"filter" csv:"filter"`
+	Filter GetFilter `protobuf:"varint,2,opt,name=filter,proto3,enum=registry.key_value.v1.GetFilter" json:"filter" bun:"filter" yaml:"filter" csv:"filter" pg:"filter"`
 }
 
 func (x *GetRequest) Reset() {
@@ -400,11 +400,11 @@ type GetResponse_AsBytes struct {
 }
 
 type GetResponse_AsString struct {
-	AsString string `protobuf:"bytes,2,opt,name=as_string,json=asString,proto3,oneof" pg:"as_string" bun:"as_string" yaml:"as_string" csv:"as_string" json:"as_string"`
+	AsString string `protobuf:"bytes,2,opt,name=as_string,json=asString,proto3,oneof" bun:"as_string" yaml:"as_string" csv:"as_string" json:"as_string" pg:"as_string"`
 }
 
 type GetResponse_Error struct {
-	Error GetError `protobuf:"varint,3,opt,name=error,proto3,enum=registry.key_value.v1.GetError,oneof" yaml:"error" csv:"error" json:"error" pg:"error" bun:"error"`
+	Error GetError `protobuf:"varint,3,opt,name=error,proto3,enum=registry.key_value.v1.GetError,oneof" pg:"error" bun:"error" yaml:"error" csv:"error" json:"error"`
 }
 
 func (*GetResponse_AsBytes) isGetResponse_Response() {}
@@ -418,7 +418,7 @@ type DeleteRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" yaml:"key" csv:"key" pg:"key" bun:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
 }
 
 func (x *DeleteRequest) Reset() {
@@ -530,11 +530,11 @@ type isDeleteResponse_Response interface {
 }
 
 type DeleteResponse_Key struct {
-	Key string `protobuf:"bytes,1,opt,name=key,proto3,oneof" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3,oneof" pg:"key" bun:"key" yaml:"key" csv:"key" json:"key"`
 }
 
 type DeleteResponse_Error struct {
-	Error DeleteError `protobuf:"varint,2,opt,name=error,proto3,enum=registry.key_value.v1.DeleteError,oneof" json:"error" pg:"error" bun:"error" yaml:"error" csv:"error"`
+	Error DeleteError `protobuf:"varint,2,opt,name=error,proto3,enum=registry.key_value.v1.DeleteError,oneof" yaml:"error" csv:"error" json:"error" pg:"error" bun:"error"`
 }
 
 func (*DeleteResponse_Key) isDeleteResponse_Response() {}

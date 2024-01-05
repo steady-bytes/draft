@@ -2056,8 +2056,6 @@ func (m *Token) validate(all bool) error {
 
 	// no validation rules for Jwt
 
-	// no validation rules for Nonce
-
 	if len(errors) > 0 {
 		return TokenMultiError(errors)
 	}

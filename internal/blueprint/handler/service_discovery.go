@@ -30,7 +30,18 @@ func (h *handler) Synchronize(ctx context.Context, stream *cnt.ClientStream[sdv1
 }
 
 func (h *handler) Finalize(ctx context.Context, req *cnt.Request[sdv1.FinalizeRequest]) (*cnt.Response[sdv1.FinalizeResponse], error) {
-	return nil, nil
+	var (
+		pid = req.Msg.Pid
+	)
+
+	if err := h.controller.Finalize(ctx, pid); err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	return cnt.NewResponse[sdv1.FinalizeResponse](&sdv1.FinalizeResponse{
+		Pid: pid,
+	}), nil
 }
 
 func (h *handler) Initialize(ctx context.Context, req *cnt.Request[sdv1.InitializeRequest]) (*cnt.Response[sdv1.InitializeResponse], error) {
@@ -51,5 +62,6 @@ func (h *handler) Initialize(ctx context.Context, req *cnt.Request[sdv1.Initiali
 }
 
 func (h *handler) QuerySystemJournal(ctx context.Context, req *cnt.Request[sdv1.JournalQueryRequest]) (*cnt.Response[sdv1.JournalQueryResponse], error) {
-	return nil, nil
+	h.controller.Query(ctx)
+	return nil, errors.New("implement me")
 }

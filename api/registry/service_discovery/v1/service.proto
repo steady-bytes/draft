@@ -188,5 +188,4 @@ enum ProcessHealthState {
 message Token {
   string id = 1;
   string jwt = 3;
-  string nonce = 4;
 }
