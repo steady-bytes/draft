@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/hashicorp/raft"
-	m "github.com/steady-bytes/draft/blueprint/model"
+	r "github.com/steady-bytes/draft/blueprint/repo"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 )
 
@@ -23,22 +23,21 @@ type (
 	}
 
 	controller struct {
-		db          m.KeyValueModel
-		raft        *raft.Raft
-		nonce       string
-		secretStore draft.SecretStore
+		repo r.KeyValueRepo[any]
+		raft *raft.Raft
+		sstr draft.SecretStore
 	}
 )
 
-func New(db m.KeyValueModel) Controller {
+func New(repo r.KeyValueRepo[any]) Controller {
 	return &controller{
-		db: db,
+		repo: repo,
 	}
 }
 
 // Accepts a `SecretStore` interface and adds it to the controller
 func (c *controller) SetSecretStore(s draft.SecretStore) {
-	c.secretStore = s
+	c.sstr = s
 }
 
 // Implement the the `draft.ConsensusRegister` interface so that the underlying infrastructure

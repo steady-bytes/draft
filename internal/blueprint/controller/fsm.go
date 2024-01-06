@@ -43,7 +43,7 @@ func (c *controller) Apply(log *raft.Log) interface{} {
 
 		switch payload.Operation {
 		case Set:
-			if err := c.db.Set(payload.Key, payload.Value); err != nil {
+			if err := c.repo.Set(payload.Key, payload.Value); err != nil {
 				fmt.Println(err)
 
 				return &ApplyResponse{

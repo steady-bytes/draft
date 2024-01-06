@@ -18,7 +18,7 @@ type (
 )
 
 func (c *controller) Delete(key string) error {
-	if err := c.db.Delete(key); err != nil {
+	if err := c.repo.Delete(key); err != nil {
 		return err
 	}
 
@@ -26,7 +26,7 @@ func (c *controller) Delete(key string) error {
 }
 
 func (c *controller) Get(key string) ([]byte, error) {
-	val, err := c.db.Get(key)
+	val, err := c.repo.Get(key)
 	if err != nil {
 		fmt.Println("error: ", err)
 		return nil, err
@@ -38,7 +38,7 @@ func (c *controller) Get(key string) ([]byte, error) {
 func (c *controller) Iterate() {
 	prefix := []byte("")
 
-	c.db.Iterate(prefix)
+	c.repo.Query(prefix)
 }
 
 func (c *controller) Set(data []byte, timeout time.Duration) (*ApplyResponse, error) {

@@ -1,4 +1,4 @@
-package model
+package repo
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/dgraph-io/badger/v2"
-	sdv1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 )
 
@@ -17,32 +16,32 @@ import (
 // REF: https://dgraph.io/docs/badger/get-started/
 
 type (
-	KeyValueModel interface {
+	KeyValueRepo[T any] interface {
 		draft.RepoRegistrar
 		// Delete removes a key forever
 		Delete(key string) error
 		// Retrieve a value by it's key
 		Get(key string) ([]byte, error)
-		// TODO -> resume here, it's worth putting together
-		// Iterate
-		Iterate(prefix []byte)
+		// Query takes in a key prefix, and returns a map
+		// of all values that the key prefix matches
+		Query(prefix []byte) (map[string]T, error)
 		// Save a key, value to badger. If a key is the same as an existing
 		// key that has already been saved then the new value will overwrite the old.
 		Set(key string, value interface{}) error
 	}
 
-	model struct {
+	model[T any] struct {
 		db *badger.DB
 	}
 )
 
-// New - Initialize a new `KeyValueModel` struct
-func New() KeyValueModel {
-	return &model{}
+// New - Initialize a new `KeyValueRepo` struct
+func New[T any]() KeyValueRepo[T] {
+	return &model[T]{}
 }
 
 // Implement the the `draft.RepoRegister` interface so that the underlying infrastructure is put into place before the service starts running.
-func (m *model) RegisterRepo(dbConn interface{}) error {
+func (m *model[T]) RegisterRepo(dbConn interface{}) error {
 	if dbConn != nil {
 		if db, ok := dbConn.(*badger.DB); ok {
 			m.db = db
@@ -54,7 +53,7 @@ func (m *model) RegisterRepo(dbConn interface{}) error {
 	return errors.New("db connection is nil")
 }
 
-func (m *model) Delete(key string) error {
+func (m *model[T]) Delete(key string) error {
 	var keyByte = []byte(key)
 
 	txn := m.db.NewTransaction(true)
@@ -66,7 +65,7 @@ func (m *model) Delete(key string) error {
 	return nil
 }
 
-func (m *model) Get(key string) ([]byte, error) {
+func (m *model[T]) Get(key string) ([]byte, error) {
 	var keyByte = []byte(key)
 
 	txn := m.db.NewTransaction(false)
@@ -92,61 +91,41 @@ func (m *model) Get(key string) ([]byte, error) {
 	return value, err
 }
 
-/*
-db.View(func(txn *badger.Txn) error {
-  it := txn.NewIterator(badger.DefaultIteratorOptions)
-  defer it.Close()
-  prefix := []byte("1234")
-  for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-    item := it.Item()
-    k := item.Key()
-    err := item.Value(func(v []byte) error {
-      fmt.Printf("key=%s, value=%s\n", k, v)
-      return nil
-    })
-    if err != nil {
-      return err
-    }
-  }
-  return nil
-})
-*/
+func (m *model[T]) Query(prefix []byte) (map[string]T, error) {
+	var (
+		opts   = badger.DefaultIteratorOptions
+		txn    = m.db.NewTransaction(true)
+		it     = txn.NewIterator(opts)
+		output = make(map[string]T)
+	)
+	defer it.Close()
 
-// If I'm going to make this generic then it's going to need to use reflection to lookup the
-// key's and it's value and do a comparison on them
-
-func (m *model) Iterate(prefix []byte) error {
-	opts := badger.DefaultIteratorOptions
 	// This should iterate over keys only if set to false
 	// opts.PrefetchValues = true
-
-	txn := m.db.NewTransaction(true)
-	it := txn.NewIterator(opts)
-	defer it.Close()
 
 	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 		item := it.Item()
 		k := item.Key()
 		err := item.Value(func(v []byte) error {
-			fmt.Printf("key=%s value=%s", k, v)
-			// TODO -> Make sure this is the most efficient way to unpack a message that is written to to db
-			var process sdv1.Process
-			err := json.Unmarshal(v, &process)
-			if err != nil {
-				fmt.Println(err)
+			var t T
+			if err := json.Unmarshal(v, &t); err != nil {
+				return err
 			}
+
+			output[string(k)] = t
 
 			return nil
 		})
 
 		if err != nil {
-			fmt.Println(err)
-			return
+			return nil, err
 		}
 	}
+
+	return output, nil
 }
 
-func (m *model) Set(key string, value interface{}) error {
+func (m *model[T]) Set(key string, value interface{}) error {
 	var data = make([]byte, 0)
 	data, err := json.Marshal(value)
 	if err != nil {

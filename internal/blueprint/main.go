@@ -1,24 +1,24 @@
 package main
 
 import (
+	a "github.com/steady-bytes/draft/blueprint/api"
 	c "github.com/steady-bytes/draft/blueprint/controller"
-	h "github.com/steady-bytes/draft/blueprint/handler"
-	m "github.com/steady-bytes/draft/blueprint/model"
+	r "github.com/steady-bytes/draft/blueprint/repo"
 
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 )
 
 func main() {
 	var (
-		mdl = m.New()
-		ctr = c.New(mdl)
-		hnd = h.New(ctr)
+		repo = r.New[any]()
+		ctr  = c.New(repo)
+		api  = a.New(ctr)
 	)
 
 	defer draft.New("blueprint", "").
-		WithRepo(draft.Badger, mdl).
+		WithRepo(draft.Badger, repo).
 		WithConsensus(draft.Raft, ctr).
-		WithRPCHandler(hnd).
+		WithRPCHandler(api).
 		WithSecretStore(ctr).
 		Start()
 }

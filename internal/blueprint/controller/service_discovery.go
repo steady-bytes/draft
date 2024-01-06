@@ -31,17 +31,16 @@ const (
 	failedTokenForge               = "failed to forge the token"
 )
 
-// Finalize - Remove the process from the registry
+// Finalize - Gracefully remove the process from the registry
 func (c *controller) Finalize(ctx context.Context, pid string) error {
 	if err := c.Delete(pid); err != nil {
-		fmt.Println(err)
 		return err
 	}
 
 	return nil
 }
 
-// Init - When a service starts and wants to register itself with the system then a uniqu name, and system nonce
+// Initialize - When a service starts and wants to register itself with the system then a uniqu name, and system nonce
 // can be provided to get `ProcessIdentity` details so that A process can then finalize service registration
 func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.ProcessIdentity, error) {
 	var (
@@ -49,7 +48,7 @@ func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.
 	)
 
 	// validate the nonce (this will also require that a nonce is read in by the golang-draft-runtime).
-	n, err := c.secretStore.Get(draft.GlobalNonceKey)
+	n, err := c.sstr.Get(draft.GlobalNonceKey)
 	if err != nil || n != nonce {
 		fmt.Println(failedNonce)
 		return nil, errors.New(failedNonce)
@@ -169,5 +168,12 @@ func (c *controller) generateJWTToken() (string, error) {
 }
 
 func (c *controller) Query(ctx context.Context) {
-	c.db.Iterate([]byte("sd-"))
+	values, err := c.repo.Query([]byte("sd-"))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for k, v := range values {
+		fmt.Println(k, v)
+	}
 }
