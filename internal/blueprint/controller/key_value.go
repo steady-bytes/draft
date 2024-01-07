@@ -9,10 +9,10 @@ import (
 )
 
 type (
-	KeyValueController interface {
+	KeyValueController[T any] interface {
 		Delete(key string) error
 		Set(data []byte, timeout time.Duration) (*ApplyResponse, error)
-		Get(key string) ([]byte, error)
+		Get[T](key string) (*T, error)
 		Iterate()
 	}
 )
@@ -25,7 +25,7 @@ func (c *controller) Delete(key string) error {
 	return nil
 }
 
-func (c *controller) Get(key string) ([]byte, error) {
+func (c *controller[T]) Get(key string) (*T, error) {
 	val, err := c.repo.Get(key)
 	if err != nil {
 		fmt.Println("error: ", err)

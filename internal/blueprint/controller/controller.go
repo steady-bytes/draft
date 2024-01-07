@@ -18,7 +18,7 @@ type (
 	}
 
 	Blueprint interface {
-		KeyValueController
+		KeyValueController[any]
 		ServiceDiscovery
 	}
 
