@@ -6,10 +6,11 @@ import (
 	"github.com/hashicorp/raft"
 	r "github.com/steady-bytes/draft/blueprint/repo"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	"google.golang.org/protobuf/proto"
 )
 
 type (
-	Controller interface {
+	Controller[T any] interface {
 		draft.ConsensusRegistrar
 		draft.SecretStoreSetter
 		raft.FSM
@@ -18,18 +19,18 @@ type (
 	}
 
 	Blueprint interface {
-		KeyValueController[any]
+		KeyValueController
 		ServiceDiscovery
 	}
 
 	controller struct {
-		repo r.KeyValueRepo[any]
+		repo r.KeyValueRepo[proto.Message]
 		raft *raft.Raft
 		sstr draft.SecretStore
 	}
 )
 
-func New(repo r.KeyValueRepo[any]) Controller {
+func New(repo r.KeyValueRepo[proto.Message]) Controller[proto.Message] {
 	return &controller{
 		repo: repo,
 	}

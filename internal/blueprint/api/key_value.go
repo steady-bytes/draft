@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,7 +9,8 @@ import (
 
 	"connectrpc.com/connect"
 	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
-	c "github.com/steady-bytes/draft/blueprint/controller"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // Set - Responds to the rpc method `Set`. The request is checked to see if it's running on the leader
@@ -20,21 +20,10 @@ func (h *handler) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]
 	var (
 		key   = strings.TrimSpace(req.Msg.GetKey())
 		value = req.Msg.GetValue()
+		err   error
 	)
 
-	payload := &c.CommandPayload{
-		Operation: c.Set,
-		Key:       key,
-		Value:     value,
-	}
-
-	data, err := json.Marshal(payload)
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	_, err = c.KeyValueController.Set(h.controller, data, 500*time.Millisecond)
+	_, err = h.controller.Set(key, value, 500*time.Millisecond)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -48,8 +37,7 @@ func (h *handler) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]
 // Get - Looks for a key that maybe in the `Log` and if found returns the associated value
 func (h *handler) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
 	var (
-		key    = strings.TrimSpace(req.Msg.GetKey())
-		filter = req.Msg.GetFilter()
+		key = strings.TrimSpace(req.Msg.GetKey())
 	)
 
 	value, err := h.controller.Get(key)
@@ -58,20 +46,24 @@ func (h *handler) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]
 		return nil, errors.New("failed to get value for key")
 	}
 
-	res := &kvv1.GetResponse{}
-	if filter == *kvv1.GetFilter_STRING_GET_FILTER.Enum() {
-		res.Response = &kvv1.GetResponse_AsString{
-			AsString: string(value),
-		}
-	} else {
-		res.Response = &kvv1.GetResponse_AsBytes{
-			AsBytes: value,
-		}
+	any := &anypb.Any{}
+	if err := anypb.MarshalFrom(any, *value, proto.MarshalOptions{}); err != nil {
+		return nil, err
+	}
+
+	res := &kvv1.GetResponse{
+		Value: any,
 	}
 
 	return connect.NewResponse[kvv1.GetResponse](res), nil
 }
 
 func (h *handler) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteRequest]) (*connect.Response[kvv1.DeleteResponse], error) {
+	return nil, errors.New("not implemented")
+}
+
+func (h *handler) Query(ctx context.Context, req *connect.Request[kvv1.QueryRequest]) (*connect.Response[kvv1.QueryResponse], error) {
+	h.controller.Iterate()
+
 	return nil, errors.New("not implemented")
 }

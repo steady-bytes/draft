@@ -4,13 +4,14 @@ import (
 	a "github.com/steady-bytes/draft/blueprint/api"
 	c "github.com/steady-bytes/draft/blueprint/controller"
 	r "github.com/steady-bytes/draft/blueprint/repo"
+	"google.golang.org/protobuf/proto"
 
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 )
 
 func main() {
 	var (
-		repo = r.New[any]()
+		repo = r.New[proto.Message]()
 		ctr  = c.New(repo)
 		api  = a.New(ctr)
 	)

@@ -4,6 +4,8 @@ package registry.key_value.v1;
 
 option go_package = "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1";
 
+import "google/protobuf/any.proto";
+
 service KeyValueService {
     // SET - A key/val pair
     rpc Set(SetRequest) returns (SetResponse) {}
@@ -15,11 +17,13 @@ service KeyValueService {
     // I'm thinking we will have a way to trigger some type of change/updated event
     // on a channel then push the new configuration down to the watchers.
     // rpc Watch() returns () {}
+
+    rpc Query(QueryRequest) returns (QueryResponse) {}
 }
 
 message SetRequest {
     string key = 1;
-    string value = 2;
+    google.protobuf.Any value = 2;
 }
 
 message SetResponse {
@@ -28,21 +32,10 @@ message SetResponse {
 
 message GetRequest {
     string key = 1;
-    GetFilter filter =2;
-}
-
-enum GetFilter {
-    UNSPECIFIED_GET_FILTER = 0;
-    BYTES_GET_FILTER = 1;
-    STRING_GET_FILTER = 2;
 }
 
 message GetResponse {
-    oneof response {
-        bytes as_bytes = 1;
-        string as_string = 2;
-        GetError error = 3;
-    }
+    google.protobuf.Any value = 1;
 }
 
 enum GetError {
@@ -64,4 +57,12 @@ message DeleteResponse {
 enum DeleteError {
     UNSPECIFIED_DELETE_ERROR = 0;
     KEY_NOT_FOUND_DELETE_ERROR = 1;
+}
+
+message QueryRequest {}
+
+message QueryResponse {}
+
+message Value {
+    string data = 1;
 }

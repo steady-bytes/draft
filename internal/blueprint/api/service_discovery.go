@@ -62,6 +62,6 @@ func (h *handler) Initialize(ctx context.Context, req *cnt.Request[sdv1.Initiali
 }
 
 func (h *handler) QuerySystemJournal(ctx context.Context, req *cnt.Request[sdv1.JournalQueryRequest]) (*cnt.Response[sdv1.JournalQueryResponse], error) {
-	h.controller.Query(ctx)
+	// h.controller.Query(ctx)
 	return nil, errors.New("implement me")
 }

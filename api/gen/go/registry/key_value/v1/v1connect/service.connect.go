@@ -39,6 +39,8 @@ const (
 	KeyValueServiceGetProcedure = "/registry.key_value.v1.KeyValueService/Get"
 	// KeyValueServiceDeleteProcedure is the fully-qualified name of the KeyValueService's Delete RPC.
 	KeyValueServiceDeleteProcedure = "/registry.key_value.v1.KeyValueService/Delete"
+	// KeyValueServiceQueryProcedure is the fully-qualified name of the KeyValueService's Query RPC.
+	KeyValueServiceQueryProcedure = "/registry.key_value.v1.KeyValueService/Query"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -47,6 +49,7 @@ var (
 	keyValueServiceSetMethodDescriptor    = keyValueServiceServiceDescriptor.Methods().ByName("Set")
 	keyValueServiceGetMethodDescriptor    = keyValueServiceServiceDescriptor.Methods().ByName("Get")
 	keyValueServiceDeleteMethodDescriptor = keyValueServiceServiceDescriptor.Methods().ByName("Delete")
+	keyValueServiceQueryMethodDescriptor  = keyValueServiceServiceDescriptor.Methods().ByName("Query")
 )
 
 // KeyValueServiceClient is a client for the registry.key_value.v1.KeyValueService service.
@@ -57,6 +60,7 @@ type KeyValueServiceClient interface {
 	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
 	// DELETE - remove a key, and it's associated value
 	Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error)
+	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
 }
 
 // NewKeyValueServiceClient constructs a client for the registry.key_value.v1.KeyValueService
@@ -87,6 +91,12 @@ func NewKeyValueServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(keyValueServiceDeleteMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		query: connect.NewClient[v1.QueryRequest, v1.QueryResponse](
+			httpClient,
+			baseURL+KeyValueServiceQueryProcedure,
+			connect.WithSchema(keyValueServiceQueryMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -95,6 +105,7 @@ type keyValueServiceClient struct {
 	set    *connect.Client[v1.SetRequest, v1.SetResponse]
 	get    *connect.Client[v1.GetRequest, v1.GetResponse]
 	delete *connect.Client[v1.DeleteRequest, v1.DeleteResponse]
+	query  *connect.Client[v1.QueryRequest, v1.QueryResponse]
 }
 
 // Set calls registry.key_value.v1.KeyValueService.Set.
@@ -112,6 +123,11 @@ func (c *keyValueServiceClient) Delete(ctx context.Context, req *connect.Request
 	return c.delete.CallUnary(ctx, req)
 }
 
+// Query calls registry.key_value.v1.KeyValueService.Query.
+func (c *keyValueServiceClient) Query(ctx context.Context, req *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
+	return c.query.CallUnary(ctx, req)
+}
+
 // KeyValueServiceHandler is an implementation of the registry.key_value.v1.KeyValueService service.
 type KeyValueServiceHandler interface {
 	// SET - A key/val pair
@@ -120,6 +136,7 @@ type KeyValueServiceHandler interface {
 	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
 	// DELETE - remove a key, and it's associated value
 	Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error)
+	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
 }
 
 // NewKeyValueServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -146,6 +163,12 @@ func NewKeyValueServiceHandler(svc KeyValueServiceHandler, opts ...connect.Handl
 		connect.WithSchema(keyValueServiceDeleteMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	keyValueServiceQueryHandler := connect.NewUnaryHandler(
+		KeyValueServiceQueryProcedure,
+		svc.Query,
+		connect.WithSchema(keyValueServiceQueryMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/registry.key_value.v1.KeyValueService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case KeyValueServiceSetProcedure:
@@ -154,6 +177,8 @@ func NewKeyValueServiceHandler(svc KeyValueServiceHandler, opts ...connect.Handl
 			keyValueServiceGetHandler.ServeHTTP(w, r)
 		case KeyValueServiceDeleteProcedure:
 			keyValueServiceDeleteHandler.ServeHTTP(w, r)
+		case KeyValueServiceQueryProcedure:
+			keyValueServiceQueryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -173,4 +198,8 @@ func (UnimplementedKeyValueServiceHandler) Get(context.Context, *connect.Request
 
 func (UnimplementedKeyValueServiceHandler) Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.key_value.v1.KeyValueService.Delete is not implemented"))
+}
+
+func (UnimplementedKeyValueServiceHandler) Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.key_value.v1.KeyValueService.Query is not implemented"))
 }
