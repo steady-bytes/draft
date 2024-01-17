@@ -19,7 +19,7 @@ A framework for building reliable, efficient, scalable, real-time and stateful d
 * __Query Handler__: The interface to gather information from the system
 
 ### [PRODUCT NAME]
-* __Event Store__: The means to which each event is `emitted` (stored, and forwarded). It's a similar concept to the write ahead log for all the events in the system. The underlying storage facility has yet to be determined, however `ScyllaDB` or `ClickHouse` are the first two in the running. I like the idea of `ClickHouse` because the system will most likely already have an instance of this because of what will be used for logging. It's basically a wrapper around a message bus, or message queue. In the case of draft we are using `red panda` it's a kafka replacement rewritten in `c++`. I have always loved `kafka` but hated that it was written in `Java`.
+* __Event Store__: The means to which each event is `emitted` (stored, and forwarded). It's a similar concept to the write ahead log for all the events in the system. The underlying storage facility has yet to be determined, however `ScyllaDB` or `ClickHouse` are the first two in the running. I like the idea of `ClickHouse` because the system will most likely already have an instance of this because of what will be used for logging. It's basically a wrapper around a message bus, or message queue. In the case of draft we are using `red panda` it's a kafka replacement rewritten in `c++`.
 
 ### Envoy
 * __Application Router__: The public entrypoint to the system. This component uses the `envoy` proxy with either static, or dynamic configuration.
