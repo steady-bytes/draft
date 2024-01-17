@@ -35,6 +35,10 @@ type Service struct {
 	Port int32
 }
 
+func (s Service) GetAddress() string {
+	return fmt.Sprintf("0.0.0.0:%d", s.Port)
+}
+
 // gateway
 type Gateway struct {
 	// A service can have n number of GrpcClient connections

@@ -24,7 +24,7 @@
             "debugAdapter": "dlv-dap",
         },
         {
-            "name": "Blueprint Register Cluster",
+            "name": "Blueprint CMD: Register Cluster",
             "type": "go",
             "request": "launch",
             "mode": "auto",
@@ -33,6 +33,18 @@
             "debugAdapter": "dlv-dap",
             "env": {
                 "CMD": "register"
+            }
+        },
+        {
+            "name": "Blueprint CMD: Set Test",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "pkg/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "set_value"
             }
         },
         {
@@ -95,7 +107,19 @@
                 "SERVER_PORT": "2223",
                 "RAFT_NODE_ID": "node_3"
             },  
-        }
+        },
+        {
+            "name": "HealthZ",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "internal/healthz/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "SERVER_PORT": "3000",
+            },  
+        },
     ],
     "compounds": [
         {

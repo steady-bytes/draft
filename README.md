@@ -1,72 +1,37 @@
-## TODO:
-* Adding super token integration
-	- manual super token integration
-	- deploy super token
-	- add super token to backend
-	- integrate super token to db
-
 # Draft
-A framework for building reliable, efficient, scalable, and real-time distributed systems.
+A framework for building reliable, efficient, scalable, real-time and stateful distributed systems.
 
 ## Components of draft
 
-* Gateway:
-	The public entrypoint to the system. This component uses the `envoy` proxy with either static, or dynamic
-	configuration.
+### Blueprint
+* __Key/Value Store__: A distributed key/value service is available to store `env` vars that each process may need when they start up
+* __Service Registry__: A place a `process` can register it's self too. Publicizing information about what is does and how it can be interacted with.
 
-* Control Plane:
-	The dynamic controller of `envoy` 
+### [PRODUCT NAME]
+* __Control Plane__: The main command center of the system as a whole. Not only is it the controller of `envoy`, a tight integration with `Blueprint` have been established so it's easy to consolidate operational information of the system. Features can also be activated, or deactivated through it's portal. 
 
-* Service Registry: 
-	A key/value storage that also validates service are alive and serving traffic. This gives the system a single pane
-	of glass to pin point specific failures or running state of the system. Routing is also configured with the `Control Plane`
-	so that traffic can be routed to the accepting service.
+### [PRODUCT NAME]
+* __File Host__: Most applications need to store files from `.pdf`'s to `.mov` files. The file host will control the life
+	cycle of assets that will be used by the system.
 
-* Host: 
-	- Authentication: The user authentication interface.
-	- FileHost: A host for static assets, public or private.
+### [PRODUCT NAME]
+* __Command Handler__: The interface to invoke a command, or a write to the system.
+* __Query Handler__: The interface to gather information from the system
 
-* Command Handler: The interface to invoke a command, or a write to the system.
-* Query Handler: The interface to invoke a query, or a read from the system.
+### [PRODUCT NAME]
+* __Event Store__: The means to which each event is `emitted` (stored, and forwarded). It's a similar concept to the write ahead log for all the events in the system. The underlying storage facility has yet to be determined, however `ScyllaDB` or `ClickHouse` are the first two in the running. I like the idea of `ClickHouse` because the system will most likely already have an instance of this because of what will be used for logging. It's basically a wrapper around a message bus, or message queue. In the case of draft we are using `red panda` it's a kafka replacement rewritten in `c++`. I have always loved `kafka` but hated that it was written in `Java`.
 
-* Event Store: 
-	The means to which each event is `emitted` (stored, and forwarded). It's a similar concept to the
-	write ahead log for all the events in the system. The underlying storage for now will be scylla db.
+### Envoy
+* __Application Router__: The public entrypoint to the system. This component uses the `envoy` proxy with either static, or dynamic configuration.
 
-* Subscriber Gateway: 
-	The public entrypoint for a client to consume public events. The subscriber_gateway authenticates user
-	request to connect, and handles the persistent connect between the client, and server.
+### [PRODUCT NAME] (TBD, will most likely use something already made)
+* __Observability System__: Infrastructure, and configuration for monitoring the running system.
 
-* CLI:
-	A cli tool for building, operating, and testing the components of draft.
+---
 
-## Storage Components
-In an effort to increase the separation of concerns throughout the whole system. Each supported data store will have it's own
-implementation for `Insert`, `Select`, `Update`, and `Delete` operations. The general idea is to consume different events to
-perform different storage operations. A central tenant of `Draft` is to keep things simple, and avoid complexity in any way
-possible.
+# Project Structure
 
-* Inserter: A consumer service that is responsible for writing data to a specific type of database
-	- postgres
-	- scylla
-	- tikv
-	- clickhouse
-
-* Selector: A consumer service that is responsible for resolving quires for integrated databases
-	- postgres
-	- scylla
-	- tikv
-	- clickhouse
-
-* Updater:
-	- postgres
-	- scylla
-	- tikv
-	- clickhouse
-
-* Deleter: A consumer service that is responsible for finding and deleting values by it's primary key
-
-## Api/src/draft
+## api/
 Definitions of `RPC` interfaces, over the wire request/response message types, events, and internal models.
 
 The `/api` directory contains it's own `Makefile` that contains a few `targets` for code generation, and
@@ -88,15 +53,21 @@ $ make api
 $ make clean
 ```
 
-## Internal
-Each directory is a self contained implementation of one of the system components. Each component is a cli command that
-can be executed on it's own, or in a greater environment. For each component command the draft runtime is invoked meaning
-it's capable of reading static configuration, and binding to os sockets. The goal of this design is to make each service
-testable, composable, and responsible for only one thing.
+## internal/
+Each directory is a self contained implementation of one of the system components.
+__Current List:__
+1. Blueprint (in progress)
+2. Healthz (done): A simple http example
 
-## User Authentication
-
-
-## Pkg
+## pkg/
 Contains internal reusable packages that different components of the system can share. A good example of something that might
 find a home in `pkg` is an `authorization` client.
+
+## deployments/
+The local, stage, and production deployment configuration of draft components, and external service dependencies. 
+
+## tests/
+Functional tests used to make sure features are functioning with each release end to end.
+
+## tools/
+Contains `draft-cli` or `dctl`. A tool for working on, and with systems that use draft as a framework.

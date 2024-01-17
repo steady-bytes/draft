@@ -13,27 +13,27 @@ import (
 	"github.com/uptrace/bun"
 )
 
-// TODO -> add logger with json formatting
-// TODO -> add health check on background thread and tie it to readiness, and health checks
-// TODO -> implement a graceful shutdown process
-// TODO -> add ssl support on postgres
-
 type Runtime struct {
 	config *Config
 	nodeID string
 
-	tcp net.Listener
-
+	// repo options
 	badger   *badger.DB
 	gorm     *gorm.DB
 	bun      *bun.DB
 	repoKind RepoKind
 
-	rpc       *http.ServeMux
-	rpcServer *http.Server
+	// network toggles
+	isRPC                     bool
+	rpcReflectionServiceNames []string
+	isHTTP                    bool
+	// multiplexer
+	mux *http.ServeMux
+	// router options
+	gin      *gin.Engine
+	httpKind HTTPKind
 
 	nats *nats.Conn
-	http *gin.Engine
 
 	consensusKind        ConsensusKind
 	raftAdvertiseAddress *net.TCPAddr
@@ -50,9 +50,8 @@ func New(name, nodeID string) *Runtime {
 		config: NewConfig(name),
 		nodeID: nodeID,
 		bun:    nil,
-		rpc:    nil,
-		tcp:    nil,
-		http:   nil,
+		isRPC:  false,
+		isHTTP: false,
 	}
 
 	return rt

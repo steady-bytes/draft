@@ -55,4 +55,4 @@ api: compiler
 
 # build the compiler
 compiler:
-	docker build -t apibuilder:v1 -f ./Dockerfile.compiler .;
+	docker build -t apibuilder:v1 -f ./api/Dockerfile.compiler .;

@@ -1,4 +1,4 @@
-package controller
+package key_value
 
 import (
 	"errors"
@@ -8,12 +8,21 @@ import (
 
 	"github.com/hashicorp/raft"
 	fsv1 "github.com/steady-bytes/draft/api/gen/go/consensus/fsm/v1"
+	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type (
-	KeyValueController interface {
+	Controller[T any] interface {
+		draft.ConsensusRegistrar
+		draft.SecretStoreSetter
+		raft.FSM
+
+		KeyValue
+	}
+
+	KeyValue interface {
 		Delete(key string, value proto.Message) error
 		Set(key string, value *anypb.Any, timeout time.Duration) (*SetResponse, error)
 		Get(key string) (*proto.Message, error)
@@ -24,6 +33,12 @@ type (
 		Error error
 		Data  interface{}
 	}
+
+	controller struct {
+		repo Repo[proto.Message]
+		raft *raft.Raft
+		sstr draft.SecretStore
+	}
 )
 
 const (
@@ -33,11 +48,43 @@ const (
 )
 
 var (
-	ErrFaildLogBuild = errors.New("failed to build the raft log from the key and value provided")
-	ErrFailedAnyCast = errors.New("failed to cast the value to anypb")
+	ErrFaildLogBuild   = errors.New("failed to build the raft log from the key/value provided")
+	ErrFailedAnyCast   = errors.New("failed to cast the value to anypb")
+	ErrFailedToMarshal = errors.New("failed to marshal payload")
 )
 
-func (c *controller) Delete(key string, kind proto.Message) error {
+func NewController(repo Repo[proto.Message]) Controller[proto.Message] {
+	return &controller{
+		repo: repo,
+		raft: nil,
+		sstr: nil,
+	}
+}
+
+// Accepts a `SecretStore` interface and adds it to the controller
+func (c *controller) SetSecretStore(s draft.SecretStore) {
+	c.sstr = s
+}
+
+// Implement the the `draft.ConsensusRegister` interface so that the underlying infrastructure
+// is put into place before the service is running. To run this service as a replicated service
+// that can share, and agree on.
+func (c *controller) RegisterConsensus(raftConn interface{}) error {
+	if raftConn != nil {
+		if raft, ok := raftConn.(*raft.Raft); ok {
+			c.raft = raft
+			return nil
+		} else {
+			return errors.New("failed to register raft with the service")
+		}
+	}
+	return errors.New("raft connection is nill")
+}
+
+func (c *controller) Delete(
+	key string,
+	kind proto.Message,
+) error {
 	if err := c.repo.Delete(key, kind); err != nil {
 		return err
 	}
@@ -59,7 +106,11 @@ func (c *controller) Iterate() {
 	c.repo.Query(&anypb.Any{})
 }
 
-func (c *controller) Set(key string, value *anypb.Any, timeout time.Duration) (*SetResponse, error) {
+func (c *controller) Set(
+	key string,
+	value *anypb.Any,
+	timeout time.Duration,
+) (*SetResponse, error) {
 	if c.raft.State() != raft.Leader {
 		fmt.Println("no leader")
 		// todo -> redirect request to leader, or just return an error that the client
@@ -93,7 +144,11 @@ func (c *controller) Set(key string, value *anypb.Any, timeout time.Duration) (*
 	return res, nil
 }
 
-func (c *controller) buildRaftLog(key string, value *anypb.Any, operation fsv1.Operation) ([]byte, error) {
+func (c *controller) buildRaftLog(
+	key string,
+	value *anypb.Any,
+	operation fsv1.Operation,
+) ([]byte, error) {
 	payload := &fsv1.CommandPayload{
 		Operation: operation,
 		Key:       key,
@@ -102,7 +157,7 @@ func (c *controller) buildRaftLog(key string, value *anypb.Any, operation fsv1.O
 
 	data, err := proto.Marshal(payload)
 	if err != nil {
-		return nil, errors.New(ErrfailedToMarshalPayload)
+		return nil, ErrFailedToMarshal
 	}
 
 	return data, nil

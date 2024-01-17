@@ -1,4 +1,4 @@
-package api
+package key_value
 
 import (
 	"context"
@@ -9,14 +9,34 @@ import (
 
 	"connectrpc.com/connect"
 	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
+	kvConnect "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1/v1connect"
+	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-// Set - Responds to the rpc method `Set`. The request is checked to see if it's running on the leader
-// if not then an error is returned. After, the leader is validated the payload is transformed to the `CommandPayload`
-// and then apply'ed to the raft log. If that is successful then it's considered committed to the cluster.
-func (h *handler) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*connect.Response[kvv1.SetResponse], error) {
+type (
+	Rpc interface {
+		draft.RPCRegistrar
+
+		kvConnect.KeyValueServiceHandler
+	}
+
+	rpc struct {
+		controller Controller[proto.Message]
+	}
+)
+
+func New(controller Controller[proto.Message]) Rpc {
+	return &rpc{controller}
+}
+
+func (h *rpc) RegisterRPC(server draft.Rpcer) {
+	server.EnableReflection(kvConnect.KeyValueServiceName)
+	server.AddHandler(kvConnect.NewKeyValueServiceHandler(h))
+}
+
+func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*connect.Response[kvv1.SetResponse], error) {
 	var (
 		key   = strings.TrimSpace(req.Msg.GetKey())
 		value = req.Msg.GetValue()
@@ -35,7 +55,7 @@ func (h *handler) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]
 }
 
 // Get - Looks for a key that maybe in the `Log` and if found returns the associated value
-func (h *handler) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
+func (h *rpc) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
 	var (
 		key = strings.TrimSpace(req.Msg.GetKey())
 	)
@@ -58,11 +78,11 @@ func (h *handler) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]
 	return connect.NewResponse[kvv1.GetResponse](res), nil
 }
 
-func (h *handler) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteRequest]) (*connect.Response[kvv1.DeleteResponse], error) {
+func (h *rpc) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteRequest]) (*connect.Response[kvv1.DeleteResponse], error) {
 	return nil, errors.New("not implemented")
 }
 
-func (h *handler) Query(ctx context.Context, req *connect.Request[kvv1.QueryRequest]) (*connect.Response[kvv1.QueryResponse], error) {
+func (h *rpc) Query(ctx context.Context, req *connect.Request[kvv1.QueryRequest]) (*connect.Response[kvv1.QueryResponse], error) {
 	h.controller.Iterate()
 
 	return nil, errors.New("not implemented")

@@ -5,19 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"sync"
-	"time"
 
-	cnt "connectrpc.com/connect"
-	"github.com/google/uuid"
-
-	rfv1 "github.com/steady-bytes/draft/api/gen/go/consensus/raft/v1"
+	"connectrpc.com/connect"
 	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
-	sdv1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
-
-	rfv1Cnt "github.com/steady-bytes/draft/api/go/consensus/raft/v1/v1connect"
-	kvv1Cnt "github.com/steady-bytes/draft/api/go/registry/key_value/v1/v1connect"
-	sdv1Cnt "github.com/steady-bytes/draft/api/go/registry/service_discovery/v1/v1connect"
+	kvv1Cnt "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1/v1connect"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -32,6 +24,10 @@ func main() {
 		return
 	}
 
+	if cmd == "set_value" {
+		setValue()
+	}
+
 	if cmd == "register" {
 		registerBlueprintNodes()
 	}
@@ -41,104 +37,126 @@ func main() {
 	}
 }
 
-func initService() {
-	client := sdv1Cnt.NewServiceDiscoveryServiceClient(http.DefaultClient, SERVER_ADDRESS)
-	req := cnt.NewRequest(&sdv1.InitRequest{
-		Name:  "test-registry",
-		Nonce: "BLUEPRINT",
+// setValue - A test of the key/value interface
+func setValue() {
+	val, err := anypb.New(&kvv1.Value{
+		Data: "how will the any pb work?",
 	})
-	res, err := client.Init(context.Background(), req)
 	if err != nil {
-		fmt.Println("failed to init a process")
+		panic("failed to create the `value` struct")
 	}
 
-	fmt.Println(res)
+	val.TypeUrl = "registry.key_value.v1.Value"
+
+	req := connect.NewRequest(&kvv1.SetRequest{
+		Key:   "test",
+		Value: val,
+	})
+
+	client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	res, err := client.Set(context.Background(), req)
+	if err != nil {
+		panic("set failed")
+	}
+
+	fmt.Println("response: ", res)
+}
+
+func initService() {
+	// client := sdv1Cnt.NewServiceDiscoveryServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	// req := cnt.NewRequest()
+	// res, err := client.Init(context.Background(), req)
+	// if err != nil {
+	// 	fmt.Println("failed to init a process")
+	// }
+
+	// fmt.Println(res)
 }
 
 func registerBlueprintNodes() {
 	fmt.Println("test blueprint")
 
-	raftClient := rfv1Cnt.NewRaftServiceClient(http.DefaultClient, SERVER_ADDRESS)
-	keyValClient := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	// raftClient := rfv1Cnt.NewRaftServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	// keyValClient := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
 
-	req := cnt.NewRequest(
-		&rfv1.JoinRequest{
-			NodeId:      "node_2",
-			RaftAddress: "localhost:1112",
-		})
-	_, err := raftClient.Join(
-		context.Background(), req)
-	if err != nil {
-		fmt.Println("failed to connect to leader")
-	}
+	// req := cnt.NewRequest(
+	// 	&rfv1.JoinRequest{
+	// 		NodeId:      "node_2",
+	// 		RaftAddress: "localhost:1112",
+	// 	})
+	// _, err := raftClient.Join(
+	// 	context.Background(), req)
+	// if err != nil {
+	// 	fmt.Println("failed to connect to leader")
+	// }
 
-	req.Msg.NodeId = "node_3"
-	req.Msg.RaftAddress = "localhost:1113"
-	_, err = raftClient.Join(context.Background(), req)
-	if err != nil {
-		fmt.Println("failed to connect to leader")
-	}
+	// req.Msg.NodeId = "node_3"
+	// req.Msg.RaftAddress = "localhost:1113"
+	// _, err = raftClient.Join(context.Background(), req)
+	// if err != nil {
+	// 	fmt.Println("failed to connect to leader")
+	// }
 
-	time.Sleep(1 * time.Second)
+	// time.Sleep(1 * time.Second)
 
-	// call key/val client
-	var (
-		key = "test"
-		val = "test value"
-	)
+	// // call key/val client
+	// var (
+	// 	key = "test"
+	// 	val = "test value"
+	// )
 
-	req2 := cnt.NewRequest(&kvv1.SetRequest{
-		Key:   key,
-		Value: val,
-	})
+	// req2 := cnt.NewRequest(&kvv1.SetRequest{
+	// 	Key:   key,
+	// 	Value: val,
+	// })
 
-	setRes, err := keyValClient.Set(context.Background(), req2)
-	if err != nil {
-		fmt.Println("failed to save key")
-	}
+	// setRes, err := keyValClient.Set(context.Background(), req2)
+	// if err != nil {
+	// 	fmt.Println("failed to save key")
+	// }
 
-	fmt.Println("res: ", setRes)
+	// fmt.Println("res: ", setRes)
 
-	keys := make([]string, 0)
+	// keys := make([]string, 0)
 
-	var wg sync.WaitGroup
+	// var wg sync.WaitGroup
 
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		k := uuid.NewString()
-		v := uuid.NewString()
+	// for i := 0; i < 100; i++ {
+	// 	wg.Add(1)
+	// 	k := uuid.NewString()
+	// 	v := uuid.NewString()
 
-		go func() {
-			defer wg.Done()
+	// 	go func() {
+	// 		defer wg.Done()
 
-			req3 := cnt.NewRequest(&kvv1.SetRequest{
-				Key:   k,
-				Value: v,
-			})
-			setRes, err := keyValClient.Set(context.Background(), req3)
-			if err != nil {
-				fmt.Println("failed to save key")
-			}
+	// 		req3 := cnt.NewRequest(&kvv1.SetRequest{
+	// 			Key:   k,
+	// 			Value: v,
+	// 		})
+	// 		setRes, err := keyValClient.Set(context.Background(), req3)
+	// 		if err != nil {
+	// 			fmt.Println("failed to save key")
+	// 		}
 
-			fmt.Println(setRes)
+	// 		fmt.Println(setRes)
 
-			keys = append(keys, k)
+	// 		keys = append(keys, k)
 
-		}()
-	}
+	// 	}()
+	// }
 
-	wg.Wait()
+	// wg.Wait()
 
-	for _, i := range keys {
-		req4 := cnt.NewRequest(&kvv1.GetRequest{
-			Key:    i,
-			Filter: kvv1.GetFilter_STRING_GET_FILTER,
-		})
-		getRes, err := keyValClient.Get(context.Background(), req4)
-		if err != nil {
-			fmt.Println(err)
-		}
+	// for _, i := range keys {
+	// 	req4 := cnt.NewRequest(&kvv1.GetRequest{
+	// 		Key:    i,
+	// 		Filter: kvv1.GetFilter_STRING_GET_FILTER,
+	// 	})
+	// 	getRes, err := keyValClient.Get(context.Background(), req4)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 	}
 
-		fmt.Println("res:  ", i, getRes.Msg.GetAsString())
-	}
+	// 	fmt.Println("res:  ", i, getRes.Msg.GetAsString())
+	// }
 }

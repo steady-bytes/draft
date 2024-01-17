@@ -1,4 +1,4 @@
-package repo
+package key_value
 
 import (
 	"encoding/json"
@@ -16,25 +16,29 @@ import (
 // REF: https://dgraph.io/docs/badger/get-started/
 
 type (
-	// KeyValueRepo - Is a generic interface that is integrated with badgerDB.
+	// A generic interface that is integrated with badgerDB.
 	// It offers simplified methods that remaining layers of any application can use.
 	// The only requirement is that each value that is stored to the db needs to
 	// be a `proto.Message` b/c `proto.Marshal` is being used to encode
-	KeyValueRepo[T proto.Message] interface {
+	Repo[T proto.Message] interface {
 		draft.RepoRegistrar
 		// Delete removes a key forever
-		Delete(key string, kind T) error
+		Delete(Key, T) error
 		// Retrieve a value by it's key
-		Get(key string, kind T) (T, error)
+		Get(Key, T) (T, error)
 		// Query takes in a key prefix, and returns a map
 		// of all values that the key prefix matches
-		Query(T) (map[string]T, error)
+		Query(T) (map[Key]T, error)
 		// Save a key, value to badger. If a key is the same as an existing
 		// key that has already been saved then the new value will overwrite the old.
-		Set(key string, value T) error
+		Set(Key, T) error
 	}
 
-	model[T proto.Message] struct {
+	// Key is an alias to a string that identifies it's use as a key in the key/value store
+	Key = string
+
+	// structure implementing the `KeyValueRepo` interface for the type `T` of `proto.Message`
+	repo[T proto.Message] struct {
 		db *badger.DB
 	}
 )
@@ -42,8 +46,10 @@ type (
 // New - Initialize a new `KeyValueRepo` struct. NOTE: This will not bootstrap the underlying
 // badger database. That will happen when `RegisterRepo` is called in the service chassis when
 // the service starts up.
-func New[T proto.Message]() KeyValueRepo[T] {
-	return &model[T]{}
+func NewRepo[T proto.Message]() Repo[T] {
+	return &repo[T]{
+		db: nil,
+	}
 }
 
 var (
@@ -56,7 +62,7 @@ var (
 
 // Implement the the `draft.RepoRegister` interface so that the underlying infrastructure is put
 // into place before the application is run.
-func (m *model[T]) RegisterRepo(dbConn interface{}) error {
+func (m *repo[T]) RegisterRepo(dbConn interface{}) error {
 	if dbConn != nil {
 		if db, ok := dbConn.(*badger.DB); ok {
 			m.db = db
@@ -68,12 +74,12 @@ func (m *model[T]) RegisterRepo(dbConn interface{}) error {
 	return ErrDBNilDBConnection
 }
 
-// Delete - Takes a key, and a model to locate persistance layer. If found and the delete operation
+// Delete - Takes a key, and a repo to locate persistance layer. If found and the delete operation
 // is successful an error is not returned. Otherwise, and error will return.
-func (m *model[T]) Delete(key string, kind T) error {
+func (m *repo[T]) Delete(k Key, kind T) error {
 	var (
 		txn     = m.db.NewTransaction(true)
-		keyByte = MakeKey(key, kind)
+		keyByte = MakeKey(k, kind)
 		err     error
 	)
 	defer txn.Commit()
@@ -86,7 +92,7 @@ func (m *model[T]) Delete(key string, kind T) error {
 	return nil
 }
 
-func (m *model[T]) Get(k string, kind T) (T, error) {
+func (m *repo[T]) Get(k string, kind T) (T, error) {
 	if len(k) == 0 {
 		return kind, ErrInvalidKeyLength
 	}
@@ -124,7 +130,7 @@ func MakeKey[T any](key string, kind T) []byte {
 }
 
 // Query - Takes a key prefix
-func (m *model[T]) Query(kind T) (map[string]T, error) {
+func (m *repo[T]) Query(kind T) (map[string]T, error) {
 	var (
 		opts   = badger.DefaultIteratorOptions
 		txn    = m.db.NewTransaction(true)
@@ -160,12 +166,14 @@ func (m *model[T]) Query(kind T) (map[string]T, error) {
 	return output, nil
 }
 
-func (m *model[T]) Set(k string, value T) error {
+func (m *repo[T]) Set(k string, value T) error {
 	var (
 		key  = MakeKey(k, value)
 		data = make([]byte, 0)
 		txn  = m.db.NewTransaction(true)
 	)
+
+	// TODO -> Looks like another option might be to use the `google/protobuf/struct.proto`. It seems like it's used to represent structs and `Unmarshal` to a `map[string]interface{}`.
 
 	data, err := proto.Marshal(value)
 	if err != nil {

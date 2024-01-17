@@ -78,8 +78,6 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 		return
 	}
 
-	// TODO -> this might need to be fixed. It seems to always be throwing an error
-
 	// configuration for raft
 	if raftPortStr == "" || raftIPStr == "" || raftNodeID == "" {
 		log.Fatal(errors.New(invalidRaftAddress))

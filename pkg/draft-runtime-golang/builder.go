@@ -3,41 +3,47 @@ package draft_runtime_golang
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/gin-gonic/gin"
+	"connectrpc.com/grpcreflect"
 	"github.com/rs/cors"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	"google.golang.org/grpc"
 
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-// Default - An interface that can be implemented by a service to register a `Repo`, `Rpc` interface, and a `Consumer`.
-// This is kind of like the kitchen sink interface for services that have many different requirement.
-type Default interface {
-	RepoRegistrar
-	HTTPRegistrar
-	RPCRegistrar
-	BrokerRegistrar
-	ConsensusRegistrar
-}
+type (
+	// CloseChan is used to signal to the runtime that all servers, and connections need
+	// to be closed down.
+	CloseChan = chan os.Signal
+	Default   interface {
+		RepoRegistrar
+		HTTPRegistrar
+		RPCRegistrar
+		BrokerRegistrar
+		ConsensusRegistrar
+	}
+)
 
+////////////////////////////
 // Plugin Register Functions
+////////////////////////////
 
 func (c *Runtime) WithRepo(kind RepoKind, plugin RepoRegistrar) *Runtime {
 	c.withRepo(kind, plugin)
 	return c
 }
 
-func (c *Runtime) WithHTTPHandler(plugin HTTPRegistrar) *Runtime {
-	c.withHTTPHandler(plugin)
+func (c *Runtime) WithHTTPHandler(kind HTTPKind, plugin HTTPRegistrar) *Runtime {
+	c.withHTTPHandler(kind, plugin)
 	return c
 }
 
 func (c *Runtime) WithRPCHandler(plugin RPCRegistrar) *Runtime {
-	c.withRPCHandler(plugin)
+	c.withRpc(plugin)
 	return c
 }
 
@@ -46,53 +52,72 @@ func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *
 	return c
 }
 
+//////////////////
 // State Providers
+//////////////////
 
 // Init a connection to the `SecretStore`, load the secrets into memory, and pass
 // the storage interface up to the runtime for use in the service
-func (c *Runtime) WithSecretStore(setter SecretStoreSetter) *Runtime {
+func (c *Runtime) UseSecretStore(setter SecretStoreSetter) *Runtime {
 	c.withSecretStore(setter)
 	return c
 }
 
-// ==============================
-// DEFAULT BUILDER IMPLEMENTATION
-// ==============================
+////////////////////
+// Runtime Functions
+////////////////////
 
-// TODO -> REVIEW THE DEFAULT IMPLEMENTATION WHEN THE `Default` registrar is complete
-
-type DefaultRuntimeBuilder struct{}
-
-func (d *DefaultRuntimeBuilder) SetRepoType() RepoKind {
-	return PostgresGORM
-}
-
-func (d *DefaultRuntimeBuilder) RegisterRepo(db interface{}) error {
-	return nil
-}
-
-func (d *DefaultRuntimeBuilder) RegisterRPC() *grpc.Server {
-	return nil
-}
-
-func (d *DefaultRuntimeBuilder) RegisterHTTP() *gin.Engine {
-	return nil
-}
-
-func (d *DefaultRuntimeBuilder) SetBrokerType() BrokerType {
-	return Nats
-}
-
-func (d *DefaultRuntimeBuilder) RegisterBroker(broker interface{}) error {
-	return nil
-}
-
-// Start the runtime of the service. This will do things like fire up the grpc/http servers and put them on a background routine's
-// TODO -> figure out how to run grpc + http on the same port
-// TODO -> figure out how to run everything on a background thread so the runtime can be shutdown
+// Start the runtime of the service. This will do things like fire up the grpc/http servers and put
+// them on a background routine's
 func (c *Runtime) Start() error {
-	// TODO -> configure these a little better
-	corsHandler := cors.New(cors.Options{
+	cors := c.buildCors()
+	handler := cors.Handler(c.mux)
+
+	if c.mux == nil {
+		c.mux = http.NewServeMux()
+	}
+
+	close := make(chan os.Signal, 1)
+	signal.Notify(close, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	if c.isHTTP == true {
+		go c.runHTTP(close, handler)
+	}
+
+	if c.isRPC == true {
+		go c.runRPC(close, handler)
+	}
+
+	// forever loop that runs until `close` signal is received
+	for {
+		select {
+		case <-close:
+			fmt.Println("close signal received")
+			os.Exit(0)
+		}
+	}
+}
+
+func (c *Runtime) runHTTP(close CloseChan, handler http.Handler) {
+	if err := http.ListenAndServe(c.config.Service.GetAddress(), handler); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (c *Runtime) runRPC(close CloseChan, handler http.Handler) {
+	if len(c.rpcReflectionServiceNames) > 0 {
+		reflector := grpcreflect.NewStaticReflector(c.rpcReflectionServiceNames...)
+		c.mux.Handle(grpcreflect.NewHandlerV1(reflector))
+		c.mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
+	}
+
+	if err := http.ListenAndServe(c.config.Service.GetAddress(), h2c.NewHandler(handler, &http2.Server{})); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (c *Runtime) buildCors() *cors.Cors {
+	return cors.New(cors.Options{
 		AllowedMethods: []string{
 			http.MethodGet,
 			http.MethodPost,
@@ -117,22 +142,4 @@ func (c *Runtime) Start() error {
 			"Grpc-Message",             // Required for gRPC-web
 		},
 	})
-
-	if c.http != nil {
-		if err := c.http.Run(); err != nil {
-			log.Panic().Msg("failed to start http service")
-		}
-	}
-
-	if c.rpc != nil {
-		// c.rpcServer.Serve(c.tcp)
-		handler := corsHandler.Handler(c.rpc)
-		if err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", c.config.Service.Port), h2c.NewHandler(handler, &http2.Server{})); err != nil {
-			fmt.Println(err)
-		}
-	}
-
-	return nil
 }
-
-func (c *Runtime) Stop() {}

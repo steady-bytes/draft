@@ -1,25 +1,33 @@
 package main
 
 import (
-	a "github.com/steady-bytes/draft/blueprint/api"
-	c "github.com/steady-bytes/draft/blueprint/controller"
-	r "github.com/steady-bytes/draft/blueprint/repo"
-	"google.golang.org/protobuf/proto"
+	kv "github.com/steady-bytes/draft/blueprint/key_value"
+	sd "github.com/steady-bytes/draft/blueprint/service_discovery"
 
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+
+	"google.golang.org/protobuf/proto"
+)
+
+const (
+	NAME = "blueprint"
 )
 
 func main() {
 	var (
-		repo = r.New[proto.Message]()
-		ctr  = c.New(repo)
-		api  = a.New(ctr)
+		keyValueRepo       = kv.NewRepo[proto.Message]()
+		keyValueController = kv.NewController(keyValueRepo)
+		keyValueRPC        = kv.New(keyValueController)
+
+		serviceDiscoveryController = sd.NewController(keyValueController)
+		serviceDiscoveryRPC        = sd.New(serviceDiscoveryController)
 	)
 
-	defer draft.New("blueprint", "").
-		WithRepo(draft.Badger, repo).
-		WithConsensus(draft.Raft, ctr).
-		WithRPCHandler(api).
-		WithSecretStore(ctr).
+	defer draft.New(NAME, "").
+		WithRepo(draft.Badger, keyValueRepo).
+		WithConsensus(draft.Raft, keyValueController).
+		WithRPCHandler(keyValueRPC).
+		WithRPCHandler(serviceDiscoveryRPC).
+		UseSecretStore(keyValueController).
 		Start()
 }

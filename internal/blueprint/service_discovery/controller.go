@@ -1,16 +1,25 @@
-package controller
+package service_discovery
 
 import (
 	"context"
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	sdv1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
-	"google.golang.org/protobuf/types/known/anypb"
+	kv "github.com/steady-bytes/draft/blueprint/key_value"
+	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
 )
 
 type (
+	Controller interface {
+		draft.SecretStoreSetter
+
+		ServiceDiscovery
+	}
+
 	ServiceDiscovery interface {
 		Finalize(ctx context.Context, pid string) error
 		Initialize(ctx context.Context, nonce, name string) (*sdv1.ProcessIdentity, error)
@@ -18,7 +27,24 @@ type (
 		// Query(ctx context.Context)
 
 	}
+
+	controller struct {
+		kvController kv.Controller[proto.Message]
+		secretStore  draft.SecretStore
+	}
 )
+
+func NewController(kvController kv.Controller[proto.Message]) Controller {
+	return &controller{
+		kvController: kvController,
+		secretStore:  nil,
+	}
+}
+
+// Accepts a `SecretStore` interface and adds it to the controller
+func (c *controller) SetSecretStore(s draft.SecretStore) {
+	c.secretStore = s
+}
 
 const (
 	signKey                           = "TODO -> load this from the secret store"
@@ -32,7 +58,7 @@ const (
 // Finalize - Gracefully remove the process from the registry. Close the connection if one is still
 // open and change the process state to `Finalized`
 func (c *controller) Finalize(ctx context.Context, pid string) error {
-	if err := c.Delete(pid, &sdv1.Process{}); err != nil {
+	if err := c.kvController.Delete(pid, &sdv1.Process{}); err != nil {
 		return err
 	}
 
@@ -95,7 +121,7 @@ func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.
 // `SystemJournal`.
 func (c *controller) Synchronize(ctx context.Context, details *sdv1.ClientDetails) {
 	// Look for the key, if not found return error
-	_, err := c.Get(details.Pid)
+	_, err := c.kvController.Get(details.Pid)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -139,12 +165,12 @@ func (c *controller) generateToken() (*sdv1.Token, error) {
 }
 
 func (c *controller) Query(ctx context.Context) {
-	values, err := c.repo.Query(&anypb.Any{})
-	if err != nil {
-		fmt.Println(err)
-	}
+	// values, err := c.kvController.Query(&anypb.Any{})
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
 
-	for k, v := range values {
-		fmt.Println(k, v)
-	}
+	// for k, v := range values {
+	// 	fmt.Println(k, v)
+	// }
 }
