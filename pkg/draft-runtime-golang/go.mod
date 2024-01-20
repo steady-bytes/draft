@@ -1,19 +1,20 @@
 module draft_runtime_golang
 
-go 1.21.3
+go 1.21.5
 
 replace github.com/steady-bytes/draft/api/gen/go v0.0.1 => ../../api/gen/go
 
 require (
-	connectrpc.com/connect v1.13.0
+	connectrpc.com/connect v1.14.0
+	connectrpc.com/grpcreflect v1.2.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/dn365/gin-zerolog v0.0.0-20171227063204-b43714b00db1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.3.1
 	github.com/hashicorp/raft v1.6.0
 	github.com/hashicorp/raft-boltdb v0.0.0-20231115180007-027066e4d245
 	github.com/jinzhu/gorm v1.9.16
 	github.com/nats-io/nats.go v1.29.0
+	github.com/rs/cors v1.10.1
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/viper v1.10.1
 	github.com/steady-bytes/draft/api/gen/go v0.0.1
@@ -21,7 +22,6 @@ require (
 	github.com/uptrace/bun/dialect/pgdialect v1.1.16
 	github.com/uptrace/bun/driver/pgdriver v1.1.16
 	golang.org/x/net v0.17.0
-	google.golang.org/grpc v1.60.0
 )
 
 require (
@@ -82,8 +82,7 @@ require (
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
