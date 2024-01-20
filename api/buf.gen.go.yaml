@@ -5,34 +5,14 @@ plugins:
     out: gen/go
     opt:
       - paths=source_relative
-  # go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-  # - name: go-grpc
-  #   out: gen/go
-  #   opt:
-  #     - paths=source_relative
   # go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
   - plugin: connect-go
     out: gen/go
-    opt: 
+    opt:
       - paths=source_relative
-  # - name: grpc-gateway
-  #   out: gen/go
-  #   opt:
-  #     - paths=source_relative
-  # go get -d github.com/envoyproxy/protoc-gen-validate
+  # go install github.com/envoyproxy/protoc-gen-validate
   - name: validate
     out: gen/go
     opt:
       - paths=source_relative
       - lang=go
-  # go install github.com/fluidtruck/protoc-gen-timestamppb-sql@latest
-  # - name: go-timestamppb-sql
-  #   out: gen/go
-  #   opt:
-  #     - paths=source_relative
-  #     - lang=go
-  # # go install github.com/sorcererxw/protoc-gen-go-grpc-mock@latest
-  # - name: go-grpc-mock
-  #   out: gen/go
-  #   opt:
-  #     - paths=source_relative

@@ -1,26 +1,24 @@
 version: v1
-managed:
-  enabled: true
 plugins:
-  # - name: grpc-web
-  #   out: gen/web
-  #   opt:
-  #     - import_style=commonjs,mode=grpcwebtext
-  # - name: js
-  #   out: gen/web
-  #   opt: 
-  #     - import_style=commonjs
   - plugin: es
     out: gen/web
     opt:
-      # Add more plugin options here
+      - target=ts
+  - plugin: es
+    out: gen/web
+    opt:
       - target=js
-  # This will invoke protoc-gen-connect-es
   - plugin: connect-es
     out: gen/web
     opt:
-      # Add more plugin options here
+      - target=ts
+  - plugin: connect-es
+    out: gen/web
+    opt:
       - target=js
+  - name: connect-query
+    out: gen/web
+    opt: target=ts
   - name: connect-query
     out: gen/web
     opt: target=js

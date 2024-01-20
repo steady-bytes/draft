@@ -1,6 +1,6 @@
-version: v1beta1
+version: v1
 plugins:
-  # go get -d github.com/srikrsna/protoc-gen-gotag
+  # go isntall github.com/srikrsna/protoc-gen-gotag
   - name: gotag
     out: .
     opt:

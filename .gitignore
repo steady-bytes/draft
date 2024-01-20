@@ -1,8 +1,9 @@
 api/target
-internal/blueprint/web-client/target
+services/blueprint/web-client/target
 
 .node_1/
 .node_2/
 .node_3/
 
 .DS_Store
+node_modules/
