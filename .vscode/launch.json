@@ -9,7 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "internal/gateway/main.go",
+            "program": "services/core/gateway/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "args": ["run"]
@@ -19,7 +19,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "internal/host/main.go",
+            "program": "services/core/host/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
         },
@@ -64,7 +64,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "internal/blueprint/main.go",
+            "program": "services/core/blueprint/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -81,7 +81,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "internal/blueprint/main.go",
+            "program": "services/core/blueprint/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -97,7 +97,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "internal/blueprint/main.go",
+            "program": "services/core/blueprint/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -113,7 +113,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "internal/healthz/main.go",
+            "program": "services/core/healthz/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {

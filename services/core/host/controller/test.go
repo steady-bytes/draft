@@ -3,7 +3,7 @@ package controller
 import (
 	"errors"
 
-	"github.com/steady-bytes/draft/internal/host/model"
+	"github.com/steady-bytes/draft/services/host/model"
 )
 
 type (

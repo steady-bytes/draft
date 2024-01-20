@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	wr "github.com/steady-bytes/draft/internal/writer"
+	wr "github.com/steady-bytes/draft/services/writer"
 
 	"github.com/spf13/cobra"
 )

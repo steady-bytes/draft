@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	c "github.com/steady-bytes/draft/internal/host/controller"
+	c "github.com/steady-bytes/draft/services/host/controller"
 
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 

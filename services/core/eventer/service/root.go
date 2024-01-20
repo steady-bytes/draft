@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	es "github.com/steady-bytes/draft/internal/eventer"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	es "github.com/steady-bytes/draft/services/eventer"
 
 	"fmt"
 	"os"

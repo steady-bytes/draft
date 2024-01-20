@@ -1,4 +1,4 @@
-module github.com/steady-bytes/draft/internal/eventer
+module github.com/steady-bytes/draft/services/eventer
 
 go 1.19
 

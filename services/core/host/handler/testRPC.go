@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	c "github.com/steady-bytes/draft/internal/host/controller"
+	c "github.com/steady-bytes/draft/services/host/controller"
 	"google.golang.org/grpc"
 
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"

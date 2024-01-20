@@ -1,10 +1,10 @@
-module github.com/steady-bytes/draft/internal/host
+module github.com/steady-bytes/draft/services/host
 
 go 1.21.3
 
 replace (
-	github.com/steady-bytes/draft/api/go v0.0.1 => ../../api/gen/go
-	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1 => ../../pkg/draft-runtime-golang
+	github.com/steady-bytes/draft/api/go v0.0.1 => ../../../api/gen/go
+	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1 => ../../../pkg/draft-runtime-golang
 )
 
 require (

@@ -53,7 +53,7 @@ $ make api
 $ make clean
 ```
 
-## internal/
+## services/
 Each directory is a self contained implementation of one of the system components.
 __Current List:__
 1. Blueprint (in progress)
