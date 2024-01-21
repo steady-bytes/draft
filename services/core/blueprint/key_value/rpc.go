@@ -11,8 +11,6 @@ import (
 	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
 	kvConnect "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1/v1connect"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type (
@@ -23,11 +21,11 @@ type (
 	}
 
 	rpc struct {
-		controller Controller[proto.Message]
+		controller Controller
 	}
 )
 
-func New(controller Controller[proto.Message]) Rpc {
+func New(controller Controller) Rpc {
 	return &rpc{controller}
 }
 
@@ -57,22 +55,18 @@ func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*
 // Get - Looks for a key that maybe in the `Log` and if found returns the associated value
 func (h *rpc) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
 	var (
-		key = strings.TrimSpace(req.Msg.GetKey())
+		key   = strings.TrimSpace(req.Msg.GetKey())
+		value = req.Msg.GetValue()
 	)
 
-	value, err := h.controller.Get(key)
+	value, err := h.controller.Get(key, value.GetTypeUrl())
 	if err != nil {
 		fmt.Println("error reading: ", err)
 		return nil, errors.New("failed to get value for key")
 	}
 
-	any := &anypb.Any{}
-	if err := anypb.MarshalFrom(any, *value, proto.MarshalOptions{}); err != nil {
-		return nil, err
-	}
-
 	res := &kvv1.GetResponse{
-		Value: any,
+		Value: value,
 	}
 
 	return connect.NewResponse[kvv1.GetResponse](res), nil
@@ -83,7 +77,5 @@ func (h *rpc) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteReques
 }
 
 func (h *rpc) Query(ctx context.Context, req *connect.Request[kvv1.QueryRequest]) (*connect.Response[kvv1.QueryResponse], error) {
-	h.controller.Iterate()
-
 	return nil, errors.New("not implemented")
 }

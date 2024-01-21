@@ -76,7 +76,7 @@ type CommandPayload struct {
 	unknownFields protoimpl.UnknownFields
 
 	Operation Operation  `protobuf:"varint,1,opt,name=operation,proto3,enum=consensus.fsm.v1.Operation" json:"operation" pg:"operation" bun:"operation" yaml:"operation" csv:"operation"`
-	Key       string     `protobuf:"bytes,2,opt,name=key,proto3" json:"key" yaml:"key" csv:"key" pg:"key" bun:"key"`
+	Key       string     `protobuf:"bytes,2,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
 	Value     *anypb.Any `protobuf:"bytes,3,opt,name=value,proto3" json:"value" pg:"value" bun:"value" yaml:"value" csv:"value"`
 }
 

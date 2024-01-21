@@ -14,7 +14,7 @@ import (
 )
 
 type (
-	Controller[T any] interface {
+	Controller interface {
 		draft.ConsensusRegistrar
 		draft.SecretStoreSetter
 		raft.FSM
@@ -23,10 +23,10 @@ type (
 	}
 
 	KeyValue interface {
-		Delete(key string, value proto.Message) error
-		Set(key string, value *anypb.Any, timeout time.Duration) (*SetResponse, error)
-		Get(key string) (*proto.Message, error)
-		Iterate()
+		// Delete(key string, value T) error
+		Set(key string, value T, timeout time.Duration) (*SetResponse, error)
+		Get(key, kind string) (T, error)
+		// Iterate()
 	}
 
 	SetResponse struct {
@@ -35,7 +35,7 @@ type (
 	}
 
 	controller struct {
-		repo Repo[proto.Message]
+		repo Repo
 		raft *raft.Raft
 		sstr draft.SecretStore
 	}
@@ -53,7 +53,7 @@ var (
 	ErrFailedToMarshal = errors.New("failed to marshal payload")
 )
 
-func NewController(repo Repo[proto.Message]) Controller[proto.Message] {
+func NewController(repo Repo) Controller {
 	return &controller{
 		repo: repo,
 		raft: nil,
@@ -83,7 +83,7 @@ func (c *controller) RegisterConsensus(raftConn interface{}) error {
 
 func (c *controller) Delete(
 	key string,
-	kind proto.Message,
+	kind T,
 ) error {
 	if err := c.repo.Delete(key, kind); err != nil {
 		return err
@@ -92,23 +92,27 @@ func (c *controller) Delete(
 	return nil
 }
 
-func (c *controller) Get(key string) (*proto.Message, error) {
-	val, err := c.repo.Get(key, &anypb.Any{})
+func (c *controller) Get(key, kind string) (T, error) {
+	val := &anypb.Any{
+		TypeUrl: kind,
+	}
+
+	val, err := c.repo.Get(key, val)
 	if err != nil {
 		fmt.Println("error: ", err)
 		return nil, err
 	}
 
-	return &val, nil
+	return val, nil
 }
 
-func (c *controller) Iterate() {
-	c.repo.Query(&anypb.Any{})
-}
+// func (c *controller) Iterate() {
+// 	c.repo.Query(&anypb.Any{})
+// }
 
 func (c *controller) Set(
 	key string,
-	value *anypb.Any,
+	value T,
 	timeout time.Duration,
 ) (*SetResponse, error) {
 	if c.raft.State() != raft.Leader {
@@ -146,7 +150,7 @@ func (c *controller) Set(
 
 func (c *controller) buildRaftLog(
 	key string,
-	value *anypb.Any,
+	value T,
 	operation fsv1.Operation,
 ) ([]byte, error) {
 	payload := &fsv1.CommandPayload{

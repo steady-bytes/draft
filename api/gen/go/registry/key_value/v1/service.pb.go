@@ -173,7 +173,7 @@ type SetResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" csv:"key" pg:"key" bun:"key" yaml:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" yaml:"key" csv:"key" pg:"key" bun:"key"`
 }
 
 func (x *SetResponse) Reset() {
@@ -220,7 +220,7 @@ type GetRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" yaml:"key" csv:"key" pg:"key" bun:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
 }
 
 func (x *GetRequest) Reset() {
@@ -267,7 +267,7 @@ type GetResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Value *anypb.Any `protobuf:"bytes,1,opt,name=value,proto3" json:"value" pg:"value" bun:"value" yaml:"value" csv:"value"`
+	Value *anypb.Any `protobuf:"bytes,1,opt,name=value,proto3" json:"value" yaml:"value" csv:"value" pg:"value" bun:"value"`
 }
 
 func (x *GetResponse) Reset() {
@@ -314,7 +314,7 @@ type DeleteRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" bun:"key" yaml:"key" csv:"key" pg:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" csv:"key" pg:"key" bun:"key" yaml:"key"`
 }
 
 func (x *DeleteRequest) Reset() {
@@ -426,11 +426,11 @@ type isDeleteResponse_Response interface {
 }
 
 type DeleteResponse_Key struct {
-	Key string `protobuf:"bytes,1,opt,name=key,proto3,oneof" pg:"key" bun:"key" yaml:"key" csv:"key" json:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3,oneof" csv:"key" json:"key" pg:"key" bun:"key" yaml:"key"`
 }
 
 type DeleteResponse_Error struct {
-	Error DeleteError `protobuf:"varint,2,opt,name=error,proto3,enum=registry.key_value.v1.DeleteError,oneof" csv:"error" json:"error" pg:"error" bun:"error" yaml:"error"`
+	Error DeleteError `protobuf:"varint,2,opt,name=error,proto3,enum=registry.key_value.v1.DeleteError,oneof" pg:"error" bun:"error" yaml:"error" csv:"error" json:"error"`
 }
 
 func (*DeleteResponse_Key) isDeleteResponse_Response() {}
