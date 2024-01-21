@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
-	kvConnect "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1/v1connect"
+	kvv1 "github.com/steady-bytes/draft/api/registry/key_value/v1"
+	kvConnect "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"

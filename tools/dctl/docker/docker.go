@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/steady-bytes/tools/dctl/output"
 
@@ -167,8 +166,11 @@ func (d *dockerController) StartContainer(ctx context.Context, containerName str
 }
 
 func (d *dockerController) StopContainer(ctx context.Context, id string) error {
-	timeout := 30 * time.Second
-	return d.cli.ContainerStop(ctx, id, &timeout)
+	timeout := 30
+	options := container.StopOptions{
+		Timeout: &timeout,
+	}
+	return d.cli.ContainerStop(ctx, id, options)
 }
 
 func (d *dockerController) StopContainerByName(ctx context.Context, containerName string) error {

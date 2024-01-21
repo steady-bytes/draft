@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	sdv1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
-	sdConnect "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1/v1connect"
+	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
+	sdConnect "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 
 	"connectrpc.com/connect"

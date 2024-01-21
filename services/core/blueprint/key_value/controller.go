@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/raft"
-	fsv1 "github.com/steady-bytes/draft/api/gen/go/consensus/fsm/v1"
+	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"

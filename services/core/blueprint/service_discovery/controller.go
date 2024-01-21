@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	sdv1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
+	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 

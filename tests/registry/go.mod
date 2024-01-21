@@ -2,7 +2,7 @@ module github.com/steady-bytes/draft/tests/registry/registry-tests
 
 go 1.17
 
-replace github.com/steady-bytes/draft v0.0.1 => ../../
+replace github.com/steady-bytes/draft => ../../
 
 require (
 	github.com/google/uuid v1.3.0

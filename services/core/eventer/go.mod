@@ -2,8 +2,10 @@ module github.com/steady-bytes/draft/services/eventer
 
 go 1.19
 
-replace github.com/steady-bytes/draft/pkg/draft-runtime v0.0.1 => ./pkg/draft-runtime
-replace github.com/steady-bytes/draft/api/go v1.0.0 => ./api/gen/go
+replace (
+	github.com/steady-bytes/draft/pkg/draft-runtime => ../../../pkg/draft-runtime
+	github.com/steady-bytes/draft/api => ../../../api/gen/go
+)
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v0.6.3

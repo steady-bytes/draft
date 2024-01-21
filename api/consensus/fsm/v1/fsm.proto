@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package consensus.fsm.v1;
 
-option go_package = "github.com/steady-bytes/draft/api/gen/go/consensus/fsm/v1";
+option go_package = "github.com/steady-bytes/draft/api/consensus/fsm/v1";
 
 import "google/protobuf/any.proto";
 

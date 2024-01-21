@@ -49,7 +49,7 @@ func Init(cmd *cobra.Command, args []string) error {
 	// initialize go mod only if go.mod doesn't already exist
 	_, err = os.Stat(filepath.Join(apiPath, "gen", "go", "go.mod"))
 	if errors.Is(err, os.ErrNotExist) {
-		c := exec.Command("go", "mod", "init", "github.com/steady-bytes/draft/api/gen/go")
+		c := exec.Command("go", "mod", "init", "github.com/steady-bytes/draft/api")
 		c.Dir = filepath.Join(apiPath, "gen", "go")
 		err = e.ExecuteCommand(ctx, "go", output.Magenta, c)
 		if err != nil {
