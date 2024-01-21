@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package consensus.raft.v1;
 
-option go_package = "github.com/steady-bytes/draft/api/gen/go/consensus/raft/v1";
+option go_package = "github.com/steady-bytes/draft/api/consensus/raft/v1";
 
 service RaftService {
     // Join the raft cluster

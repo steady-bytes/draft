@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/raft"
-	fsv1 "github.com/steady-bytes/draft/api/gen/go/consensus/fsm/v1"
+	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -25,7 +25,7 @@ type (
 	KeyValue interface {
 		// Delete(key string, value T) error
 		Set(key string, value T, timeout time.Duration) (*SetResponse, error)
-		Get(key, kind string) (T, error)
+		Get(key, kindURL string) (T, error)
 		// Iterate()
 	}
 
@@ -92,9 +92,9 @@ func (c *controller) Delete(
 	return nil
 }
 
-func (c *controller) Get(key, kind string) (T, error) {
+func (c *controller) Get(key, kindURL string) (T, error) {
 	val := &anypb.Any{
-		TypeUrl: kind,
+		TypeUrl: kindURL,
 	}
 
 	val, err := c.repo.Get(key, val)

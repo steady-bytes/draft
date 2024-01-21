@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
-	kvConnect "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1/v1connect"
+	kvv1 "github.com/steady-bytes/draft/api/registry/key_value/v1"
+	kvConnect "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 )
 
@@ -55,11 +55,10 @@ func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*
 // Get - Looks for a key that maybe in the `Log` and if found returns the associated value
 func (h *rpc) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
 	var (
-		key   = strings.TrimSpace(req.Msg.GetKey())
-		value = req.Msg.GetValue()
+		key = strings.TrimSpace(req.Msg.GetKey())
 	)
 
-	value, err := h.controller.Get(key, value.GetTypeUrl())
+	value, err := h.controller.Get(key, "registry.key_value.v1.Value")
 	if err != nil {
 		fmt.Println("error reading: ", err)
 		return nil, errors.New("failed to get value for key")

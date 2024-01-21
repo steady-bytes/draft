@@ -3,14 +3,12 @@ package service_discovery
 import (
 	"context"
 	"errors"
-	"fmt"
 
-	sdv1 "github.com/steady-bytes/draft/api/gen/go/registry/service_discovery/v1"
+	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 
 	"github.com/google/uuid"
-	"google.golang.org/protobuf/proto"
 )
 
 type (
@@ -29,12 +27,12 @@ type (
 	}
 
 	controller struct {
-		kvController kv.Controller[proto.Message]
+		kvController kv.Controller
 		secretStore  draft.SecretStore
 	}
 )
 
-func NewController(kvController kv.Controller[proto.Message]) Controller {
+func NewController(kvController kv.Controller) Controller {
 	return &controller{
 		kvController: kvController,
 		secretStore:  nil,
@@ -58,9 +56,9 @@ const (
 // Finalize - Gracefully remove the process from the registry. Close the connection if one is still
 // open and change the process state to `Finalized`
 func (c *controller) Finalize(ctx context.Context, pid string) error {
-	if err := c.kvController.Delete(pid, &sdv1.Process{}); err != nil {
-		return err
-	}
+	// if err := c.kvController.Delete(pid, &sdv1.Process{}); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
@@ -121,11 +119,11 @@ func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.
 // `SystemJournal`.
 func (c *controller) Synchronize(ctx context.Context, details *sdv1.ClientDetails) {
 	// Look for the key, if not found return error
-	_, err := c.kvController.Get(details.Pid)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	// _, err := c.kvController.Get(details.Pid)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
 
 	// process := &sdv1.Process{}
 	// if err := json.Unmarshal([]byte(byt.Value), process); err != nil {

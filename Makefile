@@ -31,13 +31,13 @@ clean:
 blueprint: clean_blueprint blueprint_1 blueprint_2 blueprint_3
 
 blueprint_1:
-	BOOTSTRAP_RAFT=true RAFT_IP=localhost RAFT_PORT=1111 SERVER_PORT=2221 RAFT_NODE_ID="node_1" go run services/blueprint/main.go
+	BOOTSTRAP_RAFT=true RAFT_IP=localhost RAFT_PORT=1111 SERVER_PORT=2221 RAFT_NODE_ID="node_1" go run services/core/blueprint/main.go
 
 blueprint_2:
-	RAFT_PORT=1112 RAFT_IP=localhost SERVER_PORT=2222 RAFT_NODE_ID="node_2" go run services/blueprint/main.go
+	RAFT_PORT=1112 RAFT_IP=localhost SERVER_PORT=2222 RAFT_NODE_ID="node_2" go run services/core/blueprint/main.go
 
 blueprint_3:
-	RAFT_PORT=1113 SERVER_PORT=2223 RAFT_IP=localhost RAFT_NODE_ID="node_3" go run services/blueprint/main.go
+	RAFT_PORT=1113 SERVER_PORT=2223 RAFT_IP=localhost RAFT_NODE_ID="node_3" go run services/core/blueprint/main.go
 
 blueprint_register_leader:
 	go run pkg/blueprint-client/main.go

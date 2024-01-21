@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package registry.key_value.v1;
 
-option go_package = "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1";
+option go_package = "github.com/steady-bytes/draft/api/registry/key_value/v1";
 
 import "google/protobuf/any.proto";
 

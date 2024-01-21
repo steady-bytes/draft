@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"connectrpc.com/connect"
-	kvv1 "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1"
-	kvv1Cnt "github.com/steady-bytes/draft/api/gen/go/registry/key_value/v1/v1connect"
+	kvv1 "github.com/steady-bytes/draft/api/registry/key_value/v1"
+	kvv1Cnt "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
