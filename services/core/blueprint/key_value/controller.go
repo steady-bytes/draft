@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/raft"
 	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	"github.com/steady-bytes/draft/pkg/logging"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -24,7 +25,7 @@ type (
 
 	KeyValue interface {
 		// Delete(key string, value T) error
-		Set(key string, value T, timeout time.Duration) (*SetResponse, error)
+		Set(log logging.Logger, key string, value T, timeout time.Duration) (*SetResponse, error)
 		Get(key, kindURL string) (T, error)
 		// Iterate()
 	}
@@ -48,9 +49,9 @@ const (
 )
 
 var (
-	ErrFaildLogBuild   = errors.New("failed to build the raft log from the key/value provided")
-	ErrFailedAnyCast   = errors.New("failed to cast the value to anypb")
-	ErrFailedToMarshal = errors.New("failed to marshal payload")
+	ErrFailedLSMLogBuild = errors.New("failed to build the raft log from the key/value provided")
+	ErrFailedAnyCast     = errors.New("failed to cast the value to anypb")
+	ErrFailedToMarshal   = errors.New("failed to marshal payload")
 )
 
 func NewController(repo Repo) Controller {
@@ -111,6 +112,7 @@ func (c *controller) Get(key, kindURL string) (T, error) {
 // }
 
 func (c *controller) Set(
+	log logging.Logger,
 	key string,
 	value T,
 	timeout time.Duration,
@@ -123,13 +125,14 @@ func (c *controller) Set(
 		return nil, errors.New("call leader to set data")
 	}
 
-	// build log
-	log, err := c.buildRaftLog(key, value, fsv1.Operation_Set)
+	// build lsm log
+	lsmLog, err := c.buildLSMLog(key, value, fsv1.Operation_Set)
 	if err != nil {
-		return nil, ErrFaildLogBuild
+		log.Error(ErrFailedLSMLogBuild.Error())
+		return nil, ErrFailedLSMLogBuild
 	}
 
-	future := c.raft.Apply(log, timeout)
+	future := c.raft.Apply(lsmLog, timeout)
 	if err := future.Error(); err != nil {
 		fmt.Println(err)
 		return nil, errors.New("failed to apply command")
@@ -148,7 +151,7 @@ func (c *controller) Set(
 	return res, nil
 }
 
-func (c *controller) buildRaftLog(
+func (c *controller) buildLSMLog(
 	key string,
 	value T,
 	operation fsv1.Operation,

@@ -11,6 +11,7 @@ import (
 	kvv1 "github.com/steady-bytes/draft/api/registry/key_value/v1"
 	kvConnect "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	"github.com/steady-bytes/draft/pkg/logging"
 )
 
 type (
@@ -22,37 +23,51 @@ type (
 
 	rpc struct {
 		controller Controller
+		logger     logging.Logger
 	}
 )
 
 func New(controller Controller) Rpc {
-	return &rpc{controller}
+	return &rpc{
+		controller: controller,
+		logger:     nil,
+	}
 }
+
+var (
+	ErrFailedSet = errors.New("failed to set key/value pair")
+)
 
 func (h *rpc) RegisterRPC(server draft.Rpcer) {
 	server.EnableReflection(kvConnect.KeyValueServiceName)
 	server.AddHandler(kvConnect.NewKeyValueServiceHandler(h))
+	h.logger = server.Logger()
 }
 
 func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*connect.Response[kvv1.SetResponse], error) {
 	var (
+		log   = h.logger.WithContext(ctx)
 		key   = strings.TrimSpace(req.Msg.GetKey())
 		value = req.Msg.GetValue()
 		err   error
 	)
 
-	_, err = h.controller.Set(key, value, 500*time.Millisecond)
+	_, err = h.controller.Set(log, key, value, 500*time.Millisecond)
 	if err != nil {
-		fmt.Println(err)
+		log.
+			WithError(err).
+			Error(ErrFailedSet.Error())
+
 		return nil, err
 	}
+
+	log.WithField("key", key).Info("value saved")
 
 	return connect.NewResponse[kvv1.SetResponse](&kvv1.SetResponse{
 		Key: key,
 	}), nil
 }
 
-// Get - Looks for a key that maybe in the `Log` and if found returns the associated value
 func (h *rpc) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
 	var (
 		key = strings.TrimSpace(req.Msg.GetKey())
