@@ -12,6 +12,8 @@
   "license": "MIT",
   "proxy": "http://localhost:2221",
   "dependencies": {
+    "@blueprintjs/core": "^5.8.2",
+    "@blueprintjs/icons": "^5.7.0",
     "@bufbuild/protobuf": "^1.6.0",
     "@connectrpc/connect": "^1.2.0",
     "@connectrpc/connect-query": "^1.1.0",

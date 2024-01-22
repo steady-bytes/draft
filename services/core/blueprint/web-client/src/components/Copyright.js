@@ -1,15 +1,10 @@
-import * as React from 'react';
-
-import Link from '@mui/material/Link';
-import Typography from '@mui/material/Typography';
+import * as React from "react";
+import "./../index.css";
 
 export default function Copyright(props) {
-    return (
-      <Typography variant="body2" color="text.secondary" align="center" {...props}>
-        {'Copyright © '}
-        <Link color="inherit" href="https://www.steady-bytes.com/">steady-bytes</Link>
-        {' '}
-        {new Date().getFullYear()}{'.'}
-      </Typography>
-    );
-  }
+   return (
+      <div className="footer">
+         <p>&copy; {new Date().getFullYear()} steady-bytes</p>
+      </div>
+   );
+}

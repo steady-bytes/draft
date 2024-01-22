@@ -1,126 +1,120 @@
-import * as React from 'react';
-import { styled } from '@mui/material/styles';
-import Toolbar from '@mui/material/Toolbar';
-import Menu from '@mui/material/Menu';
-import MenuIcon from '@mui/icons-material/Menu';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import Divider from '@mui/material/Divider';
-import MenuList from '@mui/material/MenuList';
-import MenuItem from '@mui/material/MenuItem';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import SettingsIcon from '@mui/icons-material/Settings';
-import LegendToggleIcon from '@mui/icons-material/LegendToggle';
-import AccountTreeIcon from '@mui/icons-material/AccountTree';
-import DeblurIcon from '@mui/icons-material/Deblur';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import Badge from '@mui/material/Badge';
-import MuiAppBar from '@mui/material/AppBar';
-import { Routes, Route, Outlet, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
+import { Icon, Tag, Popover } from "@blueprintjs/core";
+import "./../index.css";
 
-const AppBar = styled(MuiAppBar, {shouldForwardProp: (prop) => prop !== 'open', })(({ theme, open }) => ({
-    zIndex: theme.zIndex.drawer + 1,
-    transition: theme.transitions.create(['width', 'margin'], {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen,
-    }),
-    ...(open && {
-      marginLeft: drawerWidth,
-      width: `calc(100% - ${drawerWidth}px)`,
-      transition: theme.transitions.create(['width', 'margin'], {
-        easing: theme.transitions.easing.sharp,
-        duration: theme.transitions.duration.enteringScreen,
-      }),
-    }),
-  }));
+export default function MainAppBar() {
+   const [isMenuOpen, setIsMenuOpen] = useState(false);
+   const [notificationCount, setNotificationCount] = useState(5);
 
-export default function MainAppBar(props) {
-    const [anchorEl, setAnchorEl] = React.useState(null);
-    const open = Boolean(anchorEl);
-    const handleClick = (event) => {
-      setAnchorEl(event.currentTarget);
-    };
-    const handleClose = () => {
-      setAnchorEl(null);
-    };
+   const handleNotificationClick = () => {
+      setNotificationCount(0); // Reset count when clicked
+   };
+   const handleMenuClick = () => {
+      setIsMenuOpen(!isMenuOpen);
+   };
 
-    return (
-        <AppBar position="absolute">
-          <Toolbar>
-            <IconButton 
-              color="inherit" 
-              sx={{ marginRight: '24px' }} 
-              id="basic-button"
-              aria-controls={open ? 'basic-menu' : undefined}
-              aria-haspopup="true"
-              aria-expanded={open ? 'true' : undefined}
-              onClick={handleClick}
+   const closeMenu = () => {
+      setIsMenuOpen(false);
+   };
+
+   return (
+      <div className="header">
+         <div className="header-left">
+            <div className="menu-icon" onClick={handleMenuClick}>
+               <Icon icon="menu" color="#edeff2" />
+
+               {isMenuOpen && (
+                  <div className="menu">
+                     <div className="menu-row">
+                        <div className="menu-left">
+                           <NavLink to="/" onClick={closeMenu}>
+                              <Icon
+                                 icon="series-filtered"
+                                 className="icon-menu"
+                                 color="#5F6B7C"
+                              />
+                              Metrics{" "}
+                           </NavLink>
+                        </div>
+                        <div className="menu-right">
+                           <Icon
+                              icon="key-command"
+                              className="icon-cmd"
+                              color="#8F99A8"
+                           />
+                           M
+                        </div>
+                     </div>
+                     <div className="menu-row">
+                        <div className="menu-left">
+                           <NavLink to="/service-registry" onClick={closeMenu}>
+                              <Icon
+                                 icon="one-to-many"
+                                 className="icon-menu"
+                                 color="#5F6B7C"
+                              />
+                              Services
+                           </NavLink>
+                        </div>
+                        <div className="menu-right">
+                           <Icon
+                              icon="key-command"
+                              className="icon-cmd"
+                              color="#8F99A8"
+                           />
+                           X
+                        </div>
+                     </div>
+
+                     <div className="menu-row">
+                        <div className="menu-left">
+                           <NavLink to="/key-values" onClick={closeMenu}>
+                              <Icon
+                                 icon="heatmap"
+                                 className="icon-menu"
+                                 color="#5F6B7C"
+                              />
+                              Key/Values
+                           </NavLink>
+                        </div>
+                        <div className="menu-right">
+                           <Icon
+                              icon="key-command"
+                              className="icon-cmd"
+                              color="#8F99A8"
+                           />
+                           K
+                        </div>
+                     </div>
+                     <div className="divider" />
+                     <div className="menu-left">
+                        <Icon
+                           icon="cog"
+                           color="#5F6B7C"
+                           className="icon-menu"
+                           onClick={closeMenu}
+                        />
+                        Settings
+                     </div>
+                  </div>
+               )}
+
+               <span className="logo-text">{"{blueprint}"}</span>
+            </div>
+         </div>
+         <div className="header-right">
+            {/* ----- TODO: Get this Notify Badge working */}
+            <Popover
+               content={<div>Notify Content</div>}
+               isOpen={notificationCount > 0}
+               minimal
+               onInteraction={handleNotificationClick}
             >
-              <MenuIcon />
-            </IconButton>
-
-            <Menu
-              id="basic-menu"
-              anchorEl={anchorEl}
-              open={open}
-              onClose={handleClose}
-              MenuListProps={{
-                'aria-labelledby': 'basic-button',
-              }}
-            >
-              <MenuList dense sx={{width: 300, maxWidth: '100%'}}>
-
-                <Link to="/">
-                  <MenuItem>
-                    <ListItemIcon>
-                      <LegendToggleIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Metrics</ListItemText>
-                    <Typography variant="body2" color="text.secondary">⌘M</Typography>
-                  </MenuItem>
-                </Link>
-
-                <Link to="/service-registry">
-                  <MenuItem>
-                    <ListItemIcon>
-                      <AccountTreeIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Services</ListItemText>
-                    <Typography variant="body2" color="text.secondary">⌘X</Typography>
-                  </MenuItem>
-                </Link>
-
-                <Link to="/key-values">
-                  <MenuItem>
-                    <ListItemIcon>
-                      <DeblurIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Key/Values</ListItemText>
-                    <Typography variant="body2" color="text.secondary">⌘K</Typography>
-                  </MenuItem>
-                </Link>
-
-                <Divider />
-                <MenuItem>
-                  <ListItemIcon>
-                    <SettingsIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Settings</ListItemText>
-                </MenuItem>
-              </MenuList>
-            </Menu>
-
-            <Typography component="h1" variant="h6" color="inherit" noWrap sx={{ flexGrow: 1 }} >
-              {"{blueprint}"} 
-            </Typography>
-
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="secondary">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-    )
+               <Tag intent="danger">{notificationCount}</Tag>
+               <Icon icon="notifications" className="notify" color="#edeff2" />
+            </Popover>
+         </div>
+      </div>
+   );
 }
