@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { DeleteRequest, DeleteResponse, GetRequest, GetResponse, QueryRequest, QueryResponse, SetRequest, SetResponse } from "./service_pb.js";
+import { DeleteRequest, DeleteResponse, GetRequest, GetResponse, ListRequest, ListResponse, SetRequest, SetResponse } from "./service_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -46,12 +46,16 @@ export const KeyValueService = {
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc registry.key_value.v1.KeyValueService.Query
+     * List accepts a type to search the key_value store for all keys
+     * matching that type, if any are found they will all be returned
+     * as a map.
+     *
+     * @generated from rpc registry.key_value.v1.KeyValueService.List
      */
-    query: {
-      name: "Query",
-      I: QueryRequest,
-      O: QueryResponse,
+    list: {
+      name: "List",
+      I: ListRequest,
+      O: ListResponse,
       kind: MethodKind.Unary,
     },
   }

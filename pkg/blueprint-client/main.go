@@ -53,6 +53,31 @@ func main() {
 	if cmd == "load_test_key_value" {
 		loadTestKeyValue()
 	}
+
+	if cmd == "list_all" {
+		listAll()
+	}
+}
+
+func listAll() {
+	val, err := anypb.New(&kvv1.Value{})
+	if err != nil {
+		panic("failed to create the `value` struct")
+	}
+
+	req := connect.NewRequest(&kvv1.ListRequest{
+		Value: val,
+	})
+
+	for _, val := range NODE_ADDRESSES {
+		client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, val)
+		res, err := client.List(context.Background(), req)
+		if err != nil {
+			panic("set failed")
+		}
+
+		fmt.Println("response: ", res.Msg.GetValues())
+	}
 }
 
 // setValue - A test of the key/value interface

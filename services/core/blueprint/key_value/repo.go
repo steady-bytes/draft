@@ -1,7 +1,6 @@
 package key_value
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -38,9 +37,9 @@ type (
 		Delete(Key, T) error
 		// Retrieve a value by it's key
 		Get(Key, T) (T, error)
-		// Query takes in a key prefix, and returns a map
+		// List takes in a key prefix, and returns a map
 		// of all values that the key prefix matches
-		Query(T) (map[Key]T, error)
+		List(T) (map[Key]T, error)
 		// Save a key, value to badger. If a key is the same as an existing
 		// key that has already been saved then the new value will overwrite the old.
 		Set(Key, T) error
@@ -116,7 +115,7 @@ func (m *repo) Get(k string, kind T) (T, error) {
 	key, err = txn.Get(keyByte)
 	if err != nil {
 		fmt.Println("error: ", err)
-		return kind, ErrFailedGet
+		return t, ErrFailedGet
 	}
 
 	err = key.Value(func(v []byte) error {
@@ -126,7 +125,7 @@ func (m *repo) Get(k string, kind T) (T, error) {
 		return nil
 	})
 	if err != nil {
-		return kind, err
+		return t, err
 	}
 
 	return t, err
@@ -137,36 +136,26 @@ func (m *repo) makeKey(key string, kind *anypb.Any) []byte {
 	return []byte(kind.GetTypeUrl() + "-" + key)
 }
 
-func (m *repo) Query(kind T) (map[string]T, error) {
+func (m *repo) List(kind T) (map[string]T, error) {
 	var (
 		opts   = badger.DefaultIteratorOptions
 		txn    = m.db.NewTransaction(true)
 		it     = txn.NewIterator(opts)
 		output = make(map[string]T)
+		prefix = kind.GetTypeUrl()
 	)
 	defer it.Close()
-
-	prefix := ""
-
-	// This should iterate over keys only if set to false
-	// opts.PrefetchValues = true
 
 	for it.Seek([]byte(prefix)); it.ValidForPrefix([]byte(prefix)); it.Next() {
 		item := it.Item()
 		k := item.Key()
 		err := item.Value(func(v []byte) error {
-
-			// TODO -> Unmarshal the type either `Struct`, `sdv`.Process
-
-			// Unwrap the any
-			// Check to see if type is
-
-			var t T
-			if err := json.Unmarshal(v, &t); err != nil {
+			var t anypb.Any
+			if err := proto.Unmarshal(v, &t); err != nil {
 				return err
 			}
 
-			output[string(k)] = t
+			output[string(k)] = &t
 
 			return nil
 		})

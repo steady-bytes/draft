@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import { MethodKind } from "@bufbuild/protobuf";
-import { DeleteRequest, DeleteResponse, GetRequest, GetResponse, QueryRequest, QueryResponse, SetRequest, SetResponse } from "./service_pb.js";
+import { DeleteRequest, DeleteResponse, GetRequest, GetResponse, ListRequest, ListResponse, SetRequest, SetResponse } from "./service_pb.js";
 
 /**
  * SET - A key/val pair
@@ -55,14 +55,18 @@ export const delete$ = {
 };
 
 /**
- * @generated from rpc registry.key_value.v1.KeyValueService.Query
+ * List accepts a type to search the key_value store for all keys
+ * matching that type, if any are found they will all be returned
+ * as a map.
+ *
+ * @generated from rpc registry.key_value.v1.KeyValueService.List
  */
-export const query = {
-  localName: "query",
-  name: "Query",
+export const list = {
+  localName: "list",
+  name: "List",
   kind: MethodKind.Unary,
-  I: QueryRequest,
-  O: QueryResponse,
+  I: ListRequest,
+  O: ListResponse,
   service: {
     typeName: "registry.key_value.v1.KeyValueService"
   }

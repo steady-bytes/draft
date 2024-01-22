@@ -32,7 +32,7 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "CMD": "register"
+                "CMD": "make_cluster"
             }
         },
         {
@@ -71,7 +71,7 @@
             }
         },
         {
-            "name": "Blueprint Register Cluster",
+            "name": "Blueprint CMD: List",
             "type": "go",
             "request": "launch",
             "mode": "auto",
@@ -79,7 +79,7 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "CMD": "make_cluster"
+                "CMD": "list_all"
             }
         },
         {

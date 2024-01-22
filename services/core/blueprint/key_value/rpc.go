@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
 	kvv1 "github.com/steady-bytes/draft/api/registry/key_value/v1"
 	kvConnect "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
+
+	"connectrpc.com/connect"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 	"github.com/steady-bytes/draft/pkg/logging"
 )
@@ -35,7 +36,8 @@ func New(controller Controller) Rpc {
 }
 
 var (
-	ErrFailedSet = errors.New("failed to set key/value pair")
+	ErrFailedSet  = errors.New("failed to set key/value pair")
+	ErrFailedList = errors.New("failed to list all values for provided kind")
 )
 
 func (h *rpc) RegisterRPC(server draft.Rpcer) {
@@ -91,6 +93,22 @@ func (h *rpc) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteReques
 	return nil, errors.New("not implemented")
 }
 
-func (h *rpc) Query(ctx context.Context, req *connect.Request[kvv1.QueryRequest]) (*connect.Response[kvv1.QueryResponse], error) {
-	return nil, errors.New("not implemented")
+func (h *rpc) List(ctx context.Context, req *connect.Request[kvv1.ListRequest]) (*connect.Response[kvv1.ListResponse], error) {
+	var (
+		kind = req.Msg.GetValue()
+	)
+
+	valuesMap, err := h.controller.List(kind)
+	if err != nil {
+		fmt.Println(err)
+		return nil, ErrFailedList
+	}
+
+	fmt.Println(valuesMap)
+
+	res := &kvv1.ListResponse{
+		Values: valuesMap,
+	}
+
+	return connect.NewResponse[kvv1.ListResponse](res), nil
 }

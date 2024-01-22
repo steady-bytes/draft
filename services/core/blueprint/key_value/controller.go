@@ -26,6 +26,8 @@ type (
 		// Delete(key string, value T) error
 		Set(log logging.Logger, key string, value T, timeout time.Duration) (*SetResponse, error)
 		Get(key string, value T) (T, error)
+		List(kind T) (map[string]T, error)
+
 		// Iterate()
 	}
 
@@ -164,6 +166,16 @@ func (c *controller) buildLSMLog(
 	}
 
 	return data, nil
+}
+
+func (c *controller) List(kind T) (map[string]T, error) {
+	keyValMap, err := c.repo.List(kind)
+	if err != nil {
+		fmt.Println("failed to list key/values")
+		return nil, ErrFailedList
+	}
+
+	return keyValMap, nil
 }
 
 ///////////////

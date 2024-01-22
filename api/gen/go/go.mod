@@ -6,8 +6,3 @@ require (
 	connectrpc.com/connect v1.14.0
 	google.golang.org/protobuf v1.32.0
 )
-
-require (
-	github.com/google/go-cmp v0.6.0 // indirect
-	golang.org/x/net v0.19.0 // indirect
-)
