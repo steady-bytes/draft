@@ -70,10 +70,11 @@ func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*
 
 func (h *rpc) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
 	var (
-		key = strings.TrimSpace(req.Msg.GetKey())
+		key   = strings.TrimSpace(req.Msg.GetKey())
+		value = req.Msg.GetValue()
 	)
 
-	value, err := h.controller.Get(key, "registry.key_value.v1.Value")
+	value, err := h.controller.Get(key, value)
 	if err != nil {
 		fmt.Println("error reading: ", err)
 		return nil, errors.New("failed to get value for key")

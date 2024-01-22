@@ -11,7 +11,6 @@ import (
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
 	"github.com/steady-bytes/draft/pkg/logging"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type (
@@ -26,7 +25,7 @@ type (
 	KeyValue interface {
 		// Delete(key string, value T) error
 		Set(log logging.Logger, key string, value T, timeout time.Duration) (*SetResponse, error)
-		Get(key, kindURL string) (T, error)
+		Get(key string, value T) (T, error)
 		// Iterate()
 	}
 
@@ -93,12 +92,9 @@ func (c *controller) Delete(
 	return nil
 }
 
-func (c *controller) Get(key, kindURL string) (T, error) {
-	val := &anypb.Any{
-		TypeUrl: kindURL,
-	}
+func (c *controller) Get(key string, value T) (T, error) {
 
-	val, err := c.repo.Get(key, val)
+	val, err := c.repo.Get(key, value)
 	if err != nil {
 		fmt.Println("error: ", err)
 		return nil, err

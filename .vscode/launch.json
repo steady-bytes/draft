@@ -48,6 +48,18 @@
             }
         },
         {
+            "name": "Blueprint CMD: Get Test",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "pkg/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "get_value"
+            }
+        },
+        {
             "name": "Blueprint Init",
             "type": "go",
             "request": "launch",

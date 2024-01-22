@@ -28,6 +28,10 @@ func main() {
 		setValue()
 	}
 
+	if cmd == "get_value" {
+		getValue()
+	}
+
 	if cmd == "register" {
 		registerBlueprintNodes()
 	}
@@ -60,6 +64,30 @@ func setValue() {
 	}
 
 	fmt.Println("response: ", res)
+}
+
+func getValue() {
+	val, err := anypb.New(&kvv1.Value{
+		Data: "how will the any pb work?",
+	})
+	if err != nil {
+		panic("failed to create the `value` struct")
+	}
+
+	val.TypeUrl = "registry.key_value.v1.Value"
+
+	req := connect.NewRequest(&kvv1.GetRequest{
+		Key:   "test",
+		Value: val,
+	})
+
+	client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	res, err := client.Get(context.Background(), req)
+	if err != nil {
+		panic("set failed")
+	}
+
+	fmt.Println("response: ", res.Msg.GetValue())
 }
 
 func initService() {

@@ -21,12 +21,19 @@ type (
 	// the message type.
 	T = *anypb.Any
 
+	// Key is an alias to a string that identifies it's use as a key in the key/value store
+	Key = string
+
 	// A generic interface that is integrated with badgerDB.
 	// It offers simplified methods that remaining layers of any application can use.
 	// The only requirement is that each value that is stored to the db needs to
 	// be a `proto.Message` b/c `proto.Marshal` is being used to encode
 	Repo interface {
 		draft.RepoRegistrar
+		keyValue
+	}
+
+	keyValue interface {
 		// Delete removes a key forever
 		Delete(Key, T) error
 		// Retrieve a value by it's key
@@ -38,9 +45,6 @@ type (
 		// key that has already been saved then the new value will overwrite the old.
 		Set(Key, T) error
 	}
-
-	// Key is an alias to a string that identifies it's use as a key in the key/value store
-	Key = string
 
 	// structure implementing the `KeyValueRepo` interface for the type `T` of `proto.Message`
 	repo struct {
@@ -84,7 +88,7 @@ func (m *repo) RegisterRepo(dbConn interface{}) error {
 func (m *repo) Delete(k Key, kind T) error {
 	var (
 		txn     = m.db.NewTransaction(true)
-		keyByte = MakeKey(k, kind)
+		keyByte = m.makeKey(k, kind)
 		err     error
 	)
 	defer txn.Commit()
@@ -103,7 +107,7 @@ func (m *repo) Get(k string, kind T) (T, error) {
 	}
 
 	var (
-		keyByte = MakeKey(k, kind)
+		keyByte = m.makeKey(k, kind)
 		txn     = m.db.NewTransaction(false)
 		err     error
 		key     *badger.Item
@@ -130,15 +134,11 @@ func (m *repo) Get(k string, kind T) (T, error) {
 	return t, err
 }
 
-// TODO -> MakeKey needs some changes so the bit appended to the
-// front of the key is only one character. It's going to be a way to mask
-// the table structure on disk.
-func MakeKey(key string, kind *anypb.Any) []byte {
+func (m *repo) makeKey(key string, kind *anypb.Any) []byte {
 	key = strings.ReplaceAll(key, " ", "")
 	return []byte(kind.GetTypeUrl() + "-" + key)
 }
 
-// Query - Takes a key prefix
 func (m *repo) Query(kind T) (map[string]T, error) {
 	var (
 		opts   = badger.DefaultIteratorOptions
@@ -183,9 +183,9 @@ func (m *repo) Query(kind T) (map[string]T, error) {
 
 func (m *repo) Set(k string, value T) error {
 	var (
-		key  = MakeKey(k, value)
-		data = make([]byte, 0)
+		key  = m.makeKey(k, value)
 		txn  = m.db.NewTransaction(true)
+		data = make([]byte, 0)
 	)
 
 	data, err := proto.Marshal(value)

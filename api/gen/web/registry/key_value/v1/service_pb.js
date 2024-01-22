@@ -55,6 +55,7 @@ export const GetRequest = proto3.makeMessageType(
   "registry.key_value.v1.GetRequest",
   () => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "value", kind: "message", T: Any },
   ],
 );
 
