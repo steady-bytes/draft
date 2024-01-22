@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"time"
 
 	rfv1 "github.com/steady-bytes/draft/api/consensus/raft/v1"
 	rfv1Cnt "github.com/steady-bytes/draft/api/consensus/raft/v1/v1connect"
@@ -22,6 +21,14 @@ import (
 const (
 	CMD            = "CMD"
 	SERVER_ADDRESS = "http://localhost:2221"
+)
+
+var (
+	NODE_ADDRESSES = map[string]string{
+		"node_1": "http://localhost:2221",
+		"node_2": "http://localhost:2222",
+		"node_3": "http://localhost:2221",
+	}
 )
 
 func main() {
@@ -79,17 +86,19 @@ func getValue() {
 	}
 
 	req := connect.NewRequest(&kvv1.GetRequest{
-		Key:   "test",
+		Key:   "22fc0a9f-99f5-476a-8f93-235737915142",
 		Value: val,
 	})
 
-	client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
-	res, err := client.Get(context.Background(), req)
-	if err != nil {
-		panic("set failed")
-	}
+	for _, val := range NODE_ADDRESSES {
+		client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, val)
+		res, err := client.Get(context.Background(), req)
+		if err != nil {
+			panic("set failed")
+		}
 
-	fmt.Println("response: ", res.Msg.GetValue())
+		fmt.Println("response: ", res.Msg.GetValue())
+	}
 }
 
 func makeCluster() {
@@ -112,9 +121,6 @@ func makeCluster() {
 	if err != nil {
 		fmt.Println("failed to connect to leader")
 	}
-
-	time.Sleep(1 * time.Second)
-
 }
 
 func loadTestKeyValue() {

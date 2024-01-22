@@ -62,11 +62,9 @@ func NewRepo() Repo {
 }
 
 var (
-	ErrInvalidKeyLength     = errors.New("key's can't be a length of 0")
-	ErrIncorrectDBInterface = errors.New("incorrect db interface")
-	ErrDBNilDBConnection    = errors.New("db connection is nil")
-	ErrFailedDelete         = errors.New("failed to delete key value pair")
-	ErrFailedGet            = errors.New("failed to get value for key")
+	ErrInvalidKeyLength = errors.New("key's can't be a length of 0")
+	ErrFailedDelete     = errors.New("failed to delete key value pair")
+	ErrFailedGet        = errors.New("failed to get value for key")
 )
 
 // Implement the the `draft.RepoRegister` interface so that the underlying infrastructure is put
@@ -77,10 +75,10 @@ func (m *repo) RegisterRepo(dbConn interface{}) error {
 			m.db = db
 			return nil
 		} else {
-			return ErrIncorrectDBInterface
+			return draft.ErrIncorrectDBInterface
 		}
 	}
-	return ErrDBNilDBConnection
+	return draft.ErrDBNilDBConnection
 }
 
 // Delete - Takes a key, and a repo to locate persistance layer. If found and the delete operation

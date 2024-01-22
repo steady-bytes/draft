@@ -2,6 +2,7 @@ package draft_runtime_golang
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 
@@ -15,15 +16,17 @@ import (
 // REPO - Mechanism used to persists any type of data. From S3 files storage, NoSQL databases, and SQL databases.
 
 // RepoRegistrar - The interface to implement if the service needs persistent data storage
-type RepoRegistrar interface {
-	// RegisterRepo - gives the plugin the option to use many different types of orms/db client. A type assertion can
-	// be used at the client level configure the runtime.
-	// If
-	RegisterRepo(interface{}) error
-}
+type (
+	// RepoType - selects the type of persistent's layer the service will need
+	RepoKind int
 
-// RepoType - selects the type of persistent's layer the service will need
-type RepoKind int
+	RepoRegistrar interface {
+		// RegisterRepo - gives the plugin the option to use many different types of orms/db client. A type assertion can
+		// be used at the client level configure the runtime.
+		// If
+		RegisterRepo(interface{}) error
+	}
+)
 
 // Options for repositories that can be used in a service.
 // Since services will need to have many different kinds of persistence
@@ -51,6 +54,11 @@ const (
 	Scylla
 	// NOT SUPPORTED BUT MIGHT
 	Mongo
+)
+
+var (
+	ErrIncorrectDBInterface = errors.New("incorrect db interface")
+	ErrDBNilDBConnection    = errors.New("db connection is nil")
 )
 
 // String - get the human readable value for `RepoType`
