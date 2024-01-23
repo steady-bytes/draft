@@ -5,8 +5,6 @@ import (
 	sd "github.com/steady-bytes/draft/blueprint/service_discovery"
 
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
-
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -15,7 +13,7 @@ const (
 
 func main() {
 	var (
-		keyValueRepo       = kv.NewRepo[proto.Message]()
+		keyValueRepo       = kv.NewRepo()
 		keyValueController = kv.NewController(keyValueRepo)
 		keyValueRPC        = kv.New(keyValueController)
 

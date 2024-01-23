@@ -39,8 +39,8 @@ const (
 	KeyValueServiceGetProcedure = "/registry.key_value.v1.KeyValueService/Get"
 	// KeyValueServiceDeleteProcedure is the fully-qualified name of the KeyValueService's Delete RPC.
 	KeyValueServiceDeleteProcedure = "/registry.key_value.v1.KeyValueService/Delete"
-	// KeyValueServiceQueryProcedure is the fully-qualified name of the KeyValueService's Query RPC.
-	KeyValueServiceQueryProcedure = "/registry.key_value.v1.KeyValueService/Query"
+	// KeyValueServiceListProcedure is the fully-qualified name of the KeyValueService's List RPC.
+	KeyValueServiceListProcedure = "/registry.key_value.v1.KeyValueService/List"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -49,7 +49,7 @@ var (
 	keyValueServiceSetMethodDescriptor    = keyValueServiceServiceDescriptor.Methods().ByName("Set")
 	keyValueServiceGetMethodDescriptor    = keyValueServiceServiceDescriptor.Methods().ByName("Get")
 	keyValueServiceDeleteMethodDescriptor = keyValueServiceServiceDescriptor.Methods().ByName("Delete")
-	keyValueServiceQueryMethodDescriptor  = keyValueServiceServiceDescriptor.Methods().ByName("Query")
+	keyValueServiceListMethodDescriptor   = keyValueServiceServiceDescriptor.Methods().ByName("List")
 )
 
 // KeyValueServiceClient is a client for the registry.key_value.v1.KeyValueService service.
@@ -60,7 +60,10 @@ type KeyValueServiceClient interface {
 	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
 	// DELETE - remove a key, and it's associated value
 	Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error)
-	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
+	// List accepts a type to search the key_value store for all keys
+	// matching that type, if any are found they will all be returned
+	// as a map.
+	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
 }
 
 // NewKeyValueServiceClient constructs a client for the registry.key_value.v1.KeyValueService
@@ -91,10 +94,10 @@ func NewKeyValueServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(keyValueServiceDeleteMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		query: connect.NewClient[v1.QueryRequest, v1.QueryResponse](
+		list: connect.NewClient[v1.ListRequest, v1.ListResponse](
 			httpClient,
-			baseURL+KeyValueServiceQueryProcedure,
-			connect.WithSchema(keyValueServiceQueryMethodDescriptor),
+			baseURL+KeyValueServiceListProcedure,
+			connect.WithSchema(keyValueServiceListMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -105,7 +108,7 @@ type keyValueServiceClient struct {
 	set    *connect.Client[v1.SetRequest, v1.SetResponse]
 	get    *connect.Client[v1.GetRequest, v1.GetResponse]
 	delete *connect.Client[v1.DeleteRequest, v1.DeleteResponse]
-	query  *connect.Client[v1.QueryRequest, v1.QueryResponse]
+	list   *connect.Client[v1.ListRequest, v1.ListResponse]
 }
 
 // Set calls registry.key_value.v1.KeyValueService.Set.
@@ -123,9 +126,9 @@ func (c *keyValueServiceClient) Delete(ctx context.Context, req *connect.Request
 	return c.delete.CallUnary(ctx, req)
 }
 
-// Query calls registry.key_value.v1.KeyValueService.Query.
-func (c *keyValueServiceClient) Query(ctx context.Context, req *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
-	return c.query.CallUnary(ctx, req)
+// List calls registry.key_value.v1.KeyValueService.List.
+func (c *keyValueServiceClient) List(ctx context.Context, req *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error) {
+	return c.list.CallUnary(ctx, req)
 }
 
 // KeyValueServiceHandler is an implementation of the registry.key_value.v1.KeyValueService service.
@@ -136,7 +139,10 @@ type KeyValueServiceHandler interface {
 	Get(context.Context, *connect.Request[v1.GetRequest]) (*connect.Response[v1.GetResponse], error)
 	// DELETE - remove a key, and it's associated value
 	Delete(context.Context, *connect.Request[v1.DeleteRequest]) (*connect.Response[v1.DeleteResponse], error)
-	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
+	// List accepts a type to search the key_value store for all keys
+	// matching that type, if any are found they will all be returned
+	// as a map.
+	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
 }
 
 // NewKeyValueServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -163,10 +169,10 @@ func NewKeyValueServiceHandler(svc KeyValueServiceHandler, opts ...connect.Handl
 		connect.WithSchema(keyValueServiceDeleteMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
-	keyValueServiceQueryHandler := connect.NewUnaryHandler(
-		KeyValueServiceQueryProcedure,
-		svc.Query,
-		connect.WithSchema(keyValueServiceQueryMethodDescriptor),
+	keyValueServiceListHandler := connect.NewUnaryHandler(
+		KeyValueServiceListProcedure,
+		svc.List,
+		connect.WithSchema(keyValueServiceListMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/registry.key_value.v1.KeyValueService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -177,8 +183,8 @@ func NewKeyValueServiceHandler(svc KeyValueServiceHandler, opts ...connect.Handl
 			keyValueServiceGetHandler.ServeHTTP(w, r)
 		case KeyValueServiceDeleteProcedure:
 			keyValueServiceDeleteHandler.ServeHTTP(w, r)
-		case KeyValueServiceQueryProcedure:
-			keyValueServiceQueryHandler.ServeHTTP(w, r)
+		case KeyValueServiceListProcedure:
+			keyValueServiceListHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -200,6 +206,6 @@ func (UnimplementedKeyValueServiceHandler) Delete(context.Context, *connect.Requ
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.key_value.v1.KeyValueService.Delete is not implemented"))
 }
 
-func (UnimplementedKeyValueServiceHandler) Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.key_value.v1.KeyValueService.Query is not implemented"))
+func (UnimplementedKeyValueServiceHandler) List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("registry.key_value.v1.KeyValueService.List is not implemented"))
 }

@@ -7,46 +7,6 @@ import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialM
 import { Any, Message, proto3 } from "@bufbuild/protobuf";
 
 /**
- * @generated from enum registry.key_value.v1.GetError
- */
-export enum GetError {
-  /**
-   * @generated from enum value: UNSPECIFIED_GET_ERROR = 0;
-   */
-  UNSPECIFIED_GET_ERROR = 0,
-
-  /**
-   * @generated from enum value: KEY_NOT_FOUND_GET_ERROR = 1;
-   */
-  KEY_NOT_FOUND_GET_ERROR = 1,
-}
-// Retrieve enum metadata with: proto3.getEnumType(GetError)
-proto3.util.setEnumType(GetError, "registry.key_value.v1.GetError", [
-  { no: 0, name: "UNSPECIFIED_GET_ERROR" },
-  { no: 1, name: "KEY_NOT_FOUND_GET_ERROR" },
-]);
-
-/**
- * @generated from enum registry.key_value.v1.DeleteError
- */
-export enum DeleteError {
-  /**
-   * @generated from enum value: UNSPECIFIED_DELETE_ERROR = 0;
-   */
-  UNSPECIFIED_DELETE_ERROR = 0,
-
-  /**
-   * @generated from enum value: KEY_NOT_FOUND_DELETE_ERROR = 1;
-   */
-  KEY_NOT_FOUND_DELETE_ERROR = 1,
-}
-// Retrieve enum metadata with: proto3.getEnumType(DeleteError)
-proto3.util.setEnumType(DeleteError, "registry.key_value.v1.DeleteError", [
-  { no: 0, name: "UNSPECIFIED_DELETE_ERROR" },
-  { no: 1, name: "KEY_NOT_FOUND_DELETE_ERROR" },
-]);
-
-/**
  * @generated from message registry.key_value.v1.SetRequest
  */
 export class SetRequest extends Message<SetRequest> {
@@ -135,6 +95,11 @@ export class GetRequest extends Message<GetRequest> {
    */
   key = "";
 
+  /**
+   * @generated from field: google.protobuf.Any value = 2;
+   */
+  value?: Any;
+
   constructor(data?: PartialMessage<GetRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -144,6 +109,7 @@ export class GetRequest extends Message<GetRequest> {
   static readonly typeName = "registry.key_value.v1.GetRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "value", kind: "message", T: Any },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetRequest {
@@ -242,21 +208,9 @@ export class DeleteRequest extends Message<DeleteRequest> {
  */
 export class DeleteResponse extends Message<DeleteResponse> {
   /**
-   * @generated from oneof registry.key_value.v1.DeleteResponse.response
+   * @generated from field: string key = 1;
    */
-  response: {
-    /**
-     * @generated from field: string key = 1;
-     */
-    value: string;
-    case: "key";
-  } | {
-    /**
-     * @generated from field: registry.key_value.v1.DeleteError error = 2;
-     */
-    value: DeleteError;
-    case: "error";
-  } | { case: undefined; value?: undefined } = { case: undefined };
+  key = "";
 
   constructor(data?: PartialMessage<DeleteResponse>) {
     super();
@@ -266,8 +220,7 @@ export class DeleteResponse extends Message<DeleteResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "registry.key_value.v1.DeleteResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "response" },
-    { no: 2, name: "error", kind: "enum", T: proto3.getEnumType(DeleteError), oneof: "response" },
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteResponse {
@@ -288,101 +241,76 @@ export class DeleteResponse extends Message<DeleteResponse> {
 }
 
 /**
- * @generated from message registry.key_value.v1.QueryRequest
+ * @generated from message registry.key_value.v1.ListRequest
  */
-export class QueryRequest extends Message<QueryRequest> {
-  constructor(data?: PartialMessage<QueryRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.key_value.v1.QueryRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): QueryRequest {
-    return new QueryRequest().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): QueryRequest {
-    return new QueryRequest().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): QueryRequest {
-    return new QueryRequest().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: QueryRequest | PlainMessage<QueryRequest> | undefined, b: QueryRequest | PlainMessage<QueryRequest> | undefined): boolean {
-    return proto3.util.equals(QueryRequest, a, b);
-  }
-}
-
-/**
- * @generated from message registry.key_value.v1.QueryResponse
- */
-export class QueryResponse extends Message<QueryResponse> {
-  constructor(data?: PartialMessage<QueryResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.key_value.v1.QueryResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): QueryResponse {
-    return new QueryResponse().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): QueryResponse {
-    return new QueryResponse().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): QueryResponse {
-    return new QueryResponse().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: QueryResponse | PlainMessage<QueryResponse> | undefined, b: QueryResponse | PlainMessage<QueryResponse> | undefined): boolean {
-    return proto3.util.equals(QueryResponse, a, b);
-  }
-}
-
-/**
- * @generated from message registry.key_value.v1.Value
- */
-export class Value extends Message<Value> {
+export class ListRequest extends Message<ListRequest> {
   /**
-   * @generated from field: string data = 1;
+   * @generated from field: google.protobuf.Any value = 1;
    */
-  data = "";
+  value?: Any;
 
-  constructor(data?: PartialMessage<Value>) {
+  constructor(data?: PartialMessage<ListRequest>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.key_value.v1.Value";
+  static readonly typeName = "registry.key_value.v1.ListRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "data", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "value", kind: "message", T: Any },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Value {
-    return new Value().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListRequest {
+    return new ListRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Value {
-    return new Value().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListRequest {
+    return new ListRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Value {
-    return new Value().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListRequest {
+    return new ListRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: Value | PlainMessage<Value> | undefined, b: Value | PlainMessage<Value> | undefined): boolean {
-    return proto3.util.equals(Value, a, b);
+  static equals(a: ListRequest | PlainMessage<ListRequest> | undefined, b: ListRequest | PlainMessage<ListRequest> | undefined): boolean {
+    return proto3.util.equals(ListRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message registry.key_value.v1.ListResponse
+ */
+export class ListResponse extends Message<ListResponse> {
+  /**
+   * @generated from field: map<string, google.protobuf.Any> values = 2;
+   */
+  values: { [key: string]: Any } = {};
+
+  constructor(data?: PartialMessage<ListResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "registry.key_value.v1.ListResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 2, name: "values", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Any} },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListResponse {
+    return new ListResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListResponse {
+    return new ListResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListResponse {
+    return new ListResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListResponse | PlainMessage<ListResponse> | undefined, b: ListResponse | PlainMessage<ListResponse> | undefined): boolean {
+    return proto3.util.equals(ListResponse, a, b);
   }
 }
 

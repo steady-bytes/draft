@@ -32,7 +32,7 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "CMD": "register"
+                "CMD": "make_cluster"
             }
         },
         {
@@ -48,7 +48,7 @@
             }
         },
         {
-            "name": "Blueprint Init",
+            "name": "Blueprint CMD: Get Test",
             "type": "go",
             "request": "launch",
             "mode": "auto",
@@ -56,7 +56,30 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "CMD": "init"
+                "CMD": "get_value"
+            }
+        },        {
+            "name": "Blueprint CMD: Load Test",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "pkg/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "load_test_key_value"
+            }
+        },
+        {
+            "name": "Blueprint CMD: List",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "pkg/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "list_all"
             }
         },
         {

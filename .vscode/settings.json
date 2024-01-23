@@ -5,6 +5,4 @@
         "titleBar.activeBackground": "#ff9d00",
         "titleBar.inactiveBackground": "#632e2e"
     },
-    // "editor.wordWrap": "wordWrapColumn",
-    // "editor.wordWrapColumn": 100
 }

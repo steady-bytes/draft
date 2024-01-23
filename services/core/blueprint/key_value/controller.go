@@ -9,12 +9,12 @@ import (
 	"github.com/hashicorp/raft"
 	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	"github.com/steady-bytes/draft/pkg/logging"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type (
-	Controller[T any] interface {
+	Controller interface {
 		draft.ConsensusRegistrar
 		draft.SecretStoreSetter
 		raft.FSM
@@ -23,10 +23,12 @@ type (
 	}
 
 	KeyValue interface {
-		Delete(key string, value proto.Message) error
-		Set(key string, value *anypb.Any, timeout time.Duration) (*SetResponse, error)
-		Get(key string) (*proto.Message, error)
-		Iterate()
+		// Delete(key string, value T) error
+		Set(log logging.Logger, key string, value T, timeout time.Duration) (*SetResponse, error)
+		Get(key string, value T) (T, error)
+		List(kind T) (map[string]T, error)
+
+		// Iterate()
 	}
 
 	SetResponse struct {
@@ -35,7 +37,7 @@ type (
 	}
 
 	controller struct {
-		repo Repo[proto.Message]
+		repo Repo
 		raft *raft.Raft
 		sstr draft.SecretStore
 	}
@@ -48,12 +50,12 @@ const (
 )
 
 var (
-	ErrFaildLogBuild   = errors.New("failed to build the raft log from the key/value provided")
-	ErrFailedAnyCast   = errors.New("failed to cast the value to anypb")
-	ErrFailedToMarshal = errors.New("failed to marshal payload")
+	ErrFailedLSMLogBuild = errors.New("failed to build the raft log from the key/value provided")
+	ErrFailedAnyCast     = errors.New("failed to cast the value to anypb")
+	ErrFailedToMarshal   = errors.New("failed to marshal payload")
 )
 
-func NewController(repo Repo[proto.Message]) Controller[proto.Message] {
+func NewController(repo Repo) Controller {
 	return &controller{
 		repo: repo,
 		raft: nil,
@@ -83,7 +85,7 @@ func (c *controller) RegisterConsensus(raftConn interface{}) error {
 
 func (c *controller) Delete(
 	key string,
-	kind proto.Message,
+	kind T,
 ) error {
 	if err := c.repo.Delete(key, kind); err != nil {
 		return err
@@ -92,23 +94,25 @@ func (c *controller) Delete(
 	return nil
 }
 
-func (c *controller) Get(key string) (*proto.Message, error) {
-	val, err := c.repo.Get(key, &anypb.Any{})
+func (c *controller) Get(key string, value T) (T, error) {
+
+	val, err := c.repo.Get(key, value)
 	if err != nil {
 		fmt.Println("error: ", err)
 		return nil, err
 	}
 
-	return &val, nil
+	return val, nil
 }
 
-func (c *controller) Iterate() {
-	c.repo.Query(&anypb.Any{})
-}
+// func (c *controller) Iterate() {
+// 	c.repo.Query(&anypb.Any{})
+// }
 
 func (c *controller) Set(
+	log logging.Logger,
 	key string,
-	value *anypb.Any,
+	value T,
 	timeout time.Duration,
 ) (*SetResponse, error) {
 	if c.raft.State() != raft.Leader {
@@ -119,13 +123,14 @@ func (c *controller) Set(
 		return nil, errors.New("call leader to set data")
 	}
 
-	// build log
-	log, err := c.buildRaftLog(key, value, fsv1.Operation_Set)
+	// build lsm log
+	lsmLog, err := c.buildLSMLog(key, value, fsv1.Operation_Set)
 	if err != nil {
-		return nil, ErrFaildLogBuild
+		log.Error(ErrFailedLSMLogBuild.Error())
+		return nil, ErrFailedLSMLogBuild
 	}
 
-	future := c.raft.Apply(log, timeout)
+	future := c.raft.Apply(lsmLog, timeout)
 	if err := future.Error(); err != nil {
 		fmt.Println(err)
 		return nil, errors.New("failed to apply command")
@@ -144,9 +149,9 @@ func (c *controller) Set(
 	return res, nil
 }
 
-func (c *controller) buildRaftLog(
+func (c *controller) buildLSMLog(
 	key string,
-	value *anypb.Any,
+	value T,
 	operation fsv1.Operation,
 ) ([]byte, error) {
 	payload := &fsv1.CommandPayload{
@@ -161,6 +166,16 @@ func (c *controller) buildRaftLog(
 	}
 
 	return data, nil
+}
+
+func (c *controller) List(kind T) (map[string]T, error) {
+	keyValMap, err := c.repo.List(kind)
+	if err != nil {
+		fmt.Println("failed to list key/values")
+		return nil, ErrFailedList
+	}
+
+	return keyValMap, nil
 }
 
 ///////////////

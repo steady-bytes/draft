@@ -6,28 +6,6 @@
 import { Any, proto3 } from "@bufbuild/protobuf";
 
 /**
- * @generated from enum registry.key_value.v1.GetError
- */
-export const GetError = proto3.makeEnum(
-  "registry.key_value.v1.GetError",
-  [
-    {no: 0, name: "UNSPECIFIED_GET_ERROR"},
-    {no: 1, name: "KEY_NOT_FOUND_GET_ERROR"},
-  ],
-);
-
-/**
- * @generated from enum registry.key_value.v1.DeleteError
- */
-export const DeleteError = proto3.makeEnum(
-  "registry.key_value.v1.DeleteError",
-  [
-    {no: 0, name: "UNSPECIFIED_DELETE_ERROR"},
-    {no: 1, name: "KEY_NOT_FOUND_DELETE_ERROR"},
-  ],
-);
-
-/**
  * @generated from message registry.key_value.v1.SetRequest
  */
 export const SetRequest = proto3.makeMessageType(
@@ -55,6 +33,7 @@ export const GetRequest = proto3.makeMessageType(
   "registry.key_value.v1.GetRequest",
   () => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "value", kind: "message", T: Any },
   ],
 );
 
@@ -84,34 +63,27 @@ export const DeleteRequest = proto3.makeMessageType(
 export const DeleteResponse = proto3.makeMessageType(
   "registry.key_value.v1.DeleteResponse",
   () => [
-    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "response" },
-    { no: 2, name: "error", kind: "enum", T: proto3.getEnumType(DeleteError), oneof: "response" },
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
 /**
- * @generated from message registry.key_value.v1.QueryRequest
+ * @generated from message registry.key_value.v1.ListRequest
  */
-export const QueryRequest = proto3.makeMessageType(
-  "registry.key_value.v1.QueryRequest",
-  [],
-);
-
-/**
- * @generated from message registry.key_value.v1.QueryResponse
- */
-export const QueryResponse = proto3.makeMessageType(
-  "registry.key_value.v1.QueryResponse",
-  [],
-);
-
-/**
- * @generated from message registry.key_value.v1.Value
- */
-export const Value = proto3.makeMessageType(
-  "registry.key_value.v1.Value",
+export const ListRequest = proto3.makeMessageType(
+  "registry.key_value.v1.ListRequest",
   () => [
-    { no: 1, name: "data", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "value", kind: "message", T: Any },
+  ],
+);
+
+/**
+ * @generated from message registry.key_value.v1.ListResponse
+ */
+export const ListResponse = proto3.makeMessageType(
+  "registry.key_value.v1.ListResponse",
+  () => [
+    { no: 2, name: "values", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Any} },
   ],
 );
 
