@@ -27,7 +27,7 @@ var (
 	NODE_ADDRESSES = map[string]string{
 		"node_1": "http://localhost:2221",
 		"node_2": "http://localhost:2222",
-		"node_3": "http://localhost:2221",
+		"node_3": "http://localhost:2223",
 	}
 )
 
@@ -69,6 +69,8 @@ func listAll() {
 		Value: val,
 	})
 
+	responses := []map[string]*anypb.Any{}
+
 	for _, val := range NODE_ADDRESSES {
 		client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, val)
 		res, err := client.List(context.Background(), req)
@@ -76,7 +78,27 @@ func listAll() {
 			panic("set failed")
 		}
 
-		fmt.Println("response: ", res.Msg.GetValues())
+		responses = append(responses, res.Msg.GetValues())
+	}
+
+	if len(responses) != 3 {
+		panic("fail list")
+	}
+
+	for k, val := range responses[0] {
+		val1, ok := responses[1][k]
+		if !ok {
+			panic("key not found in first node")
+		}
+
+		val2, ok := responses[2][k]
+		if !ok {
+			panic("key not found in third node")
+		}
+
+		if string(val.Value) != string(val1.Value) && string(val.Value) != string(val2.Value) {
+			panic("values for keys are not equal")
+		}
 	}
 }
 
@@ -148,13 +170,17 @@ func makeCluster() {
 	}
 }
 
+const (
+	LOAD_COUNT = 1000
+)
+
 func loadTestKeyValue() {
 	keyValClient := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
 	keys := make([]string, 0)
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < LOAD_COUNT; i++ {
 		wg.Add(1)
 		k := uuid.NewString()
 		v := uuid.NewString()
@@ -183,6 +209,7 @@ func loadTestKeyValue() {
 			k, err := keyValClient.Set(context.Background(), req)
 			if err != nil {
 				fmt.Println("failed to save key")
+				return
 			}
 
 			keys = append(keys, k.Msg.GetKey())
