@@ -3,28 +3,29 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ClientDetails, Empty, FinalizeRequest, FinalizeResponse, InitializeRequest, InitializeResponse, JournalQueryRequest, JournalQueryResponse } from "./service_pb.js";
+import { ClientDetails, Empty, FinalizeRequest, FinalizeResponse, InitializeRequest, InitializeResponse, QueryRequest, QueryResponse, ReportHealthRequest, ReportHealthResponse } from "./service_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
- * The interface to 
+ * An interface to connect a process to the registry. The registry is `Geographically`
+ * aware of process location, and uses `client-side` service discovery to push details
+ * to the registry/system to provide operational details to the remaining system.
+ *
+ * __ServiceDiscoveryService__ - The interface used for a `process` to register with `blueprint`. The interface is organized in
+ * the order of the typical lifecycle of a process. 
+ * 1. __Initialize__: Called first by the process so `blueprint` can issue and identity to the process.
+ * 2. __Synchronize__: A unidirectional streaming connection between `blueprints` leader and a registered process. Allowing for the process to make
+ *                     configuration changes with the `blueprint` leader.
+ * 3. __Finalize__: The deregister function to remove a process from the registery.
+ *
+ * __ReportHealth__: Method is used by blueprint's follower nodes. Each blueprint node is delegated a set of processes to poll
+ *                   the health check interface.  
  *
  * @generated from service registry.service_discovery.v1.ServiceDiscoveryService
  */
 export const ServiceDiscoveryService = {
   typeName: "registry.service_discovery.v1.ServiceDiscoveryService",
   methods: {
-    /**
-     * Gracefully shutdown and `Finalize` the connection of the process to the registry
-     *
-     * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.Finalize
-     */
-    finalize: {
-      name: "Finalize",
-      I: FinalizeRequest,
-      O: FinalizeResponse,
-      kind: MethodKind.Unary,
-    },
     /**
      * Initialize the registeration of the process to the registry
      *
@@ -37,17 +38,6 @@ export const ServiceDiscoveryService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Query the registries journal of processes
-     *
-     * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.QuerySystemJournal
-     */
-    querySystemJournal: {
-      name: "QuerySystemJournal",
-      I: JournalQueryRequest,
-      O: JournalQueryResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * synchronize the client state with the registry
      *
      * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.Synchronize
@@ -57,6 +47,39 @@ export const ServiceDiscoveryService = {
       I: ClientDetails,
       O: Empty,
       kind: MethodKind.ClientStreaming,
+    },
+    /**
+     * Gracefully shutdown and `Finalize` the connection of the process to the registry
+     *
+     * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.Finalize
+     */
+    finalize: {
+      name: "Finalize",
+      I: FinalizeRequest,
+      O: FinalizeResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Let a follower draft node report health information on the processes it's responsible for checking the health status of
+     *
+     * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.ReportHealth
+     */
+    reportHealth: {
+      name: "ReportHealth",
+      I: ReportHealthRequest,
+      O: ReportHealthResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Query the registry 
+     *
+     * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.Query
+     */
+    query: {
+      name: "Query",
+      I: QueryRequest,
+      O: QueryResponse,
+      kind: MethodKind.Unary,
     },
   }
 };

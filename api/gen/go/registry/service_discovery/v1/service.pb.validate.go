@@ -543,155 +543,22 @@ var _ interface {
 	ErrorName() string
 } = InitializeResponseValidationError{}
 
-// Validate checks the field values on ProcessIdentity with the rules defined
+// Validate checks the field values on QueryRequest with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *QueryRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on QueryRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
-// first error encountered is returned, or nil if there are no violations.
-func (m *ProcessIdentity) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on ProcessIdentity with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// ProcessIdentityMultiError, or nil if none found.
-func (m *ProcessIdentity) ValidateAll() error {
+// result is a list of violation errors wrapped in QueryRequestMultiError, or
+// nil if none found.
+func (m *QueryRequest) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *ProcessIdentity) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Pid
-
-	// no validation rules for RegistryAddress
-
-	if all {
-		switch v := interface{}(m.GetToken()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ProcessIdentityValidationError{
-					field:  "Token",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ProcessIdentityValidationError{
-					field:  "Token",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetToken()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ProcessIdentityValidationError{
-				field:  "Token",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if len(errors) > 0 {
-		return ProcessIdentityMultiError(errors)
-	}
-
-	return nil
-}
-
-// ProcessIdentityMultiError is an error wrapping multiple validation errors
-// returned by ProcessIdentity.ValidateAll() if the designated constraints
-// aren't met.
-type ProcessIdentityMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ProcessIdentityMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ProcessIdentityMultiError) AllErrors() []error { return m }
-
-// ProcessIdentityValidationError is the validation error returned by
-// ProcessIdentity.Validate if the designated constraints aren't met.
-type ProcessIdentityValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e ProcessIdentityValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e ProcessIdentityValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e ProcessIdentityValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e ProcessIdentityValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e ProcessIdentityValidationError) ErrorName() string { return "ProcessIdentityValidationError" }
-
-// Error satisfies the builtin error interface
-func (e ProcessIdentityValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sProcessIdentity.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = ProcessIdentityValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = ProcessIdentityValidationError{}
-
-// Validate checks the field values on JournalQueryRequest with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *JournalQueryRequest) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on JournalQueryRequest with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// JournalQueryRequestMultiError, or nil if none found.
-func (m *JournalQueryRequest) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *JournalQueryRequest) validate(all bool) error {
+func (m *QueryRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -702,7 +569,7 @@ func (m *JournalQueryRequest) validate(all bool) error {
 		switch v := interface{}(m.GetFilter()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, JournalQueryRequestValidationError{
+				errors = append(errors, QueryRequestValidationError{
 					field:  "Filter",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -710,7 +577,7 @@ func (m *JournalQueryRequest) validate(all bool) error {
 			}
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
-				errors = append(errors, JournalQueryRequestValidationError{
+				errors = append(errors, QueryRequestValidationError{
 					field:  "Filter",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -719,7 +586,7 @@ func (m *JournalQueryRequest) validate(all bool) error {
 		}
 	} else if v, ok := interface{}(m.GetFilter()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
-			return JournalQueryRequestValidationError{
+			return QueryRequestValidationError{
 				field:  "Filter",
 				reason: "embedded message failed validation",
 				cause:  err,
@@ -728,19 +595,18 @@ func (m *JournalQueryRequest) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return JournalQueryRequestMultiError(errors)
+		return QueryRequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// JournalQueryRequestMultiError is an error wrapping multiple validation
-// errors returned by JournalQueryRequest.ValidateAll() if the designated
-// constraints aren't met.
-type JournalQueryRequestMultiError []error
+// QueryRequestMultiError is an error wrapping multiple validation errors
+// returned by QueryRequest.ValidateAll() if the designated constraints aren't met.
+type QueryRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m JournalQueryRequestMultiError) Error() string {
+func (m QueryRequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -749,11 +615,11 @@ func (m JournalQueryRequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m JournalQueryRequestMultiError) AllErrors() []error { return m }
+func (m QueryRequestMultiError) AllErrors() []error { return m }
 
-// JournalQueryRequestValidationError is the validation error returned by
-// JournalQueryRequest.Validate if the designated constraints aren't met.
-type JournalQueryRequestValidationError struct {
+// QueryRequestValidationError is the validation error returned by
+// QueryRequest.Validate if the designated constraints aren't met.
+type QueryRequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -761,24 +627,22 @@ type JournalQueryRequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e JournalQueryRequestValidationError) Field() string { return e.field }
+func (e QueryRequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e JournalQueryRequestValidationError) Reason() string { return e.reason }
+func (e QueryRequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e JournalQueryRequestValidationError) Cause() error { return e.cause }
+func (e QueryRequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e JournalQueryRequestValidationError) Key() bool { return e.key }
+func (e QueryRequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e JournalQueryRequestValidationError) ErrorName() string {
-	return "JournalQueryRequestValidationError"
-}
+func (e QueryRequestValidationError) ErrorName() string { return "QueryRequestValidationError" }
 
 // Error satisfies the builtin error interface
-func (e JournalQueryRequestValidationError) Error() string {
+func (e QueryRequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -790,14 +654,14 @@ func (e JournalQueryRequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sJournalQueryRequest.%s: %s%s",
+		"invalid %sQueryRequest.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = JournalQueryRequestValidationError{}
+var _ error = QueryRequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -805,7 +669,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = JournalQueryRequestValidationError{}
+} = QueryRequestValidationError{}
 
 // Validate checks the field values on Filter with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
@@ -946,22 +810,22 @@ var _ interface {
 	ErrorName() string
 } = FilterValidationError{}
 
-// Validate checks the field values on JournalQueryResponse with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *JournalQueryResponse) Validate() error {
+// Validate checks the field values on QueryResponse with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *QueryResponse) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on JournalQueryResponse with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// JournalQueryResponseMultiError, or nil if none found.
-func (m *JournalQueryResponse) ValidateAll() error {
+// ValidateAll checks the field values on QueryResponse with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in QueryResponseMultiError, or
+// nil if none found.
+func (m *QueryResponse) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *JournalQueryResponse) validate(all bool) error {
+func (m *QueryResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -986,7 +850,7 @@ func (m *JournalQueryResponse) validate(all bool) error {
 				switch v := interface{}(val).(type) {
 				case interface{ ValidateAll() error }:
 					if err := v.ValidateAll(); err != nil {
-						errors = append(errors, JournalQueryResponseValidationError{
+						errors = append(errors, QueryResponseValidationError{
 							field:  fmt.Sprintf("Data[%v]", key),
 							reason: "embedded message failed validation",
 							cause:  err,
@@ -994,7 +858,7 @@ func (m *JournalQueryResponse) validate(all bool) error {
 					}
 				case interface{ Validate() error }:
 					if err := v.Validate(); err != nil {
-						errors = append(errors, JournalQueryResponseValidationError{
+						errors = append(errors, QueryResponseValidationError{
 							field:  fmt.Sprintf("Data[%v]", key),
 							reason: "embedded message failed validation",
 							cause:  err,
@@ -1003,7 +867,7 @@ func (m *JournalQueryResponse) validate(all bool) error {
 				}
 			} else if v, ok := interface{}(val).(interface{ Validate() error }); ok {
 				if err := v.Validate(); err != nil {
-					return JournalQueryResponseValidationError{
+					return QueryResponseValidationError{
 						field:  fmt.Sprintf("Data[%v]", key),
 						reason: "embedded message failed validation",
 						cause:  err,
@@ -1015,19 +879,19 @@ func (m *JournalQueryResponse) validate(all bool) error {
 	}
 
 	if len(errors) > 0 {
-		return JournalQueryResponseMultiError(errors)
+		return QueryResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// JournalQueryResponseMultiError is an error wrapping multiple validation
-// errors returned by JournalQueryResponse.ValidateAll() if the designated
-// constraints aren't met.
-type JournalQueryResponseMultiError []error
+// QueryResponseMultiError is an error wrapping multiple validation errors
+// returned by QueryResponse.ValidateAll() if the designated constraints
+// aren't met.
+type QueryResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m JournalQueryResponseMultiError) Error() string {
+func (m QueryResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1036,11 +900,11 @@ func (m JournalQueryResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m JournalQueryResponseMultiError) AllErrors() []error { return m }
+func (m QueryResponseMultiError) AllErrors() []error { return m }
 
-// JournalQueryResponseValidationError is the validation error returned by
-// JournalQueryResponse.Validate if the designated constraints aren't met.
-type JournalQueryResponseValidationError struct {
+// QueryResponseValidationError is the validation error returned by
+// QueryResponse.Validate if the designated constraints aren't met.
+type QueryResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1048,24 +912,22 @@ type JournalQueryResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e JournalQueryResponseValidationError) Field() string { return e.field }
+func (e QueryResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e JournalQueryResponseValidationError) Reason() string { return e.reason }
+func (e QueryResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e JournalQueryResponseValidationError) Cause() error { return e.cause }
+func (e QueryResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e JournalQueryResponseValidationError) Key() bool { return e.key }
+func (e QueryResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e JournalQueryResponseValidationError) ErrorName() string {
-	return "JournalQueryResponseValidationError"
-}
+func (e QueryResponseValidationError) ErrorName() string { return "QueryResponseValidationError" }
 
 // Error satisfies the builtin error interface
-func (e JournalQueryResponseValidationError) Error() string {
+func (e QueryResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1077,14 +939,14 @@ func (e JournalQueryResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sJournalQueryResponse.%s: %s%s",
+		"invalid %sQueryResponse.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = JournalQueryResponseValidationError{}
+var _ error = QueryResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -1092,7 +954,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = JournalQueryResponseValidationError{}
+} = QueryResponseValidationError{}
 
 // Validate checks the field values on FinalizeRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -1298,21 +1160,22 @@ var _ interface {
 	ErrorName() string
 } = FinalizeResponseValidationError{}
 
-// Validate checks the field values on Zone with the rules defined in the proto
-// definition for this message. If any rules are violated, the first error
-// encountered is returned, or nil if there are no violations.
-func (m *Zone) Validate() error {
+// Validate checks the field values on ReportHealthRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ReportHealthRequest) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on Zone with the rules defined in the
-// proto definition for this message. If any rules are violated, the result is
-// a list of violation errors wrapped in ZoneMultiError, or nil if none found.
-func (m *Zone) ValidateAll() error {
+// ValidateAll checks the field values on ReportHealthRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ReportHealthRequestMultiError, or nil if none found.
+func (m *ReportHealthRequest) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *Zone) validate(all bool) error {
+func (m *ReportHealthRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -1320,18 +1183,19 @@ func (m *Zone) validate(all bool) error {
 	var errors []error
 
 	if len(errors) > 0 {
-		return ZoneMultiError(errors)
+		return ReportHealthRequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// ZoneMultiError is an error wrapping multiple validation errors returned by
-// Zone.ValidateAll() if the designated constraints aren't met.
-type ZoneMultiError []error
+// ReportHealthRequestMultiError is an error wrapping multiple validation
+// errors returned by ReportHealthRequest.ValidateAll() if the designated
+// constraints aren't met.
+type ReportHealthRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m ZoneMultiError) Error() string {
+func (m ReportHealthRequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1340,11 +1204,11 @@ func (m ZoneMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m ZoneMultiError) AllErrors() []error { return m }
+func (m ReportHealthRequestMultiError) AllErrors() []error { return m }
 
-// ZoneValidationError is the validation error returned by Zone.Validate if the
-// designated constraints aren't met.
-type ZoneValidationError struct {
+// ReportHealthRequestValidationError is the validation error returned by
+// ReportHealthRequest.Validate if the designated constraints aren't met.
+type ReportHealthRequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1352,22 +1216,24 @@ type ZoneValidationError struct {
 }
 
 // Field function returns field value.
-func (e ZoneValidationError) Field() string { return e.field }
+func (e ReportHealthRequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ZoneValidationError) Reason() string { return e.reason }
+func (e ReportHealthRequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ZoneValidationError) Cause() error { return e.cause }
+func (e ReportHealthRequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ZoneValidationError) Key() bool { return e.key }
+func (e ReportHealthRequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ZoneValidationError) ErrorName() string { return "ZoneValidationError" }
+func (e ReportHealthRequestValidationError) ErrorName() string {
+	return "ReportHealthRequestValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e ZoneValidationError) Error() string {
+func (e ReportHealthRequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1379,14 +1245,14 @@ func (e ZoneValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sZone.%s: %s%s",
+		"invalid %sReportHealthRequest.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ZoneValidationError{}
+var _ error = ReportHealthRequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -1394,78 +1260,44 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ZoneValidationError{}
+} = ReportHealthRequestValidationError{}
 
-// Validate checks the field values on SystemJournal with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *SystemJournal) Validate() error {
+// Validate checks the field values on ReportHealthResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *ReportHealthResponse) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on SystemJournal with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in SystemJournalMultiError, or
-// nil if none found.
-func (m *SystemJournal) ValidateAll() error {
+// ValidateAll checks the field values on ReportHealthResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ReportHealthResponseMultiError, or nil if none found.
+func (m *ReportHealthResponse) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *SystemJournal) validate(all bool) error {
+func (m *ReportHealthResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	for idx, item := range m.GetProcesses() {
-		_, _ = idx, item
-
-		if all {
-			switch v := interface{}(item).(type) {
-			case interface{ ValidateAll() error }:
-				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, SystemJournalValidationError{
-						field:  fmt.Sprintf("Processes[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			case interface{ Validate() error }:
-				if err := v.Validate(); err != nil {
-					errors = append(errors, SystemJournalValidationError{
-						field:  fmt.Sprintf("Processes[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			}
-		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return SystemJournalValidationError{
-					field:  fmt.Sprintf("Processes[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	}
-
 	if len(errors) > 0 {
-		return SystemJournalMultiError(errors)
+		return ReportHealthResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// SystemJournalMultiError is an error wrapping multiple validation errors
-// returned by SystemJournal.ValidateAll() if the designated constraints
-// aren't met.
-type SystemJournalMultiError []error
+// ReportHealthResponseMultiError is an error wrapping multiple validation
+// errors returned by ReportHealthResponse.ValidateAll() if the designated
+// constraints aren't met.
+type ReportHealthResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m SystemJournalMultiError) Error() string {
+func (m ReportHealthResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1474,11 +1306,11 @@ func (m SystemJournalMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m SystemJournalMultiError) AllErrors() []error { return m }
+func (m ReportHealthResponseMultiError) AllErrors() []error { return m }
 
-// SystemJournalValidationError is the validation error returned by
-// SystemJournal.Validate if the designated constraints aren't met.
-type SystemJournalValidationError struct {
+// ReportHealthResponseValidationError is the validation error returned by
+// ReportHealthResponse.Validate if the designated constraints aren't met.
+type ReportHealthResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1486,22 +1318,24 @@ type SystemJournalValidationError struct {
 }
 
 // Field function returns field value.
-func (e SystemJournalValidationError) Field() string { return e.field }
+func (e ReportHealthResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e SystemJournalValidationError) Reason() string { return e.reason }
+func (e ReportHealthResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e SystemJournalValidationError) Cause() error { return e.cause }
+func (e ReportHealthResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e SystemJournalValidationError) Key() bool { return e.key }
+func (e ReportHealthResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e SystemJournalValidationError) ErrorName() string { return "SystemJournalValidationError" }
+func (e ReportHealthResponseValidationError) ErrorName() string {
+	return "ReportHealthResponseValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e SystemJournalValidationError) Error() string {
+func (e ReportHealthResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1513,14 +1347,14 @@ func (e SystemJournalValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sSystemJournal.%s: %s%s",
+		"invalid %sReportHealthResponse.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = SystemJournalValidationError{}
+var _ error = ReportHealthResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -1528,607 +1362,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = SystemJournalValidationError{}
-
-// Validate checks the field values on Process with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *Process) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on Process with the rules defined in the
-// proto definition for this message. If any rules are violated, the result is
-// a list of violation errors wrapped in ProcessMultiError, or nil if none found.
-func (m *Process) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *Process) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Pid
-
-	// no validation rules for Name
-
-	// no validation rules for Group
-
-	// no validation rules for Local
-
-	// no validation rules for IpAddress
-
-	// no validation rules for ProcessKind
-
-	for idx, item := range m.GetMetadata() {
-		_, _ = idx, item
-
-		if all {
-			switch v := interface{}(item).(type) {
-			case interface{ ValidateAll() error }:
-				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, ProcessValidationError{
-						field:  fmt.Sprintf("Metadata[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			case interface{ Validate() error }:
-				if err := v.Validate(); err != nil {
-					errors = append(errors, ProcessValidationError{
-						field:  fmt.Sprintf("Metadata[%v]", idx),
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			}
-		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return ProcessValidationError{
-					field:  fmt.Sprintf("Metadata[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	}
-
-	if all {
-		switch v := interface{}(m.GetLocation()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "Location",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "Location",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetLocation()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ProcessValidationError{
-				field:  "Location",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if all {
-		switch v := interface{}(m.GetJoinedTime()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "JoinedTime",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "JoinedTime",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetJoinedTime()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ProcessValidationError{
-				field:  "JoinedTime",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if all {
-		switch v := interface{}(m.GetLeftTime()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "LeftTime",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "LeftTime",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetLeftTime()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ProcessValidationError{
-				field:  "LeftTime",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if all {
-		switch v := interface{}(m.GetLastStatusTime()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "LastStatusTime",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "LastStatusTime",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetLastStatusTime()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ProcessValidationError{
-				field:  "LastStatusTime",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	// no validation rules for RunningState
-
-	// no validation rules for HealthState
-
-	if all {
-		switch v := interface{}(m.GetToken()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "Token",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ProcessValidationError{
-					field:  "Token",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetToken()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ProcessValidationError{
-				field:  "Token",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if len(errors) > 0 {
-		return ProcessMultiError(errors)
-	}
-
-	return nil
-}
-
-// ProcessMultiError is an error wrapping multiple validation errors returned
-// by Process.ValidateAll() if the designated constraints aren't met.
-type ProcessMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ProcessMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ProcessMultiError) AllErrors() []error { return m }
-
-// ProcessValidationError is the validation error returned by Process.Validate
-// if the designated constraints aren't met.
-type ProcessValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e ProcessValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e ProcessValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e ProcessValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e ProcessValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e ProcessValidationError) ErrorName() string { return "ProcessValidationError" }
-
-// Error satisfies the builtin error interface
-func (e ProcessValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sProcess.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = ProcessValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = ProcessValidationError{}
-
-// Validate checks the field values on Metadata with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *Metadata) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on Metadata with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in MetadataMultiError, or nil
-// if none found.
-func (m *Metadata) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *Metadata) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Pid
-
-	// no validation rules for Key
-
-	// no validation rules for Value
-
-	if len(errors) > 0 {
-		return MetadataMultiError(errors)
-	}
-
-	return nil
-}
-
-// MetadataMultiError is an error wrapping multiple validation errors returned
-// by Metadata.ValidateAll() if the designated constraints aren't met.
-type MetadataMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m MetadataMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m MetadataMultiError) AllErrors() []error { return m }
-
-// MetadataValidationError is the validation error returned by
-// Metadata.Validate if the designated constraints aren't met.
-type MetadataValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e MetadataValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e MetadataValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e MetadataValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e MetadataValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e MetadataValidationError) ErrorName() string { return "MetadataValidationError" }
-
-// Error satisfies the builtin error interface
-func (e MetadataValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sMetadata.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = MetadataValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = MetadataValidationError{}
-
-// Validate checks the field values on GeoPoint with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *GeoPoint) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on GeoPoint with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in GeoPointMultiError, or nil
-// if none found.
-func (m *GeoPoint) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *GeoPoint) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Lat
-
-	// no validation rules for Lng
-
-	if len(errors) > 0 {
-		return GeoPointMultiError(errors)
-	}
-
-	return nil
-}
-
-// GeoPointMultiError is an error wrapping multiple validation errors returned
-// by GeoPoint.ValidateAll() if the designated constraints aren't met.
-type GeoPointMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m GeoPointMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m GeoPointMultiError) AllErrors() []error { return m }
-
-// GeoPointValidationError is the validation error returned by
-// GeoPoint.Validate if the designated constraints aren't met.
-type GeoPointValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e GeoPointValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e GeoPointValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e GeoPointValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e GeoPointValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e GeoPointValidationError) ErrorName() string { return "GeoPointValidationError" }
-
-// Error satisfies the builtin error interface
-func (e GeoPointValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sGeoPoint.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = GeoPointValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = GeoPointValidationError{}
-
-// Validate checks the field values on Token with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *Token) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on Token with the rules defined in the
-// proto definition for this message. If any rules are violated, the result is
-// a list of violation errors wrapped in TokenMultiError, or nil if none found.
-func (m *Token) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *Token) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Id
-
-	// no validation rules for Jwt
-
-	if len(errors) > 0 {
-		return TokenMultiError(errors)
-	}
-
-	return nil
-}
-
-// TokenMultiError is an error wrapping multiple validation errors returned by
-// Token.ValidateAll() if the designated constraints aren't met.
-type TokenMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m TokenMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m TokenMultiError) AllErrors() []error { return m }
-
-// TokenValidationError is the validation error returned by Token.Validate if
-// the designated constraints aren't met.
-type TokenValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e TokenValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e TokenValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e TokenValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e TokenValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e TokenValidationError) ErrorName() string { return "TokenValidationError" }
-
-// Error satisfies the builtin error interface
-func (e TokenValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sToken.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = TokenValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = TokenValidationError{}
+} = ReportHealthResponseValidationError{}

@@ -4,102 +4,8 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, Timestamp } from "@bufbuild/protobuf";
-
-/**
- * Server currently falls into a category that is consuming requests from the outside world
- * the `Job` is something that is private and not serving any external requests. I could however
- * be pulling messages from a message queue, and or doing some batch processing. I.e. some sort of 
- * training.
- *
- * @generated from enum registry.service_discovery.v1.ProcessKind
- */
-export enum ProcessKind {
-  /**
-   * @generated from enum value: INVALID_PROCESS_KIND = 0;
-   */
-  INVALID_PROCESS_KIND = 0,
-
-  /**
-   * @generated from enum value: SERVER_PROCESS = 1;
-   */
-  SERVER_PROCESS = 1,
-
-  /**
-   * @generated from enum value: JOB_PROCESS = 2;
-   */
-  JOB_PROCESS = 2,
-}
-// Retrieve enum metadata with: proto3.getEnumType(ProcessKind)
-proto3.util.setEnumType(ProcessKind, "registry.service_discovery.v1.ProcessKind", [
-  { no: 0, name: "INVALID_PROCESS_KIND" },
-  { no: 1, name: "SERVER_PROCESS" },
-  { no: 2, name: "JOB_PROCESS" },
-]);
-
-/**
- * @generated from enum registry.service_discovery.v1.ProcessRunningState
- */
-export enum ProcessRunningState {
-  /**
-   * @generated from enum value: INVALID_PROCESS_RUNNING_STATE = 0;
-   */
-  INVALID_PROCESS_RUNNING_STATE = 0,
-
-  /**
-   * @generated from enum value: PROCESS_STARTING = 1;
-   */
-  PROCESS_STARTING = 1,
-
-  /**
-   * @generated from enum value: PROCESS_TESTING = 2;
-   */
-  PROCESS_TESTING = 2,
-
-  /**
-   * @generated from enum value: PROCESS_RUNNING = 3;
-   */
-  PROCESS_RUNNING = 3,
-
-  /**
-   * @generated from enum value: PROCESS_DICONNECTED = 4;
-   */
-  PROCESS_DICONNECTED = 4,
-}
-// Retrieve enum metadata with: proto3.getEnumType(ProcessRunningState)
-proto3.util.setEnumType(ProcessRunningState, "registry.service_discovery.v1.ProcessRunningState", [
-  { no: 0, name: "INVALID_PROCESS_RUNNING_STATE" },
-  { no: 1, name: "PROCESS_STARTING" },
-  { no: 2, name: "PROCESS_TESTING" },
-  { no: 3, name: "PROCESS_RUNNING" },
-  { no: 4, name: "PROCESS_DICONNECTED" },
-]);
-
-/**
- * @generated from enum registry.service_discovery.v1.ProcessHealthState
- */
-export enum ProcessHealthState {
-  /**
-   * @generated from enum value: INVALID_PROCESS_HEALTH_STATE = 0;
-   */
-  INVALID_PROCESS_HEALTH_STATE = 0,
-
-  /**
-   * @generated from enum value: PROCESS_HEALTHY = 1;
-   */
-  PROCESS_HEALTHY = 1,
-
-  /**
-   * @generated from enum value: PROCESS_UNHEALTHY = 2;
-   */
-  PROCESS_UNHEALTHY = 2,
-}
-// Retrieve enum metadata with: proto3.getEnumType(ProcessHealthState)
-proto3.util.setEnumType(ProcessHealthState, "registry.service_discovery.v1.ProcessHealthState", [
-  { no: 0, name: "INVALID_PROCESS_HEALTH_STATE" },
-  { no: 1, name: "PROCESS_HEALTHY" },
-  { no: 2, name: "PROCESS_UNHEALTHY" },
-]);
+import { Message, proto3 } from "@bufbuild/protobuf";
+import { GeoPoint, Metadata, Process, ProcessHealthState, ProcessIdentity, ProcessKind, ProcessRunningState } from "./models_pb.js";
 
 /**
  * ProcessDetails - Messages that are sent from the `Process` to the registry. 
@@ -216,24 +122,20 @@ export class Empty extends Message<Empty> {
 }
 
 /**
- * InitRequest - Begin the service registry connection processes if sucessful
- * A `Token`, and a `pid` will be issues. 
- * the `Token` will expire.
+ * InitRequest - Begin the service registry registration flow.
  *
  * @generated from message registry.service_discovery.v1.InitializeRequest
  */
 export class InitializeRequest extends Message<InitializeRequest> {
   /**
-   * unique service name
+   * Name of the process to be registered. This field is not required to be unique with the other processes in the registry
    *
    * @generated from field: string name = 1;
    */
   name = "";
 
   /**
-   * `nonce` that is loaded into the processes state when it's run.
-   * A token will not be issues, and a process will not be able to connect to 
-   * the `SystemJournal` if the `nonce` don't match.
+   * A token will not be issued, and a process will not be able to connect to the `SystemJournal` if the `nonce` is not signed with the correct public key
    *
    * @generated from field: string nonce = 2;
    */
@@ -313,103 +215,39 @@ export class InitializeResponse extends Message<InitializeResponse> {
 }
 
 /**
- * @generated from message registry.service_discovery.v1.ProcessIdentity
+ * @generated from message registry.service_discovery.v1.QueryRequest
  */
-export class ProcessIdentity extends Message<ProcessIdentity> {
+export class QueryRequest extends Message<QueryRequest> {
   /**
-   * the process_id is assigned when the join request is successful
-   * however it does not mean that the process registered, running
-   * and in a stage ready to receive traffic
-   *
-   * @generated from field: string pid = 1;
-   */
-  pid = "";
-
-  /**
-   * the address the registering process must stream it's health, and status messages to
-   *
-   * @generated from field: string registry_address = 2;
-   */
-  registryAddress = "";
-
-  /**
-   * authentication credentials that must be added to each request to the registry
-   *
-   * The `nonce` is not added to this message b/c it's added to the service environment
-   * the and the chassis is responsible for reading at startup.
-   * `nonce` maybe replaced with `cert`
-   *
-   * @generated from field: registry.service_discovery.v1.Token token = 3;
-   */
-  token?: Token;
-
-  constructor(data?: PartialMessage<ProcessIdentity>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.service_discovery.v1.ProcessIdentity";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "pid", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "registry_address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "token", kind: "message", T: Token },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProcessIdentity {
-    return new ProcessIdentity().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ProcessIdentity {
-    return new ProcessIdentity().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ProcessIdentity {
-    return new ProcessIdentity().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: ProcessIdentity | PlainMessage<ProcessIdentity> | undefined, b: ProcessIdentity | PlainMessage<ProcessIdentity> | undefined): boolean {
-    return proto3.util.equals(ProcessIdentity, a, b);
-  }
-}
-
-/**
- * @generated from message registry.service_discovery.v1.JournalQueryRequest
- */
-export class JournalQueryRequest extends Message<JournalQueryRequest> {
-  /**
-   * TODO -> sort should be added in v2 once the basic end to end discovery process is complete
-   * Sort sort = 2;
-   *
    * @generated from field: registry.service_discovery.v1.Filter filter = 1;
    */
   filter?: Filter;
 
-  constructor(data?: PartialMessage<JournalQueryRequest>) {
+  constructor(data?: PartialMessage<QueryRequest>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.service_discovery.v1.JournalQueryRequest";
+  static readonly typeName = "registry.service_discovery.v1.QueryRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "filter", kind: "message", T: Filter },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): JournalQueryRequest {
-    return new JournalQueryRequest().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): QueryRequest {
+    return new QueryRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): JournalQueryRequest {
-    return new JournalQueryRequest().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): QueryRequest {
+    return new QueryRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): JournalQueryRequest {
-    return new JournalQueryRequest().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): QueryRequest {
+    return new QueryRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: JournalQueryRequest | PlainMessage<JournalQueryRequest> | undefined, b: JournalQueryRequest | PlainMessage<JournalQueryRequest> | undefined): boolean {
-    return proto3.util.equals(JournalQueryRequest, a, b);
+  static equals(a: QueryRequest | PlainMessage<QueryRequest> | undefined, b: QueryRequest | PlainMessage<QueryRequest> | undefined): boolean {
+    return proto3.util.equals(QueryRequest, a, b);
   }
 }
 
@@ -471,39 +309,39 @@ export class Filter extends Message<Filter> {
 }
 
 /**
- * @generated from message registry.service_discovery.v1.JournalQueryResponse
+ * @generated from message registry.service_discovery.v1.QueryResponse
  */
-export class JournalQueryResponse extends Message<JournalQueryResponse> {
+export class QueryResponse extends Message<QueryResponse> {
   /**
    * @generated from field: map<string, registry.service_discovery.v1.Process> data = 1;
    */
   data: { [key: string]: Process } = {};
 
-  constructor(data?: PartialMessage<JournalQueryResponse>) {
+  constructor(data?: PartialMessage<QueryResponse>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.service_discovery.v1.JournalQueryResponse";
+  static readonly typeName = "registry.service_discovery.v1.QueryResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "data", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Process} },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): JournalQueryResponse {
-    return new JournalQueryResponse().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): QueryResponse {
+    return new QueryResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): JournalQueryResponse {
-    return new JournalQueryResponse().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): QueryResponse {
+    return new QueryResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): JournalQueryResponse {
-    return new JournalQueryResponse().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): QueryResponse {
+    return new QueryResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: JournalQueryResponse | PlainMessage<JournalQueryResponse> | undefined, b: JournalQueryResponse | PlainMessage<JournalQueryResponse> | undefined): boolean {
-    return proto3.util.equals(JournalQueryResponse, a, b);
+  static equals(a: QueryResponse | PlainMessage<QueryResponse> | undefined, b: QueryResponse | PlainMessage<QueryResponse> | undefined): boolean {
+    return proto3.util.equals(QueryResponse, a, b);
   }
 }
 
@@ -582,337 +420,64 @@ export class FinalizeResponse extends Message<FinalizeResponse> {
 }
 
 /**
- * Entities
- *
- * @generated from message registry.service_discovery.v1.Zone
+ * @generated from message registry.service_discovery.v1.ReportHealthRequest
  */
-export class Zone extends Message<Zone> {
-  constructor(data?: PartialMessage<Zone>) {
+export class ReportHealthRequest extends Message<ReportHealthRequest> {
+  constructor(data?: PartialMessage<ReportHealthRequest>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.service_discovery.v1.Zone";
+  static readonly typeName = "registry.service_discovery.v1.ReportHealthRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Zone {
-    return new Zone().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReportHealthRequest {
+    return new ReportHealthRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Zone {
-    return new Zone().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ReportHealthRequest {
+    return new ReportHealthRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Zone {
-    return new Zone().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ReportHealthRequest {
+    return new ReportHealthRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: Zone | PlainMessage<Zone> | undefined, b: Zone | PlainMessage<Zone> | undefined): boolean {
-    return proto3.util.equals(Zone, a, b);
+  static equals(a: ReportHealthRequest | PlainMessage<ReportHealthRequest> | undefined, b: ReportHealthRequest | PlainMessage<ReportHealthRequest> | undefined): boolean {
+    return proto3.util.equals(ReportHealthRequest, a, b);
   }
 }
 
 /**
- * @generated from message registry.service_discovery.v1.SystemJournal
+ * @generated from message registry.service_discovery.v1.ReportHealthResponse
  */
-export class SystemJournal extends Message<SystemJournal> {
-  /**
-   * @generated from field: repeated registry.service_discovery.v1.Process processes = 1;
-   */
-  processes: Process[] = [];
-
-  constructor(data?: PartialMessage<SystemJournal>) {
+export class ReportHealthResponse extends Message<ReportHealthResponse> {
+  constructor(data?: PartialMessage<ReportHealthResponse>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.service_discovery.v1.SystemJournal";
+  static readonly typeName = "registry.service_discovery.v1.ReportHealthResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "processes", kind: "message", T: Process, repeated: true },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SystemJournal {
-    return new SystemJournal().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReportHealthResponse {
+    return new ReportHealthResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SystemJournal {
-    return new SystemJournal().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ReportHealthResponse {
+    return new ReportHealthResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SystemJournal {
-    return new SystemJournal().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ReportHealthResponse {
+    return new ReportHealthResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: SystemJournal | PlainMessage<SystemJournal> | undefined, b: SystemJournal | PlainMessage<SystemJournal> | undefined): boolean {
-    return proto3.util.equals(SystemJournal, a, b);
-  }
-}
-
-/**
- * @generated from message registry.service_discovery.v1.Process
- */
-export class Process extends Message<Process> {
-  /**
-   * pid - is a uuid to identify each process of the system normally
-   * this would follow the normal `id` naming convention. But given 
-   * a `pid` in most systems is very specific, that tradition will be
-   * carried on.
-   *
-   * @generated from field: string pid = 1;
-   */
-  pid = "";
-
-  /**
-   * @generated from field: string name = 2;
-   */
-  name = "";
-
-  /**
-   * what is this metadata?
-   *
-   * @generated from field: string group = 3;
-   */
-  group = "";
-
-  /**
-   * @generated from field: string local = 4;
-   */
-  local = "";
-
-  /**
-   * port?
-   *
-   * @generated from field: string ip_address = 5;
-   */
-  ipAddress = "";
-
-  /**
-   * @generated from field: registry.service_discovery.v1.ProcessKind process_kind = 6;
-   */
-  processKind = ProcessKind.INVALID_PROCESS_KIND;
-
-  /**
-   * @generated from field: repeated registry.service_discovery.v1.Metadata metadata = 7;
-   */
-  metadata: Metadata[] = [];
-
-  /**
-   * @generated from field: registry.service_discovery.v1.GeoPoint location = 8;
-   */
-  location?: GeoPoint;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp joined_time = 9;
-   */
-  joinedTime?: Timestamp;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp left_time = 10;
-   */
-  leftTime?: Timestamp;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp last_status_time = 11;
-   */
-  lastStatusTime?: Timestamp;
-
-  /**
-   * @generated from field: registry.service_discovery.v1.ProcessRunningState running_state = 12;
-   */
-  runningState = ProcessRunningState.INVALID_PROCESS_RUNNING_STATE;
-
-  /**
-   * @generated from field: registry.service_discovery.v1.ProcessHealthState health_state = 13;
-   */
-  healthState = ProcessHealthState.INVALID_PROCESS_HEALTH_STATE;
-
-  /**
-   * @generated from field: registry.service_discovery.v1.Token token = 14;
-   */
-  token?: Token;
-
-  constructor(data?: PartialMessage<Process>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.service_discovery.v1.Process";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "pid", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "group", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "local", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "ip_address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "process_kind", kind: "enum", T: proto3.getEnumType(ProcessKind) },
-    { no: 7, name: "metadata", kind: "message", T: Metadata, repeated: true },
-    { no: 8, name: "location", kind: "message", T: GeoPoint },
-    { no: 9, name: "joined_time", kind: "message", T: Timestamp },
-    { no: 10, name: "left_time", kind: "message", T: Timestamp },
-    { no: 11, name: "last_status_time", kind: "message", T: Timestamp },
-    { no: 12, name: "running_state", kind: "enum", T: proto3.getEnumType(ProcessRunningState) },
-    { no: 13, name: "health_state", kind: "enum", T: proto3.getEnumType(ProcessHealthState) },
-    { no: 14, name: "token", kind: "message", T: Token },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Process {
-    return new Process().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Process {
-    return new Process().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Process {
-    return new Process().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: Process | PlainMessage<Process> | undefined, b: Process | PlainMessage<Process> | undefined): boolean {
-    return proto3.util.equals(Process, a, b);
-  }
-}
-
-/**
- * Associated data that can be used to lookup the process
- *
- * @generated from message registry.service_discovery.v1.Metadata
- */
-export class Metadata extends Message<Metadata> {
-  /**
-   * @generated from field: string pid = 1;
-   */
-  pid = "";
-
-  /**
-   * @generated from field: string key = 2;
-   */
-  key = "";
-
-  /**
-   * @generated from field: string value = 3;
-   */
-  value = "";
-
-  constructor(data?: PartialMessage<Metadata>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.service_discovery.v1.Metadata";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "pid", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "value", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Metadata {
-    return new Metadata().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Metadata {
-    return new Metadata().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Metadata {
-    return new Metadata().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: Metadata | PlainMessage<Metadata> | undefined, b: Metadata | PlainMessage<Metadata> | undefined): boolean {
-    return proto3.util.equals(Metadata, a, b);
-  }
-}
-
-/**
- * GeoPoint - Is the location of something using standard lat/lng notion.
- *
- * @generated from message registry.service_discovery.v1.GeoPoint
- */
-export class GeoPoint extends Message<GeoPoint> {
-  /**
-   * @generated from field: float lat = 1;
-   */
-  lat = 0;
-
-  /**
-   * @generated from field: float lng = 2;
-   */
-  lng = 0;
-
-  constructor(data?: PartialMessage<GeoPoint>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.service_discovery.v1.GeoPoint";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "lat", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
-    { no: 2, name: "lng", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GeoPoint {
-    return new GeoPoint().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GeoPoint {
-    return new GeoPoint().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GeoPoint {
-    return new GeoPoint().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: GeoPoint | PlainMessage<GeoPoint> | undefined, b: GeoPoint | PlainMessage<GeoPoint> | undefined): boolean {
-    return proto3.util.equals(GeoPoint, a, b);
-  }
-}
-
-/**
- * Token that is generated when the `Init` function is called with the correct `nonce`
- *
- * @generated from message registry.service_discovery.v1.Token
- */
-export class Token extends Message<Token> {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id = "";
-
-  /**
-   * @generated from field: string jwt = 3;
-   */
-  jwt = "";
-
-  constructor(data?: PartialMessage<Token>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "registry.service_discovery.v1.Token";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "jwt", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Token {
-    return new Token().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Token {
-    return new Token().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Token {
-    return new Token().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: Token | PlainMessage<Token> | undefined, b: Token | PlainMessage<Token> | undefined): boolean {
-    return proto3.util.equals(Token, a, b);
+  static equals(a: ReportHealthResponse | PlainMessage<ReportHealthResponse> | undefined, b: ReportHealthResponse | PlainMessage<ReportHealthResponse> | undefined): boolean {
+    return proto3.util.equals(ReportHealthResponse, a, b);
   }
 }
 
