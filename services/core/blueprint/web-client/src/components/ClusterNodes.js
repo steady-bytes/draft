@@ -1,14 +1,17 @@
-import * as React from 'react';
-import Typography from '@mui/material/Typography';
+import * as React from "react";
+import "./../index.css";
 
-import Title from './Title';
+import Title from "./Title";
 
 export default function ClusterNodes() {
   return (
-    <React.Fragment>
+    <>
       <Title>Cluster Details</Title>
-      <Typography component="p" variant="h4">Nodes</Typography>
-      <Typography color="text.secondary" sx={{ flex: 1 }}>Healthy: 25 <br/>Unhealthy: 1</Typography>
-    </React.Fragment>
+      <h4>Nodes</h4>
+      <div className="clusterNodes-content">
+        Healthy: 25 <br />
+        Unhealthy: 1
+      </div>
+    </>
   );
 }

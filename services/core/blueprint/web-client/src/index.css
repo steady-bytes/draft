@@ -1,6 +1,10 @@
 /* --------------- ROOT STYLE VARS --------------- */
 :root {
+  --white: #fafbfd;
+  --black: #0d121a;
   --primary: #2d72d2;
+  --primary-hover: #4c90f0;
+  --primary-active: #215db0;
   --bg: #f6f7f9;
   --text-dark: #2f343c;
   --text-gray: #738091;
@@ -11,7 +15,7 @@
   --badge: #cd4246;
 }
 
-/* --------------- KEYFRAMES STUFF --------------- */
+/* --------------- KEYFRAMES --------------- */
 @keyframes ping {
   75%,
   100% {
@@ -55,6 +59,12 @@ a:hover {
   color: var(--a-hover);
 }
 
+h4 {
+  font-size: 1.5rem;
+  margin: 0;
+  padding-bottom: 5px;
+}
+
 /* --------------- LAYOUT --------------- */
 .main-container {
   padding-top: 100px;
@@ -76,6 +86,62 @@ a:hover {
   background-color: var(--divider);
   margin-top: 1px;
   margin-bottom: 1px;
+}
+
+.card {
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px var(--divider);
+  padding: 10px 15px 20px 15px;
+  margin: 8px;
+  background-color: white;
+}
+
+/* ---------- TABLE ---------- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-row {
+  display: flex;
+  border-bottom: 1px solid var(--divider);
+}
+
+.table-header {
+  font-weight: bold;
+}
+
+.table-cell {
+  flex: 1;
+  padding: 8px;
+}
+
+.align-right {
+  text-align: right;
+}
+
+/* ---------- BUTTONS ---------- */
+
+.btn {
+  background-color: var(--primary);
+  color: var(--text-light);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background-color: var(--primary-hover);
+  box-shadow: 0 6px 8px var(--divider);
+  color: var(--white);
+}
+
+.btn:active {
+  background-color: var(--primary-active);
 }
 
 /* --------------- ICONS --------------- */
@@ -235,4 +301,65 @@ a:hover {
   font-weight: bold;
   color: var(--text-light);
   background-color: var(--primary);
+}
+
+/* ---------- CLUSTER NODES ---------- */
+.clusterNodes-content {
+  display: flex;
+  margin: 0;
+  padding: 3px;
+  line-height: 1.25rem;
+}
+
+/* ---------- CLUSTER NODES LIST ---------- */
+.clusterNodesList-content {
+  display: flex;
+  margin: 0;
+  padding: 3px;
+}
+
+.offline {
+  color: var(--text-gray);
+  font-style: italic;
+}
+
+/* --------------- PAGES --------------- */
+/* ---------- METRICS ---------- */
+.metrics-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.metrics-content {
+  display: flex;
+  height: 85%;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: center;
+}
+
+.metrics-top {
+  display: flex;
+  height: 50%;
+  width: 100%;
+}
+
+.metrics-bottom {
+  display: flex;
+  flex-direction: column;
+  height: 50%;
+  width: 100%;
+}
+
+.metrics-chart {
+  display: flex;
+  flex-direction: column;
+  width: 66.66%;
+}
+
+.metrics-clusterNodes {
+  display: flex;
+  flex-direction: column;
+  width: 33.33%;
 }
