@@ -1,10 +1,6 @@
 import React from "react";
 import "./../index.css";
 
-const Container = ({ children, themeMode }) => (
-   <div className={'container ${themeMode === "dark" ? "dark-mode" : ""}'}>
-      {children}
-   </div>
-);
+const Container = ({ children }) => <div className="container">{children}</div>;
 
 export default Container;

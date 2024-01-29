@@ -1,11 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
 import { NavLink } from "react-router-dom";
-import { Icon, Tag, Popover } from "@blueprintjs/core";
+import { IoMdNotificationsOutline } from "react-icons/io";
+import {
+  MdAutoGraph,
+  MdOutlineSettings,
+  MdKeyboardCommandKey,
+} from "react-icons/md";
+import { BiNetworkChart } from "react-icons/bi";
+import { FaKeycdn } from "react-icons/fa";
+import { RiMenuUnfoldLine, RiMenuFoldLine } from "react-icons/ri";
 import "./../index.css";
 
-export default function MainAppBar() {
+export default function Header() {
+  // ----- State for toggling Menu and Notify
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(5);
+  const [notificationCount, setNotificationCount] = useState(5); // <-- init to 5 for Testing
   const menuRef = useRef(null);
 
   // ----- Reset Counter
@@ -18,7 +27,7 @@ export default function MainAppBar() {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  // ----- Menu starts closed
+  // ----- Menu starts closed...
   const closeMenu = () => {
     setIsMenuOpen(false);
   };
@@ -40,99 +49,70 @@ export default function MainAppBar() {
   return (
     <div className="header">
       <div className="header-left">
+        {/* ----- Menu Icon ----- */}
         <div className="menu-icon" onClick={handleMenuClick} ref={menuRef}>
-          <Icon icon="menu" color="#edeff2" />
-
+          {isMenuOpen ? (
+            <RiMenuFoldLine className="icon-menu icon-menu-open" />
+          ) : (
+            <RiMenuUnfoldLine className="icon-menu" />
+          )}
+          {/* ----- Menu Content ----- */}
           {isMenuOpen && (
             <div className="menu">
               <div className="menu-row">
                 <div className="menu-left">
                   <NavLink to="/" onClick={closeMenu}>
-                    <Icon
-                      icon="series-filtered"
-                      className="icon-menu"
-                      color="#5F6B7C"
-                    />
+                    <MdAutoGraph className="menuIcons" />
                     Metrics{" "}
                   </NavLink>
                 </div>
                 <div className="menu-right">
-                  <Icon
-                    icon="key-command"
-                    className="icon-cmd"
-                    color="#8F99A8"
-                  />
-                  M
+                  <MdKeyboardCommandKey className="icon-command" />M
                 </div>
               </div>
               <div className="menu-row">
                 <div className="menu-left">
                   <NavLink to="/service-registry" onClick={closeMenu}>
-                    <Icon
-                      icon="one-to-many"
-                      className="icon-menu"
-                      color="#5F6B7C"
-                    />
+                    <BiNetworkChart className="menuIcons" />
                     Services
                   </NavLink>
                 </div>
                 <div className="menu-right">
-                  <Icon
-                    icon="key-command"
-                    className="icon-cmd"
-                    color="#8F99A8"
-                  />
-                  X
+                  <MdKeyboardCommandKey className="icon-command" />X
                 </div>
               </div>
 
               <div className="menu-row">
                 <div className="menu-left">
                   <NavLink to="/key-values" onClick={closeMenu}>
-                    <Icon
-                      icon="heatmap"
-                      className="icon-menu"
-                      color="#5F6B7C"
-                    />
+                    <FaKeycdn className="menuIcons" />
                     Key/Values
                   </NavLink>
                 </div>
                 <div className="menu-right">
-                  <Icon
-                    icon="key-command"
-                    className="icon-cmd"
-                    color="#8F99A8"
-                  />
-                  K
+                  <MdKeyboardCommandKey className="icon-command" />K
                 </div>
               </div>
               <div className="divider" />
               <div className="menu-left">
-                <Icon
-                  icon="cog"
-                  color="#5F6B7C"
-                  className="icon-menu"
-                  onClick={closeMenu}
-                />
+                <MdOutlineSettings className="menuIcons" />
                 Settings
               </div>
             </div>
           )}
-
+          {/* ----- "Logo"/Text ----- */}
           <span className="logo-text">{"{blueprint}"}</span>
         </div>
       </div>
       <div className="header-right">
-        {/* ----- TODO: Get this Notify Badge working */}
-        <Popover
-          content={<div>Notify Content</div>}
-          isOpen={notificationCount > 0}
-          minimal
-          onInteraction={handleNotificationClick}
-        >
-          <Tag intent="danger">{notificationCount}</Tag>
-          <Icon icon="notifications" className="notify" color="#edeff2" />
-        </Popover>
+        {/* ----- Notifications ----- */}
+        <div className="badge-notify" onClick={handleNotificationClick}>
+          <IoMdNotificationsOutline className="icon-notify" />
+          {/* ----- Notifications Badge ----- */}
+          {notificationCount > 0 && (
+            <div className="badge-overlay">{notificationCount}</div>
+          )}
+        </div>
       </div>
     </div>
   );

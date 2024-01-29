@@ -4,7 +4,7 @@ import MetricsPage from "./Metrics";
 import ServiceRegistryPage from "./ServiceRegistry";
 import KeyValuesPage from "./KeyValues";
 import ErrorPage from "./ErrorPage";
-import MainAppBar from "../components/MainAppBar";
+import Header from "../components/Header";
 import MainContainer from "../components/MainContainer";
 import Container from "../components/Container";
 import Footer from "../components/Footer";
@@ -12,7 +12,7 @@ import Footer from "../components/Footer";
 export default function Dashboard() {
   return (
     <>
-      <MainAppBar />
+      <Header />
       <MainContainer>
         <Container>
           <Routes>
@@ -22,8 +22,8 @@ export default function Dashboard() {
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Container>
-        <Footer />
       </MainContainer>
+      <Footer />
     </>
   );
 }

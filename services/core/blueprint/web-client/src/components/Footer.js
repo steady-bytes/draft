@@ -1,10 +1,14 @@
 import * as React from "react";
+import { RiCopyrightLine } from "react-icons/ri";
 import "./../index.css";
 
-export default function Footer(props) {
+export default function Footer() {
   return (
     <div className="footer">
-      <p>&copy; {new Date().getFullYear()} steady-bytes</p>
+      <p>
+        <RiCopyrightLine className="icon-copyright" />
+        {new Date().getFullYear()} {"{steady-bytes}"}
+      </p>
     </div>
   );
 }
