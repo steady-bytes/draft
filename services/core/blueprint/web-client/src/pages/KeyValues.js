@@ -1,3 +1,11 @@
+// Search dialog: Search key or search value in a key
+// Table below matches search criteria
+// Display List(25 at a time-- arrray)
+// Filter endpoint(key vs value), display BroadcastChannel.Generally search for a value.
+// Add key / value with modal ?? Reroute back to K / V and refresh w / state(Redux)
+// Snackbar OK-- no spinners
+// Snackbar Err and handle redux (sad path -- handle later)
+
 import * as React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
@@ -10,6 +18,7 @@ import { useGetValuesQuery } from '../services/key_value_rpc';
 import { decrement, increment, incrementByAmount } from '../store/counter';
 
 import { GetRequest, GetResponse, GetFilter } from '../grpc/registry/key_value/v1/service_pb';
+import { createImmutableStateInvariantMiddleware } from '@reduxjs/toolkit'
 
 export default function KeyValuesPage () {
     const count = useSelector((state) => state.counter.value)

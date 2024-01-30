@@ -1,72 +1,58 @@
-import * as React from 'react';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-
-import Title from './Title';
+import * as React from "react";
+import "./../index.css";
+import Title from "./Title";
 
 // Generate Order Data
 function createData(id, name, status, state) {
-  return { id, name, status, state};
+  return { id, name, status, state };
 }
 
 const rows = [
-  createData(
-    0,
-    'CST - US - South 1',
-    'Online',
-    'Voter',
-  ),
-  createData(
-    1,
-    'MNT - US - North 2',
-    'Online',
-    'Leader',
-  ),
-  createData(
-    2, 
-    'MNT - US - North 1', 
-    'Online', 
-    'Voter'
-  ),
-  createData(
-    3,
-    'PST - US - North 1',
-    'Offline',
-    'Abandoned',
-  ),
-  createData(
-    4,
-    'PST - US - South 1',
-    'Online',
-    'Voter',
-  ),
+  createData(0, "CST - US - South 1", "Online", "Voter"),
+  createData(1, "MNT - US - North 2", "Online", "Leader"),
+  createData(2, "MNT - US - North 1", "Online", "Voter"),
+  createData(3, "PST - US - North 1", "Offline", "Abandoned"),
+  createData(4, "PST - US - South 1", "Online", "Voter"),
 ];
 
 export default function ClusterNodeList() {
   return (
-    <React.Fragment>
+    <>
       <Title>Cluster Nodes</Title>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Online</TableCell>
-            <TableCell align="right">Node State</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
+      <div className="clusterNodesList-content">
+        <div className="table">
+          <div className="table-row table-header">
+            <div className="table-cell">Name</div>
+            <div className="table-cell">Online</div>
+            <div className="table-cell align-right">Node State</div>
+          </div>
           {rows.map((row) => (
-            <TableRow key={row.id}>
-              <TableCell>{row.name}</TableCell>
-              <TableCell>{row.status}</TableCell>
-              <TableCell align="right">{row.state}</TableCell>
-            </TableRow>
+            <div key={row.id} className="table-row">
+              <div
+                className={`table-cell ${
+                  row.status === "Offline" ? "offline" : ""
+                }`}
+              >
+                {row.name}
+              </div>
+              <div
+                className={`table-cell ${
+                  row.status === "Offline" ? "offline" : ""
+                }`}
+              >
+                {row.status}
+              </div>
+              <div
+                className={`table-cell align-right ${
+                  row.status === "Offline" ? "offline" : ""
+                }`}
+              >
+                {row.state}
+              </div>
+            </div>
           ))}
-        </TableBody>
-      </Table>
-    </React.Fragment>
+        </div>
+      </div>
+    </>
   );
 }
