@@ -6,7 +6,7 @@
 // Snackbar OK-- no spinners
 // Snackbar Err and handle redux (sad path -- handle later)
 
-import * as React from "react";
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { useGetValuesQuery } from "../services/key_value_rpc";
@@ -20,6 +20,7 @@ import {
 import { createImmutableStateInvariantMiddleware } from "@reduxjs/toolkit";
 import Button from "../components/Button";
 import Title from "../components/Title";
+import Search from "../components/Search";
 
 export default function KeyValuesPage() {
   const count = useSelector((state) => state.counter.value);
@@ -38,8 +39,24 @@ export default function KeyValuesPage() {
     console.log(GetValue);
   };
 
+  const [selectedOption, setSelectedOption] = useState(null);
+
+  const handleSelect = (option) => {
+    setSelectedOption(option);
+  };
+
+  const options = [
+    { label: "Option 1", value: "option1" },
+    { label: "Option 2", value: "option2" },
+    { label: "Option 3", value: "option3" },
+  ];
+
   return (
     <div className="keyvalue-container">
+      <div>
+        <Search options={options} onSelect={handleSelect} />
+      </div>
+
       <div className="card">
         <Title text="Counter RTK Test:" />
         <span className="keyvalue-rtkcounter">{count}</span>
