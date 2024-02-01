@@ -7,4 +7,5 @@ use (
 	./services/core/blueprint
 	./services/core/healthz
 	./tools/dctl
+	./pkg/blueprint-client
 )

@@ -16,19 +16,16 @@ import (
 type (
 	Controller interface {
 		draft.ConsensusRegistrar
-		draft.SecretStoreSetter
 		raft.FSM
 
 		KeyValue
 	}
 
 	KeyValue interface {
-		// Delete(key string, value T) error
+		Delete(key string, value T) error
 		Set(log logging.Logger, key string, value T, timeout time.Duration) (*SetResponse, error)
 		Get(key string, value T) (T, error)
 		List(kind T) (map[string]T, error)
-
-		// Iterate()
 	}
 
 	SetResponse struct {
@@ -39,7 +36,6 @@ type (
 	controller struct {
 		repo Repo
 		raft *raft.Raft
-		sstr draft.SecretStore
 	}
 )
 
@@ -59,13 +55,7 @@ func NewController(repo Repo) Controller {
 	return &controller{
 		repo: repo,
 		raft: nil,
-		sstr: nil,
 	}
-}
-
-// Accepts a `SecretStore` interface and adds it to the controller
-func (c *controller) SetSecretStore(s draft.SecretStore) {
-	c.sstr = s
 }
 
 // Implement the the `draft.ConsensusRegister` interface so that the underlying infrastructure
@@ -104,10 +94,6 @@ func (c *controller) Get(key string, value T) (T, error) {
 
 	return val, nil
 }
-
-// func (c *controller) Iterate() {
-// 	c.repo.Query(&anypb.Any{})
-// }
 
 func (c *controller) Set(
 	log logging.Logger,

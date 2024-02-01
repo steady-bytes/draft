@@ -24,6 +24,11 @@ message ProcessIdentity {
   // `nonce` maybe replaced with `cert`
 }
 
+// configuration the registry is giving to the process to run
+message StartupConfiguration {
+    uint32 assigned_port = 1;
+}
+
 // A process is a running program on a computer.
 message Process {
   // pid - is a uuid to identify each process of the system normally
@@ -32,7 +37,7 @@ message Process {
   // carried on.
   string pid = 1;
   // name is not required to be unique between other processes. The `pid`
-  // is the specific identifier used to lookup a single process.
+  // is the specific identifier used to lookup a single process.s
   string name = 2;
 
   string group = 3;

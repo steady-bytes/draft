@@ -72,6 +72,8 @@ message InitializeResponse  {
   // If the init request was succesful then an identity will be given to the process so that it
   // can stream it's operational details to the registry
   ProcessIdentity process_identity = 1;
+  // Startup configuration
+  StartupConfiguration configuration = 2;
 }
 
 message QueryRequest {

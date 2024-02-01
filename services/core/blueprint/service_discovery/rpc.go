@@ -8,6 +8,7 @@ import (
 	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
 	sdConnect "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	"github.com/steady-bytes/draft/pkg/logging"
 
 	"connectrpc.com/connect"
 )
@@ -20,6 +21,7 @@ type (
 
 	rpc struct {
 		controller Controller
+		logger     logging.Logger
 	}
 )
 
@@ -33,14 +35,47 @@ func New(controller Controller) Rpc {
 func (h *rpc) RegisterRPC(server draft.Rpcer) {
 	server.EnableReflection(sdConnect.ServiceDiscoveryServiceName)
 	server.AddHandler(sdConnect.NewServiceDiscoveryServiceHandler(h))
+	h.logger = server.Logger()
+}
+
+var (
+	ErrFailedInitialize = "failed to init the new process"
+)
+
+func (h *rpc) Initialize(
+	ctx context.Context,
+	req *connect.Request[sdv1.InitializeRequest],
+) (*connect.Response[sdv1.InitializeResponse], error) {
+	var (
+		log   = h.logger.WithContext(ctx)
+		nonce = req.Msg.Nonce
+		name  = req.Msg.Name
+	)
+
+	identity, err := h.controller.Initialize(ctx, log, nonce, name)
+	if err != nil {
+		log.
+			WithError(err).
+			Error(ErrFailedInitialize)
+
+		return nil, errors.New(ErrFailedInitialize)
+	}
+
+	return connect.NewResponse[sdv1.InitializeResponse](&sdv1.InitializeResponse{
+		ProcessIdentity: identity,
+	}), nil
 }
 
 func (h *rpc) Synchronize(
 	ctx context.Context,
 	stream *connect.ClientStream[sdv1.ClientDetails],
 ) (*connect.Response[sdv1.Empty], error) {
+	var (
+		log = h.logger.WithContext(ctx)
+	)
+
 	for stream.Receive() {
-		h.controller.Synchronize(ctx, stream.Msg())
+		h.controller.Synchronize(ctx, log, stream.Msg())
 	}
 
 	// TODO -> handle errors
@@ -75,30 +110,16 @@ func (h *rpc) Finalize(
 	}), nil
 }
 
-func (h *rpc) Initialize(
+func (h *rpc) Query(
 	ctx context.Context,
-	req *connect.Request[sdv1.InitializeRequest],
-) (*connect.Response[sdv1.InitializeResponse], error) {
-	var (
-		nonce = req.Msg.Nonce
-		name  = req.Msg.Name
-	)
-
-	identity, err := h.controller.Initialize(ctx, nonce, name)
-	if err != nil {
-		fmt.Println(err)
-		return nil, errors.New("failed to init the new process")
-	}
-
-	return connect.NewResponse[sdv1.InitializeResponse](&sdv1.InitializeResponse{
-		ProcessIdentity: identity,
-	}), nil
+	req *connect.Request[sdv1.QueryRequest],
+) (*connect.Response[sdv1.QueryResponse], error) {
+	return nil, errors.New("implement me")
 }
 
-func (h *rpc) QuerySystemJournal(
+func (h *rpc) ReportHealth(
 	ctx context.Context,
-	req *connect.Request[sdv1.JournalQueryRequest],
-) (*connect.Response[sdv1.JournalQueryResponse], error) {
-	// h.controller.Query(ctx)
+	req *connect.Request[sdv1.ReportHealthRequest],
+) (*connect.Response[sdv1.ReportHealthResponse], error) {
 	return nil, errors.New("implement me")
 }
