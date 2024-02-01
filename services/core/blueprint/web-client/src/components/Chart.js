@@ -28,7 +28,7 @@ const data = [
 export default function Chart() {
   return (
     <>
-      <Title>Request Volume</Title>
+      <Title text="Request Volume" />
       <ResponsiveContainer>
         <LineChart
           data={data}

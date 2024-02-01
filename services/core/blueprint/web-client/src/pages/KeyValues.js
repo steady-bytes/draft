@@ -6,96 +6,83 @@
 // Snackbar OK-- no spinners
 // Snackbar Err and handle redux (sad path -- handle later)
 
-import * as React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import * as React from "react";
+import { useSelector, useDispatch } from "react-redux";
 
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack';
-import Grid from '@mui/material/Grid';
-import Paper from '@mui/material/Paper';
+import { useGetValuesQuery } from "../services/key_value_rpc";
+import { decrement, increment, incrementByAmount } from "../store/counter";
 
-import { useGetValuesQuery } from '../services/key_value_rpc';
-import { decrement, increment, incrementByAmount } from '../store/counter';
+import {
+  GetRequest,
+  GetResponse,
+  GetFilter,
+} from "../grpc/registry/key_value/v1/service_pb";
+import { createImmutableStateInvariantMiddleware } from "@reduxjs/toolkit";
+import Button from "../components/Button";
+import Title from "../components/Title";
 
-import { GetRequest, GetResponse, GetFilter } from '../grpc/registry/key_value/v1/service_pb';
-import { createImmutableStateInvariantMiddleware } from '@reduxjs/toolkit'
+export default function KeyValuesPage() {
+  const count = useSelector((state) => state.counter.value);
+  const dispatch = useDispatch();
 
-export default function KeyValuesPage () {
-    const count = useSelector((state) => state.counter.value)
-    const dispatch = useDispatch();
+  const {
+    data: GetValue,
+    error: GetValueError,
+    isLoading: GetValueIsLoading,
+  } = useGetValuesQuery({
+    key: "0e7ef876-52d8-42ac-a366-01db3ddb7623",
+    filter: GetFilter[2],
+  });
 
-    const {
-        data: GetValue, 
-        error: GetValueError, 
-        isLoading: GetValueIsLoading
-    } = useGetValuesQuery(
-        {
-            key: "0e7ef876-52d8-42ac-a366-01db3ddb7623",
-            filter: GetFilter[2],
-        }
-    )
+  const clickApi = () => {
+    console.log(GetValue);
+  };
 
-    const clickApi = () => {
-        console.log(GetValue)
-    }
+  return (
+    <div className="keyvalue-container">
+      <div className="card">
+        <Title text="Counter RTK Test:" />
+        <span className="keyvalue-rtkcounter">{count}</span>
+        <br />
+        <div className="keyvalue-cardfooter">
+          <Button
+            type="outline"
+            text="Increment"
+            onClick={() => dispatch(increment())}
+          />
+          <br />
+          <Button
+            text="Decrement"
+            type="outline"
+            onClick={() => dispatch(decrement())}
+          />
+          <br />
+          <Button
+            text="Add 10"
+            type="outline"
+            onClick={() => dispatch(incrementByAmount(10))}
+          />
+        </div>
+      </div>
 
-    return (
-        <Grid container spacing={3}>
-            <Grid item xs={12}>
-                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                    <h2>Counter RTK Test</h2>
-                    <span>{count}</span>
-                    <br/>
-                    <Stack spacing={2} direction="row">
-                        <Button
-                            variant="outlined"
-                            onClick={() => dispatch(increment())}
-                        >
-                                Increment
-                        </Button>
-                        <br/>
-                        <Button
-                            variant="outlined"
-                            onClick={() => dispatch(decrement())}
-                        >
-                            Decrement
-                        </Button>
-                        <br/>
-                        <Button
-                            variant="outlined"
-                            onClick={() => dispatch(incrementByAmount(10))}>
-                            Add 10
-                        </Button>
-                    </Stack>
-                </Paper>
-            </Grid>
+      <div className="card">
+        <Title text="Set:" />
+        <div className="keyvalue-cardfooter">
+          <Button type="outline" text="Set" onClick={clickApi} />
+        </div>
+      </div>
 
-            <Grid item xs={12}>
-                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                    <h2>Set:</h2>
-                    <Button 
-                        variant="outlined"
-                        onClick={clickApi}>Set</Button>
-                </Paper>
-            </Grid>
+      <div className="card">
+        <Title text="Get:" />
+      </div>
 
-            <Grid item xs={12}>
-                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                    <h2>Get:</h2>
-                </Paper>
-            </Grid>
+      <div className="card">
+        <Title text="Remove:" />
+      </div>
 
-            <Grid item xs={12}>
-                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                    <h2>Remove:</h2>
-                </Paper>
-            </Grid>
-
-            <Grid item xs={12}>
-                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                    <h2>List:</h2>
-                </Paper>
-            </Grid>
-        </Grid>
-    )
+      <div className="card">
+        <Title text="List:" />
+      </div>
+    </div>
+  );
 }

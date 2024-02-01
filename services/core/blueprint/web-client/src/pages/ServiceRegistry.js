@@ -1,29 +1,26 @@
-import * as React from 'react';
+import * as React from "react";
+import Title from "../components/Title";
 
-import Grid from '@mui/material/Grid';
-import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
+export default function ServiceRegistryPage() {
+  return (
+    <div className="servreg-container">
+      <div className="card servreg-servinv">
+        <Title text="Service Inventory" />
+        <div className="servreg-servinv-contents">
+          <div className="servreg-health">
+            <h3>Healthy:</h3>{" "}
+            <h4 className="servreg-counter servreg-counter-healthy">1000</h4>
+          </div>
+          <div className="servreg-health">
+            <h3>Unhealthy:</h3>{" "}
+            <h4 className="servreg-counter servreg-counter-unhealthy">25</h4>
+          </div>
+        </div>
+      </div>
 
-import Title from '../components/Title';
-
-export default function ServiceRegistryPage () {
-    return (
-        <Grid container spacing={3}>
-            <Grid item xs={12} md={4} lg={3}>
-                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 160}} >
-                    <React.Fragment>
-                        <Title>Service Inventory</Title>
-                        <Typography component="p" variant="h4">Healthy: 1000</Typography>
-                        <Typography component="p" variant="h4">Unhealthy: 25</Typography>
-                    </React.Fragment>
-                </Paper>
-            </Grid>
-
-            <Grid item xs={12}>
-                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                    <h2>Service Registry</h2>
-                </Paper>
-            </Grid>
-        </Grid>
-    )
+      <div className="card">
+        <Title text="Service Registry" />
+      </div>
+    </div>
+  );
 }
