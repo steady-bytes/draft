@@ -3,7 +3,6 @@ package service_discovery
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
 	sdConnect "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
@@ -98,10 +97,11 @@ func (h *rpc) Finalize(
 ) (*connect.Response[sdv1.FinalizeResponse], error) {
 	var (
 		pid = req.Msg.Pid
+		log = h.logger.WithContext(ctx)
 	)
 
-	if err := h.controller.Finalize(ctx, pid); err != nil {
-		fmt.Println(err)
+	if err := h.controller.Finalize(ctx, log, pid); err != nil {
+		log.WithError(err)
 		return nil, err
 	}
 

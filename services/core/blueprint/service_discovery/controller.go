@@ -25,7 +25,7 @@ type (
 	}
 
 	ServiceDiscovery interface {
-		Finalize(ctx context.Context, pid string) error
+		Finalize(ctx context.Context, log logging.Logger, pid string) error
 		Initialize(ctx context.Context, log logging.Logger, nonce, name string) (*sdv1.ProcessIdentity, error)
 		Synchronize(ctx context.Context, log logging.Logger, details *sdv1.ClientDetails)
 	}
@@ -108,7 +108,7 @@ func (c *controller) Initialize(ctx context.Context, log logging.Logger, nonce, 
 		return nil, errors.New(ErrFailedToSaveProcessDetails)
 	}
 
-	// TODO -> Get the leaders address to send synchronize packets to
+	// TODO -> Get the leaders registry address to send synchronize packets to
 
 	return &sdv1.ProcessIdentity{
 		Pid:             pid,
@@ -145,10 +145,6 @@ func (c *controller) Synchronize(ctx context.Context, log logging.Logger, detail
 		}
 	}
 
-	fmt.Println("process: ", m)
-
-	// how to I unmarshal the type that was found in the key/val store
-
 	// ignore if the wrong token is sent
 	if m.Token.GetJwt() != details.Token {
 		return
@@ -161,21 +157,32 @@ func (c *controller) Synchronize(ctx context.Context, log logging.Logger, detail
 	m.RunningState = details.RunningState
 	m.LastStatusTime = timestamppb.Now()
 
-	// TODO -> resume here
+	pAny, err = anypb.New(m)
+	if err != nil {
+		log.Error(kv.ErrFailedAnyCast.Error())
+		return
+	}
 
-	// _, err = c.kvController.Set(process.Pid, process, 500*time.Millisecond)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
+	_, err = c.kvController.Set(log, process.Pid, pAny, 500*time.Millisecond)
+	if err != nil {
+		log.Error(ErrFailedToSaveProcessDetails)
+		return
+	}
 }
 
 // Finalize - Gracefully remove the process from the registry. Close the connection if one is still
 // open and change the process state to `Finalized`
-func (c *controller) Finalize(ctx context.Context, pid string) error {
-	// if err := c.kvController.Delete(pid, &sdv1.Process{}); err != nil {
-	// 	return err
-	// }
+func (c *controller) Finalize(ctx context.Context, log logging.Logger, pid string) error {
+	pAny, err := anypb.New(&sdv1.Process{})
+	if err != nil {
+		log.Error(ErrFailedTypeCast)
+		return errors.New(ErrFailedTypeCast)
+	}
+
+	if err := c.kvController.Delete(pid, pAny); err != nil {
+		log.WithError(err)
+		return err
+	}
 
 	return nil
 }
