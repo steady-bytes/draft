@@ -53,6 +53,31 @@
   --shadow-lg: 0 6px 8px var(--gray);
 }
 
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+  border-radius: var(--border-radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray);
+  border-radius: var(--border-radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dark);
+}
+
+/* ::-webkit-scrollbar-button {
+  background-color: var(--a);
+  background-image: none;
+  height: 5px;
+  width: 5px;
+} */
+
 /* --------------- KEYFRAMES --------------- */
 @keyframes ping {
   75%,
@@ -180,6 +205,7 @@ h3 {
 .table {
   width: 100%;
   border-collapse: collapse;
+  padding-right: 5px;
 }
 
 .table-row {
@@ -512,6 +538,8 @@ h3 {
   display: flex;
   margin: 0;
   padding: 3px;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .offline {
