@@ -82,8 +82,8 @@ func (h *rpc) Synchronize(
 		return nil, connect.NewError(connect.CodeUnknown, err)
 	}
 
-	// TODO -> consider sending back an ack message so the client can determin if
-	// it would like to reconnect and conntinue to syncronize it's running state, or
+	// TODO -> consider sending back an ack message so the client can determine if
+	// it would like to reconnect and continue to synchronize it's running state, or
 	// be removed from the system
 	res := connect.NewResponse(&sdv1.Empty{})
 	res.Header().Set("blueprint-version", "v1")
