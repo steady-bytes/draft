@@ -1,9 +1,10 @@
 import React from "react";
 import "./../index.css";
 
-const Button = ({ text, onClick }) => {
+const Button = ({ text, type, onClick }) => {
+  const btnType = type === "solid" ? "btn btn-solid" : "btn btn-outline";
   return (
-    <button className="btn" onClick={onClick}>
+    <button className={btnType} onClick={onClick}>
       {text}
     </button>
   );

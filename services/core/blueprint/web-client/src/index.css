@@ -12,7 +12,8 @@
   --a: #c87619;
   --a-hover: #ec9a3c;
   --divider: #d3d8de;
-  --badge: #cd4246;
+  --red: #cd4246;
+  --green: #238551;
 }
 
 /* --------------- KEYFRAMES --------------- */
@@ -61,6 +62,12 @@ a:hover {
 
 h4 {
   font-size: 1.5rem;
+  margin: 0;
+  padding-bottom: 5px;
+}
+
+h3 {
+  font-size: 1.25rem;
   margin: 0;
   padding-bottom: 5px;
 }
@@ -124,41 +131,89 @@ h4 {
 /* ---------- BUTTONS ---------- */
 
 .btn {
-  background-color: var(--primary);
-  color: var(--text-light);
-  border: none;
   padding: 8px 16px;
   border-radius: 4px;
-  font-size: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn:hover {
-  background-color: var(--primary-hover);
-  box-shadow: 0 6px 8px var(--divider);
-  color: var(--white);
+  transition: all 0.1s ease;
+  text-transform: uppercase;
+  font-size: small;
+  font-weight: bold;
+  letter-spacing: 0.05em;
 }
 
 .btn:active {
+  box-shadow: none;
+  transform: translateY(2px) translateX(2px);
+}
+
+.btn-solid {
+  background-color: var(--primary);
+  color: var(--text-light);
+  border: solid 1px var(--primary);
+  box-shadow: 0 2px 4px var(--divider);
+}
+
+.btn-solid:hover {
+  background-color: var(--primary-hover);
+  box-shadow: 0 6px 8px var(--divider);
+  border: solid 1px var(--primary);
+  color: var(--white);
+}
+
+.btn-solid:active {
   background-color: var(--primary-active);
+}
+
+.btn-outline {
+  background-color: var(--white);
+  color: var(--primary);
+  border: 1px solid var(--text-gray);
+  box-shadow: 0 2px 4px var(--divider);
+}
+
+.btn-outline:hover {
+  border: 1px solid var(--text-gray);
+  box-shadow: 0 6px 8px var(--divider);
+  color: var(--text-dark);
+  background-color: var(--white);
+}
+/* --------------- SEARCH BAR --------------- */
+.custom-select {
+  position: relative;
+}
+
+.options {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 1000;
+}
+
+.dropdown-list {
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.option {
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.option:hover {
+  background-color: #f0f0f0;
 }
 
 /* --------------- ICONS --------------- */
 .icon-menu {
-  font-size: larger;
+  font-size: x-large;
   cursor: pointer;
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
-}
-
-.icon-menu:hover {
-  color: var(--a);
-}
-
-.icon-menu-open {
-  color: var(--a);
 }
 
 .icon-command {
@@ -233,6 +288,11 @@ h4 {
   padding-bottom: 3px;
 }
 
+.menu-icon {
+  display: flex;
+  justify-content: center;
+}
+
 .menu-right {
   display: flex;
   align-items: center;
@@ -274,7 +334,7 @@ h4 {
   align-items: center;
   top: -7px;
   right: -7px;
-  background-color: var(--badge);
+  background-color: var(--red);
   color: var(--text-light);
   margin: 0;
   font-weight: bold;
@@ -345,6 +405,18 @@ h4 {
   width: 100%;
 }
 
+.metrics-topleft {
+  display: flex;
+  flex-direction: column;
+  width: 66.66%;
+}
+
+.metrics-topright {
+  display: flex;
+  flex-direction: column;
+  width: 33.33%;
+}
+
 .metrics-bottom {
   display: flex;
   flex-direction: column;
@@ -352,14 +424,63 @@ h4 {
   width: 100%;
 }
 
-.metrics-chart {
+/* ---------- KEY/VALUE ---------- */
+.keyvalue-container {
   display: flex;
   flex-direction: column;
+}
+
+.keyvalue-cardfooter {
+  display: flex;
+  column-gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0px 0px 0px;
+  padding: 0px;
+}
+
+.keyvalue-rtkcounter {
+  color: var(--text-dark);
+  font-weight: bold;
+  font-size: xx-large;
+  padding: 10px;
+}
+
+/* ---------- SERVICE REGISTRY ---------- */
+.servreg-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.servreg-servinv {
+  width: 33.33%;
+}
+
+.servreg-servinv-contents {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-top: solid 1px var(--divider);
+  padding-top: 10px;
+}
+
+.servreg-health {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 66.66%;
 }
 
-.metrics-clusterNodes {
-  display: flex;
-  flex-direction: column;
-  width: 33.33%;
+.servreg-counter {
+  font-size: x-large;
+  font-weight: bold;
+}
+
+.servreg-counter-healthy {
+  color: var(--green);
+}
+
+.servreg-counter-unhealthy {
+  color: var(--red);
 }

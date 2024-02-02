@@ -18,7 +18,7 @@ const rows = [
 export default function ClusterNodeList() {
   return (
     <>
-      <Title>Cluster Nodes</Title>
+      <Title text="Cluster Nodes" />
       <div className="clusterNodesList-content">
         <div className="table">
           <div className="table-row table-header">

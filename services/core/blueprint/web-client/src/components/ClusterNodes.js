@@ -6,7 +6,7 @@ import Title from "./Title";
 export default function ClusterNodes() {
   return (
     <>
-      <Title>Cluster Details</Title>
+      <Title text="Cluster Details" />
       <h4>Nodes</h4>
       <div className="clusterNodes-content">
         Healthy: 25 <br />

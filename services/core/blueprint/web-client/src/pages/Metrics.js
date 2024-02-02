@@ -31,11 +31,11 @@ export default function MetricsPage() {
     <div className="metrics-container">
       <div className="metrics-content">
         <div className="metrics-top">
-          <div className="card metrics-chart">
+          <div className="card metrics-topleft">
             <Chart />
           </div>
 
-          <div className="metrics-clusterNodes card">
+          <div className="metrics-topright card">
             <ClusterNodes />
             <div
               style={{
@@ -44,7 +44,7 @@ export default function MetricsPage() {
                 paddingTop: "5px",
               }}
             >
-              <Button onclick={handleClick} text={"Click Me"} />
+              <Button type="solid" onclick={handleClick} text={"Click Me"} />
             </div>
           </div>
         </div>
