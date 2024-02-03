@@ -4,23 +4,7 @@
 // @ts-nocheck
 
 import { MethodKind } from "@bufbuild/protobuf";
-import { FinalizeRequest, FinalizeResponse, InitializeRequest, InitializeResponse, JournalQueryRequest, JournalQueryResponse } from "./service_pb.js";
-
-/**
- * Gracefully shutdown and `Finalize` the connection of the process to the registry
- *
- * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.Finalize
- */
-export const finalize = {
-  localName: "finalize",
-  name: "Finalize",
-  kind: MethodKind.Unary,
-  I: FinalizeRequest,
-  O: FinalizeResponse,
-  service: {
-    typeName: "registry.service_discovery.v1.ServiceDiscoveryService"
-  }
-} as const;
+import { FinalizeRequest, FinalizeResponse, InitializeRequest, InitializeResponse, QueryRequest, QueryResponse, ReportHealthRequest, ReportHealthResponse } from "./service_pb.js";
 
 /**
  * Initialize the registeration of the process to the registry
@@ -39,16 +23,48 @@ export const initialize = {
 } as const;
 
 /**
- * Query the registries journal of processes
+ * Gracefully shutdown and `Finalize` the connection of the process to the registry
  *
- * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.QuerySystemJournal
+ * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.Finalize
  */
-export const querySystemJournal = {
-  localName: "querySystemJournal",
-  name: "QuerySystemJournal",
+export const finalize = {
+  localName: "finalize",
+  name: "Finalize",
   kind: MethodKind.Unary,
-  I: JournalQueryRequest,
-  O: JournalQueryResponse,
+  I: FinalizeRequest,
+  O: FinalizeResponse,
+  service: {
+    typeName: "registry.service_discovery.v1.ServiceDiscoveryService"
+  }
+} as const;
+
+/**
+ * Let a follower draft node report health information on the processes it's responsible for checking the health status of
+ *
+ * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.ReportHealth
+ */
+export const reportHealth = {
+  localName: "reportHealth",
+  name: "ReportHealth",
+  kind: MethodKind.Unary,
+  I: ReportHealthRequest,
+  O: ReportHealthResponse,
+  service: {
+    typeName: "registry.service_discovery.v1.ServiceDiscoveryService"
+  }
+} as const;
+
+/**
+ * Query the registry 
+ *
+ * @generated from rpc registry.service_discovery.v1.ServiceDiscoveryService.Query
+ */
+export const query = {
+  localName: "query",
+  name: "Query",
+  kind: MethodKind.Unary,
+  I: QueryRequest,
+  O: QueryResponse,
   service: {
     typeName: "registry.service_discovery.v1.ServiceDiscoveryService"
   }

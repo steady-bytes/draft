@@ -26,6 +26,6 @@ func main() {
 		WithConsensus(draft.Raft, keyValueController).
 		WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
-		UseSecretStore(keyValueController).
+		UseSecretStore(serviceDiscoveryController).
 		Start()
 }

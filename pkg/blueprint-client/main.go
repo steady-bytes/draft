@@ -6,11 +6,14 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	rfv1 "github.com/steady-bytes/draft/api/consensus/raft/v1"
 	rfv1Cnt "github.com/steady-bytes/draft/api/consensus/raft/v1/v1connect"
 	kvv1 "github.com/steady-bytes/draft/api/registry/key_value/v1"
 	kvv1Cnt "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
+	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
+	sdv1Cnt "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -57,6 +60,90 @@ func main() {
 	if cmd == "list_all" {
 		listAll()
 	}
+
+	if cmd == "init_process" {
+		initializeProcess()
+	}
+
+	if cmd == "synchronize" {
+		synchronize()
+	}
+}
+
+func synchronize() {
+	name := "test-init-2"
+
+	initReq := connect.NewRequest(&sdv1.InitializeRequest{
+		Name:  name,
+		Nonce: "BLUEPRINT",
+	})
+
+	sdClient := sdv1Cnt.NewServiceDiscoveryServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	initRes, err := sdClient.Initialize(context.Background(), initReq)
+	if err != nil {
+		panic("failed to Initialize the process")
+	}
+
+	syncReq := connect.NewRequest(&sdv1.ClientDetails{
+		Pid:          initRes.Msg.ProcessIdentity.GetPid(),
+		RunningState: sdv1.ProcessRunningState_PROCESS_RUNNING,
+		HealthState:  sdv1.ProcessHealthState_PROCESS_HEALTHY,
+		ProcessKind:  sdv1.ProcessKind_SERVER_PROCESS,
+		Token:        initRes.Msg.ProcessIdentity.Token.GetJwt(),
+		Location:     &sdv1.GeoPoint{},
+		Metadata:     []*sdv1.Metadata{},
+	})
+	stream := sdClient.Synchronize(context.Background())
+
+	r := 0
+	for r != 100 {
+		fmt.Println("send detail packet", initRes.Msg.ProcessIdentity.GetPid())
+
+		if err := stream.Send(syncReq.Msg); err != nil {
+			fmt.Println(err)
+		}
+
+		r++
+
+		time.Sleep(1 * time.Second)
+	}
+
+}
+
+func initializeProcess() {
+	name := "test-init-1"
+
+	initReq := connect.NewRequest(&sdv1.InitializeRequest{
+		Name:  name,
+		Nonce: "BLUEPRINT",
+	})
+
+	sdClient := sdv1Cnt.NewServiceDiscoveryServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	initRes, err := sdClient.Initialize(context.Background(), initReq)
+	if err != nil {
+		panic("failed to Initialize the process")
+	}
+
+	fmt.Println("init response: ", initRes.Msg)
+
+	val, err := anypb.New(&sdv1.Process{})
+	if err != nil {
+		panic("failed to create the `value` struct")
+	}
+
+	getReq := connect.NewRequest(&kvv1.GetRequest{
+		Key:   initRes.Msg.ProcessIdentity.GetPid(),
+		Value: val,
+	})
+
+	kvClient := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	getRes, err := kvClient.Get(context.Background(), getReq)
+	if err != nil {
+		fmt.Println("get failed: ", err)
+		return
+	}
+
+	fmt.Println("response: ", getRes.Msg.GetValue())
 }
 
 func listAll() {

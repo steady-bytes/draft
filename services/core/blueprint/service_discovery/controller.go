@@ -3,10 +3,15 @@ package service_discovery
 import (
 	"context"
 	"errors"
+	"time"
 
 	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
 	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	"github.com/steady-bytes/draft/pkg/logging"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/google/uuid"
 )
@@ -19,11 +24,9 @@ type (
 	}
 
 	ServiceDiscovery interface {
-		Finalize(ctx context.Context, pid string) error
-		Initialize(ctx context.Context, nonce, name string) (*sdv1.ProcessIdentity, error)
-		Synchronize(ctx context.Context, details *sdv1.ClientDetails)
-		// Query(ctx context.Context)
-
+		Finalize(ctx context.Context, log logging.Logger, pid string) error
+		Initialize(ctx context.Context, log logging.Logger, nonce, name string) (*sdv1.ProcessIdentity, error)
+		Synchronize(ctx context.Context, log logging.Logger, details *sdv1.ClientDetails)
 	}
 
 	controller struct {
@@ -46,113 +49,143 @@ func (c *controller) SetSecretStore(s draft.SecretStore) {
 
 const (
 	signKey                           = "TODO -> load this from the secret store"
-	ErrfailedNonce                    = "nonce failure"
-	ErrfailedProcessAlreadyRegistered = "process has already be initialized"
-	ErrfailedToMarshalPayload         = "failed to marshal payload"
-	ErrfailedToSaveProcessDetails     = "failed to save process details"
-	ErrfailedTokenForge               = "failed to forge the token"
+	ErrFailedNonce                    = "nonce failure"
+	ErrFailedProcessAlreadyRegistered = "process has already be initialized"
+	ErrFailedToMarshalPayload         = "failed to marshal payload"
+	ErrFailedToSaveProcessDetails     = "failed to save process details"
+	ErrFailedTokenForge               = "failed to forge the token"
+	ErrFailedTypeCast                 = "failed to cast type"
 )
-
-// Finalize - Gracefully remove the process from the registry. Close the connection if one is still
-// open and change the process state to `Finalized`
-func (c *controller) Finalize(ctx context.Context, pid string) error {
-	// if err := c.kvController.Delete(pid, &sdv1.Process{}); err != nil {
-	// 	return err
-	// }
-
-	return nil
-}
 
 // Initialize - When a service starts and wants to register itself with the system then a unique name, and system nonce
 // can be provided to get `ProcessIdentity` details so that A process can then finalize service registration
-func (c *controller) Initialize(ctx context.Context, nonce, name string) (*sdv1.ProcessIdentity, error) {
-	// var (
-	// 	pid = uuid.NewString()
-	// )
+func (c *controller) Initialize(ctx context.Context, log logging.Logger, nonce, name string) (*sdv1.ProcessIdentity, error) {
+	var (
+		err     error
+		pid     = uuid.NewString()
+		process = &sdv1.Process{
+			Pid:          pid,
+			Name:         name,
+			ProcessKind:  sdv1.ProcessKind_SERVER_PROCESS,
+			Metadata:     []*sdv1.Metadata{},
+			JoinedTime:   timestamppb.Now(),
+			RunningState: sdv1.ProcessRunningState_PROCESS_STARTING,
+			HealthState:  sdv1.ProcessHealthState_PROCESS_HEALTHY,
+		}
+		pAny = &anypb.Any{}
+	)
 
-	// // validate the nonce (this will also require that a nonce is read in by the golang-draft-runtime).
-	// n, err := c.sstr.Get(draft.GlobalNonceKey)
-	// if err != nil || n != nonce {
-	// 	return nil, errors.New(ErrfailedNonce)
-	// }
+	// validate the nonce (this will also require that a nonce is read in by the golang-draft-runtime).
+	n, err := c.secretStore.Get(draft.GlobalNonceKey)
+	if err != nil || n != nonce {
+		return nil, errors.New(ErrFailedNonce)
+	}
 
-	// // check to see if the name already exists
-	// // TODO -> I think this should be like check key, even though it would be just another
-	// // wrapper around `Get`. In this case it seems more semantically correct.
-	// _, err = c.Get(name)
-	// if err == nil {
-	// 	return nil, errors.New(ErrfailedProcessAlreadyRegistered)
-	// }
+	// generate the process identity as a signed token token
+	process.Token, err = c.forgeIdentityToken()
+	if err != nil {
+		return nil, errors.New(ErrFailedTokenForge)
+	}
 
-	// token, err := c.generateToken()
-	// if err != nil {
-	// 	return nil, errors.New(ErrfailedTokenForge)
-	// }
+	pAny, err = anypb.New(process)
+	if err != nil {
+		return nil, errors.New(ErrFailedTypeCast)
+	}
 
-	// value := &sdv1.Process{
-	// 	Pid:          pid,
-	// 	Name:         name,
-	// 	ProcessKind:  sdv1.ProcessKind_SERVER_PROCESS,
-	// 	Metadata:     []*sdv1.Metadata{},
-	// 	JoinedTime:   timestamppb.Now(),
-	// 	RunningState: sdv1.ProcessRunningState_PROCESS_STARTING,
-	// 	HealthState:  sdv1.ProcessHealthState_PROCESS_HEALTHY,
-	// 	Token:        token,
-	// }
+	// save details to the systemJournal on the file system
+	_, err = c.kvController.Set(log, pid, pAny, 500*time.Millisecond)
+	if err != nil {
+		return nil, errors.New(ErrFailedToSaveProcessDetails)
+	}
 
-	// // save details to the systemJournal on the file system
-	// _, err = c.Set(pid, value, 500*time.Millisecond)
-	// if err != nil {
-	// 	return nil, errors.New(ErrfailedToSaveProcessDetails)
-	// }
+	// TODO -> Get the leaders registry address to send synchronize packets to
 
-	// return &sdv1.ProcessIdentity{
-	// 	Pid:             pid,
-	// 	RegistryAddress: "localhost:2221",
-	// 	Token:           token,
-	// }, nil
-
-	return nil, errors.New("implement me")
+	return &sdv1.ProcessIdentity{
+		Pid:             pid,
+		RegistryAddress: "localhost:2221",
+		Token:           process.Token,
+	}, nil
 }
 
 // Synchronize - receive a message from an `Initialized` process and update it's state in the
 // `SystemJournal`.
-func (c *controller) Synchronize(ctx context.Context, details *sdv1.ClientDetails) {
-	// Look for the key, if not found return error
-	// _, err := c.kvController.Get(details.Pid)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
+func (c *controller) Synchronize(ctx context.Context, log logging.Logger, details *sdv1.ClientDetails) {
+	var (
+		err     error
+		process = &sdv1.Process{}
+		pAny    = &anypb.Any{}
+	)
 
-	// process := &sdv1.Process{}
-	// if err := json.Unmarshal([]byte(byt.Value), process); err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
+	pAny, err = anypb.New(process)
+	if err != nil {
+		log.WithError(kv.ErrFailedAnyCast)
+		return
+	}
 
-	// // ignore if the wrong token is sent
-	// if process.Token.Jwt != details.Token {
-	// 	return
-	// }
+	// check that process has already been added to the `SystemJournal`
+	pAny, err = c.kvController.Get(details.Pid, pAny)
+	if err != nil {
+		log.WithError(err)
+		return
+	}
 
-	// process.HealthState = details.HealthState
-	// process.Location = details.Location
-	// process.Metadata = details.Metadata
-	// process.ProcessKind = details.ProcessKind
-	// process.RunningState = details.RunningState
-	// process.LastStatusTime = timestamppb.Now()
+	if pAny.MessageIs(process) {
+		if err := anypb.UnmarshalTo(pAny, process, proto.UnmarshalOptions{}); err != nil {
+			log.WithError(err)
+			return
+		}
+	}
 
-	// _, err = c.Set(process.Pid, process, 500*time.Millisecond)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
+	// ignore if the wrong token is sent
+	if process.Token.GetJwt() != details.Token {
+		return
+	}
+
+	process.HealthState = details.HealthState
+	process.Location = details.Location
+	process.Metadata = details.Metadata
+	process.ProcessKind = details.ProcessKind
+	process.RunningState = details.RunningState
+	process.LastStatusTime = timestamppb.Now()
+
+	pAny, err = anypb.New(process)
+	if err != nil {
+		log.WithError(kv.ErrFailedAnyCast)
+		return
+	}
+
+	_, err = c.kvController.Set(log, process.Pid, pAny, 500*time.Millisecond)
+	if err != nil {
+		log.Error(ErrFailedToSaveProcessDetails)
+		return
+	}
+}
+
+// Finalize - Gracefully remove the process from the registry. Close the connection if one is still
+// open and change the process state to `Finalized`
+func (c *controller) Finalize(ctx context.Context, log logging.Logger, pid string) error {
+	var (
+		err     error
+		process = &sdv1.Process{}
+		pAny    = &anypb.Any{}
+	)
+
+	pAny, err = anypb.New(process)
+	if err != nil {
+		log.Error(ErrFailedTypeCast)
+		return errors.New(ErrFailedTypeCast)
+	}
+
+	if err = c.kvController.Delete(pid, pAny); err != nil {
+		log.WithError(err)
+		return err
+	}
+
+	return nil
 }
 
 // TODO -> Figure out how I want to generate a token for the process
-// Right now just return test
-func (c *controller) generateToken() (*sdv1.Token, error) {
+func (c *controller) forgeIdentityToken() (*sdv1.Token, error) {
 	// t := jwt.New(jwt.GetSigningMethod("RS256"))
 	// return t.SignedString(signKey)
 
@@ -160,15 +193,4 @@ func (c *controller) generateToken() (*sdv1.Token, error) {
 		Id:  uuid.NewString(),
 		Jwt: "test",
 	}, nil
-}
-
-func (c *controller) Query(ctx context.Context) {
-	// values, err := c.kvController.Query(&anypb.Any{})
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// for k, v := range values {
-	// 	fmt.Println(k, v)
-	// }
 }
