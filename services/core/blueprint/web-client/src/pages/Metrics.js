@@ -4,9 +4,9 @@ import { createCallbackClient } from "@connectrpc/connect";
 import { KeyValueService } from "../grpc/registry/key_value/v1/service_connect";
 
 import Chart from "../components/Chart";
-import ClusterNodes from "../components/ClusterNodes";
-import ClusterNodesList from "../components/ClusterNodesList";
 import Button from "../components/Button";
+import ClusterDetails from "../components/ClusterDetails";
+import ClusterNodes from "../components/ClusterNodes";
 
 export default function MetricsPage() {
   // TODO -> make a grpc provider
@@ -36,7 +36,7 @@ export default function MetricsPage() {
           </div>
 
           <div className="metrics-topright card">
-            <ClusterNodes />
+            <ClusterDetails />
             <div
               style={{
                 display: "flex",
@@ -50,7 +50,7 @@ export default function MetricsPage() {
         </div>
         <div className="metrics-bottom">
           <div className="card">
-            <ClusterNodesList />
+            <ClusterNodes />
           </div>
         </div>
       </div>

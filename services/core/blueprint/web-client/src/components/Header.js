@@ -93,8 +93,9 @@ export default function Header() {
                   <MdKeyboardCommandKey className="icon-command" />K
                 </div>
               </div>
-              <div className="divider" />
-              <div className="menu-left">
+              <div className="divider-menu" />
+              {/* ----- TODO: change this class to menu-left when active */}
+              <div className="menu-bottom">
                 <MdOutlineSettings className="menuIcons" />
                 Settings
               </div>

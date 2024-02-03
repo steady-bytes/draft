@@ -38,7 +38,7 @@ const Search = ({ options, onSelect }) => {
   );
 
   return (
-    <div className="custom-select">
+    <div className="select">
       <div className="selected-option" onClick={toggleDropdown}>
         {searchTerm ? searchTerm : "Select..."}
         {isOpen ? (
