@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/dgraph-io/badger/v2"
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )

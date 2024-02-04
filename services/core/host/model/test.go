@@ -5,7 +5,7 @@ import (
 
 	"github.com/uptrace/bun"
 
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 )
 
 type (

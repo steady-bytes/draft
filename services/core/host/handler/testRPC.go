@@ -7,7 +7,7 @@ import (
 	c "github.com/steady-bytes/draft/services/host/controller"
 	"google.golang.org/grpc"
 
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 
 	hwv1 "github.com/steady-bytes/draft/api/go/test/hello_world/v1"
 )

@@ -6,7 +6,7 @@ import (
 
 	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
 	sdConnect "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/logging"
 
 	"connectrpc.com/connect"

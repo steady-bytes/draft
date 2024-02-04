@@ -4,7 +4,7 @@ go 1.21.3
 
 replace (
 	github.com/steady-bytes/draft/api/go => ../../../api/gen/go
-	github.com/steady-bytes/draft/pkg/draft-runtime-golang => ../../../pkg/draft-runtime-golang
+	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 )
 
 require (
@@ -13,7 +13,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/rs/zerolog v1.31.0
 	github.com/steady-bytes/draft/api/go v0.0.1
-	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1
+	github.com/steady-bytes/draft/pkg/chassis v0.0.1
 	github.com/supertokens/supertokens-golang v0.14.0
 	github.com/uptrace/bun v1.1.16
 	google.golang.org/grpc v1.59.0

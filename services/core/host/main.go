@@ -1,7 +1,7 @@
 package main
 
 import (
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 )
 
 const (

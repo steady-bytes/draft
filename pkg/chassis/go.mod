@@ -1,4 +1,4 @@
-module draft_runtime_golang
+module github.com/steady-bytes/draft/pkg/chassis
 
 go 1.21.5
 
@@ -9,7 +9,7 @@ require (
 	connectrpc.com/grpcreflect v1.2.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/gin-gonic/gin v1.9.1
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/raft v1.6.0
 	github.com/hashicorp/raft-boltdb v0.0.0-20231115180007-027066e4d245
 	github.com/jinzhu/gorm v1.9.16

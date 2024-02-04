@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/raft"
 	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/logging"
 	"google.golang.org/protobuf/proto"
 )

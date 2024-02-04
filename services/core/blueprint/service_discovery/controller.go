@@ -7,7 +7,7 @@ import (
 
 	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/logging"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"

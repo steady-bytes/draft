@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 	es "github.com/steady-bytes/draft/services/eventer"
 
 	"fmt"
@@ -57,7 +57,7 @@ var eventStore = &cobra.Command{
 	},
 }
 
-// TODO -> move this to draft-runtime-golang
+// TODO -> move this to chassis
 func config() {
 	if configFile != "" {
 		viper.SetConfigFile(configFile)

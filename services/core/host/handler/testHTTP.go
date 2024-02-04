@@ -5,7 +5,7 @@ import (
 
 	c "github.com/steady-bytes/draft/services/host/controller"
 
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 
 	ginzerolog "github.com/dn365/gin-zerolog"
 	"github.com/gin-contrib/cors"

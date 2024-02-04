@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/rs/zerolog/log"
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 	"google.golang.org/grpc"
 
 	ginzerolog "github.com/dn365/gin-zerolog"

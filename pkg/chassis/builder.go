@@ -1,4 +1,4 @@
-package draft_runtime_golang
+package chassis
 
 import (
 	"fmt"

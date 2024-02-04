@@ -4,7 +4,7 @@ import (
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
 	sd "github.com/steady-bytes/draft/blueprint/service_discovery"
 
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 )
 
 const (

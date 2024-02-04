@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 )
 
 func main() {

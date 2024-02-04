@@ -11,7 +11,7 @@ import (
 	kvConnect "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
 
 	"connectrpc.com/connect"
-	draft "github.com/steady-bytes/draft/pkg/draft-runtime-golang"
+	draft "github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/logging"
 )
 

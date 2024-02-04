@@ -4,10 +4,10 @@ go 1.21.5
 
 replace (
 	github.com/steady-bytes/draft/api => ../../../api/gen/go
-	github.com/steady-bytes/draft/pkg/draft-runtime-golang => ../../../pkg/draft-runtime-golang
+	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 )
 
-require github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1
+require github.com/steady-bytes/draft/pkg/chassis v0.0.1
 
 require (
 	connectrpc.com/connect v1.14.0 // indirect
@@ -32,7 +32,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect

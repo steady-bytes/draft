@@ -4,16 +4,16 @@ go 1.21.5
 
 replace (
 	github.com/steady-bytes/draft/api => ../../../api/gen/go
-	github.com/steady-bytes/draft/pkg/draft-runtime-golang => ../../../pkg/draft-runtime-golang
+	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 )
 
 require (
 	connectrpc.com/connect v1.14.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/raft v1.6.0
 	github.com/steady-bytes/draft/api v0.0.1
-	github.com/steady-bytes/draft/pkg/draft-runtime-golang v0.0.1
+	github.com/steady-bytes/draft/pkg/chassis v0.0.1
 	google.golang.org/protobuf v1.32.0
 )
 
