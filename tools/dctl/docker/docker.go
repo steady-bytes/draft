@@ -3,6 +3,7 @@ package docker
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -34,6 +35,8 @@ type DockerController interface {
 	RemoveContainer(ctx context.Context, id string) error
 	// RemoveContainerByName removes a container by the given name
 	RemoveContainerByName(ctx context.Context, containerName string) error
+	// GetContainerByName gets a container by the given name
+	GetContainerByName(ctx context.Context, containerName string) (*types.Container, error)
 }
 
 type dockerController struct {
@@ -195,6 +198,10 @@ func (d *dockerController) RemoveContainerByName(ctx context.Context, containerN
 	return d.RemoveContainer(ctx, id)
 }
 
+func (d *dockerController) GetContainerByName(ctx context.Context, containerName string) (*types.Container, error) {
+	return d.getContainerByName(ctx, containerName)
+}
+
 // HELPER FUNCTIONS
 
 func (d *dockerController) getDockerContext(filePath string) (io.Reader, error) {
@@ -255,4 +262,29 @@ func (d *dockerController) getContainerID(ctx context.Context, containerName str
 		}
 	}
 	return id, nil
+}
+
+func (d *dockerController) getContainerByName(ctx context.Context, containerName string) (*types.Container, error) {
+	var container *types.Container
+	exists := false
+	list, err := d.cli.ContainerList(ctx, types.ContainerListOptions{All: true})
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range list {
+		for _, n := range c.Names {
+			if strings.TrimPrefix(n, "/") == containerName {
+				exists = true
+				container = &c
+				break
+			}
+		}
+		if exists {
+			break
+		}
+	}
+	if container == nil {
+		return nil, fmt.Errorf("container %s not found", containerName)
+	}
+	return container, nil
 }

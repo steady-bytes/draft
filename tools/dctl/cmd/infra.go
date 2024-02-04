@@ -35,6 +35,12 @@ var infraStopCmd = &cobra.Command{
 	RunE:  infra.Stop,
 }
 
+var infraStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Check the status of all local infra",
+	RunE:  infra.Status,
+}
+
 func init() {
 	// add parent
 	rootCmd.AddCommand(infraCmd)
@@ -44,4 +50,5 @@ func init() {
 	infraCmd.AddCommand(infraStartCmd)
 	infraStartCmd.Flags().BoolVarP(&infra.Follow, "follow", "f", false, "whether or not to follow the output of the infra docker containers (true/false)")
 	infraCmd.AddCommand(infraStopCmd)
+	infraCmd.AddCommand(infraStatusCmd)
 }

@@ -1,0 +1,24 @@
+## dctl infra init
+
+Build all custom draft infra Docker images
+
+```
+dctl infra init [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for init
+```
+
+### Options inherited from parent commands
+
+```
+      --config string   config file (default is $HOME/.dctl.yaml)
+```
+
+### SEE ALSO
+
+* [dctl infra](dctl_infra.md)	 - Manage all local draft infra (Docker containers)
+

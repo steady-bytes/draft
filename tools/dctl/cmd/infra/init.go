@@ -14,30 +14,13 @@ func Init(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// pull needed images
-	output.Println("Pulling NATS Docker image...")
-	err = dctl.PullImage(ctx, natsImage)
-	if err != nil {
-		output.Error(err)
-		return err
-	}
-	output.Println("Pulling Mongo Docker image...")
-	err = dctl.PullImage(ctx, mongoImage)
-	if err != nil {
-		output.Error(err)
-		return err
-	}
-	output.Println("Pulling Postgres Docker image...")
-	err = dctl.PullImage(ctx, postgresImage)
-	if err != nil {
-		output.Error(err)
-		return err
-	}
-	output.Println("Pulling Hasura Docker image...")
-	err = dctl.PullImage(ctx, hasuraImage)
-	if err != nil {
-		output.Error(err)
-		return err
+	for name, config := range infraConfigs {
+		output.Println("Pulling Docker image for: %s", name)
+		err = dctl.PullImage(ctx, config.containerConfig.Image)
+		if err != nil {
+			output.Error(err)
+			return err
+		}
 	}
 
 	output.Println("Finished")

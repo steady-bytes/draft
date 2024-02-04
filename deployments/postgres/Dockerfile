@@ -1,1 +1,0 @@
-FROM postgres/postgres:v16.0-alpine2.17

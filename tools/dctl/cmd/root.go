@@ -21,6 +21,7 @@ var rootCmd = &cobra.Command{
 	Long: `dctl (Draft Controller) is the built-in CLI for managing everything in Draft.
 It does everything from generate code from Protobufs to spin up your local infrastructure for
 development.`,
+	DisableAutoGenTag: true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -46,6 +47,7 @@ func Execute() {
 
 	err := rootCmd.ExecuteContext(ctx)
 	if err != nil {
+		output.Error(err)
 		os.Exit(1)
 	}
 }

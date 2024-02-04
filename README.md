@@ -70,4 +70,28 @@ The local, stage, and production deployment configuration of draft components, a
 Functional tests used to make sure features are functioning with each release end to end.
 
 ## tools/
-Contains `draft-cli` or `dctl`. A tool for working on, and with systems that use draft as a framework.
+Contains Draft CLI or `dctl`. A tool for working on, and with systems that use draft as a framework.
+
+# Getting Started
+
+## Prerequisites
+
+* [Go](https://golang.org/doc/install) (we suggest using [gvm](https://github.com/moovweb/gvm))
+* [Docker](https://docs.docker.com/get-docker/)
+
+Clone the repository. Then navigate to `tools/dctl` and run `go install`. This will install the `dctl` binary to your `$GOPATH/bin` directory.
+
+Now you can set up your local environment:
+
+```shell
+# initialize and start local infrastructure using Docker
+dctl infra init
+dctl infra start
+
+# initialize and do a first generation of the API
+dctl api init
+dctl api build
+
+# run your first service
+dctl run -d core -s blueprint
+```

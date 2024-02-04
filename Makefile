@@ -1,4 +1,4 @@
-.PHONY: clean api-builder api
+.PHONY: clean
 
 USER := $(shell whoami)
 OS := $(shell uname)
@@ -6,12 +6,7 @@ OS := $(shell uname)
 #####
 # DEV
 #####
-.PHONY: infra infra-stop start local
-infra:
-	./scripts/start_development.sh
-
-infra-stop:
-	./scripts/stop_development.sh
+.PHONY: start local
 
 registrar:
 	go run main.go registrar -r 50000
@@ -23,7 +18,7 @@ local:
 	make -j2 registrar eventer
 
 test:
-	cd tests/registry && go run main.go 
+	cd tests/registry && go run main.go
 
 clean:
 	rm -rf node_1 && rm -rf node_2 && rm -rf node_3
@@ -41,18 +36,3 @@ blueprint_3:
 
 blueprint_register_leader:
 	go run pkg/blueprint-client/main.go
-
-
-#####
-# API
-#####
-api: compiler
-	docker run --volume "$(PWD)/api:/api" --workdir /api apibuilder:v1 mod update
-	docker run --volume "$(PWD)/api:/api" --workdir /api apibuilder:v1 generate
-	@if [ "$(OS)" = "Linux" ]; then\
-		sudo chown -R $(USER):$(USER) $(PWD);\
-	fi
-
-# build the compiler
-compiler:
-	docker build -t apibuilder:v1 -f ./api/Dockerfile.compiler .;
