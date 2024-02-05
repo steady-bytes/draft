@@ -79,13 +79,6 @@
   background: var(--text-dark);
 }
 
-/* ::-webkit-scrollbar-button {
-  background-color: var(--a);
-  background-image: none;
-  height: 5px;
-  width: 5px;
-} */
-
 /* --------------- KEYFRAMES --------------- */
 @keyframes ping {
   75%,
@@ -308,33 +301,76 @@ h3 {
   border: inset 1px inherit;
 }
 /* --------------- SEARCH BAR --------------- */
-.select {
+
+.search-container {
   position: relative;
+  width: 200px;
+  display: flex;
+}
+
+.selected-option {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  border: 1px inset var(--bg-dark);
+  border-radius: var(--border-radius);
+  padding: 0px, 4px, 0px, 0px;
+}
+
+.search-input {
+  width: 100%;
+  background-color: var(--bg-dark);
+  border: none;
+  color: var(--a-hover);
+  font-size: 1rem;
+  padding: 6px 10px;
+}
+
+.search-input::placeholder {
+  color: var(--gray);
+  letter-spacing: normal;
+}
+
+.search-input:focus {
+  border: none;
+  outline: none;
+  background-color: var(--bg-light);
 }
 
 .options {
   position: absolute;
   top: calc(100% + 5px);
   left: 0;
-  z-index: 1000;
+  width: 200px;
+  z-index: 999;
 }
 
 .dropdown-list {
-  background-color: var(--black);
-  border: 1px outset var(--bg-dark);
+  backdrop-filter: blur(10px);
+  border: outset 1px var(--bg-light);
   border-radius: var(--border-radius);
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
+  padding: 5px 0px;
 }
 
 .option {
   padding: 8px 50px 8px 15px;
+  color: var(--text-light);
   cursor: pointer;
+  transition: all 150ms ease-in-out;
 }
 
 .option:hover {
-  background-color: var(--bg-light);
-  color: var(--a-hover);
+  color: var(--a);
+}
+
+.option-none {
+  padding: 8px 50px 8px 15px;
+  color: var(--red);
+  font-style: italic;
 }
 
 /* --------------- ICONS --------------- */
@@ -372,6 +408,29 @@ h3 {
 
 .icon-notify {
   font-size: x-large;
+}
+
+.icon-search {
+  cursor: pointer;
+  font-size: large;
+  margin: 0px 5px;
+  transition: all 100ms ease-in-out;
+}
+
+.icon-search-down {
+  color: var(--a);
+}
+
+.icon-search-down:hover {
+  color: var(--a-hover);
+}
+
+.icon-search-up {
+  color: var(--a-hover);
+}
+
+.icon-search-up:hover {
+  color: var(--a);
 }
 
 /* --------------- COMPONENTS --------------- */
@@ -624,6 +683,16 @@ h3 {
 .keyvalue-container {
   display: flex;
   flex-direction: column;
+}
+
+.keyvalue-search {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 50px;
+  margin: 5px 0px;
+  padding: 5px 0px;
 }
 
 .keyvalue-cardfooter {
