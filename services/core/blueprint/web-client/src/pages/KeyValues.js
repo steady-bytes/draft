@@ -1,11 +1,3 @@
-// Search dialog: Search key or search value in a key
-// Table below matches search criteria
-// Display List(25 at a time-- arrray)
-// Filter endpoint(key vs value), display BroadcastChannel.Generally search for a value.
-// Add key / value with modal ?? Reroute back to K / V and refresh w / state(Redux)
-// Snackbar OK-- no spinners
-// Snackbar Err and handle redux (sad path -- handle later)
-
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
@@ -17,32 +9,25 @@ import {
   GetResponse,
   GetFilter,
 } from "../grpc/registry/key_value/v1/service_pb";
-import { createImmutableStateInvariantMiddleware } from "@reduxjs/toolkit";
 import Button from "../components/Button";
 import Title from "../components/Title";
 import Search from "../components/Search";
+import Snackbar from "../components/Snackbar";
 
 export default function KeyValuesPage() {
   const count = useSelector((state) => state.counter.value);
   const dispatch = useDispatch();
 
-  const {
-    data: GetValue,
-    error: GetValueError,
-    isLoading: GetValueIsLoading,
-  } = useGetValuesQuery({
-    key: "0e7ef876-52d8-42ac-a366-01db3ddb7623",
-    filter: GetFilter[2],
-  });
-
-  const clickApi = () => {
-    console.log(GetValue);
-  };
-
   const [selectedOption, setSelectedOption] = useState(null);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarType, setSnackbarType] = useState("");
 
   const handleSelect = (option) => {
     setSelectedOption(option);
+  };
+
+  const clickApi = () => {
+    console.log(GetValue);
   };
 
   const options = [
@@ -50,16 +35,35 @@ export default function KeyValuesPage() {
     { label: "Option 2", value: "option2" },
     { label: "Another Option", value: "anotherOption" },
     { label: "Something Else", value: "somethingElse" },
-    {
-      label: "One more thing",
-      value: "oneMoreThing",
-    },
+    { label: "One more thing", value: "oneMoreThing" },
     { label: "Another Thing", value: "anotherThing" },
     { label: "Some Other Stuff", value: "someOtherStuff" },
     { label: "Option 7", value: "option7" },
     { label: "Option 8", value: "option8" },
     { label: "Another Option 2", value: "anotherOption2" },
   ];
+
+  // ------ TESTING SNACKBAR (Display only. TODO: Connect to storage)
+  const snackbarSuccess = () => {
+    setSnackbarMessage("Key/Value pair saved!");
+    setSnackbarType("success");
+
+    setTimeout(() => {
+      setSnackbarMessage("");
+      setSnackbarType("");
+    }, 3000);
+  };
+
+  const snackbarFailure = () => {
+    setSnackbarMessage("Failed to save Key/Value pair!");
+    setSnackbarType("failure");
+
+    setTimeout(() => {
+      setSnackbarMessage("");
+      setSnackbarType("");
+    }, 2000);
+  };
+  // ----- TESTING SNACKBAR
 
   return (
     <div className="keyvalue-container">
@@ -69,11 +73,6 @@ export default function KeyValuesPage() {
           options={options}
           onSelect={handleSelect}
         />
-        {/* <Search
-          placeholder="Search Value"
-          options={options}
-          onSelect={handleSelect}
-        /> */}
       </div>
 
       <div className="card">
@@ -104,7 +103,7 @@ export default function KeyValuesPage() {
       <div className="card">
         <Title text="Set:" />
         <div className="keyvalue-cardfooter">
-          <Button type="outline" text="Set" onClick={clickApi} />
+          <Button type="outline" text="Set" onClick={snackbarSuccess} />
         </div>
       </div>
 
@@ -119,6 +118,14 @@ export default function KeyValuesPage() {
       <div className="card">
         <Title text="List:" />
       </div>
+      <div className="snackbar-test">
+        <Button text="Test Save Success" onClick={snackbarSuccess} />
+        <Button text="Test Save Fail" onClick={snackbarFailure} />
+      </div>
+
+      {snackbarMessage && (
+        <Snackbar message={snackbarMessage} type={snackbarType} />
+      )}
     </div>
   );
 }
