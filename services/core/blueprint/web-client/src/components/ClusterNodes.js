@@ -14,13 +14,18 @@ const rows = [
   createData(2, "MNT - US - North 1", "Online", "Voter"),
   createData(3, "PST - US - North 1", "Offline", "Abandoned"),
   createData(4, "PST - US - South 1", "Online", "Voter"),
+  createData(0, "CST - US - South 1", "Online", "Voter"),
+  createData(1, "MNT - US - North 2", "Online", "Leader"),
+  createData(2, "MNT - US - North 1", "Online", "Voter"),
+  createData(3, "PST - US - North 1", "Offline", "Abandoned"),
+  createData(4, "PST - US - South 1", "Online", "Voter"),
 ];
 
 export default function ClusterNodes() {
   return (
     <>
       <Title text="Cluster Nodes" />
-      <div className="clusterNodesList-content">
+      <div className="clusterNodes-content">
         <div className="table">
           <div className="table-row table-header">
             <div className="table-icon"></div>
