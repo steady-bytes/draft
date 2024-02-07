@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/steady-bytes/tools/dctl/docker"
-	e "github.com/steady-bytes/tools/dctl/exec"
+	e "github.com/steady-bytes/tools/dctl/execute"
 	"github.com/steady-bytes/tools/dctl/output"
 
 	"github.com/docker/docker/api/types/container"
@@ -61,7 +61,6 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	config.Cmd = []string{"buf", "mod", "update"}
 	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 
@@ -70,7 +69,6 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.go.yaml"}
 	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 
@@ -79,7 +77,6 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.gotag.yaml"}
 	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 
@@ -88,7 +85,6 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	config.Cmd = []string{"npx", "buf", "generate", "--template", "buf.gen.web.yaml"}
 	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 
@@ -97,7 +93,6 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	c.Dir = filepath.Join(apiPath, "gen", "go")
 	err = e.ExecuteCommand(ctx, "go", output.Green, c)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 
@@ -105,13 +100,11 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	output.Println("Correcting file permissions...")
 	u, err := user.Current()
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 	config.Cmd = []string{"chown", "-R", fmt.Sprintf("%s:%s", u.Uid, u.Gid), "/workspace"}
 	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 

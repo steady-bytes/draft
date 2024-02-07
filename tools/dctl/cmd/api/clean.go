@@ -23,14 +23,12 @@ func Clean(cmd *cobra.Command, args []string) (err error) {
 	output.Println("Cleaning go...")
 	err = deleteAllSubDirectories(filepath.Join(apiPath, "gen", "go"))
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 	// clean web
 	output.Println("Cleaning web...")
 	err = deleteAllSubDirectories(filepath.Join(apiPath, "gen", "web"))
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 

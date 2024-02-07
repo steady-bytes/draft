@@ -11,7 +11,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/steady-bytes/tools/dctl/docker"
-	e "github.com/steady-bytes/tools/dctl/exec"
+	e "github.com/steady-bytes/tools/dctl/execute"
 	"github.com/steady-bytes/tools/dctl/output"
 
 	"github.com/spf13/cobra"
@@ -35,7 +35,6 @@ func Init(cmd *cobra.Command, args []string) error {
 
 	err = dctl.BuildImage(ctx, apiPath, protoImage)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 
@@ -43,7 +42,6 @@ func Init(cmd *cobra.Command, args []string) error {
 	// make go directory
 	err = os.MkdirAll(filepath.Join(apiPath, "gen", "go"), os.ModePerm)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 	// initialize go mod only if go.mod doesn't already exist
@@ -53,12 +51,10 @@ func Init(cmd *cobra.Command, args []string) error {
 		c.Dir = filepath.Join(apiPath, "gen", "go")
 		err = e.ExecuteCommand(ctx, "go", output.Magenta, c)
 		if err != nil {
-			output.Error(err)
 			return err
 		}
 	} else if err != nil {
 		// if there's an error other than the file not existing, return it
-		output.Error(err)
 		return err
 	}
 
@@ -82,7 +78,6 @@ func Init(cmd *cobra.Command, args []string) error {
 	config.Cmd = []string{"npm", "install"}
 	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 
@@ -90,13 +85,11 @@ func Init(cmd *cobra.Command, args []string) error {
 	output.Println("Correcting file permissions...")
 	u, err := user.Current()
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 	config.Cmd = []string{"chown", "-R", fmt.Sprintf("%s:%s", u.Uid, u.Gid), "/workspace"}
 	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
 	if err != nil {
-		output.Error(err)
 		return err
 	}
 

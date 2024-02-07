@@ -76,8 +76,9 @@ Contains Draft CLI or `dctl`. A tool for working on, and with systems that use d
 
 ## Prerequisites
 
-* [Go](https://golang.org/doc/install) (we suggest using [gvm](https://github.com/moovweb/gvm))
+* [Go](https://golang.org/doc/install) (we suggest using [gvm](https://github.com/moovweb/gvm) for easier version management)
 * [Docker](https://docs.docker.com/get-docker/)
+* [Kubernetes](https://kubernetes.io/docs/tasks/tools/) (this is for running testing suites locally: if on Mac or Windows you can use the Kubernetes engine built into Docker Desktop)
 
 Clone the repository. Then navigate to `tools/dctl` and run `go install`. This will install the `dctl` binary to your `$GOPATH/bin` directory.
 

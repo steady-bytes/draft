@@ -44,7 +44,6 @@ func Start(cmd *cobra.Command, args []string) (err error) {
 		for name := range infraConfigs {
 			err = checkStatus(ctx, dockerCtl, name, containerName(name))
 			if err != nil {
-				output.Error(err)
 				return err
 			}
 		}

@@ -18,9 +18,8 @@ var docsCmd = &cobra.Command{
 		output.Println("Writing docs to: %s", docsDirectory)
 		err := doc.GenMarkdownTree(rootCmd, docsDirectory)
 		if err != nil {
-			output.Error(err)
+			return err
 		}
-
 		return nil
 	},
 }

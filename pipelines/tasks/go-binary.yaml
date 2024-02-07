@@ -1,0 +1,45 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: go-binary
+spec:
+  description: Runs unit tests and builds a Go binary.
+  params:
+    - name: directory
+      description: The directory of the main package (relative from repository root).
+  workspaces:
+    - name: source
+  steps:
+    - name: lint
+      image: golangci/golangci-lint:v1.55.2
+      script: |
+        cd $(workspaces.source.path)/$(params.directory)
+        golangci-lint run -v
+      volumeMounts:
+        - name: go-mod-cache
+          mountPath: /go/pkg/mod
+        - name: golangci-lint-cache
+          mountPath: /root/.cache
+    - name: test
+      image: golang:1.21.3-alpine
+      script: |
+        cd $(workspaces.source.path)/$(params.directory)
+        go test ./...
+      volumeMounts:
+        - name: go-mod-cache
+          mountPath: /go/pkg/mod
+    - name: build
+      image: golang:1.21.3-alpine
+      script: |
+        cd $(workspaces.source.path)/$(params.directory)
+        go build -o main .
+      volumeMounts:
+        - name: go-mod-cache
+          mountPath: /go/pkg/mod
+  volumes:
+    - name: go-mod-cache
+      persistentVolumeClaim:
+        claimName: go-mod-cache-pvc
+    - name: golangci-lint-cache
+      persistentVolumeClaim:
+        claimName: golangci-lint-cache-pvc

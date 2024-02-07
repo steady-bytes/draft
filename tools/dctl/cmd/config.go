@@ -19,18 +19,19 @@ this from the root of the draft repository`,
 
 		err := createConfigFile()
 		if err != nil {
-			output.Error(err)
 			return err
 		}
 
 		cwd, err := os.Getwd()
 		if err != nil {
-			output.Error(err)
 			return err
 		}
 		output.Println("Setting the root directory to: %s", cwd)
 		viper.Set("config.root", cwd)
-		viper.WriteConfig()
+		err = viper.WriteConfig()
+		if err != nil {
+			return err
+		}
 		return nil
 	},
 }

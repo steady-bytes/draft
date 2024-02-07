@@ -1,6 +1,6 @@
 module github.com/steady-bytes/draft/pkg/chassis
 
-go 1.21.5
+go 1.21.3
 
 replace github.com/steady-bytes/draft/api => ../../api/gen/go
 

@@ -99,7 +99,7 @@ func (d *dockerController) RunContainer(ctx context.Context, containerName strin
 	}
 
 	// start container
-	err = d.cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
+	err = d.cli.ContainerStart(ctx, resp.ID, container.StartOptions{})
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (d *dockerController) RunContainer(ctx context.Context, containerName strin
 
 	if removeContainer {
 		// remove completed container
-		err = d.cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{})
+		err = d.cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{})
 		if err != nil {
 			return err
 		}
@@ -152,7 +152,7 @@ func (d *dockerController) StartContainer(ctx context.Context, containerName str
 	}
 
 	// start container
-	err = d.cli.ContainerStart(ctx, id, types.ContainerStartOptions{})
+	err = d.cli.ContainerStart(ctx, id, container.StartOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -186,7 +186,7 @@ func (d *dockerController) StopContainerByName(ctx context.Context, containerNam
 }
 
 func (d *dockerController) RemoveContainer(ctx context.Context, id string) error {
-	return d.cli.ContainerRemove(ctx, id, types.ContainerRemoveOptions{})
+	return d.cli.ContainerRemove(ctx, id, container.RemoveOptions{})
 }
 
 func (d *dockerController) RemoveContainerByName(ctx context.Context, containerName string) error {
@@ -223,7 +223,7 @@ func (d *dockerController) waitForContainer(ctx context.Context, id string) (sta
 }
 
 func (d *dockerController) printContainerLogs(ctx context.Context, containerName string) error {
-	reader, err := d.cli.ContainerLogs(ctx, containerName, types.ContainerLogsOptions{
+	reader, err := d.cli.ContainerLogs(ctx, containerName, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     true,
@@ -245,7 +245,7 @@ func (d *dockerController) printContainerLogs(ctx context.Context, containerName
 func (d *dockerController) getContainerID(ctx context.Context, containerName string) (string, error) {
 	id := ""
 	exists := false
-	list, err := d.cli.ContainerList(ctx, types.ContainerListOptions{All: true})
+	list, err := d.cli.ContainerList(ctx, container.ListOptions{All: true})
 	if err != nil {
 		return id, err
 	}
@@ -265,9 +265,9 @@ func (d *dockerController) getContainerID(ctx context.Context, containerName str
 }
 
 func (d *dockerController) getContainerByName(ctx context.Context, containerName string) (*types.Container, error) {
-	var container *types.Container
+	var con *types.Container
 	exists := false
-	list, err := d.cli.ContainerList(ctx, types.ContainerListOptions{All: true})
+	list, err := d.cli.ContainerList(ctx, container.ListOptions{All: true})
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +275,7 @@ func (d *dockerController) getContainerByName(ctx context.Context, containerName
 		for _, n := range c.Names {
 			if strings.TrimPrefix(n, "/") == containerName {
 				exists = true
-				container = &c
+				con = &c
 				break
 			}
 		}
@@ -283,8 +283,8 @@ func (d *dockerController) getContainerByName(ctx context.Context, containerName
 			break
 		}
 	}
-	if container == nil {
+	if con == nil {
 		return nil, fmt.Errorf("container %s not found", containerName)
 	}
-	return container, nil
+	return con, nil
 }

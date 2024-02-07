@@ -7,7 +7,7 @@ import (
 
 	"github.com/steady-bytes/tools/dctl/output"
 
-	e "github.com/steady-bytes/tools/dctl/exec"
+	e "github.com/steady-bytes/tools/dctl/execute"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

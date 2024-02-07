@@ -1,4 +1,4 @@
-package exec
+package execute
 
 import (
 	"bufio"
@@ -39,7 +39,13 @@ func ExecuteCommand(ctx context.Context, name string, c output.Color, cmd *exec.
 	// watch for done signal and kill process if received
 	go func() {
 		<-ctx.Done()
-		cmd.Process.Kill()
+		err := cmd.Process.Kill()
+		if err != nil {
+			// only error if not closed by user
+			if err.Error() != "signal: killed" && err.Error() != "os: process already finished" {
+				output.Error(err)
+			}
+		}
 	}()
 
 	// start the command
@@ -52,7 +58,7 @@ func ExecuteCommand(ctx context.Context, name string, c output.Color, cmd *exec.
 	err = cmd.Wait()
 	if err != nil {
 		// only error if not closed by user
-		if err.Error() != "signal: killed" {
+		if err.Error() != "signal: killed" && err.Error() != "os: process already finished" {
 			return err
 		}
 	}

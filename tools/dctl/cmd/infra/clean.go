@@ -14,7 +14,7 @@ func Clean(cmd *cobra.Command, args []string) (err error) {
 		return nil
 	}
 
-	for name, _ := range infraConfigs {
+	for name := range infraConfigs {
 		err = dctl.RemoveContainerByName(ctx, containerName(name))
 		if err != nil {
 			output.Error(err)

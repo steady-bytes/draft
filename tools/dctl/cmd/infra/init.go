@@ -18,7 +18,6 @@ func Init(cmd *cobra.Command, args []string) error {
 		output.Println("Pulling Docker image for: %s", name)
 		err = dctl.PullImage(ctx, config.containerConfig.Image)
 		if err != nil {
-			output.Error(err)
 			return err
 		}
 	}
