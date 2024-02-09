@@ -43,8 +43,7 @@ func (c *Runtime) withRpc(registrar RPCRegistrar) {
 	server := &rpcServer{
 		mux:          c.mux,
 		isReflection: false,
-		// TODO -> make the log level controllable from the service
-		logger: logging.CreateLogger("info", c.config.Service.Name),
+		logger:       c.logger,
 	}
 
 	registrar.RegisterRPC(server)

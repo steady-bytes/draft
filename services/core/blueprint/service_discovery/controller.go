@@ -16,10 +16,13 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	// TODO: this was removed from the chassis and I'm not sure where it should go tbh
+	GlobalNonceKey = "GLOBAL_NONCE"
+)
+
 type (
 	Controller interface {
-		draft.SecretStoreSetter
-
 		ServiceDiscovery
 	}
 
@@ -75,8 +78,8 @@ func (c *controller) Initialize(ctx context.Context, log logging.Logger, nonce, 
 		pAny = &anypb.Any{}
 	)
 
-	// validate the nonce (this will also require that a nonce is read in by the golang-draft-runtime).
-	n, err := c.secretStore.Get(draft.GlobalNonceKey)
+	// validate the nonce (this will also require that a nonce is read in by the chassis).
+	n, err := c.secretStore.Get(ctx, GlobalNonceKey)
 	if err != nil || n != nonce {
 		return nil, errors.New(ErrFailedNonce)
 	}

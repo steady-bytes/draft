@@ -1,19 +1,18 @@
-package key_value
+package badger
 
 import (
-	"errors"
+	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/steady-bytes/draft/pkg/chassis"
+
 	"github.com/dgraph-io/badger/v2"
-	draft "github.com/steady-bytes/draft/pkg/chassis"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
-
-// KeyValueRepo - Is the integration with badgerDB an embeddable, persistent, and fast key-val database
-//
-// REF: https://dgraph.io/docs/badger/get-started/
 
 type (
 	// T is a type alias for the `anypb.Any` struct so that additional methods can be added to
@@ -23,16 +22,9 @@ type (
 	// Key is an alias to a string that identifies it's use as a key in the key/value store
 	Key = string
 
-	// A generic interface that is integrated with badgerDB.
-	// It offers simplified methods that remaining layers of any application can use.
-	// The only requirement is that each value that is stored to the db needs to
-	// be a `proto.Message` b/c `proto.Marshal` is being used to encode
-	Repo interface {
-		draft.RepoRegistrar
-		keyValue
-	}
-
-	keyValue interface {
+	Repository interface {
+		chassis.Repository
+		Client() *badger.DB
 		// Delete removes a key forever
 		Delete(Key, T) error
 		// Retrieve a value by it's key
@@ -44,68 +36,71 @@ type (
 		// key that has already been saved then the new value will overwrite the old.
 		Set(Key, T) error
 	}
-
-	// structure implementing the `KeyValueRepo` interface for the type `T` of `proto.Message`
-	repo struct {
-		db *badger.DB
+	repository struct {
+		client *badger.DB
 	}
 )
 
-// New - Initialize a new `KeyValueRepo` struct. NOTE: This will not bootstrap the underlying
-// badger database. That will happen when `RegisterRepo` is called in the service chassis when
-// the service starts up.
-func NewRepo() Repo {
-	return &repo{
-		db: nil,
-	}
+// New instantiates a new repository. A call to Open is required before use.
+func New() Repository {
+	return &repository{}
 }
 
-var (
-	ErrInvalidKeyLength = errors.New("key's can't be a length of 0")
-	ErrFailedDelete     = errors.New("failed to delete key value pair")
-	ErrFailedGet        = errors.New("failed to get value for key")
-)
+func (r *repository) Client() *badger.DB {
+	return r.client
+}
 
-// Implement the the `draft.RepoRegister` interface so that the underlying infrastructure is put
-// into place before the application is run.
-func (m *repo) RegisterRepo(dbConn interface{}) error {
-	if dbConn != nil {
-		if db, ok := dbConn.(*badger.DB); ok {
-			m.db = db
-			return nil
-		} else {
-			return draft.ErrIncorrectDBInterface
-		}
+func (r *repository) Open(ctx context.Context, config chassis.Config) error {
+	badgerOpt := badger.DefaultOptions(filepath.Join(os.TempDir(), config.NodeID()))
+	db, err := badger.Open(badgerOpt)
+	if err != nil {
+		return err
 	}
-	return draft.ErrDBNilDBConnection
+	r.client = db
+	return nil
+}
+
+func (r *repository) Close(ctx context.Context) error {
+	err := r.client.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close the db connection for disconnect")
+	}
+	return nil
+}
+
+func (r *repository) Ping(ctx context.Context) error {
+	closed := r.client.IsClosed()
+	if closed {
+		return fmt.Errorf("badger connection is closed")
+	}
+	return nil
 }
 
 // Delete - Takes a key, and a repo to locate persistance layer. If found and the delete operation
 // is successful an error is not returned. Otherwise, and error will return.
-func (m *repo) Delete(k Key, kind T) error {
+func (r *repository) Delete(k Key, kind T) error {
 	var (
-		txn     = m.db.NewTransaction(true)
-		keyByte = m.makeKey(k, kind)
+		txn     = r.client.NewTransaction(true)
+		keyByte = r.makeKey(k, kind)
 		err     error
 	)
 	defer txn.Commit()
 
 	if err = txn.Delete(keyByte); err != nil {
-		fmt.Println("error: ", err)
-		return ErrFailedDelete
+		return fmt.Errorf("failed to delete key value pair: %s", err.Error())
 	}
 
 	return nil
 }
 
-func (m *repo) Get(k string, kind T) (T, error) {
+func (r *repository) Get(k string, kind T) (T, error) {
 	if len(k) == 0 {
-		return kind, ErrInvalidKeyLength
+		return kind, fmt.Errorf("keys must have length greater than zero")
 	}
 
 	var (
-		keyByte = m.makeKey(k, kind)
-		txn     = m.db.NewTransaction(false)
+		keyByte = r.makeKey(k, kind)
+		txn     = r.client.NewTransaction(false)
 		err     error
 		key     *badger.Item
 		t       = kind
@@ -114,8 +109,7 @@ func (m *repo) Get(k string, kind T) (T, error) {
 
 	key, err = txn.Get(keyByte)
 	if err != nil {
-		fmt.Println("error: ", err)
-		return t, ErrFailedGet
+		return t, fmt.Errorf("failed to get value for key: %s", err.Error())
 	}
 
 	err = key.Value(func(v []byte) error {
@@ -131,15 +125,15 @@ func (m *repo) Get(k string, kind T) (T, error) {
 	return t, err
 }
 
-func (m *repo) makeKey(key string, kind *anypb.Any) []byte {
+func (r *repository) makeKey(key string, kind *anypb.Any) []byte {
 	key = strings.ReplaceAll(key, " ", "")
 	return []byte(kind.GetTypeUrl() + "-" + key)
 }
 
-func (m *repo) List(kind T) (map[string]T, error) {
+func (r *repository) List(kind T) (map[string]T, error) {
 	var (
 		opts   = badger.DefaultIteratorOptions
-		txn    = m.db.NewTransaction(true)
+		txn    = r.client.NewTransaction(true)
 		it     = txn.NewIterator(opts)
 		output = make(map[string]T)
 		prefix = kind.GetTypeUrl()
@@ -168,10 +162,10 @@ func (m *repo) List(kind T) (map[string]T, error) {
 	return output, nil
 }
 
-func (m *repo) Set(k string, value T) error {
+func (r *repository) Set(k string, value T) error {
 	var (
-		key  = m.makeKey(k, value)
-		txn  = m.db.NewTransaction(true)
+		key  = r.makeKey(k, value)
+		txn  = r.client.NewTransaction(true)
 		data = make([]byte, 0)
 	)
 

@@ -2,7 +2,9 @@ module blueprint_client
 
 go 1.21.3
 
-replace github.com/steady-bytes/draft/api => ../../api/gen/go
+replace (
+	github.com/steady-bytes/draft/api => ../../api/gen/go
+)
 
 require (
 	connectrpc.com/connect v1.14.0

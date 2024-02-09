@@ -167,6 +167,16 @@
                 "SERVER_PORT": "3000",
             },  
         },
+        {
+            "name": "Plugins (test)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tests/plugins/main.go",
+            "cwd": "${workspaceFolder}/tests/plugins",
+            "debugAdapter": "dlv-dap",
+            "args": ["run"]
+        },
     ],
     "compounds": [
         {

@@ -1,27 +1,21 @@
 package chassis
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 
-	"github.com/dgraph-io/badger/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
-	"github.com/nats-io/nats.go"
-	"github.com/uptrace/bun"
+	"github.com/sirupsen/logrus"
+	"github.com/steady-bytes/draft/pkg/logging"
 )
 
 type Runtime struct {
-	config *Config
-	nodeID string
+	config Config
+	logger logging.Logger
 
-	// repo options
-	badger   *badger.DB
-	gorm     *gorm.DB
-	bun      *bun.DB
-	repoKind RepoKind
+	brokers      []Broker
+	repositories []Repository
+	secretStores []SecretStore
 
 	// network toggles
 	isRPC                     bool
@@ -33,38 +27,27 @@ type Runtime struct {
 	gin      *gin.Engine
 	httpKind HTTPKind
 
-	nats *nats.Conn
-
 	consensusKind        ConsensusKind
 	raftAdvertiseAddress *net.TCPAddr
-
-	plugin Default
 }
 
-func New(name, nodeID string) *Runtime {
-	if nodeID == "" {
-		nodeID = uuid.NewString()
-	}
-
+func New() *Runtime {
 	rt := &Runtime{
-		config: NewConfig(name),
-		nodeID: nodeID,
-		bun:    nil,
+		config: LoadConfig(),
 		isRPC:  false,
 		isHTTP: false,
 	}
-
+	var formatter *logging.Formatter
+	if rt.config.Env() != "local" {
+		formatter = &logging.Formatter{
+			Line:    true,
+			Package: true,
+			File:    true,
+			ChildFormatter: &logrus.JSONFormatter{
+				DisableHTMLEscape: true,
+			},
+		}
+	}
+	rt.logger = logging.CreateLogger(rt.config.GetString("service.logging.level"), rt.config.Name(), formatter)
 	return rt
-}
-
-func (rt Runtime) NodeID() string {
-	return rt.nodeID
-}
-
-func (rt Runtime) Title() string {
-	return fmt.Sprintf("%s_%s", rt.config.Service.Name, rt.nodeID)
-}
-
-func (rt Runtime) VolumeDir() string {
-	return fmt.Sprintf("./logs/%s", rt.Title())
 }

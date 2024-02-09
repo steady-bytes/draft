@@ -2,207 +2,70 @@ package chassis
 
 import (
 	"fmt"
-	"os"
-	"strconv"
+	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
-const (
-	// PANIC: failure to read configuration
-	ErrorCode int16 = 1
-	// serverPortEnv - is used to run the http/rpc servers
-	serverPortEnv = "SERVER_PORT"
-	// nonceEnv
-	NONCE = "NONCE_STR"
+type (
+	Config interface {
+		Name() string
+		NodeID() string
+		Title() string
+		Env() string
+		Reader
+	}
+	Reader interface {
+		Get(key string) interface{}
+		GetString(key string) string
+		GetBool(key string) bool
+		GetInt(key string) int
+		GetInt32(key string) int32
+		GetInt64(key string) int64
+		GetUint(key string) uint
+		GetUint16(key string) uint16
+		GetUint32(key string) uint32
+		GetUint64(key string) uint64
+		GetFloat64(key string) float64
+		GetTime(key string) time.Time
+		GetDuration(key string) time.Duration
+		GetIntSlice(key string) []int
+		GetStringSlice(key string) []string
+		GetStringMap(key string) map[string]interface{}
+		GetStringMapString(key string) map[string]string
+		GetStringMapStringSlice(key string) map[string][]string
+		GetSizeInBytes(key string) uint
+		Unmarshal(rawVal interface{}, opts ...viper.DecoderConfigOption) error
+		UnmarshalKey(key string, rawVal interface{}, opts ...viper.DecoderConfigOption) error
+	}
+
+	config struct {
+		*viper.Viper
+	}
 )
 
-// config
-type Config struct {
-	Service  *Service
-	Repos    map[string]Repo
-	Gateways map[string]Gateway
-}
-
-// Service
-type Service struct {
-	// Name is also considered the services address
-	// default "localhost"
-	Name string
-	// Port that is accepting requests on
-	Port int32
-}
-
-func (s Service) GetAddress() string {
-	return fmt.Sprintf("0.0.0.0:%d", s.Port)
-}
-
-// gateway
-type Gateway struct {
-	// A service can have n number of GrpcClient connections
-	GRPC GrpcClient
-}
-
-type GrpcClient struct {
-	Type    string
-	Address string
-	Port    int
-}
-
-// repo
-type Repo struct {
-	// postgres is the only client that is currently configured
-	Postgres PostgresConnectionConfig
-
-	// @TODO -> Implement ScyllaDB
-}
-
-// PostgresConnectionConfig
-type PostgresConnectionConfig struct {
-	Type     string
-	Protocol string
-	User     string
-	Domain   string
-	Port     int
-	Server   string
-	LogMode  bool
-	SSL      bool
-	Migrate  bool
-}
-
-func NewConfig(name string) *Config {
-	// logger
-	// UNIX Time is faster and smaller than most timestamps
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
-	// read default config file
-
-	// connect to registry
-	// - if registry.url == ""
-	// 		assume its the registry service, or a service that is being run in stand along mode
-
-	serverPortStr := os.Getenv(serverPortEnv)
-	if serverPortStr == "" {
-		panic("failed to read the server port env var")
+func LoadConfig() Config {
+	viper.AutomaticEnv()
+	viper.SetConfigFile("./config.yaml")
+	if err := viper.ReadInConfig(); err != nil {
+		// yes, we actually want to panic here as without a config there's nothing we can do
+		panic(fmt.Errorf("failed to read in config: %s", err.Error()))
 	}
-
-	// string to int
-	serverPort, err := strconv.Atoi(serverPortStr)
-	if err != nil {
-		panic(err)
-	}
-
-	// nonce := os.Getenv(NONCE)
-	// if nonce == "" {
-	// 	panic(errors.New("failed to read global system nonce"))
-	// }
-
-	config := &Config{
-		Service: &Service{
-			Name: name,
-			Port: int32(serverPort),
-		},
-		Repos:    readRepoConfig(),
-		Gateways: readGatewayConfig(),
-	}
-
-	log.
-		Debug().
-		Str("name", config.Service.Name).
-		Int32("port", config.Service.Port).
-		Msg("service config initialized")
-
-	return config
+	return &config{viper.GetViper()}
 }
 
-// readGatewayConfig: A utility method that is use to retrieve a gateway from the configuration file
-// @NOTE: This does require updates if the Gateway struct changes
-func readGatewayConfig() map[string]Gateway {
-	// read in gateways from config file using viper
-	configGateways := viper.GetStringMap("Gateways")
-
-	// create a map to store Gateway structs in config
-	gateways := make(map[string]Gateway, len(configGateways))
-
-	for k, v := range configGateways {
-		var newGateway Gateway
-		// match the gateway type
-		if k == USERS || k == AUTHORIZATION {
-			for key, val := range v.(map[string]interface{}) {
-				switch key {
-				case "gatewaytype":
-					newGateway.GRPC.Type = val.(string)
-				case "port":
-					newGateway.GRPC.Port = val.(int)
-				case "address":
-					newGateway.GRPC.Address = val.(string)
-				default:
-					fmt.Sprintf("key: [%s] is not found in %s gateway options", key, USERS)
-					// panic(ErrorCode)
-				}
-			}
-		} else {
-			fmt.Println("gateway type not found")
-			panic(ErrorCode)
-		}
-
-		gateways[k] = newGateway
-	}
-
-	return gateways
+func (c *config) Name() string {
+	return c.GetString("service.name")
 }
 
-// gateway configuration options
-const (
-	USERS         = "users"
-	AUTHORIZATION = "authorization"
-)
+func (c *config) NodeID() string {
+	return c.GetString("service.nodeId")
+}
 
-func readRepoConfig() map[string]Repo {
-	configRepos := viper.GetStringMap("Repos")
+func (c *config) Title() string {
+	return fmt.Sprintf("%s_%s", c.Name(), c.NodeID())
+}
 
-	repos := make(map[string]Repo, len(configRepos))
-
-	for k, v := range configRepos {
-		var newRepo Repo
-
-		if k == PostgresBUN.String() {
-			for key, val := range v.(map[string]interface{}) {
-				switch key {
-				case "dbtype":
-					newRepo.Postgres.Type = val.(string)
-				case "protocol":
-					newRepo.Postgres.Protocol = val.(string)
-				case "user":
-					newRepo.Postgres.User = val.(string)
-				case "domain":
-					newRepo.Postgres.Domain = val.(string)
-				case "port":
-					newRepo.Postgres.Port = val.(int)
-				case "server":
-					newRepo.Postgres.Server = val.(string)
-				case "logmode":
-					newRepo.Postgres.LogMode = val.(bool)
-				case "ssl":
-					newRepo.Postgres.SSL = val.(bool)
-				case "migrate":
-					newRepo.Postgres.Migrate = val.(bool)
-				default:
-					fmt.Sprintf("key: [%s] is not found in %s repo options", key, PostgresBUN.String())
-				}
-			}
-		} else if k == Scylla.String() {
-			fmt.Println("IMPLEMENT SCYLLA")
-			panic(ErrorCode)
-		} else {
-			fmt.Println("repo type not found")
-			panic(ErrorCode)
-		}
-
-		repos[k] = newRepo
-	}
-
-	return repos
+func (c *config) Env() string {
+	return c.GetString("service.env")
 }

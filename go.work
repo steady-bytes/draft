@@ -3,9 +3,12 @@ go 1.21.3
 use (
 	./api/gen/go
 	./pkg/blueprint-client
+	./pkg/brokers
 	./pkg/chassis
 	./pkg/logging
+	./pkg/repositories
+	./pkg/secrets
 	./services/core/blueprint
-	./services/core/healthz
+	./tests/plugins
 	./tools/dctl
 )

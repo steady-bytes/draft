@@ -70,13 +70,6 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 		raftNodeID  = os.Getenv(nodeIDEnv)
 		raftBinAddr = ""
 	)
-	// current implementation of consensus uses hashicorp raft which means
-	// we also require an instance of badger. This also right now should be
-	// created in the service because the service might want access to what
-	// badger is doing on the file system
-	if c.badger == nil {
-		return
-	}
 
 	// configuration for raft
 	if raftPortStr == "" || raftIPStr == "" || raftNodeID == "" {

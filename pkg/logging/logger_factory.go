@@ -17,15 +17,10 @@ var globalLogger *logger
 // to instantiate the logger with. Possible values for level are "panic", "fatal",
 // "error", "warn", "warning", "info", "debug", and "trace". The service is the name
 // of the service to include with all logs.
-func CreateLogger(level string, service string) *logger {
-	logrus.SetFormatter(&Formatter{
-		Line:    true,
-		Package: true,
-		File:    true,
-		ChildFormatter: &logrus.JSONFormatter{
-			DisableHTMLEscape: true,
-		},
-	})
+func CreateLogger(level string, service string, formatter *Formatter) Logger {
+	if formatter != nil {
+		logrus.SetFormatter(formatter)
+	}
 	logrus.SetOutput(os.Stdout)
 	logrus.AddHook(otellogrus.NewHook(otellogrus.WithLevels(
 		logrus.PanicLevel,

@@ -3,6 +3,8 @@ package chassis
 import (
 	"errors"
 	"net/http"
+
+	"github.com/steady-bytes/draft/pkg/logging"
 )
 
 type (
@@ -53,8 +55,7 @@ func (c *Runtime) withHTTPFiber(registrar HTTPRegistrar) {
 
 func (c *Runtime) withHTTPGin(registrar HTTPRegistrar) {
 	// c.gin = registrar.RegisterHTTP()
-	// // add zeo-logger to gin via middleware
-	// c.gin.Use(ginzerolog.Logger("gin"))
+	c.gin.Use(logging.GinMiddleware([]string{}))
 }
 
 func (c *Runtime) withHTTPStd(registrar HTTPRegistrar) {

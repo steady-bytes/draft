@@ -1,18 +1,18 @@
 package chassis
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"reflect"
 	"syscall"
 
 	"connectrpc.com/grpcreflect"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 type (
@@ -20,10 +20,8 @@ type (
 	// to be closed down.
 	CloseChan = chan os.Signal
 	Default   interface {
-		RepoRegistrar
 		HTTPRegistrar
 		RPCRegistrar
-		BrokerRegistrar
 		ConsensusRegistrar
 	}
 )
@@ -32,8 +30,36 @@ type (
 // Plugin Register Functions
 ////////////////////////////
 
-func (c *Runtime) WithRepo(kind RepoKind, plugin RepoRegistrar) *Runtime {
-	c.withRepo(kind, plugin)
+func (c *Runtime) WithRepository(plugin Repository) *Runtime {
+	logger := c.logger.WithField("plugin", reflect.TypeOf(plugin).String())
+	err := plugin.Open(context.Background(), c.config)
+	if err != nil {
+		logger.WithError(err).Fatal("failed to set up repository plugin")
+	}
+	c.repositories = append(c.repositories, plugin)
+	logger.Info("successfully set up repository plugin")
+	return c
+}
+
+func (c *Runtime) WithBroker(plugin Broker) *Runtime {
+	logger := c.logger.WithField("plugin", reflect.TypeOf(plugin).String())
+	err := plugin.Open(context.Background(), c.config)
+	if err != nil {
+		logger.WithError(err).Fatal("failed to set up broker plugin")
+	}
+	c.brokers = append(c.brokers, plugin)
+	logger.Info("successfully set up broker plugin")
+	return c
+}
+
+func (c *Runtime) WithSecretStore(plugin SecretStore) *Runtime {
+	logger := c.logger.WithField("plugin", reflect.TypeOf(plugin).String())
+	err := plugin.Open(context.Background(), c.config)
+	if err != nil {
+		logger.WithError(err).Fatal("failed to set up secret store plugin")
+	}
+	c.secretStores = append(c.secretStores, plugin)
+	logger.Info("successfully set up secret store plugin")
 	return c
 }
 
@@ -52,23 +78,12 @@ func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *
 	return c
 }
 
-//////////////////
-// State Providers
-//////////////////
-
-// Init a connection to the `SecretStore`, load the secrets into memory, and pass
-// the storage interface up to the runtime for use in the service
-func (c *Runtime) UseSecretStore(setter SecretStoreSetter) *Runtime {
-	c.withSecretStore(setter)
-	return c
-}
-
 ////////////////////
 // Runtime Functions
 ////////////////////
 
 // Start the runtime of the service. This will do things like fire up the grpc/http servers and put
-// them on a background routine's
+// them on a background goroutine
 func (c *Runtime) Start() error {
 	cors := c.buildCors()
 	handler := cors.Handler(c.mux)
@@ -99,7 +114,8 @@ func (c *Runtime) Start() error {
 }
 
 func (c *Runtime) runHTTP(close CloseChan, handler http.Handler) {
-	if err := http.ListenAndServe(c.config.Service.GetAddress(), handler); err != nil {
+	addr := fmt.Sprintf("0.0.0.0:%s", c.config.GetString("http.port"))
+	if err := http.ListenAndServe(addr, handler); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -110,8 +126,8 @@ func (c *Runtime) runRPC(close CloseChan, handler http.Handler) {
 		c.mux.Handle(grpcreflect.NewHandlerV1(reflector))
 		c.mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
 	}
-
-	if err := http.ListenAndServe(c.config.Service.GetAddress(), h2c.NewHandler(handler, &http2.Server{})); err != nil {
+	addr := fmt.Sprintf("0.0.0.0:%s", c.config.GetString("grpc.port"))
+	if err := http.ListenAndServe(addr, h2c.NewHandler(handler, &http2.Server{})); err != nil {
 		fmt.Println(err)
 	}
 }

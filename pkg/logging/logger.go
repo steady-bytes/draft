@@ -26,15 +26,15 @@ type Logger interface {
 	// WrapError wraps a standard Go error (OR `logging.Error`) into a custom error with the
 	// additional context of current logger fields and call stack information.
 	WrapError(error) Error
-	// WithError - Add an error as single field (using the key defined in ErrorKey) to the Entry.
+	// WithError - Add an error as single field (using the key defined in ErrorKey) to the logger.
 	WithError(err error) *logger
-	// WithContext - Add a context to the Entry.
+	// WithContext - Add a context to the logger.
 	WithContext(ctx context.Context) *logger
-	// WithField - Add a single field to the Entry.
+	// WithField - Add a single field to the logger.
 	WithField(key string, value interface{}) *logger
-	// WithFields - Add a map of fields to the Entry.
+	// WithFields - Add a map of fields to the logger.
 	WithFields(fields Fields) *logger
-	// WithTime - Overrides the time of the Entry.
+	// WithTime - Overrides the time of the logger.
 	WithTime(t time.Time) *logger
 	// Trace - Definition:
 	// "Seriously, WTF is going on here?!?!
@@ -136,25 +136,21 @@ func (l *logger) WrapError(err error) Error {
 
 // With methods
 
-// WithError adds an error as single field (using the key defined in ErrorKey) to the Entry.
 func (l *logger) WithError(err error) *logger {
 	newLogger := newLogger(l.entry.WithError(err))
 	return &newLogger
 }
 
-// WithContext adds a context to the Entry.
 func (l *logger) WithContext(ctx context.Context) *logger {
 	newLogger := newLogger(l.entry.WithContext(ctx))
 	return &newLogger
 }
 
-// WithField adds a single field to the Entry.
 func (l *logger) WithField(key string, value interface{}) *logger {
 	newLogger := newLogger(l.entry.WithField(key, value))
 	return &newLogger
 }
 
-// WithFields adds a map of fields to the Entry.
 func (l *logger) WithFields(fields Fields) *logger {
 	// Copy custom fields into logrus fields
 	logrusFields := logrus.Fields{}
@@ -166,7 +162,6 @@ func (l *logger) WithFields(fields Fields) *logger {
 	return &newLogger
 }
 
-// WithTime overrides the time of the Entry.
 func (l *logger) WithTime(t time.Time) *logger {
 	newLogger := newLogger(l.entry.WithTime(t))
 	return &newLogger

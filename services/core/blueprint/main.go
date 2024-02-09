@@ -5,27 +5,26 @@ import (
 	sd "github.com/steady-bytes/draft/blueprint/service_discovery"
 
 	draft "github.com/steady-bytes/draft/pkg/chassis"
-)
-
-const (
-	NAME = "blueprint"
+	"github.com/steady-bytes/draft/pkg/repositories/badger"
+	"github.com/steady-bytes/draft/pkg/secrets/vault"
 )
 
 func main() {
 	var (
-		keyValueRepo       = kv.NewRepo()
+		keyValueRepo       = badger.New()
 		keyValueController = kv.NewController(keyValueRepo)
 		keyValueRPC        = kv.New(keyValueController)
+		secretStore        = vault.New("")
 
 		serviceDiscoveryController = sd.NewController(keyValueController)
 		serviceDiscoveryRPC        = sd.New(serviceDiscoveryController)
 	)
 
-	defer draft.New(NAME, "").
-		WithRepo(draft.Badger, keyValueRepo).
+	defer draft.New().
+		WithRepository(keyValueRepo).
 		WithConsensus(draft.Raft, keyValueController).
 		WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
-		UseSecretStore(serviceDiscoveryController).
+		WithSecretStore(secretStore).
 		Start()
 }

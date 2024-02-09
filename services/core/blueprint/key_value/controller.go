@@ -6,10 +6,12 @@ import (
 	"io"
 	"time"
 
-	"github.com/hashicorp/raft"
 	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
 	draft "github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/logging"
+	"github.com/steady-bytes/draft/pkg/repositories/badger"
+
+	"github.com/hashicorp/raft"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -22,10 +24,10 @@ type (
 	}
 
 	KeyValue interface {
-		Delete(key string, value T) error
-		Set(log logging.Logger, key string, value T, timeout time.Duration) (*SetResponse, error)
-		Get(key string, value T) (T, error)
-		List(kind T) (map[string]T, error)
+		Delete(key string, value badger.T) error
+		Set(log logging.Logger, key string, value badger.T, timeout time.Duration) (*SetResponse, error)
+		Get(key string, value badger.T) (badger.T, error)
+		List(kind badger.T) (map[string]badger.T, error)
 	}
 
 	SetResponse struct {
@@ -34,7 +36,7 @@ type (
 	}
 
 	controller struct {
-		repo Repo
+		repo badger.Repository
 		raft *raft.Raft
 	}
 )
@@ -51,7 +53,7 @@ var (
 	ErrFailedToMarshal   = errors.New("failed to marshal payload")
 )
 
-func NewController(repo Repo) Controller {
+func NewController(repo badger.Repository) Controller {
 	return &controller{
 		repo: repo,
 		raft: nil,
@@ -75,7 +77,7 @@ func (c *controller) RegisterConsensus(raftConn interface{}) error {
 
 func (c *controller) Delete(
 	key string,
-	kind T,
+	kind badger.T,
 ) error {
 	if err := c.repo.Delete(key, kind); err != nil {
 		return err
@@ -84,7 +86,7 @@ func (c *controller) Delete(
 	return nil
 }
 
-func (c *controller) Get(key string, value T) (T, error) {
+func (c *controller) Get(key string, value badger.T) (badger.T, error) {
 
 	val, err := c.repo.Get(key, value)
 	if err != nil {
@@ -98,7 +100,7 @@ func (c *controller) Get(key string, value T) (T, error) {
 func (c *controller) Set(
 	log logging.Logger,
 	key string,
-	value T,
+	value badger.T,
 	timeout time.Duration,
 ) (*SetResponse, error) {
 	if c.raft.State() != raft.Leader {
@@ -137,7 +139,7 @@ func (c *controller) Set(
 
 func (c *controller) buildLSMLog(
 	key string,
-	value T,
+	value badger.T,
 	operation fsv1.Operation,
 ) ([]byte, error) {
 	payload := &fsv1.CommandPayload{
@@ -154,7 +156,7 @@ func (c *controller) buildLSMLog(
 	return data, nil
 }
 
-func (c *controller) List(kind T) (map[string]T, error) {
+func (c *controller) List(kind badger.T) (map[string]badger.T, error) {
 	keyValMap, err := c.repo.List(kind)
 	if err != nil {
 		fmt.Println("failed to list key/values")
