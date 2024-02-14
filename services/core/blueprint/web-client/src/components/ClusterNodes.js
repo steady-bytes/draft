@@ -1,5 +1,5 @@
 import * as React from "react";
-import "./../index.css";
+import "../../public/globals.css";
 import Title from "./Title";
 import { PiSealWarningLight } from "react-icons/pi";
 

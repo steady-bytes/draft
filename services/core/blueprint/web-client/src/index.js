@@ -5,6 +5,8 @@ import { Provider } from "react-redux";
 import Dashboard from "./pages/Dashboard";
 import { store } from "./store";
 
+import '../public/globals.css';
+
 const rootElement = document.getElementById("root");
 const root = createRoot(rootElement);
 

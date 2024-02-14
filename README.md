@@ -7,12 +7,11 @@ A framework for building reliable, efficient, scalable, real-time and stateful d
 * __Key/Value Store__: A distributed key/value service is available to store `env` vars that each process may need when they start up
 * __Service Registry__: A place a `process` can register it's self too. Publicizing information about what is does and how it can be interacted with.
 
-### [PRODUCT NAME]
+### Fuse
 * __Control Plane__: The main command center of the system as a whole. Not only is it the controller of `envoy`, a tight integration with `Blueprint` have been established so it's easy to consolidate operational information of the system. Features can also be activated, or deactivated through it's portal. 
 
-### [PRODUCT NAME]
-* __File Host__: Most applications need to store files from `.pdf`'s to `.mov` files. The file host will control the life
-	cycle of assets that will be used by the system.
+### Foundation
+* __Content Delivery Network__: Most applications need to store files from `.pdf`'s to `.mov` files. The file host will control the life cycle of assets that will be used by the system.
 
 ### [PRODUCT NAME]
 * __Command Handler__: The interface to invoke a command, or a write to the system.

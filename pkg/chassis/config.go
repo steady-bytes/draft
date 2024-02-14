@@ -44,6 +44,7 @@ type (
 	}
 )
 
+// TODO -> Read config from the key/value store and not from a local static file.
 func LoadConfig() Config {
 	viper.AutomaticEnv()
 	viper.SetConfigFile("./config.yaml")
@@ -59,7 +60,7 @@ func (c *config) Name() string {
 }
 
 func (c *config) NodeID() string {
-	return c.GetString("service.nodeId")
+	return c.GetString("service.node_id")
 }
 
 func (c *config) Title() string {

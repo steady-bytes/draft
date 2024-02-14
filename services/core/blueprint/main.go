@@ -1,6 +1,9 @@
 package main
 
 import (
+	"embed"
+	_ "embed"
+
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
 	sd "github.com/steady-bytes/draft/blueprint/service_discovery"
 
@@ -8,6 +11,11 @@ import (
 	"github.com/steady-bytes/draft/pkg/repositories/badger"
 	"github.com/steady-bytes/draft/pkg/secrets/vault"
 )
+
+//go:embed web-client/dist/index.html
+//go:embed web-client/dist/main.js
+//go:embed web-client/public/globals.css
+var files embed.FS
 
 func main() {
 	var (
@@ -26,5 +34,6 @@ func main() {
 		WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
 		WithSecretStore(secretStore).
+		WithClientApplication(files).
 		Start()
 }

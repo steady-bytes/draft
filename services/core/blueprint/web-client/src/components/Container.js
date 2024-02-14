@@ -1,5 +1,5 @@
 import React from "react";
-import "./../index.css";
+import "../../public/globals.css";
 
 const Container = ({ children }) => <div className="container">{children}</div>;
 

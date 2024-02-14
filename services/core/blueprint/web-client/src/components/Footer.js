@@ -1,6 +1,6 @@
 import * as React from "react";
 import { RiCopyrightLine } from "react-icons/ri";
-import "./../index.css";
+import "../../public/globals.css";
 
 export default function Footer() {
   return (

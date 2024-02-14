@@ -3,8 +3,6 @@ package badger
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/steady-bytes/draft/pkg/chassis"
@@ -51,7 +49,7 @@ func (r *repository) Client() *badger.DB {
 }
 
 func (r *repository) Open(ctx context.Context, config chassis.Config) error {
-	badgerOpt := badger.DefaultOptions(filepath.Join(os.TempDir(), config.NodeID()))
+	badgerOpt := badger.DefaultOptions(config.NodeID())
 	db, err := badger.Open(badgerOpt)
 	if err != nil {
 		return err

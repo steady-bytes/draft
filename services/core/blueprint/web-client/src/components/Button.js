@@ -1,5 +1,5 @@
 import React from "react";
-import "./../index.css";
+import "../../public/globals.css";
 
 const Button = ({ text, type, onClick }) => {
   const btnType = type === "solid" ? "btn btn-solid" : "btn btn-outline";

@@ -9,7 +9,7 @@ import {
 import { BiNetworkChart } from "react-icons/bi";
 import { FaKeycdn } from "react-icons/fa";
 import { RiMenuUnfoldLine, RiMenuFoldLine } from "react-icons/ri";
-import "./../index.css";
+import "../../public/globals.css";
 
 export default function Header() {
   // ----- State for toggling Menu and Notify

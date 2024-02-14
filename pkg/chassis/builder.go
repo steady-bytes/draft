@@ -2,6 +2,7 @@ package chassis
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"net/http"
 	"os"
@@ -60,6 +61,11 @@ func (c *Runtime) WithSecretStore(plugin SecretStore) *Runtime {
 	}
 	c.secretStores = append(c.secretStores, plugin)
 	logger.Info("successfully set up secret store plugin")
+	return c
+}
+
+func (c *Runtime) WithClientApplication(files embed.FS) *Runtime {
+	c.withClientApplication(files)
 	return c
 }
 

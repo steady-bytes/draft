@@ -1,5 +1,7 @@
 {
+  // "minify": true,
   "jsc": {
+    "baseUrl": "./src",
     "parser": {
       "syntax": "ecmascript",
       "jsx": true,
