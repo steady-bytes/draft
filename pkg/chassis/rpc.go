@@ -2,8 +2,6 @@ package chassis
 
 import (
 	"net/http"
-
-	"github.com/steady-bytes/draft/pkg/logging"
 )
 
 type RPCHandlerKind int
@@ -22,14 +20,14 @@ type (
 		EnableReflection(string)
 		IsReflection() bool
 		AddHandler(string, http.Handler)
-		Logger() logging.Logger
+		Logger() Logger
 	}
 
 	rpcServer struct {
 		mux            *http.ServeMux
 		rpcServiceName string
 		isReflection   bool
-		logger         logging.Logger
+		logger         Logger
 	}
 )
 
@@ -66,6 +64,6 @@ func (r *rpcServer) AddHandler(name string, handler http.Handler) {
 	r.mux.Handle(name, handler)
 }
 
-func (r *rpcServer) Logger() logging.Logger {
+func (r *rpcServer) Logger() Logger {
 	return r.logger
 }

@@ -4,6 +4,9 @@ service:
   logging:
     level: info
 
+http:
+  port: '12345'
+
 repositories:
   badger:
   clickhouse:

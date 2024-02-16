@@ -6,21 +6,20 @@ import (
 
 	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
 	sdConnect "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
-	draft "github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/logging"
+	"github.com/steady-bytes/draft/pkg/chassis"
 
 	"connectrpc.com/connect"
 )
 
 type (
 	Rpc interface {
-		draft.RPCRegistrar
+		chassis.RPCRegistrar
 		sdConnect.ServiceDiscoveryServiceHandler
 	}
 
 	rpc struct {
 		controller Controller
-		logger     logging.Logger
+		logger     chassis.Logger
 	}
 )
 
@@ -31,7 +30,7 @@ func New(controller Controller) Rpc {
 }
 
 // Implement the `RPCRegistrar` interface of draft so the `grpc` handlers are enabled
-func (h *rpc) RegisterRPC(server draft.Rpcer) {
+func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 	server.EnableReflection(sdConnect.ServiceDiscoveryServiceName)
 	server.AddHandler(sdConnect.NewServiceDiscoveryServiceHandler(h))
 	h.logger = server.Logger()

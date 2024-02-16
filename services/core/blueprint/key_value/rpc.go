@@ -11,20 +11,19 @@ import (
 	kvConnect "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
 
 	"connectrpc.com/connect"
-	draft "github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/logging"
+	"github.com/steady-bytes/draft/pkg/chassis"
 )
 
 type (
 	Rpc interface {
-		draft.RPCRegistrar
+		chassis.RPCRegistrar
 
 		kvConnect.KeyValueServiceHandler
 	}
 
 	rpc struct {
 		controller Controller
-		logger     logging.Logger
+		logger     chassis.Logger
 	}
 )
 
@@ -40,7 +39,7 @@ var (
 	ErrFailedList = errors.New("failed to list all values for provided kind")
 )
 
-func (h *rpc) RegisterRPC(server draft.Rpcer) {
+func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 	server.EnableReflection(kvConnect.KeyValueServiceName)
 	server.AddHandler(kvConnect.NewKeyValueServiceHandler(h))
 	h.logger = server.Logger()

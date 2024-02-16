@@ -7,7 +7,8 @@ import (
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
 	sd "github.com/steady-bytes/draft/blueprint/service_discovery"
 
-	draft "github.com/steady-bytes/draft/pkg/chassis"
+	"github.com/steady-bytes/draft/pkg/chassis"
+	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 	"github.com/steady-bytes/draft/pkg/repositories/badger"
 	"github.com/steady-bytes/draft/pkg/secrets/vault"
 )
@@ -28,9 +29,9 @@ func main() {
 		serviceDiscoveryRPC        = sd.New(serviceDiscoveryController)
 	)
 
-	defer draft.New().
+	defer chassis.New(zerolog.New()).
 		WithRepository(keyValueRepo).
-		WithConsensus(draft.Raft, keyValueController).
+		WithConsensus(chassis.Raft, keyValueController).
 		WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
 		WithSecretStore(secretStore).

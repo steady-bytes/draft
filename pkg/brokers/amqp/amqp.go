@@ -30,7 +30,7 @@ type (
 
 // New instantiates a new broker. A call to Open is required before use.
 // The configKey parameter dictates which key in the configuration will be read during
-// initialization. Default: "repositories.amqp"
+// initialization. Default: "brokers.amqp"
 func New(configKey string) chassis.Broker {
 	if configKey == "" {
 		configKey = "brokers.amqp"
