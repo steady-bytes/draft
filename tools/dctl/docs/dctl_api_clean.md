@@ -15,7 +15,7 @@ dctl api clean [flags]
 ### Options inherited from parent commands
 
 ```
-      --config string   config file (default is $HOME/.dctl.yaml)
+      --config string   config file
 ```
 
 ### SEE ALSO

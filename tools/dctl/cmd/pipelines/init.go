@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/steady-bytes/tools/dctl/execute"
 	"github.com/steady-bytes/tools/dctl/input"
@@ -32,17 +33,18 @@ stringData:
 
 var (
 	SshIdFile     string
+	// NOTE: keep these in the order in which they should be applied
 	manifestPaths = []string{
+		// remote manifests
+		"https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml",
+		"https://storage.googleapis.com/tekton-releases/dashboard/latest/release-full.yaml",
+		"https://raw.githubusercontent.com/tektoncd/catalog/main/task/git-clone/0.6/git-clone.yaml",
 		// local manifests
 		"secrets",
 		"serviceaccounts",
 		"caches",
 		"tasks",
 		"pipelines",
-		// remote manifests
-		"https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml",
-		"https://storage.googleapis.com/tekton-releases/dashboard/latest/release-full.yaml",
-		"https://raw.githubusercontent.com/tektoncd/catalog/main/task/git-clone/0.6/git-clone.yaml",
 	}
 )
 
@@ -116,13 +118,28 @@ func Init(cmd *cobra.Command, args []string) error {
 	}
 
 	// apply all manifests except runs
-	for _, path := range manifestPaths {
+	for index, path := range manifestPaths {
 		if !strings.HasPrefix(path, "https") {
 			path = filepath.Join(pipelinesPath, path)
 		}
 		err := apply(ctx, path)
 		if err != nil {
 			return err
+		}
+		// on initial tekton manifest install, watch for pods to be ready before continuing
+		if index == 0 {
+			output.Println("Waiting for up to 30 seconds for Tekton pods to be ready...")
+			for i := 0; i < 30; i++ {
+				time.Sleep(1 * time.Second)
+				command := exec.Command("kubectl", "get", "pods", "--namespace", "tekton-pipelines", "--field-selector", "status.phase==Running")
+				output, err := execute.ExecuteCommandReturnStdout(ctx, command)
+				if err != nil {
+					return err
+				}
+				if output == "No resources found in tekton-pipelines namespace." {
+					break
+				}
+			}
 		}
 	}
 
