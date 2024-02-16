@@ -103,7 +103,7 @@ func ExecuteCommandReturnStdout(ctx context.Context, cmd *exec.Cmd) (string, err
 	if err != nil {
 		// only error if not closed by user
 		if err.Error() != "signal: killed" && err.Error() != "os: process already finished" {
-			return "", err
+			return output, err
 		}
 	}
 

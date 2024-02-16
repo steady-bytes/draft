@@ -11,7 +11,7 @@ development.
 ### Options
 
 ```
-      --config string   config file (default is $HOME/.dctl.yaml)
+      --config string   config file
   -h, --help            help for dctl
   -t, --toggle          Help message for toggle
 ```
@@ -23,5 +23,6 @@ development.
 * [dctl config](dctl_config.md)	 - Initialize the dctl configuration
 * [dctl docs](dctl_docs.md)	 - Generate docs for dctl
 * [dctl infra](dctl_infra.md)	 - Manage all local draft infra (Docker containers)
+* [dctl pipelines](dctl_pipelines.md)	 - Manage and run draft pipelines
 * [dctl run](dctl_run.md)	 - Run a single service locally
 

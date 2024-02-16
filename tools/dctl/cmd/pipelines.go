@@ -7,9 +7,9 @@ import (
 )
 
 var pipelinesCmd = &cobra.Command{
-	Use:   "pipelines",
+	Use:     "pipelines",
 	Aliases: []string{"pipeline", "p"},
-	Short: "Manage and run draft pipelines",
+	Short:   "Manage and run draft pipelines",
 }
 
 var pipelinesInitCmd = &cobra.Command{
@@ -18,11 +18,17 @@ var pipelinesInitCmd = &cobra.Command{
 	RunE:  pipelines.Init,
 }
 
+var pipelinesCleanCmd = &cobra.Command{
+	Use:   "clean",
+	Short: "Cleanup any existing pipelines configuration on the cluster",
+	RunE:  pipelines.Clean,
+}
+
 var pipelinesDashboardCmd = &cobra.Command{
-	Use:   "dashboard",
+	Use:     "dashboard",
 	Aliases: []string{"dash"},
-	Short: "Start the dashboard",
-	RunE:  pipelines.Dashboard,
+	Short:   "Start the dashboard",
+	RunE:    pipelines.Dashboard,
 }
 
 var pipelinesRunCmd = &cobra.Command{
@@ -37,6 +43,7 @@ func init() {
 	// add children
 	pipelinesCmd.AddCommand(pipelinesInitCmd)
 	pipelinesInitCmd.Flags().StringVarP(&pipelines.SshIdFile, "file", "f", "", "the file containing your ssh private key")
+	pipelinesCmd.AddCommand(pipelinesCleanCmd)
 	pipelinesCmd.AddCommand(pipelinesDashboardCmd)
 	pipelinesDashboardCmd.Flags().StringVarP(&pipelines.DashboardPort, "port", "p", "9097", "the localhost port to forward the dashboard to")
 	pipelinesCmd.AddCommand(pipelinesRunCmd)
