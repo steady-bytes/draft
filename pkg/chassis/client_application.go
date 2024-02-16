@@ -14,8 +14,6 @@ func (c *Runtime) withClientApplication(e embed.FS) {
 	}
 
 	c.mux.Handle("/", http.FileServer(c.getFileSystem(e)))
-
-	c.isHTTP = true
 }
 
 func (c *Runtime) getFileSystem(e embed.FS) http.FileSystem {

@@ -96,8 +96,10 @@ func (c *Runtime) Start() {
 	signal.Notify(close, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	if c.isRPC {
-		go c.runRPC(close, handler)
+		c.runRPC(close, handler)
 	}
+
+	go c.runMux(close, handler)
 
 	// TODO: start consumers
 
@@ -152,13 +154,18 @@ func (c *Runtime) shutdown() {
 	c.logger.Info("shutdown successfully")
 }
 
+// TODO -> use closer
 func (c *Runtime) runRPC(close CloseChan, handler http.Handler) {
 	if len(c.rpcReflectionServiceNames) > 0 {
 		reflector := grpcreflect.NewStaticReflector(c.rpcReflectionServiceNames...)
 		c.mux.Handle(grpcreflect.NewHandlerV1(reflector))
 		c.mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
 	}
-	addr := fmt.Sprintf("0.0.0.0:%s", c.config.GetString("grpc.port"))
+}
+
+// TODO -> use closer
+func (c *Runtime) runMux(close CloseChan, handler http.Handler) {
+	addr := fmt.Sprintf("0.0.0.0:%s", c.config.GetString("port"))
 	if err := http.ListenAndServe(addr, h2c.NewHandler(handler, &http2.Server{})); err != nil {
 		fmt.Println(err)
 	}

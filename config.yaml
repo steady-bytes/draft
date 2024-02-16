@@ -5,8 +5,7 @@ service:
   logging:
     level: info
 
-http:
-  port: 2221
+port: 2221
 
 repositories:
   badger:
