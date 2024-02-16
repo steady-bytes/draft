@@ -19,7 +19,7 @@ export default function Dashboard() {
             <Route index element={<MetricsPage />} />
             <Route path="service-registry" element={<ServiceRegistryPage />} />
             <Route path="key-values" element={<KeyValuesPage />} />
-            <Route path="*" element={<ErrorPage />} />
+            {/* <Route path="*" element={<ErrorPage />} /> */}
           </Routes>
         </Container>
       </MainContainer>

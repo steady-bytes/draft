@@ -17,6 +17,7 @@ type Runtime struct {
 	rpcReflectionServiceNames []string
 	mux *http.ServeMux
 
+
 	consensusKind        ConsensusKind
 	raftAdvertiseAddress *net.TCPAddr
 }

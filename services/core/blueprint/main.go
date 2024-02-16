@@ -15,7 +15,6 @@ import (
 
 //go:embed web-client/dist/index.html
 //go:embed web-client/dist/main.js
-//go:embed web-client/public/globals.css
 var files embed.FS
 
 func main() {

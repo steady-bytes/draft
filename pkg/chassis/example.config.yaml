@@ -4,6 +4,8 @@ service:
   logging:
     level: info
 
+port: 2221
+
 repositories:
   badger:
   clickhouse:

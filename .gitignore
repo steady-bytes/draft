@@ -2,9 +2,11 @@ api/target
 services/blueprint/web-client/target
 pipelines/secrets
 
-.node_1/
-.node_2/
-.node_3/
+node_1/
+node_2/
+node_3/
 
 .DS_Store
 node_modules/
+
+__debug_*
