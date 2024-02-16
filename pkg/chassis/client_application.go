@@ -3,7 +3,6 @@ package chassis
 import (
 	"embed"
 	"io/fs"
-	"log"
 	"net/http"
 )
 
@@ -19,7 +18,7 @@ func (c *Runtime) withClientApplication(e embed.FS) {
 func (c *Runtime) getFileSystem(e embed.FS) http.FileSystem {
 	fsys, err := fs.Sub(e, "web-client/dist")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	return http.FS(fsys)
