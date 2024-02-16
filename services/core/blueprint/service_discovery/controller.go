@@ -7,8 +7,7 @@ import (
 
 	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
-	draft "github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/logging"
+	"github.com/steady-bytes/draft/pkg/chassis"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -27,14 +26,14 @@ type (
 	}
 
 	ServiceDiscovery interface {
-		Finalize(ctx context.Context, log logging.Logger, pid string) error
-		Initialize(ctx context.Context, log logging.Logger, nonce, name string) (*sdv1.ProcessIdentity, error)
-		Synchronize(ctx context.Context, log logging.Logger, details *sdv1.ClientDetails)
+		Finalize(ctx context.Context, log chassis.Logger, pid string) error
+		Initialize(ctx context.Context, log chassis.Logger, nonce, name string) (*sdv1.ProcessIdentity, error)
+		Synchronize(ctx context.Context, log chassis.Logger, details *sdv1.ClientDetails)
 	}
 
 	controller struct {
 		kvController kv.Controller
-		secretStore  draft.SecretStore
+		secretStore  chassis.SecretStore
 	}
 )
 
@@ -46,7 +45,7 @@ func NewController(kvController kv.Controller) Controller {
 }
 
 // Accepts a `SecretStore` interface and adds it to the controller
-func (c *controller) SetSecretStore(s draft.SecretStore) {
+func (c *controller) SetSecretStore(s chassis.SecretStore) {
 	c.secretStore = s
 }
 
@@ -62,7 +61,7 @@ const (
 
 // Initialize - When a service starts and wants to register itself with the system then a unique name, and system nonce
 // can be provided to get `ProcessIdentity` details so that A process can then finalize service registration
-func (c *controller) Initialize(ctx context.Context, log logging.Logger, nonce, name string) (*sdv1.ProcessIdentity, error) {
+func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, name string) (*sdv1.ProcessIdentity, error) {
 	var (
 		err     error
 		pid     = uuid.NewString()
@@ -112,7 +111,7 @@ func (c *controller) Initialize(ctx context.Context, log logging.Logger, nonce, 
 
 // Synchronize - receive a message from an `Initialized` process and update it's state in the
 // `SystemJournal`.
-func (c *controller) Synchronize(ctx context.Context, log logging.Logger, details *sdv1.ClientDetails) {
+func (c *controller) Synchronize(ctx context.Context, log chassis.Logger, details *sdv1.ClientDetails) {
 	var (
 		err     error
 		process = &sdv1.Process{}
@@ -166,7 +165,7 @@ func (c *controller) Synchronize(ctx context.Context, log logging.Logger, detail
 
 // Finalize - Gracefully remove the process from the registry. Close the connection if one is still
 // open and change the process state to `Finalized`
-func (c *controller) Finalize(ctx context.Context, log logging.Logger, pid string) error {
+func (c *controller) Finalize(ctx context.Context, log chassis.Logger, pid string) error {
 	var (
 		err     error
 		process = &sdv1.Process{}

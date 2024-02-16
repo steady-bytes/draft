@@ -7,8 +7,7 @@ import (
 	"time"
 
 	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
-	draft "github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/logging"
+	"github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/repositories/badger"
 
 	"github.com/hashicorp/raft"
@@ -17,7 +16,7 @@ import (
 
 type (
 	Controller interface {
-		draft.ConsensusRegistrar
+		chassis.ConsensusRegistrar
 		raft.FSM
 
 		KeyValue
@@ -25,7 +24,7 @@ type (
 
 	KeyValue interface {
 		Delete(key string, value badger.T) error
-		Set(log logging.Logger, key string, value badger.T, timeout time.Duration) (*SetResponse, error)
+		Set(log chassis.Logger, key string, value badger.T, timeout time.Duration) (*SetResponse, error)
 		Get(key string, value badger.T) (badger.T, error)
 		List(kind badger.T) (map[string]badger.T, error)
 	}
@@ -98,7 +97,7 @@ func (c *controller) Get(key string, value badger.T) (badger.T, error) {
 }
 
 func (c *controller) Set(
-	log logging.Logger,
+	log chassis.Logger,
 	key string,
 	value badger.T,
 	timeout time.Duration,

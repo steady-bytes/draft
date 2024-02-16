@@ -5,7 +5,7 @@ use (
 	./pkg/blueprint-client
 	./pkg/brokers
 	./pkg/chassis
-	./pkg/logging
+	./pkg/loggers
 	./pkg/repositories
 	./pkg/secrets
 	./services/core/blueprint

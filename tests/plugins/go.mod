@@ -6,14 +6,16 @@ replace (
 	github.com/steady-bytes/draft/api => ../../api/gen/go
 	github.com/steady-bytes/draft/pkg/brokers => ../../pkg/brokers
 	github.com/steady-bytes/draft/pkg/chassis => ../../pkg/chassis
-	github.com/steady-bytes/draft/pkg/logging => ../../pkg/logging
+	github.com/steady-bytes/draft/pkg/loggers => ../../pkg/loggers
 	github.com/steady-bytes/draft/pkg/repositories => ../../pkg/repositories
 	github.com/steady-bytes/draft/pkg/secrets => ../../pkg/secrets
 )
 
 require (
+	github.com/gin-gonic/gin v1.9.1
 	github.com/steady-bytes/draft/pkg/brokers v0.0.1
 	github.com/steady-bytes/draft/pkg/chassis v0.0.1
+	github.com/steady-bytes/draft/pkg/loggers v0.0.1
 	github.com/steady-bytes/draft/pkg/repositories v0.0.1
 	github.com/steady-bytes/draft/pkg/secrets v0.0.1
 )
@@ -38,7 +40,6 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gin-gonic/gin v1.9.1 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.6.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -51,7 +52,6 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
-	github.com/hashicorp/go-msgpack v0.5.5 // indirect
 	github.com/hashicorp/go-msgpack/v2 v2.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
@@ -59,7 +59,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/raft v1.6.0 // indirect
-	github.com/hashicorp/raft-boltdb v0.0.0-20231115180007-027066e4d245 // indirect
+	github.com/hashicorp/raft-boltdb/v2 v2.3.0 // indirect
 	github.com/hashicorp/vault-client-go v0.4.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
@@ -67,12 +67,12 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.0 // indirect
+	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -99,7 +99,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
 	github.com/steady-bytes/draft/api v0.0.1 // indirect
-	github.com/steady-bytes/draft/pkg/logging v1.0.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -107,14 +106,13 @@ require (
 	github.com/uptrace/bun v1.1.16 // indirect
 	github.com/uptrace/bun/dialect/pgdialect v1.1.16 // indirect
 	github.com/uptrace/bun/driver/pgdriver v1.1.16 // indirect
-	github.com/uptrace/opentelemetry-go-extra/otellogrus v0.2.3 // indirect
-	github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.3 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
+	go.etcd.io/bbolt v1.3.7 // indirect
 	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.opentelemetry.io/otel v1.22.0 // indirect
 	go.opentelemetry.io/otel/trace v1.22.0 // indirect

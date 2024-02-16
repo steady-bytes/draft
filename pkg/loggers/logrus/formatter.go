@@ -1,5 +1,5 @@
 // Credit: https://github.com/banzaicloud/logrus-runtime-formatter
-package logging
+package logrus
 
 import (
 	"fmt"

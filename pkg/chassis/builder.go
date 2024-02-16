@@ -9,11 +9,13 @@ import (
 	"os/signal"
 	"reflect"
 	"syscall"
+	"time"
 
 	"connectrpc.com/grpcreflect"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+	"golang.org/x/sync/errgroup"
 )
 
 type (
@@ -21,7 +23,6 @@ type (
 	// to be closed down.
 	CloseChan = chan os.Signal
 	Default   interface {
-		HTTPRegistrar
 		RPCRegistrar
 		ConsensusRegistrar
 	}
@@ -69,11 +70,6 @@ func (c *Runtime) WithClientApplication(files embed.FS) *Runtime {
 	return c
 }
 
-func (c *Runtime) WithHTTPHandler(kind HTTPKind, plugin HTTPRegistrar) *Runtime {
-	c.withHTTPHandler(kind, plugin)
-	return c
-}
-
 func (c *Runtime) WithRPCHandler(plugin RPCRegistrar) *Runtime {
 	c.withRpc(plugin)
 	return c
@@ -88,42 +84,72 @@ func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *
 // Runtime Functions
 ////////////////////
 
-// Start the runtime of the service. This will do things like fire up the grpc/http servers and put
+// Start the runtime of the service. This will do things like run the grpc server and consumers and put
 // them on a background goroutine
-func (c *Runtime) Start() error {
+func (c *Runtime) Start() {
 	cors := c.buildCors()
 	handler := cors.Handler(c.mux)
-
 	if c.mux == nil {
 		c.mux = http.NewServeMux()
 	}
-
 	close := make(chan os.Signal, 1)
 	signal.Notify(close, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	if c.isHTTP == true {
-		go c.runHTTP(close, handler)
-	}
-
-	if c.isRPC == true {
+	if c.isRPC {
 		go c.runRPC(close, handler)
 	}
 
-	// forever loop that runs until `close` signal is received
-	for {
-		select {
-		case <-close:
-			fmt.Println("close signal received")
-			os.Exit(0)
-		}
-	}
+	// TODO: start consumers
+
+	// wait for close signal
+	<-close
+	c.shutdown()
 }
 
-func (c *Runtime) runHTTP(close CloseChan, handler http.Handler) {
-	addr := fmt.Sprintf("0.0.0.0:%s", c.config.GetString("http.port"))
-	if err := http.ListenAndServe(addr, handler); err != nil {
-		fmt.Println(err)
+func (c *Runtime) shutdown() {
+	c.logger.Info("shutting down")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	group := errgroup.Group{}
+
+	// TODO: shutdown rpc server?
+
+	// shutdown repositories
+	for _, r := range c.repositories {
+		r := r
+		group.Go(func() error {
+			e := r.Close(ctx)
+			if e != nil {
+				return c.logger.WithField("plugin", reflect.TypeOf(r).String()).Wrap(e)
+			}
+			return nil
+		})
 	}
+
+	// shutdown brokers
+	for _, b := range c.brokers {
+		b := b
+		group.Go(func() error {
+			e := b.Close(false)
+			if e == nil {
+				return nil
+			}
+			c.logger.WithField("plugin", reflect.TypeOf(b).String()).Error("failed to gracefully close broker: forcing")
+			e = b.Close(true)
+			if e != nil {
+				return c.logger.WithField("plugin", reflect.TypeOf(b).String()).Wrap(e)
+			}
+			return nil
+		})
+	}
+
+	// wait for graceful shutdowns
+	err := group.Wait()
+	if err != nil {
+		c.logger.WrappedError(err, "failed to shutdown gracefully")
+		return
+	}
+	c.logger.Info("shutdown successfully")
 }
 
 func (c *Runtime) runRPC(close CloseChan, handler http.Handler) {
