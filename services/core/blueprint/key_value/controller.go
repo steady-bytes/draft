@@ -8,7 +8,6 @@ import (
 
 	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/repositories/badger"
 
 	"github.com/hashicorp/raft"
 	"google.golang.org/protobuf/proto"
@@ -23,10 +22,10 @@ type (
 	}
 
 	KeyValue interface {
-		Delete(key string, value badger.T) error
-		Set(log chassis.Logger, key string, value badger.T, timeout time.Duration) (*SetResponse, error)
-		Get(key string, value badger.T) (badger.T, error)
-		List(kind badger.T) (map[string]badger.T, error)
+		Delete(key string, value T) error
+		Set(log chassis.Logger, key string, value T, timeout time.Duration) (*SetResponse, error)
+		Get(key string, value T) (T, error)
+		List(kind T) (map[string]T, error)
 	}
 
 	SetResponse struct {
@@ -35,8 +34,8 @@ type (
 	}
 
 	controller struct {
-		repo badger.Repository
-		raft *raft.Raft
+		model Model
+		raft  *raft.Raft
 	}
 )
 
@@ -52,10 +51,10 @@ var (
 	ErrFailedToMarshal   = errors.New("failed to marshal payload")
 )
 
-func NewController(repo badger.Repository) Controller {
+func NewController(model Model) Controller {
 	return &controller{
-		repo: repo,
-		raft: nil,
+		model: model,
+		raft:  nil,
 	}
 }
 
@@ -76,18 +75,18 @@ func (c *controller) RegisterConsensus(raftConn interface{}) error {
 
 func (c *controller) Delete(
 	key string,
-	kind badger.T,
+	kind T,
 ) error {
-	if err := c.repo.Delete(key, kind); err != nil {
+	if err := c.model.Delete(key, kind); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *controller) Get(key string, value badger.T) (badger.T, error) {
+func (c *controller) Get(key string, value T) (T, error) {
 
-	val, err := c.repo.Get(key, value)
+	val, err := c.model.Get(key, value)
 	if err != nil {
 		fmt.Println("error: ", err)
 		return nil, err
@@ -99,7 +98,7 @@ func (c *controller) Get(key string, value badger.T) (badger.T, error) {
 func (c *controller) Set(
 	log chassis.Logger,
 	key string,
-	value badger.T,
+	value T,
 	timeout time.Duration,
 ) (*SetResponse, error) {
 	if c.raft.State() != raft.Leader {
@@ -138,7 +137,7 @@ func (c *controller) Set(
 
 func (c *controller) buildLSMLog(
 	key string,
-	value badger.T,
+	value T,
 	operation fsv1.Operation,
 ) ([]byte, error) {
 	payload := &fsv1.CommandPayload{
@@ -155,8 +154,8 @@ func (c *controller) buildLSMLog(
 	return data, nil
 }
 
-func (c *controller) List(kind badger.T) (map[string]badger.T, error) {
-	keyValMap, err := c.repo.List(kind)
+func (c *controller) List(kind T) (map[string]T, error) {
+	keyValMap, err := c.model.List(kind)
 	if err != nil {
 		fmt.Println("failed to list key/values")
 		return nil, ErrFailedList
@@ -193,7 +192,7 @@ func (c *controller) Apply(log *raft.Log) interface{} {
 		case Delete:
 			fmt.Println("TODO: make sure to call the `Apply` command with the `Delete` operations so it's committed to all nodes")
 		case Set:
-			if err := c.repo.Set(payload.Key, payload.Value); err != nil {
+			if err := c.model.Set(payload.Key, payload.Value); err != nil {
 				return &SetResponse{
 					Error: errors.New("failed to set key/val"),
 					Data:  payload,

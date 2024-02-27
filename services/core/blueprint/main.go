@@ -9,7 +9,6 @@ import (
 
 	"github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
-	"github.com/steady-bytes/draft/pkg/repositories/badger"
 	"github.com/steady-bytes/draft/pkg/secrets/vault"
 )
 
@@ -19,9 +18,9 @@ var files embed.FS
 
 func main() {
 	var (
-		keyValueRepo       = badger.New()
-		keyValueController = kv.NewController(keyValueRepo)
-		keyValueRPC        = kv.New(keyValueController)
+		keyValueModel      = kv.NewModel()
+		keyValueController = kv.NewController(keyValueModel)
+		keyValueRPC        = kv.NewRpc(keyValueController)
 		secretStore        = vault.New("")
 
 		serviceDiscoveryController = sd.NewController(keyValueController)
@@ -29,7 +28,7 @@ func main() {
 	)
 
 	defer chassis.New(zerolog.New()).
-		WithRepository(keyValueRepo).
+		WithRepository(keyValueModel).
 		WithConsensus(chassis.Raft, keyValueController).
 		WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
