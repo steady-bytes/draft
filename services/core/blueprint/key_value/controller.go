@@ -61,7 +61,9 @@ func NewController(model Model) Controller {
 // Implement the the `draft.ConsensusRegister` interface so that the underlying infrastructure
 // is put into place before the service is running. To run this service as a replicated service
 // that can share, and agree on.
-func (c *controller) RegisterConsensus(raftConn interface{}) error {
+func (c *controller) RegisterConsensus(
+	raftConn interface{},
+) error {
 	if raftConn != nil {
 		if raft, ok := raftConn.(*raft.Raft); ok {
 			c.raft = raft
@@ -84,7 +86,10 @@ func (c *controller) Delete(
 	return nil
 }
 
-func (c *controller) Get(key string, value T) (T, error) {
+func (c *controller) Get(
+	key string,
+	value T,
+) (T, error) {
 
 	val, err := c.model.Get(key, value)
 	if err != nil {
@@ -154,7 +159,9 @@ func (c *controller) buildLSMLog(
 	return data, nil
 }
 
-func (c *controller) List(kind T) (map[string]T, error) {
+func (c *controller) List(
+	kind T,
+) (map[string]T, error) {
 	keyValMap, err := c.model.List(kind)
 	if err != nil {
 		fmt.Println("failed to list key/values")

@@ -15,8 +15,7 @@ type Runtime struct {
 
 	isRPC                     bool
 	rpcReflectionServiceNames []string
-	mux *http.ServeMux
-
+	mux                       *http.ServeMux
 
 	consensusKind        ConsensusKind
 	raftAdvertiseAddress *net.TCPAddr
@@ -26,9 +25,11 @@ func New(logger Logger) *Runtime {
 	if logger == nil {
 		panic("logger cannot be nil")
 	}
+
 	rt := &Runtime{
 		config: LoadConfig(),
 	}
+
 	logger.Start(rt.config)
 	rt.logger = logger
 	return rt

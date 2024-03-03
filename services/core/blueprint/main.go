@@ -21,7 +21,6 @@ func main() {
 		keyValueModel      = kv.NewModel()
 		keyValueController = kv.NewController(keyValueModel)
 		keyValueRPC        = kv.NewRpc(keyValueController)
-		secretStore        = vault.New("")
 
 		serviceDiscoveryController = sd.NewController(keyValueController)
 		serviceDiscoveryRPC        = sd.New(serviceDiscoveryController)
@@ -32,7 +31,7 @@ func main() {
 		WithConsensus(chassis.Raft, keyValueController).
 		WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
-		WithSecretStore(secretStore).
+		WithSecretStore(vault.New("")).
 		WithClientApplication(files).
 		Start()
 }

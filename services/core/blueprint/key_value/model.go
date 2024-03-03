@@ -33,29 +33,41 @@ type (
 		// key that has already been saved then the new value will overwrite the old.
 		Set(Key, T) error
 	}
-	model struct{}
+	model struct {
+		repository repo.Repository
+	}
 )
 
 // New instantiates a new repository. A call to Open is required before use.
 func NewModel() Model {
-	return &model{}
+	return &model{
+		repository: repo.New(),
+	}
 }
 
+////////////////////////////////////
+// Chassis Repository Implementation
+////////////////////////////////////
+
 func (m *model) Client() *badger.DB {
-	return m.Client()
+	return m.repository.Client()
 }
 
 func (m *model) Open(ctx context.Context, config chassis.Config) error {
-	return m.Open(ctx, config)
+	return m.repository.Open(ctx, config)
 }
 
 func (m *model) Close(ctx context.Context) error {
-	return m.Close(ctx)
+	return m.repository.Close(ctx)
 }
 
 func (m *model) Ping(ctx context.Context) error {
-	return m.Ping(ctx)
+	return m.repository.Ping(ctx)
 }
+
+/////////////////////////////////
+// Key/Value Model Implementation
+/////////////////////////////////
 
 // Delete - Takes a key, and a repo to locate persistance layer. If found and the delete operation
 // is successful an error is not returned. Otherwise, and error will return.
