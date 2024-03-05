@@ -100,7 +100,7 @@ func (c *Runtime) Start() {
 	}
 
 	go c.runMux(close, handler)
-  
+
 	// TODO: start consumers
 
 	// wait for close signal

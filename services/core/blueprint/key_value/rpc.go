@@ -27,7 +27,7 @@ type (
 	}
 )
 
-func New(controller Controller) Rpc {
+func NewRpc(controller Controller) Rpc {
 	return &rpc{
 		controller: controller,
 		logger:     nil,
