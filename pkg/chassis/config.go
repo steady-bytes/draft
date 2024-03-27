@@ -2,6 +2,7 @@ package chassis
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -46,8 +47,16 @@ type (
 
 // TODO -> Read config from the key/value store and not from a local static file.
 func LoadConfig() Config {
+	viper.SetEnvPrefix("DRAFT")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
-	viper.SetConfigFile("./config.yaml")
+
+	configPath := viper.GetString("config")
+	if configPath == "" {
+		fmt.Println("using default config path")
+		configPath = "./config.yaml"
+	}
+	viper.SetConfigFile(configPath)
 	if err := viper.ReadInConfig(); err != nil {
 		// yes, we actually want to panic here as without a config there's nothing we can do
 		panic(fmt.Errorf("failed to read in config: %s", err.Error()))
@@ -60,7 +69,7 @@ func (c *config) Name() string {
 }
 
 func (c *config) NodeID() string {
-	return c.GetString("service.node_id")
+	return c.GetString("raft.node-id")
 }
 
 func (c *config) Title() string {

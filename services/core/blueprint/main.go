@@ -2,14 +2,12 @@ package main
 
 import (
 	"embed"
-	_ "embed"
 
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
 	sd "github.com/steady-bytes/draft/blueprint/service_discovery"
 
 	"github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
-	"github.com/steady-bytes/draft/pkg/secrets/vault"
 )
 
 //go:embed web-client/dist/index.html
@@ -17,6 +15,7 @@ import (
 var files embed.FS
 
 func main() {
+
 	var (
 		keyValueModel      = kv.NewModel()
 		keyValueController = kv.NewController(keyValueModel)
@@ -31,7 +30,6 @@ func main() {
 		WithConsensus(chassis.Raft, keyValueController).
 		WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
-		WithSecretStore(vault.New("")).
 		WithClientApplication(files).
 		Start()
 }

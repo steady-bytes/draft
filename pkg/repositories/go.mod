@@ -15,7 +15,6 @@ require (
 	github.com/uptrace/bun/dialect/pgdialect v1.1.16
 	github.com/uptrace/bun/driver/pgdriver v1.1.16
 	go.mongodb.org/mongo-driver v1.11.4
-	google.golang.org/protobuf v1.32.0
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
 )
@@ -92,6 +91,7 @@ require (
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	mellium.im/sasl v0.3.1 // indirect

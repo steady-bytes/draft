@@ -165,9 +165,10 @@ func (c *Runtime) runRPC(close CloseChan, handler http.Handler) {
 
 // TODO -> use closer
 func (c *Runtime) runMux(close CloseChan, handler http.Handler) {
-	addr := fmt.Sprintf("0.0.0.0:%s", c.config.GetString("port"))
+	addr := fmt.Sprintf("0.0.0.0:%s", c.config.GetString("service.port"))
+	c.logger.Info(fmt.Sprintf("running server on: %s", addr))
 	if err := http.ListenAndServe(addr, h2c.NewHandler(handler, &http2.Server{})); err != nil {
-		fmt.Println(err)
+		c.logger.WithError(err).Panic("failed to start mux server")
 	}
 }
 

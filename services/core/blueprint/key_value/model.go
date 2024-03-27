@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dgraph-io/badger/v2"
 	"github.com/steady-bytes/draft/pkg/chassis"
-	repo "github.com/steady-bytes/draft/pkg/repositories/badger"
+	dbadger "github.com/steady-bytes/draft/pkg/repositories/badger"
+
+	"github.com/dgraph-io/badger/v2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -21,7 +22,7 @@ type (
 	Key = string
 
 	Model interface {
-		repo.Repository
+		dbadger.Repository
 		// Delete removes a key forever
 		Delete(Key, T) error
 		// Retrieve a value by it's key
@@ -34,14 +35,14 @@ type (
 		Set(Key, T) error
 	}
 	model struct {
-		repository repo.Repository
+		repository dbadger.Repository
 	}
 )
 
 // New instantiates a new repository. A call to Open is required before use.
 func NewModel() Model {
 	return &model{
-		repository: repo.New(),
+		repository: dbadger.New(),
 	}
 }
 

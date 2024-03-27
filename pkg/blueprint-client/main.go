@@ -162,7 +162,7 @@ func listAll() {
 		client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, val)
 		res, err := client.List(context.Background(), req)
 		if err != nil {
-			panic("set failed")
+			panic("list failed")
 		}
 
 		responses = append(responses, res.Msg.GetValues())
@@ -220,7 +220,7 @@ func getValue() {
 	}
 
 	req := connect.NewRequest(&kvv1.GetRequest{
-		Key:   "22fc0a9f-99f5-476a-8f93-235737915142",
+		Key:   "test",
 		Value: val,
 	})
 
@@ -228,7 +228,7 @@ func getValue() {
 		client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, val)
 		res, err := client.Get(context.Background(), req)
 		if err != nil {
-			panic("set failed")
+			panic("get failed")
 		}
 
 		fmt.Println("response: ", res.Msg.GetValue())
@@ -243,8 +243,7 @@ func makeCluster() {
 			NodeId:      "node_2",
 			RaftAddress: "localhost:1112",
 		})
-	_, err := raftClient.Join(
-		context.Background(), req)
+	_, err := raftClient.Join(context.Background(), req)
 	if err != nil {
 		fmt.Println("failed to connect to leader")
 	}

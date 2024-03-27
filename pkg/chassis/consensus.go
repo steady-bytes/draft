@@ -1,9 +1,7 @@
 package chassis
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -54,10 +52,6 @@ const (
 	// raftLogCacheSize is the maximum number of logs to cache in-memory.
 	// This is used to reduce disk I/O for the recently committed entries.
 	raftLogCacheSize = 512
-	// raftPortEnv is the env var that is used to configure what port raft will be running on
-	raftPortEnv = "RAFT_PORT"
-	raftIPEnv   = "RAFT_IP"
-	nodeIDEnv   = "RAFT_NODE_ID"
 
 	invalidRaftAddress = "either IP, PORT, NodeID are invalid"
 )
@@ -65,15 +59,15 @@ const (
 func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 	var (
 		raftConf    = raft.DefaultConfig()
-		raftPortStr = os.Getenv(raftPortEnv)
-		raftIPStr   = os.Getenv(raftIPEnv)
-		raftNodeID  = os.Getenv(nodeIDEnv)
+		raftPortStr = c.config.GetString("raft.port")
+		raftIPStr   = c.config.GetString("raft.address")
+		raftNodeID  = c.config.GetString("raft.node-id")
 		raftBinAddr = ""
 	)
 
 	// configuration for raft
 	if raftPortStr == "" || raftIPStr == "" || raftNodeID == "" {
-		log.Fatal(errors.New(invalidRaftAddress))
+		c.logger.Fatal(invalidRaftAddress)
 	} else {
 		raftBinAddr = fmt.Sprintf("%s:%s", raftIPStr, raftPortStr)
 	}
@@ -84,25 +78,25 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 	// set the path to the directory bolt will use to write to the filesystem
 	store, err := raftboltdb.NewBoltStore(filepath.Join(raftNodeID, "raft.dataRepo"))
 	if err != nil {
-		log.Fatal(err)
+		c.logger.Fatal(err.Error())
 	}
 
 	// wrap the store in a `LogCache`` to improve performance
 	cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
 	if err != nil {
-		log.Fatal(err)
+		c.logger.Fatal(err.Error())
 	}
 
 	// TODO -> understand this more when diving into snapshots, and how they can be used to recover data
 	snapshotStore, err := raft.NewFileSnapshotStore(raftNodeID, raftSnapShotRetain, os.Stdout)
 	if err != nil {
-		log.Fatal(err)
+		c.logger.Fatal(err.Error())
 	}
 
 	// create raft address to advertise on
 	tcpAddr, err := net.ResolveTCPAddr("tcp", raftBinAddr)
 	if err != nil {
-		log.Fatal(err)
+		c.logger.Fatal(err.Error())
 	}
 
 	c.raftAdvertiseAddress = tcpAddr
@@ -111,12 +105,12 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 	// of the raft servers
 	transport, err := raft.NewTCPTransport(raftBinAddr, c.raftAdvertiseAddress, maxPool, tcpTimeout, os.Stdout)
 	if err != nil {
-		log.Fatal(err)
+		c.logger.Fatal(err.Error())
 	}
 
 	raftServer, err := raft.NewRaft(raftConf, registrar, cacheStore, store, snapshotStore, transport)
 	if err != nil {
-		log.Fatal(err)
+		c.logger.Fatal(err.Error())
 	}
 	// always start single server
 	// The server will not be added to the cluster until the `Join` rpc method is called.
@@ -130,8 +124,8 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 		},
 	}
 
-	bootstrap := os.Getenv("BOOTSTRAP_RAFT")
-	if bootstrap == "true" {
+	bootstrap := c.config.GetBool("raft.bootstrap")
+	if bootstrap {
 		raftServer.BootstrapCluster(configuration)
 	}
 
@@ -155,6 +149,6 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 
 	// srv := server.New(fmt.Sprintf(":%d", c.config.Service.Port), c.badger, raftServer)
 	// if err := srv.Start(); err != nil {
-	// 	log.Fatal(err)
+	// 	c.logger.Fatal(err.Error())
 	// }
 }

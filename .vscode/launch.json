@@ -12,7 +12,9 @@
             "program": "services/core/gateway/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
-            "args": ["run"]
+            "args": [
+                "run"
+            ]
         },
         {
             "name": "Host",
@@ -58,7 +60,8 @@
             "env": {
                 "CMD": "get_value"
             }
-        },        {
+        },
+        {
             "name": "Blueprint CMD: Load Test",
             "type": "go",
             "request": "launch",
@@ -115,13 +118,8 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "RAFT_PORT": "1111",
-                "NONCE_STR": "test",
-                "SERVER_PORT": "2221",
-                "RAFT_IP": "localhost",
-                "RAFT_NODE_ID": "node_1",
-                "BOOTSTRAP_RAFT": "true"
-            },  
+                "DRAFT_CONFIG": "tests/blueprint/node_1.yaml"
+            },
         },
         {
             "name": "Blueprint_2",
@@ -132,12 +130,8 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "RAFT_PORT": "1112",
-                "RAFT_IP": "localhost",
-                "NONCE_STR": "test",
-                "SERVER_PORT": "2222",
-                "RAFT_NODE_ID": "node_2"
-            },  
+                "DRAFT_CONFIG": "tests/blueprint/node_2.yaml"
+            },
         },
         {
             "name": "Blueprint_3",
@@ -148,12 +142,8 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "RAFT_PORT": "1113",
-                "RAFT_IP": "localhost",
-                "NONCE_STR": "test",
-                "SERVER_PORT": "2223",
-                "RAFT_NODE_ID": "node_3"
-            },  
+                "DRAFT_CONFIG": "tests/blueprint/node_3.yaml"
+            },
         },
         {
             "name": "HealthZ",
@@ -165,7 +155,7 @@
             "debugAdapter": "dlv-dap",
             "env": {
                 "SERVER_PORT": "3000",
-            },  
+            },
         },
         {
             "name": "Plugins (test)",
@@ -175,14 +165,18 @@
             "program": "tests/plugins/main.go",
             "cwd": "${workspaceFolder}/tests/plugins",
             "debugAdapter": "dlv-dap",
-            "args": ["run"]
+            "args": [
+                "run"
+            ]
         },
     ],
     "compounds": [
         {
             "name": "Blueprint Cluster",
             "configurations": [
-                "Blueprint_1", "Blueprint_2", "Blueprint_3"
+                "Blueprint_1",
+                "Blueprint_2",
+                "Blueprint_3"
             ],
             "stopAll": true,
         }

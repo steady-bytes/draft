@@ -1,11 +1,9 @@
 service:
   name: service1
-  node_id: node_1 
   env: local
   logging:
     level: info
-
-port: 2221
+  port: 1234
 
 repositories:
   badger:

@@ -95,3 +95,9 @@ dctl api build
 # run your first service
 dctl run -d core -s blueprint
 ```
+
+## Testing
+
+- Run "Cluster" debugger to start all three nodes
+- Run "Blueprint CMD: Register Cluster" debugger to register node 2 and node 3 to the leader (node 1)
+- ...

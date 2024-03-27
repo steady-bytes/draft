@@ -11,6 +11,7 @@ replace (
 
 require (
 	connectrpc.com/connect v1.14.0
+	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/raft v1.6.0
 	github.com/steady-bytes/draft/api v0.0.1
@@ -26,7 +27,6 @@ require (
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cloudevents/sdk-go/binding/format/protobuf/v2 v2.15.0 // indirect
-	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
