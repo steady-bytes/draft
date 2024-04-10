@@ -10,3 +10,5 @@ node_3/
 node_modules/
 
 __debug_*
+
+target/
