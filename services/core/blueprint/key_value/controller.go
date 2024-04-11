@@ -1,16 +1,22 @@
 package key_value
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
+	kvv1 "github.com/steady-bytes/draft/api/registry/key_value/v1"
+	kvv1Cnt "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
 	"github.com/steady-bytes/draft/pkg/chassis"
 
+	"connectrpc.com/connect"
 	"github.com/hashicorp/raft"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type (
@@ -22,10 +28,10 @@ type (
 	}
 
 	KeyValue interface {
-		Delete(key string, value T) error
+		Delete(log chassis.Logger, key string, value T) error
 		Set(log chassis.Logger, key string, value T, timeout time.Duration) (*SetResponse, error)
-		Get(key string, value T) (T, error)
-		List(kind T) (map[string]T, error)
+		Get(log chassis.Logger, key string, value T) (T, error)
+		List(log chassis.Logger, kind T) (map[string]T, error)
 	}
 
 	SetResponse struct {
@@ -34,8 +40,8 @@ type (
 	}
 
 	controller struct {
-		model Model
-		raft  *raft.Raft
+		model   Model
+		raft    *raft.Raft
 	}
 )
 
@@ -54,16 +60,13 @@ var (
 func NewController(model Model) Controller {
 	return &controller{
 		model: model,
-		raft:  nil,
 	}
 }
 
 // Implement the the `draft.ConsensusRegister` interface so that the underlying infrastructure
 // is put into place before the service is running. To run this service as a replicated service
 // that can share, and agree on.
-func (c *controller) RegisterConsensus(
-	raftConn interface{},
-) error {
+func (c *controller) RegisterConsensus(raftConn interface{}) error {
 	if raftConn != nil {
 		if raft, ok := raftConn.(*raft.Raft); ok {
 			c.raft = raft
@@ -75,43 +78,73 @@ func (c *controller) RegisterConsensus(
 	return errors.New("raft connection is nill")
 }
 
-func (c *controller) Delete(
-	key string,
-	kind T,
-) error {
+func (c *controller) LeadershipChange(log chassis.Logger, leader bool, address string) {
+	if leader {
+		log.Info("became leader")
+		value, err := anypb.New(&kvv1.Value{
+			Data: address,
+		})
+		if err != nil {
+			log.WithError(err).Error("failed to create any type from value")
+			return
+		}
+		// write the grpc address and port of the grpc service to raft
+		_, err = c.Set(log, "leader", value, 500*time.Millisecond)
+		if err != nil {
+			log.WithError(err).Error("failed to set leader address")
+		}
+	} else {
+		log.Info("become follower")
+	}
+}
+
+func (c *controller) Delete(log chassis.Logger, key string, kind T) error {
 	if err := c.model.Delete(key, kind); err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (c *controller) Get(
-	key string,
-	value T,
-) (T, error) {
-
+func (c *controller) Get(log chassis.Logger, key string, value T) (T, error) {
 	val, err := c.model.Get(key, value)
 	if err != nil {
-		fmt.Println("error: ", err)
+		log.Error(err.Error())
 		return nil, err
 	}
-
 	return val, nil
 }
 
-func (c *controller) Set(
-	log chassis.Logger,
-	key string,
-	value T,
-	timeout time.Duration,
-) (*SetResponse, error) {
+func (c *controller) Set(log chassis.Logger, key string, value T, timeout time.Duration) (*SetResponse, error) {
+	// forward the set request to the leader if we are not the leader
 	if c.raft.State() != raft.Leader {
-		fmt.Println("no leader")
-		// todo -> redirect request to leader, or just return an error that the client
-		// can then call the leader
-		fmt.Println("leader address: ", c.raft.Leader())
-		return nil, errors.New("call leader to set data")
+		log.Info("forwarding set request to leader")
+		// create a client to the current leader
+		a, _ := anypb.New(&kvv1.Value{})
+		anyValue, err := c.model.Get("leader", a)
+		if err != nil {
+			log.WithError(err).Error("failed to get leader address")
+			return nil, err
+		}
+		v := &kvv1.Value{}
+		err = anypb.UnmarshalTo(anyValue, v, proto.UnmarshalOptions{})
+		if err != nil {
+			log.WithError(err).Error("failed to unmarshal leader value")
+			return nil, err
+		}
+		client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, v.Data)
+
+		// forward the set request to the leader
+		req := connect.NewRequest(&kvv1.SetRequest{
+			Key:   key,
+			Value: value,
+		})
+		_, err = client.Set(context.Background(), req)
+		if err != nil {
+			log.WithError(err).Error("failed to forward set request to leader")
+			return nil, err
+		}
+
+		return nil, nil
 	}
 
 	// build lsm log
@@ -123,7 +156,7 @@ func (c *controller) Set(
 
 	future := c.raft.Apply(lsmLog, timeout)
 	if err := future.Error(); err != nil {
-		fmt.Println(err)
+		log.Error(err.Error())
 		return nil, errors.New("failed to apply command")
 	}
 
@@ -133,18 +166,14 @@ func (c *controller) Set(
 	}
 
 	if res.Error != nil {
-		fmt.Println(res.Error)
+		log.Error(res.Error.Error())
 		return nil, res.Error
 	}
 
 	return res, nil
 }
 
-func (c *controller) buildLSMLog(
-	key string,
-	value T,
-	operation fsv1.Operation,
-) ([]byte, error) {
+func (c *controller) buildLSMLog(key string, value T, operation fsv1.Operation) ([]byte, error) {
 	payload := &fsv1.CommandPayload{
 		Operation: operation,
 		Key:       key,
@@ -159,12 +188,10 @@ func (c *controller) buildLSMLog(
 	return data, nil
 }
 
-func (c *controller) List(
-	kind T,
-) (map[string]T, error) {
+func (c *controller) List(log chassis.Logger, kind T) (map[string]T, error) {
 	keyValMap, err := c.model.List(kind)
 	if err != nil {
-		fmt.Println("failed to list key/values")
+		log.Error(err.Error())
 		return nil, ErrFailedList
 	}
 

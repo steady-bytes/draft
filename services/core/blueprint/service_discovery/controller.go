@@ -125,7 +125,7 @@ func (c *controller) Synchronize(ctx context.Context, log chassis.Logger, detail
 	}
 
 	// check that process has already been added to the `SystemJournal`
-	pAny, err = c.kvController.Get(details.Pid, pAny)
+	pAny, err = c.kvController.Get(log, details.Pid, pAny)
 	if err != nil {
 		log.WithError(err)
 		return
@@ -178,7 +178,7 @@ func (c *controller) Finalize(ctx context.Context, log chassis.Logger, pid strin
 		return errors.New(ErrFailedTypeCast)
 	}
 
-	if err = c.kvController.Delete(pid, pAny); err != nil {
+	if err = c.kvController.Delete(log, pid, pAny); err != nil {
 		log.WithError(err)
 		return err
 	}

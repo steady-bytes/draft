@@ -23,6 +23,7 @@ import (
 
 const (
 	CMD            = "CMD"
+	// Change this to port 2222 or 2223 to test out set forwarding to leader
 	SERVER_ADDRESS = "http://localhost:2221"
 )
 
@@ -192,7 +193,7 @@ func listAll() {
 // setValue - A test of the key/value interface
 func setValue() {
 	val, err := anypb.New(&kvv1.Value{
-		Data: "how will the any pb work?",
+		Data: uuid.New().String(),
 	})
 	if err != nil {
 		panic("failed to create the `value` struct")
@@ -203,10 +204,11 @@ func setValue() {
 		Value: val,
 	})
 
+	fmt.Printf("attempting to set: %v\n", req)
 	client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
 	res, err := client.Set(context.Background(), req)
 	if err != nil {
-		panic("set failed")
+		fmt.Println(err.Error())
 	}
 
 	fmt.Println("response: ", res)
@@ -224,14 +226,15 @@ func getValue() {
 		Value: val,
 	})
 
-	for _, val := range NODE_ADDRESSES {
+	for key, val := range NODE_ADDRESSES {
+		fmt.Printf("reading from: %s\n", key)
 		client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, val)
 		res, err := client.Get(context.Background(), req)
 		if err != nil {
-			panic("get failed")
+			fmt.Printf("error: %s\n", err.Error())
+		} else {
+			fmt.Println("response: ", res.Msg.GetValue())
 		}
-
-		fmt.Println("response: ", res.Msg.GetValue())
 	}
 }
 

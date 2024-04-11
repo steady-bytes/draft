@@ -9,10 +9,15 @@ import (
 
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
+	"github.com/spf13/viper"
 )
 
 type ConsensusRegistrar interface {
 	RegisterConsensus(interface{}) error
+	// LeadershipChange is a callback for the consensus system to notify when a leadership change is made. The
+	// leader parameter is true when the node becomes the leader, and false when it becomes a follower. The address
+	// parameter is the URL of this node and should be persisted to raft for other nodes to forward write requests to.
+	LeadershipChange(log Logger, leader bool, address string)
 	raft.FSM
 }
 
@@ -53,23 +58,37 @@ const (
 	// This is used to reduce disk I/O for the recently committed entries.
 	raftLogCacheSize = 512
 
-	invalidRaftAddress = "either IP, PORT, NodeID are invalid"
+	invalidRaftAddress = "raft.port and raft.node-id are required but were not provided"
 )
 
 func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
+	viper.SetDefault("raft.scheme", "http")
+	viper.SetDefault("raft.host", "localhost")
 	var (
 		raftConf    = raft.DefaultConfig()
-		raftPortStr = c.config.GetString("raft.port")
-		raftIPStr   = c.config.GetString("raft.address")
+		raftScheme = c.config.GetString("raft.scheme")
+		raftPort = c.config.GetString("raft.port")
+		raftHost   = c.config.GetString("raft.host")
 		raftNodeID  = c.config.GetString("raft.node-id")
 		raftBinAddr = ""
 	)
 
+	// listen on the raft notify channel for leadership changes
+	notifyCh := make(chan bool)
+	raftConf.NotifyCh = notifyCh
+	go func(scheme, address, port string) {
+		url := fmt.Sprintf("%s://%s:%s", scheme, address, port)
+		c.logger.Info("listening for leadership changes")
+		for leader := range notifyCh {
+			registrar.LeadershipChange(c.logger, leader, url)
+		}
+	}(raftScheme, raftHost, c.config.GetString("service.port"))
+
 	// configuration for raft
-	if raftPortStr == "" || raftIPStr == "" || raftNodeID == "" {
+	if raftPort == "" || raftNodeID == "" {
 		c.logger.Fatal(invalidRaftAddress)
 	} else {
-		raftBinAddr = fmt.Sprintf("%s:%s", raftIPStr, raftPortStr)
+		raftBinAddr = fmt.Sprintf("%s:%s", raftHost, raftPort)
 	}
 
 	raftConf.LocalID = raft.ServerID(raftNodeID)

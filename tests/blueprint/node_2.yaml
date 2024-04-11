@@ -7,5 +7,4 @@ service:
 
 raft:
   node-id: node_2
-  address: localhost
   port: 1112

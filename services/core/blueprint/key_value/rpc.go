@@ -71,11 +71,12 @@ func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*
 
 func (h *rpc) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*connect.Response[kvv1.GetResponse], error) {
 	var (
+		log   = h.logger.WithContext(ctx)
 		key   = strings.TrimSpace(req.Msg.GetKey())
 		value = req.Msg.GetValue()
 	)
 
-	value, err := h.controller.Get(key, value)
+	value, err := h.controller.Get(log, key, value)
 	if err != nil {
 		fmt.Println("error reading: ", err)
 		return nil, errors.New("failed to get value for key")
@@ -94,10 +95,11 @@ func (h *rpc) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteReques
 
 func (h *rpc) List(ctx context.Context, req *connect.Request[kvv1.ListRequest]) (*connect.Response[kvv1.ListResponse], error) {
 	var (
+		log   = h.logger.WithContext(ctx)
 		kind = req.Msg.GetValue()
 	)
 
-	valuesMap, err := h.controller.List(kind)
+	valuesMap, err := h.controller.List(log, kind)
 	if err != nil {
 		fmt.Println(err)
 		return nil, ErrFailedList

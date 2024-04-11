@@ -7,6 +7,5 @@ service:
 
 raft:
   node-id: node_1
-  address: localhost
   port: 1111
   bootstrap: true
