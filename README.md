@@ -8,7 +8,39 @@ A framework for building reliable, efficient, scalable, real-time and stateful d
 * __Service Registry__: A place a `process` can register it's self too. Publicizing information about what is does and how it can be interacted with.
 
 ### Fuse
-* __Control Plane__: The main command center of the system as a whole. Not only is it the controller of `envoy`, a tight integration with `Blueprint` have been established so it's easy to consolidate operational information of the system. Features can also be activated, or deactivated through it's portal. 
+* __Control Plane__: The main command center of the system as a whole. Not only is it the controller of `envoy`, a tight integration with `Blueprint` has been established so it's easy to consolidate operational information of the system. Features can also be activated, or deactivated through it's portal. 
+
+#### Startup Sequence:
+1. Read arguments from the environment 
+__CLI Arguments__;
+    --ENTRYPOINT:   [required] url of known blueprint leader to register to
+    --PORT:         [optional] local port to run the routing configuration service on. If the port is not provided then it will be assigned by `Blueprint`
+    --CONFIG_FILE:  [optional] file path to a `fuse.conf` file
+
+2. Attempt to register to the `blueprint` leader
+3. Implement the `blueprint` process registration logic
+
+When `Fuse` is running the main responsibility is to receive routing information from upstream processes in the system that may or may not have registered to `Blueprint`.
+Finally, `Envoy` will be configured to quick poll `Fuse` for it's dynamic routing information.
+
+__`Fuse`__ currently only implements the `HealthService` gRCP interface. To test that out run the server
+
+```shell
+cargo run --bin fuse
+```
+This will run the gRPC server on `[::]50051`
+
+Now run the client to call the `HealthZ` rpc method.
+
+```shell
+cargo run --bin fuse_client
+```
+
+Finally! If you want to build the proto's locally run the `build.rs` file with the below command. This is a custom binary config in the `Cargo.toml` just so we can run `tonic_proto` from the command line.
+__NOTE:__ You will also need `protoc` installed locally.
+```shell
+cargo run --bin build_protos
+```
 
 ### Foundation
 * __Content Delivery Network__: Most applications need to store files from `.pdf`'s to `.mov` files. The file host will control the life cycle of assets that will be used by the system.
