@@ -15,6 +15,7 @@ type (
 		Title() string
 		Env() string
 		Reader
+		Entrypoint() string
 	}
 	Reader interface {
 		Get(key string) interface{}
@@ -74,6 +75,10 @@ func (c *config) NodeID() string {
 
 func (c *config) Title() string {
 	return fmt.Sprintf("%s_%s", c.Name(), c.NodeID())
+}
+
+func (c *config) Entrypoint() string {
+	return c.GetString("service.entrypoint")
 }
 
 func (c *config) Env() string {

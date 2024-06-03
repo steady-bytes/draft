@@ -12,6 +12,7 @@ replace (
 require (
 	github.com/steady-bytes/draft/pkg/chassis v0.0.1
 	github.com/steady-bytes/draft/pkg/loggers v0.0.1
+	github.com/steady-bytes/draft/api v0.0.1
 )
 
 require (
