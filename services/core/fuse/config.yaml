@@ -1,0 +1,6 @@
+service:
+  name: fuse 
+  env: local
+  logging:
+    level: info
+  port: 51000
