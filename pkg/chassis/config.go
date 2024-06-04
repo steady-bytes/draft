@@ -45,6 +45,8 @@ type (
 	}
 )
 
+var configSingleton *config
+
 // TODO -> Read config from the key/value store and not from a local static file.
 func LoadConfig() Config {
 	viper.SetEnvPrefix("DRAFT")
@@ -61,7 +63,8 @@ func LoadConfig() Config {
 		// yes, we actually want to panic here as without a config there's nothing we can do
 		panic(fmt.Errorf("failed to read in config: %s", err.Error()))
 	}
-	return &config{viper.GetViper()}
+	configSingleton = &config{viper.GetViper()}
+	return configSingleton
 }
 
 func (c *config) Name() string {
@@ -78,4 +81,8 @@ func (c *config) Title() string {
 
 func (c *config) Env() string {
 	return c.GetString("service.env")
+}
+
+func GetConfig() Reader {
+	return configSingleton
 }
