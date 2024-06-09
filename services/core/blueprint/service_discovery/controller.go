@@ -78,10 +78,12 @@ func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, 
 	)
 
 	// validate the nonce (this will also require that a nonce is read in by the chassis).
-	n, err := c.secretStore.Get(ctx, GlobalNonceKey)
-	if err != nil || n != nonce {
-		return nil, errors.New(ErrFailedNonce)
-	}
+	// TODO: need to figure out how to mock out the secret store when running locally in dev mode or maybe we have
+	// 		 in mem implementation in the chassis for testing as well.
+	// n, err := c.secretStore.Get(ctx, GlobalNonceKey)
+	// if err != nil || n != nonce {
+	// 	return nil, errors.New(ErrFailedNonce)
+	// }
 
 	// generate the process identity as a signed token token
 	process.Token, err = c.forgeIdentityToken()

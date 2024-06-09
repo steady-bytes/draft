@@ -30,8 +30,5 @@ func main() {
 		WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
 		WithClientApplication(files).
-		Register(chassis.RegistrationOptions{
-			Namespace: "s3",
-		}).
 		Start()
 }
