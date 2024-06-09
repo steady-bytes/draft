@@ -4,4 +4,4 @@ service:
   logging:
     level: info
   port: 51000
-  entrypoint: localhost:1111
+  entrypoint: http://localhost:1111

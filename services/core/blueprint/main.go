@@ -15,7 +15,6 @@ import (
 var files embed.FS
 
 func main() {
-
 	var (
 		keyValueModel      = kv.NewModel()
 		keyValueController = kv.NewController(keyValueModel)
@@ -31,5 +30,8 @@ func main() {
 		WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
 		WithClientApplication(files).
+		Register(chassis.RegistrationOptions{
+			Namespace: "s3",
+		}).
 		Start()
 }

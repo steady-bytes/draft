@@ -3,6 +3,8 @@ package chassis
 import (
 	"net"
 	"net/http"
+
+	sdv1Cnt "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
 )
 
 type Runtime struct {
@@ -19,6 +21,9 @@ type Runtime struct {
 
 	consensusKind        ConsensusKind
 	raftAdvertiseAddress *net.TCPAddr
+
+	// registry client
+	blueprintClient sdv1Cnt.ServiceDiscoveryServiceClient
 }
 
 func New(logger Logger) *Runtime {
