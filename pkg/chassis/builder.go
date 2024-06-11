@@ -11,6 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
+	sdv1Cnt "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
+
+	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
@@ -78,6 +82,87 @@ func (c *Runtime) WithRPCHandler(plugin RPCRegistrar) *Runtime {
 func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *Runtime {
 	c.withConsensus(kind, plugin)
 	return c
+}
+
+// /////////////////
+// System Functions
+// /////////////////
+const (
+	ErrProcessRegistrationFailed = "failed to connect to blueprint"
+)
+
+const (
+	SYNC_INTERVAL = 5 * time.Second
+)
+
+type RegistrationOptions struct {
+	Namespace string
+}
+
+func (c *Runtime) Register(options RegistrationOptions) *Runtime {
+	entrypoint := c.config.GetString("service.entrypoint")
+	c.blueprintClient = sdv1Cnt.NewServiceDiscoveryServiceClient(http.DefaultClient, entrypoint)
+
+	// connect with `blueprint` to get an identity
+	pid, err := c.initialize()
+	if err != nil {
+		c.logger.WithError(err).Fatal("failed to initialize process")
+		// TODO (@andrewsc208): don't panic here, use configuration from the `RegistrationOptions` to determine error handling
+		//   					In the short term this works for the current use case.
+		panic(ErrProcessRegistrationFailed)
+	}
+
+	// now that a system identity has been established, we can synchronize the process state with blueprint
+	// TODO: Test what would happen if the `blueprint` leader dies when synchronizing
+	go c.synchronize(pid)
+
+	return c
+}
+
+// register the `process` with `blueprint` to receive it's system identity
+func (c *Runtime) initialize() (*sdv1.ProcessIdentity, error) {
+	req := connect.NewRequest(&sdv1.InitializeRequest{
+		Name: c.config.GetString("service.name"),
+		// TODO (@andrewsc208): find a nonce generator, or use a more secure method to generate a public key for the process to use
+		Nonce: "FUSE",
+	})
+
+	res, err := c.blueprintClient.Initialize(context.Background(), req)
+	if err != nil {
+		return nil, err
+	}
+
+	return res.Msg.GetProcessIdentity(), nil
+}
+
+// synchronize the process state with `blueprint`
+// this is intended to be run in a background thread so it's non-blocking and will run indefinitely
+// TODO:
+//   - Test what would happen if the `blueprint` leader dies when synchronizing
+//   - Add a channel to stop the synchronization
+//   - Add a state machine around health, and running state of the process that can be reported by the service layer
+func (c *Runtime) synchronize(pid *sdv1.ProcessIdentity) {
+	req := connect.NewRequest(&sdv1.ClientDetails{
+		Pid:          pid.GetPid(),
+		RunningState: sdv1.ProcessRunningState_PROCESS_RUNNING,
+		HealthState:  sdv1.ProcessHealthState_PROCESS_HEALTHY,
+		ProcessKind:  sdv1.ProcessKind_SERVER_PROCESS,
+		Token:        pid.Token.GetJwt(),
+		Location:     &sdv1.GeoPoint{},
+		Metadata:     []*sdv1.Metadata{},
+	})
+
+	stream := c.blueprintClient.Synchronize(context.Background())
+
+	for {
+		if err := stream.Send(req.Msg); err != nil {
+			// TODO: need gracefully handle this error
+			// if the leader dies then we should try to reconnect to the new leader
+			c.logger.WithError(err).Fatal("failed to send process details to blueprint")
+		}
+
+		time.Sleep(SYNC_INTERVAL)
+	}
 }
 
 ////////////////////

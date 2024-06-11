@@ -15,7 +15,6 @@ import (
 var files embed.FS
 
 func main() {
-
 	var (
 		keyValueModel      = kv.NewModel()
 		keyValueController = kv.NewController(keyValueModel)

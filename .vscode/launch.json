@@ -146,6 +146,18 @@
             },
         },
         {
+            "name": "Fuse",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/fuse/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "DRAFT_CONFIG": "tests/fuse/config.yaml"
+            },
+        },
+        {
             "name": "HealthZ",
             "type": "go",
             "request": "launch",

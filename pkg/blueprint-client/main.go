@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	CMD            = "CMD"
+	CMD = "CMD"
 	// Change this to port 2222 or 2223 to test out set forwarding to leader
 	SERVER_ADDRESS = "http://localhost:2221"
 )

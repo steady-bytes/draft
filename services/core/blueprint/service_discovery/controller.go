@@ -78,10 +78,13 @@ func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, 
 	)
 
 	// validate the nonce (this will also require that a nonce is read in by the chassis).
-	n, err := c.secretStore.Get(ctx, GlobalNonceKey)
-	if err != nil || n != nonce {
-		return nil, errors.New(ErrFailedNonce)
-	}
+	// TODO (@andrewsc208): Make a default `SecretStore` that will use the existing `key_value` store as it's persistence layer.
+	//                      Long term integrations with Vault, or other secret stores can be added later. This will allow for
+	//					    an enterprise to bring their own store.
+	// n, err := c.secretStore.Get(ctx, GlobalNonceKey)
+	// if err != nil || n != nonce {
+	// 	return nil, errors.New(ErrFailedNonce)
+	// }
 
 	// generate the process identity as a signed token token
 	process.Token, err = c.forgeIdentityToken()
@@ -100,7 +103,7 @@ func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, 
 		return nil, errors.New(ErrFailedToSaveProcessDetails)
 	}
 
-	// TODO -> Get the leaders registry address to send synchronize packets to
+	// TODO (@andrewsc208): Get the leaders registry address to send synchronize packets to
 
 	return &sdv1.ProcessIdentity{
 		Pid:             pid,
@@ -109,8 +112,7 @@ func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, 
 	}, nil
 }
 
-// Synchronize - receive a message from an `Initialized` process and update it's state in the
-// `SystemJournal`.
+// Synchronize - receive a message from an `Initialized` process and update it's state in the `SystemJournal`.
 func (c *controller) Synchronize(ctx context.Context, log chassis.Logger, details *sdv1.ClientDetails) {
 	var (
 		err     error
