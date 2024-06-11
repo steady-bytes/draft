@@ -3,7 +3,6 @@ package chassis
 import (
 	"context"
 	"embed"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -88,8 +87,8 @@ func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *
 // /////////////////
 // System Functions
 // /////////////////
-var (
-	ErrProcessRegistrationFailed = errors.New("failed to connect to blueprint")
+const (
+	ErrProcessRegistrationFailed = "failed to connect to blueprint"
 )
 
 const (
@@ -108,7 +107,8 @@ func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 	pid, err := c.initialize()
 	if err != nil {
 		c.logger.WithError(err).Fatal("failed to initialize process")
-		// TODO: should we panic here?
+		// TODO (@andrewsc208): don't panic here, use configuration from the `RegistrationOptions` to determine error handling
+		//   					In the short term this works for the current use case.
 		panic(ErrProcessRegistrationFailed)
 	}
 
@@ -123,7 +123,7 @@ func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 func (c *Runtime) initialize() (*sdv1.ProcessIdentity, error) {
 	req := connect.NewRequest(&sdv1.InitializeRequest{
 		Name: c.config.GetString("service.name"),
-		// find a nonce generator
+		// TODO (@andrewsc208): find a nonce generator, or use a more secure method to generate a public key for the process to use
 		Nonce: "FUSE",
 	})
 
