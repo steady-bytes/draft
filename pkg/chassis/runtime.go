@@ -4,7 +4,7 @@ import (
 	"net"
 	"net/http"
 
-	sdv1Cnt "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
+	sdv1Cnt "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1/v1connect"
 )
 
 type Runtime struct {

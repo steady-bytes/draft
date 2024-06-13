@@ -11,3 +11,4 @@ node_modules/
 __debug_*
 
 target/
+main

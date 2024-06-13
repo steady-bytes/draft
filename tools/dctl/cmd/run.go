@@ -8,7 +8,18 @@ import (
 
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Run a single service locally",
+	Short: "Run services locally",
+	Long: `Run services locally. You can either run specific services using the --services (-s)
+flag or run entire domains using the --domains (-d) flag.
+
+For example, to run just the 'echo' service within the 'examples' domain you could do:
+
+dctl run -s examples/echo
+
+And to run all services within both the 'examples' domain and the 'core' domain you could do:
+
+dctl run -d examples,core
+`,
 	RunE:  run.Run,
 }
 
@@ -16,6 +27,6 @@ func init() {
 	// add parent
 	rootCmd.AddCommand(runCmd)
 	// add children
-	runCmd.Flags().StringVarP(&run.Domain, "domain", "d", "core", "domain for service")
-	runCmd.Flags().StringVarP(&run.Service, "service", "s", "registry", "service to run")
+	runCmd.Flags().StringSliceVarP(&run.Services, "services", "s", []string{}, "service(s) to run (e.g. 'core/blueprint' or 'core/blueprint,core/fuse')")
+	runCmd.Flags().StringSliceVarP(&run.Domains, "domains", "d", []string{}, "domain(s) to run (e.g. 'core' or 'core,examples')")
 }

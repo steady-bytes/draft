@@ -9,7 +9,8 @@ dctl infra clean [flags]
 ### Options
 
 ```
-  -h, --help   help for clean
+  -h, --help               help for clean
+  -s, --services strings   infra services to act on (default [nats,postgres])
 ```
 
 ### Options inherited from parent commands

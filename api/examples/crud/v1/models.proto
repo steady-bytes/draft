@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package examples.crud.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/examples/crud/v1";
+
+message Name {
+  string id = 1;
+  string first_name = 2;
+  string last_name = 3;
+}

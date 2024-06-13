@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	fsv1 "github.com/steady-bytes/draft/api/consensus/fsm/v1"
-	kvv1 "github.com/steady-bytes/draft/api/registry/key_value/v1"
-	kvv1Cnt "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
+	fsv1 "github.com/steady-bytes/draft/api/core/consensus/fsm/v1"
+	kvv1 "github.com/steady-bytes/draft/api/core/registry/key_value/v1"
+	kvv1Cnt "github.com/steady-bytes/draft/api/core/registry/key_value/v1/v1connect"
 	"github.com/steady-bytes/draft/pkg/chassis"
 
 	"connectrpc.com/connect"

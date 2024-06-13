@@ -9,7 +9,8 @@ dctl infra init [flags]
 ### Options
 
 ```
-  -h, --help   help for init
+  -h, --help               help for init
+  -s, --services strings   infra services to act on (default [nats,postgres])
 ```
 
 ### Options inherited from parent commands

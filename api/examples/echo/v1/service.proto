@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package examples.echo.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/examples/echo/v1";
+
+service EchoService {
+    rpc Speak(SpeakRequest) returns(SpeakResponse) {}
+}
+
+message SpeakRequest {
+    string input = 1;
+}
+
+message SpeakResponse {
+    string output = 2;
+}

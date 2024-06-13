@@ -9,8 +9,9 @@ dctl infra start [flags]
 ### Options
 
 ```
-  -f, --follow   whether or not to follow the output of the infra docker containers (true/false)
-  -h, --help     help for start
+  -f, --follow             whether or not to follow the output of the infra docker containers (true/FALSE)
+  -h, --help               help for start
+  -s, --services strings   infra services to act on (default [nats,postgres])
 ```
 
 ### Options inherited from parent commands

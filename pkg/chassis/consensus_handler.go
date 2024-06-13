@@ -6,8 +6,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	rfv1 "github.com/steady-bytes/draft/api/consensus/raft/v1"
-	rfConnect "github.com/steady-bytes/draft/api/consensus/raft/v1/v1connect"
+	rfv1 "github.com/steady-bytes/draft/api/core/consensus/raft/v1"
+	rfConnect "github.com/steady-bytes/draft/api/core/consensus/raft/v1/v1connect"
 )
 
 type (

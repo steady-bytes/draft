@@ -46,9 +46,14 @@ func init() {
 	rootCmd.AddCommand(infraCmd)
 	// add children
 	infraCmd.AddCommand(infraCleanCmd)
+	infraCleanCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
 	infraCmd.AddCommand(infraInitCmd)
+	infraInitCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
 	infraCmd.AddCommand(infraStartCmd)
-	infraStartCmd.Flags().BoolVarP(&infra.Follow, "follow", "f", false, "whether or not to follow the output of the infra docker containers (true/false)")
+	infraStartCmd.Flags().BoolVarP(&infra.Follow, "follow", "f", false, "whether or not to follow the output of the infra docker containers (true/FALSE)")
+	infraStartCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
 	infraCmd.AddCommand(infraStopCmd)
+	infraStopCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
 	infraCmd.AddCommand(infraStatusCmd)
+	infraStatusCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
 }

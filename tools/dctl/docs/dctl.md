@@ -23,6 +23,7 @@ development.
 * [dctl config](dctl_config.md)	 - Initialize the dctl configuration
 * [dctl docs](dctl_docs.md)	 - Generate docs for dctl
 * [dctl infra](dctl_infra.md)	 - Manage all local draft infra (Docker containers)
+* [dctl init](dctl_init.md)	 - Initialize a new draft project
 * [dctl pipelines](dctl_pipelines.md)	 - Manage and run draft pipelines
-* [dctl run](dctl_run.md)	 - Run a single service locally
+* [dctl run](dctl_run.md)	 - Run services locally
 

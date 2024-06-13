@@ -9,7 +9,8 @@ dctl infra status [flags]
 ### Options
 
 ```
-  -h, --help   help for status
+  -h, --help               help for status
+  -s, --services strings   infra services to act on (default [nats,postgres])
 ```
 
 ### Options inherited from parent commands

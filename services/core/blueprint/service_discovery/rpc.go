@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
-	sdConnect "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
+	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
+	sdConnect "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1/v1connect"
 	"github.com/steady-bytes/draft/pkg/chassis"
 
 	"connectrpc.com/connect"

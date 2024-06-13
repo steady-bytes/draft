@@ -14,7 +14,7 @@ func Stop(cmd *cobra.Command, args []string) (err error) {
 		return nil
 	}
 
-	for name := range infraConfigs {
+	for _, name := range Services {
 		err = dctl.StopContainerByName(ctx, containerName(name))
 		if err != nil {
 			output.Error(err)

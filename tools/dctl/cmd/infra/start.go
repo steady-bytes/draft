@@ -2,6 +2,7 @@ package infra
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/steady-bytes/tools/dctl/docker"
@@ -11,7 +12,8 @@ import (
 )
 
 var (
-	Follow bool
+	Follow   bool
+	Services []string
 )
 
 func Start(cmd *cobra.Command, args []string) (err error) {
@@ -22,13 +24,19 @@ func Start(cmd *cobra.Command, args []string) (err error) {
 		return nil
 	}
 
-	for name, config := range infraConfigs {
+	for _, name := range Services {
+		config, ok := infraConfigs[name]
+		if !ok {
+			output.Error(fmt.Errorf("invalid infra service name: %s", name))
+		}
+
 		// new context so it doesn't get canceled by the user on ctrl+c if Follow is true
 		c := context.Background()
 		// delay hasura start until databases are ready (wait 5 seconds)
 		if name == "hasura" {
 			time.Sleep(5 * time.Second)
 		}
+
 		id, err := dockerCtl.StartContainer(c, containerName(name), config.containerConfig, config.hostConfig, Follow)
 		if err != nil {
 			return err
@@ -41,7 +49,7 @@ func Start(cmd *cobra.Command, args []string) (err error) {
 	if Follow {
 		<-ctx.Done()
 	} else {
-		for name := range infraConfigs {
+		for _, name := range Services {
 			err = checkStatus(ctx, dockerCtl, name, containerName(name))
 			if err != nil {
 				return err

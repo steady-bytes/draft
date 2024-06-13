@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package examples.crud.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/examples/crud/v1";
+
+import "examples/crud/v1/models.proto";
+
+service CrudService {
+    rpc Create(CreateRequest) returns(CreateResponse) {}
+    rpc Read(ReadRequest) returns(ReadResponse) {}
+    rpc Update(UpdateRequest) returns(UpdateResponse) {}
+    rpc Delete(DeleteRequest) returns(DeleteResponse) {}
+}
+
+message CreateRequest {
+    Name name = 1;
+}
+message CreateResponse {
+    string id = 1;
+}
+
+message ReadRequest {
+    string id = 1;
+}
+message ReadResponse {
+    Name name = 1;
+}
+
+message UpdateRequest {
+    Name name = 1;
+}
+message UpdateResponse {
+    string id = 1;
+}
+
+message DeleteRequest {
+    string id = 1;
+}
+message DeleteResponse {
+    string id = 1;
+}

@@ -9,7 +9,8 @@ dctl infra stop [flags]
 ### Options
 
 ```
-  -h, --help   help for stop
+  -h, --help               help for stop
+  -s, --services strings   infra services to act on (default [nats,postgres])
 ```
 
 ### Options inherited from parent commands

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	kvv1 "github.com/steady-bytes/draft/api/registry/key_value/v1"
-	kvConnect "github.com/steady-bytes/draft/api/registry/key_value/v1/v1connect"
+	kvv1 "github.com/steady-bytes/draft/api/core/registry/key_value/v1"
+	kvConnect "github.com/steady-bytes/draft/api/core/registry/key_value/v1/v1connect"
 
 	"connectrpc.com/connect"
 	"github.com/steady-bytes/draft/pkg/chassis"
@@ -64,7 +64,7 @@ func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*
 
 	log.WithField("key", key).Info("value saved")
 
-	return connect.NewResponse[kvv1.SetResponse](&kvv1.SetResponse{
+	return connect.NewResponse(&kvv1.SetResponse{
 		Key: key,
 	}), nil
 }

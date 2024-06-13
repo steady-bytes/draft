@@ -18,6 +18,10 @@ import (
 	"github.com/moby/term"
 )
 
+const (
+	errContainerNotFound = "container not found"
+)
+
 type DockerController interface {
 	// BuildImage takes a file path and an image name and builds a Docker image using the Dockerfile in the given directory
 	BuildImage(ctx context.Context, path, image string) error
@@ -199,7 +203,13 @@ func (d *dockerController) RemoveContainerByName(ctx context.Context, containerN
 }
 
 func (d *dockerController) GetContainerByName(ctx context.Context, containerName string) (*types.Container, error) {
-	return d.getContainerByName(ctx, containerName)
+	container, err := d.getContainerByName(ctx, containerName)
+	if err != nil {
+		if err.Error() != errContainerNotFound {
+			return nil, err
+		}
+	}
+	return container, nil
 }
 
 // HELPER FUNCTIONS
@@ -284,7 +294,7 @@ func (d *dockerController) getContainerByName(ctx context.Context, containerName
 		}
 	}
 	if con == nil {
-		return nil, fmt.Errorf("container %s not found", containerName)
+		return nil, fmt.Errorf(errContainerNotFound)
 	}
 	return con, nil
 }

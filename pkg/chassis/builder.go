@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
-	sdv1Cnt "github.com/steady-bytes/draft/api/registry/service_discovery/v1/v1connect"
+	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
+	sdv1Cnt "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1/v1connect"
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
@@ -92,7 +92,8 @@ const (
 )
 
 const (
-	SYNC_INTERVAL = 5 * time.Second
+	SYNC_INTERVAL     = 5 * time.Second
+	INTITIALIZE_LIMIT = 5
 )
 
 type RegistrationOptions struct {
@@ -103,10 +104,21 @@ func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 	entrypoint := c.config.GetString("service.entrypoint")
 	c.blueprintClient = sdv1Cnt.NewServiceDiscoveryServiceClient(http.DefaultClient, entrypoint)
 
-	// connect with `blueprint` to get an identity
-	pid, err := c.initialize()
-	if err != nil {
-		c.logger.WithError(err).Fatal("failed to initialize process")
+	var (
+		pid *sdv1.ProcessIdentity
+		err error
+	)
+	for range [INTITIALIZE_LIMIT]int{} {
+		// connect with `blueprint` to get an identity
+		pid, err = c.initialize()
+		if err != nil {
+			c.logger.WithError(err).Error("failed to initialize process")
+			time.Sleep(SYNC_INTERVAL)
+			continue
+		}
+		break
+	}
+	if pid == nil {
 		// TODO (@andrewsc208): don't panic here, use configuration from the `RegistrationOptions` to determine error handling
 		//   					In the short term this works for the current use case.
 		panic(ErrProcessRegistrationFailed)

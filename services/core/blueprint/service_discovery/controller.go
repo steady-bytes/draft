@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	sdv1 "github.com/steady-bytes/draft/api/registry/service_discovery/v1"
+	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
 	kv "github.com/steady-bytes/draft/blueprint/key_value"
 	"github.com/steady-bytes/draft/pkg/chassis"
 	"google.golang.org/protobuf/proto"

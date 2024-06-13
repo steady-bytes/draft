@@ -30,7 +30,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "pkg/blueprint-client/main.go",
+            "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -42,7 +42,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "pkg/blueprint-client/main.go",
+            "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -54,7 +54,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "pkg/blueprint-client/main.go",
+            "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -66,7 +66,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "pkg/blueprint-client/main.go",
+            "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -78,7 +78,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "pkg/blueprint-client/main.go",
+            "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -90,7 +90,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "pkg/blueprint-client/main.go",
+            "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -102,7 +102,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "pkg/blueprint-client/main.go",
+            "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
@@ -155,18 +155,6 @@
             "debugAdapter": "dlv-dap",
             "env": {
                 "DRAFT_CONFIG": "tests/fuse/config.yaml"
-            },
-        },
-        {
-            "name": "HealthZ",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "services/core/healthz/main.go",
-            "cwd": "${workspaceFolder}",
-            "debugAdapter": "dlv-dap",
-            "env": {
-                "SERVER_PORT": "3000",
             },
         },
         {
