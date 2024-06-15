@@ -1,4 +1,4 @@
-name: Determine Changed Folders
+name: Changed Files
 
 on:
   workflow_call:
@@ -19,7 +19,7 @@ on:
 
 jobs:
   changed:
-    name: Find changed folders in ${{ inputs.path }}
+    name: Changes (${{ inputs.path }})
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.changed-files.outputs.all_changed_files }}
@@ -35,5 +35,5 @@ jobs:
           dir_names: true
           diff_relative: true
           path: ${{ inputs.path }}
-          dir_names_max_depth: ${{ dir_names_max_depth }}
+          dir_names_max_depth: ${{ inputs.dir_names_max_depth }}
           matrix: true

@@ -1,4 +1,3 @@
-# build go binary for the pkg/dctl directory
 name: tools - CI
 
 on:
@@ -9,18 +8,18 @@ on:
       - tools/**
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
   changed:
-    name: Determine modified files
+    name: Prepare
     uses: ./.github/workflows/changes.yml
     with:
       path: tools
 
   build-and-test:
-    name: Build and test (${{ matrix.tool }})
+    name: Build-Test (${{ matrix.tool }})
     needs: [changed]
     runs-on: ubuntu-latest
     if: needs.changed.outputs.any_changed == 'true'

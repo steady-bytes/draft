@@ -1,4 +1,3 @@
-# build go binary for the pkg/dctl directory
 name: services - CI
 
 on:
@@ -9,19 +8,19 @@ on:
       - services/**
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
   changed:
-    name: Determine modified files
+    name: Prepare
     uses: ./.github/workflows/changes.yml
     with:
       path: services
       dir_names_max_depth: 2
 
   build-and-test:
-    name: Build and test (${{ matrix.service-path }})
+    name: Build-Test (${{ matrix.service-path }})
     needs: [changed]
     runs-on: ubuntu-latest
     if: needs.changed.outputs.any_changed == 'true'
