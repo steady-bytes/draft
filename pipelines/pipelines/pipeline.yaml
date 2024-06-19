@@ -1,0 +1,44 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: go-binary
+spec:
+  description: |
+    This pipeline clones a git repo, then echoes the README file to the stdout.
+  params:
+    - name: repo-url
+      type: string
+      description: The git repo URL to clone from.
+    - name: revision
+      type: string
+      description: The git revision (branch, tag, commit SHA) to checkout.
+    - name: directory
+      type: string
+      description: The directory of the main package (relative from repository root).
+  workspaces:
+    - name: shared-data
+      description: |
+        This workspace contains the cloned repo files, so they can be read by the
+        next task.
+  tasks:
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-data
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.revision)
+    - name: test-and-build
+      runAfter: ['fetch-source']
+      taskRef:
+        name: go-binary
+      workspaces:
+        - name: source
+          workspace: shared-data
+      params:
+        - name: directory
+          value: $(params.directory)

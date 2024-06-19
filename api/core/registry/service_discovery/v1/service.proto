@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package core.registry.service_discovery.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1";
+
+import "core/registry/service_discovery/v1/models.proto";
+
+///////////////////
+// ServiceDiscovery
+///////////////////
+
+// An interface to connect a process to the registry. The registry is `Geographically`
+// aware of process location, and uses `client-side` service discovery to push details
+// to the registry/system to provide operational details to the remaining system.
+//
+// __ServiceDiscoveryService__ - The interface used for a `process` to register with `blueprint`. The interface is organized in
+// the order of the typical lifecycle of a process.
+// 1. __Initialize__: Called first by the process so `blueprint` can issue and identity to the process.
+// 2. __Synchronize__: A unidirectional streaming connection between `blueprints` leader and a registered process. Allowing for the process to make
+//                     configuration changes with the `blueprint` leader.
+// 3. __Finalize__: The deregister function to remove a process from the registery.
+//
+// __ReportHealth__: Method is used by blueprint's follower nodes. Each blueprint node is delegated a set of processes to poll
+//                   the health check interface.
+service ServiceDiscoveryService {
+  // Initialize the registeration of the process to the registry
+  rpc Initialize(InitializeRequest) returns (InitializeResponse) {}
+  // synchronize the client state with the registry
+  rpc Synchronize(stream ClientDetails) returns (Empty) {}
+  // Gracefully shutdown and `Finalize` the connection of the process to the registry
+  rpc Finalize(FinalizeRequest) returns (FinalizeResponse) {}
+  // Let a follower draft node report health information on the processes it's responsible for checking the health status of
+  rpc ReportHealth(ReportHealthRequest) returns (ReportHealthResponse) {}
+
+  // Query the registry
+  rpc Query(QueryRequest) returns (QueryResponse) {}
+}
+
+// ProcessDetails - Messages that are sent from the `Process` to the registry.
+// These details are basic operating messages
+message ClientDetails {
+  string pid = 1;
+  // Ops details
+  ProcessRunningState running_state = 2;
+  ProcessHealthState health_state = 3;
+  ProcessKind process_kind = 4;
+  // only check the token when a `ProcessDetails` message is received.
+  string token = 5;
+
+  GeoPoint location = 7;
+
+  repeated Metadata metadata = 8;
+}
+
+// Empty - The `Connect` method is intentionally uni-directional from the process. In the future it might be worth
+// sending messages from blueprint to the process.
+message Empty {}
+
+// InitRequest - Begin the service registry registration flow.
+message InitializeRequest {
+  // Name of the process to be registered. This field is not required to be unique with the other processes in the registry
+  string name = 1;
+  // A token will not be issued, and a process will not be able to connect to the `SystemJournal` if the `nonce` is not signed with the correct public key
+  string nonce = 2;
+}
+
+// InitResponse - Details used by the client to provided to complete the connection
+// If the token is lost and the registry has not received a `ProcessDetails` message within a 2 mintues
+// of the token being forged then the client will have to reinit to connect to the registry/system.
+message InitializeResponse  {
+  // If the init request was succesful then an identity will be given to the process so that it
+  // can stream it's operational details to the registry
+  ProcessIdentity process_identity = 1;
+  // Startup configuration
+  StartupConfiguration configuration = 2;
+}
+
+message QueryRequest {
+  Filter filter = 1;
+}
+
+message Filter {
+  oneof attribute {
+    string id = 1;
+    string group = 2;
+    string all = 3;
+  }
+}
+
+message QueryResponse {
+  map<string, Process> data = 1;
+}
+
+message FinalizeRequest {
+  string pid = 1;
+}
+
+message FinalizeResponse {
+  string pid = 1;
+}
+
+message ReportHealthRequest {}
+
+message ReportHealthResponse {}

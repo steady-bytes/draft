@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package core.registry.service_discovery.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// Entities
+message Zone {}
+
+// ProcessIdentity - 
+message ProcessIdentity {
+  // the process_id is assigned when the join request is successful
+  // however it does not mean that the process registered, running
+  // and in a stage ready to receive traffic
+  string pid = 1;
+  // the address the registering process must stream it's health, and status messages to
+  string registry_address = 2;
+  // authentication credentials that must be added to each request to the registry
+  Token token = 3;
+  // The `nonce` is not added to this message b/c it's added to the service environment
+  // the and the chassis is responsible for reading at startup.
+  // `nonce` maybe replaced with `cert`
+}
+
+// configuration the registry is giving to the process to run
+message StartupConfiguration {
+    uint32 assigned_port = 1;
+}
+
+// A process is a running program on a computer.
+message Process {
+  // pid - is a uuid to identify each process of the system normally
+  // this would follow the normal `id` naming convention. But given 
+  // a `pid` in most systems is very specific, that tradition will be
+  // carried on.
+  string pid = 1;
+  // name is not required to be unique between other processes. The `pid`
+  // is the specific identifier used to lookup a single process.s
+  string name = 2;
+
+  string group = 3;
+  string local = 4;
+
+  string ip_address = 5;
+  // port?
+
+  ProcessKind process_kind = 6;
+
+  repeated Metadata metadata = 7;
+
+  GeoPoint location = 8;
+
+  google.protobuf.Timestamp joined_time = 9;
+  google.protobuf.Timestamp left_time = 10;
+  google.protobuf.Timestamp last_status_time = 11;
+
+  ProcessRunningState running_state = 12;
+  ProcessHealthState health_state = 13;
+
+  Token token = 14;
+}
+
+// Associated data that can be used to lookup the process
+message Metadata {
+  string pid = 1; 
+  string key = 2;
+  string value = 3;
+}
+
+// GeoPoint - Is the location of something using standard lat/lng notion.
+message GeoPoint {
+  float lat = 1;
+  float lng = 2;
+}
+
+// Server currently falls into a category that is consuming requests from the outside world
+// the `Job` is something that is private and not serving any external requests. I could however
+// be pulling messages from a message queue, and or doing some batch processing. I.e. some sort of 
+// training.
+enum ProcessKind {
+  INVALID_PROCESS_KIND = 0;
+  SERVER_PROCESS = 1;
+  JOB_PROCESS = 2;
+}
+
+enum ProcessRunningState {
+  INVALID_PROCESS_RUNNING_STATE = 0;
+  PROCESS_STARTING = 1;
+  PROCESS_TESTING = 2;
+  PROCESS_RUNNING = 3;
+  PROCESS_DICONNECTED = 4;
+}
+
+enum ProcessHealthState {
+  INVALID_PROCESS_HEALTH_STATE = 0;
+  PROCESS_HEALTHY = 1;
+  PROCESS_UNHEALTHY = 2;
+}
+
+// Token that is generated when the `Init` function is called with the correct `nonce`
+message Token {
+  string id = 1;
+  string jwt = 3;
+}

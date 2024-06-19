@@ -1,0 +1,10 @@
+service:
+  name: crud
+  env: local
+  logging:
+    level: info
+  port: 8081
+
+repositories:
+  postgres:
+    url: postgres://draft:draft@localhost:5432/draft?sslmode=disable

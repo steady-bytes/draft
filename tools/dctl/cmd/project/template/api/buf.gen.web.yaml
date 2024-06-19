@@ -1,0 +1,24 @@
+version: v1
+plugins:
+  - plugin: es
+    out: gen/web
+    opt:
+      - target=ts
+  - plugin: es
+    out: gen/web
+    opt:
+      - target=js
+  - plugin: connect-es
+    out: gen/web
+    opt:
+      - target=ts
+  - plugin: connect-es
+    out: gen/web
+    opt:
+      - target=js
+  - name: connect-query
+    out: gen/web
+    opt: target=ts
+  - name: connect-query
+    out: gen/web
+    opt: target=js

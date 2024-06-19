@@ -1,0 +1,7 @@
+service:
+  name: fuse 
+  env: local
+  logging:
+    level: info
+  port: 51000
+  entrypoint: http://localhost:2221

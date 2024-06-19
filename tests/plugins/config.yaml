@@ -1,0 +1,32 @@
+service:
+  name: plugins
+  env: local
+  logging:
+    level: info
+
+http:
+  port: '12345'
+
+repositories:
+  badger:
+  clickhouse:
+    addresses:
+      - 'localhost:9000'
+    auth:
+      database:
+      username: default
+      password:
+  mongo:
+    url: mongodb://draft:draft@localhost:27017
+  postgres:
+    url: postgres://draft:draft@localhost:5432/draft
+
+brokers:
+  amqp:
+    url: amqp://draft:draft@localhost:5672
+  nats:
+    url: localhost:4222
+
+secrets:
+  vault:
+    url: localhost:8200

@@ -1,0 +1,10 @@
+service:
+  name: blueprint_3
+  env: local
+  logging:
+    level: info
+  port: 2223
+
+raft:
+  node-id: node_3
+  port: 1113

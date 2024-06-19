@@ -1,0 +1,45 @@
+service:
+  name: service1
+  env: local
+  logging:
+    level: info
+
+port: 2221
+
+repositories:
+  badger:
+  clickhouse:
+    addresses:
+      - 'localhost:9000'
+    auth:
+      database:
+      username: default
+      password:
+  mongo:
+    url: mongodb://draft:draft@localhost:27017
+  postgres:
+    url: postgres://draft:draft@localhost:5432/draft
+
+brokers:
+  amqp:
+    url: amqp://draft:draft@localhost:5672
+  nats:
+    url: localhost:4222
+
+secrets:
+  vault:
+    url: localhost:8200
+
+# GATEWAYS: A list of external services that a service might want to communicate with types include
+# * grpc      - services that can communicate using grpc
+Gateways:
+  users:
+    gatewayType: grpc
+    # downstream rpc address, and port config
+    address: localhost
+    port: 50004
+    # @TODO: implement, currently everything is insecure
+    # optional, represents a path to the .crt for the service
+    tlsCert: certs/server.crt
+    # optional, represent a path to the .key for the service
+    tlsKey: certs/server.key

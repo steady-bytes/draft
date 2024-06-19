@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package core.consensus.raft.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/consensus/raft/v1";
+
+service RaftService {
+    // Join the raft cluster
+    rpc Join(JoinRequest) returns (JoinResponse) {}
+    // Leave the raft cluster
+    rpc Remove(RemoveRequest) returns (RemoveResponse) {}
+    // Gather raft cluster stats
+    rpc Stats(StatsRequest) returns (StatsResponse) {}
+}
+
+message JoinRequest {
+    string node_id = 1;
+    string raft_address = 2;
+}
+
+message JoinResponse {
+   string node_id = 1;
+   string raft_address = 2;
+}
+
+message RemoveRequest {
+    string node_id = 1;
+}
+
+message RemoveResponse {
+    string node_id = 1;
+}
+
+message StatsRequest {
+    string node_id = 1;
+}
+
+message StatsResponse {
+    string node_id = 1;
+    Stats stats = 2;
+}
+
+message Stats {
+    map<string,string> stats = 1;
+}

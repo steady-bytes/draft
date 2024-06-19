@@ -1,0 +1,17 @@
+go 1.21.3
+
+use (
+	./api/gen/go
+	./pkg/brokers
+	./pkg/chassis
+	./pkg/loggers
+	./pkg/repositories
+	./pkg/secrets
+	./services/core/blueprint
+	./services/core/fuse
+	./services/examples/crud
+	./services/examples/echo
+	./tests/plugins
+	./tools/blueprint-client
+	./tools/dctl
+)

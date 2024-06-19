@@ -1,0 +1,11 @@
+service:
+  name: blueprint_1
+  env: local
+  logging:
+    level: info
+  port: 2221
+
+raft:
+  node-id: node_1
+  address: localhost
+  port: 1111

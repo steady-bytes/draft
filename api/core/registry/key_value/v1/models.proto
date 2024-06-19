@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package core.registry.key_value.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/registry/key_value/v1";
+
+// Value - The message that is used to save a value in the `key_value` store.
+message Value {
+    string data = 1;
+}

@@ -1,0 +1,40 @@
+# Service - high level metadata for the process
+# Service:
+#   Name: event_store
+#   Port: 50001
+
+# REPOS: A list of configurations for a thick client that will include repo integrations for each db type.
+# A repo in this system is defined as a persistence layer like the following:
+# *[CockroachDB](https://www.cockroachlabs.com/docs/stable/developer-guide-overview.html)
+# *[ScyllaDB](https://docs.scylladb.com/)
+#
+# Implementations:
+# * postgres/cockroachDB (Sql database) 
+# * ScyllaDB (NoSql database)
+#
+Repos:
+  postgres:
+    dbType: postgres
+    protocol: postgresql
+    user: draft
+    domain: localhost
+    port: 26257
+    server: draft
+    logMode: true
+    ssl: false
+
+# PRODUCERS: A list of configurations for 
+
+# GATEWAYS: A list of external services that a service might want to communicate with types include
+# * grpc      - services that can communicate using grpc 
+# Gateways:
+#   users:
+#     gatewayType: grpc
+#     # downstream rpc address, and port config
+#     address: localhost
+#     port: 50004
+#     # @TODO: implement, currently everything is insecure
+#     # optional, represents a path to the .crt for the service
+#     tlsCert: certs/server.crt
+#     # optional, represent a path to the .key for the service
+#     tlsKey: certs/server.key

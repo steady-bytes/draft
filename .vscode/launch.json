@@ -1,0 +1,184 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Gateway",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/gateway/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "args": [
+                "run"
+            ]
+        },
+        {
+            "name": "Host",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/host/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+        },
+        {
+            "name": "Blueprint CMD: Register Cluster",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tools/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "make_cluster"
+            }
+        },
+        {
+            "name": "Blueprint CMD: Set Test",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tools/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "set_value"
+            }
+        },
+        {
+            "name": "Blueprint CMD: Get Test",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tools/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "get_value"
+            }
+        },
+        {
+            "name": "Blueprint CMD: Load Test",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tools/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "load_test_key_value"
+            }
+        },
+        {
+            "name": "Blueprint CMD: List",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tools/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "list_all"
+            }
+        },
+        {
+            "name": "Blueprint CMD: Initialize",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tools/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "init_process"
+            }
+        },
+        {
+            "name": "Blueprint CMD: Synchronize",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tools/blueprint-client/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "CMD": "synchronize"
+            }
+        },
+        {
+            "name": "Blueprint_1",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/blueprint/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "DRAFT_CONFIG": "tests/blueprint/node_1.yaml"
+            },
+        },
+        {
+            "name": "Blueprint_2",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/blueprint/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "DRAFT_CONFIG": "tests/blueprint/node_2.yaml"
+            },
+        },
+        {
+            "name": "Blueprint_3",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/blueprint/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "DRAFT_CONFIG": "tests/blueprint/node_3.yaml"
+            },
+        },
+        {
+            "name": "Fuse",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/fuse/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "DRAFT_CONFIG": "tests/fuse/config.yaml"
+            },
+        },
+        {
+            "name": "Plugins (test)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tests/plugins/main.go",
+            "cwd": "${workspaceFolder}/tests/plugins",
+            "debugAdapter": "dlv-dap",
+            "args": [
+                "run"
+            ]
+        },
+    ],
+    "compounds": [
+        {
+            "name": "Blueprint Cluster",
+            "configurations": [
+                "Blueprint_1",
+                "Blueprint_2",
+                "Blueprint_3"
+            ],
+            "stopAll": true,
+        }
+    ]
+}

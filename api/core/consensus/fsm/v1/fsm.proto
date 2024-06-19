@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package core.consensus.fsm.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/consensus/fsm/v1";
+
+import "google/protobuf/any.proto";
+
+message CommandPayload {
+    Operation operation = 1;
+    string key = 2;
+    google.protobuf.Any value = 3;
+}
+
+enum Operation {
+    NULL_OPERATION = 0;
+    SET = 1;
+    DELETE = 2;
+}

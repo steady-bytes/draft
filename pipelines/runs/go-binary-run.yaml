@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: go-binary-run-
+spec:
+  serviceAccountName: build-bot
+  pipelineRef:
+    name: go-binary
+  podTemplate:
+    securityContext:
+      fsGroup: 65532
+  workspaces:
+    - name: shared-data
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+  params:
+    - name: repo-url
+      value: {{ .RepoUrl }}
+    - name: revision
+      value: {{ .Revision }}
+    - name: directory
+      value: {{ .Directory }}
