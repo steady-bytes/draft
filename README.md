@@ -69,7 +69,7 @@ dctl run --domains core,examples
 
 * __Content Delivery Network__: Most applications need to store files from `.pdf`'s to `.mov` files. The file host will control the life cycle of assets that will be used by the system.
 
-### Ideas
+## Future Ideas
 
 * __Command Handler__: The interface to invoke a command, or a write to the system.
 * __Query Handler__: The interface to gather information from the system
