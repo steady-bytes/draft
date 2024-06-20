@@ -3,8 +3,8 @@ package main
 import (
 	"embed"
 
-	kv "github.com/steady-bytes/draft/blueprint/key_value"
-	sd "github.com/steady-bytes/draft/blueprint/service_discovery"
+	kv "github.com/steady-bytes/draft/services/core/blueprint/key_value"
+	sd "github.com/steady-bytes/draft/services/core/blueprint/service_discovery"
 
 	"github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
