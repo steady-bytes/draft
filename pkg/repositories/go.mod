@@ -3,7 +3,7 @@ module github.com/steady-bytes/draft/pkg/repositories
 go 1.21.3
 
 replace (
-	github.com/steady-bytes/draft/api => ../../api/gen/go
+	github.com/steady-bytes/draft/api => ../../api
 	github.com/steady-bytes/draft/pkg/chassis => ../chassis
 )
 
