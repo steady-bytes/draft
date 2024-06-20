@@ -1,4 +1,4 @@
-module github.com/steady-bytes/tools/dctl
+module github.com/steady-bytes/draft/tools/dctl
 
 go 1.21
 

@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steady-bytes/tools/dctl/output"
+	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
