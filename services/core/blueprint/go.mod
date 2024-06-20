@@ -2,22 +2,22 @@ module github.com/steady-bytes/draft/blueprint
 
 go 1.21.3
 
-replace (
-	github.com/steady-bytes/draft/api => ../../../api
-	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
-	github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
-	github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
-)
+// replace (
+// 	github.com/steady-bytes/draft/api => ../../../api
+// 	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+// 	github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
+// 	github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
+// )
 
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/raft v1.6.0
-	github.com/steady-bytes/draft/api v0.0.1
-	github.com/steady-bytes/draft/pkg/chassis v0.0.1
-	github.com/steady-bytes/draft/pkg/loggers v0.0.1
-	github.com/steady-bytes/draft/pkg/repositories v0.0.1
+	github.com/steady-bytes/draft/api v0.0.2
+	github.com/steady-bytes/draft/pkg/chassis v0.0.2
+	github.com/steady-bytes/draft/pkg/loggers v0.0.2
+	github.com/steady-bytes/draft/pkg/repositories v0.0.2
 	google.golang.org/protobuf v1.34.2
 )
 
