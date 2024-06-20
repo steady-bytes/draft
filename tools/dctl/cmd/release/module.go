@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	trunkBranch = "master"
+	trunkBranch = "main"
 )
 
 var (

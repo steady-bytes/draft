@@ -3,13 +3,13 @@ name: tools - CI
 on:
   pull_request:
     branches:
-      - master
+      - main
     paths:
       - tools/**
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   changed:
