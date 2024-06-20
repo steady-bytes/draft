@@ -4,7 +4,7 @@ go 1.19
 
 replace (
 	github.com/steady-bytes/draft/pkg/draft-runtime => ../../../pkg/draft-runtime
-	github.com/steady-bytes/draft/api => ../../../api/gen/go
+	github.com/steady-bytes/draft/api => ../../../api
 )
 
 require (
