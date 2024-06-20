@@ -2,15 +2,15 @@ module github.com/steady-bytes/draft/pkg/repositories
 
 go 1.21.3
 
-replace (
-	github.com/steady-bytes/draft/api => ../../api
-	github.com/steady-bytes/draft/pkg/chassis => ../chassis
-)
+// replace (
+// 	github.com/steady-bytes/draft/api => ../../api
+// 	github.com/steady-bytes/draft/pkg/chassis => ../chassis
+// )
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.18.0
 	github.com/dgraph-io/badger/v2 v2.2007.4
-	github.com/steady-bytes/draft/pkg/chassis v0.0.1
+	github.com/steady-bytes/draft/pkg/chassis v0.0.2
 	github.com/uptrace/bun v1.1.16
 	github.com/uptrace/bun/dialect/pgdialect v1.1.16
 	github.com/uptrace/bun/driver/pgdriver v1.1.16
@@ -71,7 +71,7 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/steady-bytes/draft/api v0.0.1 // indirect
+	github.com/steady-bytes/draft/api v0.0.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
