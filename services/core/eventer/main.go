@@ -7,3 +7,5 @@ package main
 // func main() {
 // 	svc.Execute()
 // }
+
+func main() {}
