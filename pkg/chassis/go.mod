@@ -2,7 +2,7 @@ module github.com/steady-bytes/draft/pkg/chassis
 
 go 1.21.3
 
-replace github.com/steady-bytes/draft/api => ../../api
+// replace github.com/steady-bytes/draft/api => ../../api
 
 require (
 	connectrpc.com/connect v1.16.2
@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/raft-boltdb/v2 v2.3.0
 	github.com/rs/cors v1.10.1
 	github.com/spf13/viper v1.18.2
-	github.com/steady-bytes/draft/api v0.0.1
+	github.com/steady-bytes/draft/api v0.0.2
 	golang.org/x/net v0.23.0
 	golang.org/x/sync v0.5.0
 )
