@@ -6,8 +6,8 @@ import (
 	"time"
 
 	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
-	kv "github.com/steady-bytes/draft/blueprint/key_value"
 	"github.com/steady-bytes/draft/pkg/chassis"
+	kv "github.com/steady-bytes/draft/services/core/blueprint/key_value"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
