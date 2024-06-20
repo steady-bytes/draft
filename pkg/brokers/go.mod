@@ -2,17 +2,17 @@ module github.com/steady-bytes/draft/pkg/brokers
 
 go 1.21.3
 
-replace (
-	github.com/steady-bytes/draft/api => ../../api
-	github.com/steady-bytes/draft/pkg/chassis => ../chassis
-)
+// replace (
+// 	github.com/steady-bytes/draft/api => ../../api
+// 	github.com/steady-bytes/draft/pkg/chassis => ../chassis
+// )
 
 require (
 	github.com/cloudevents/sdk-go/binding/format/protobuf/v2 v2.15.0
 	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats.go v1.31.0
 	github.com/rabbitmq/amqp091-go v1.5.0
-	github.com/steady-bytes/draft/pkg/chassis v0.0.1
+	github.com/steady-bytes/draft/pkg/chassis v0.0.2
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -46,7 +46,7 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/steady-bytes/draft/api v0.0.1 // indirect
+	github.com/steady-bytes/draft/api v0.0.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/goleak v1.2.1 // indirect
