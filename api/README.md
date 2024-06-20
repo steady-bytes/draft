@@ -23,7 +23,7 @@ To use the generated files locally, you will need to add a `replace` to the proj
 ```go.mod
 ...
 
-replace github.com/steady-bytes/draft/api => ../../../api/gen/go
+replace github.com/steady-bytes/draft/api => ../../../api
 
 ...
 ```

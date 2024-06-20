@@ -1,10 +1,7 @@
 package api
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
 
@@ -12,7 +9,6 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/steady-bytes/draft/tools/dctl/config"
 	"github.com/steady-bytes/draft/tools/dctl/docker"
-	e "github.com/steady-bytes/draft/tools/dctl/execute"
 	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
@@ -35,31 +31,6 @@ func Init(cmd *cobra.Command, args []string) error {
 
 	err = dctl.BuildImage(ctx, apiPath, protoImage)
 	if err != nil {
-		return err
-	}
-
-	output.Println("Initializing generated code directories...")
-	// make go directory
-	err = os.MkdirAll(filepath.Join(apiPath, "gen", "go"), os.ModePerm)
-	if err != nil {
-		return err
-	}
-	// make web directory
-	err = os.MkdirAll(filepath.Join(apiPath, "gen", "web"), os.ModePerm)
-	if err != nil {
-		return err
-	}
-	// initialize go mod only if go.mod doesn't already exist
-	_, err = os.Stat(filepath.Join(apiPath, "gen", "go", "go.mod"))
-	if errors.Is(err, os.ErrNotExist) {
-		c := exec.Command("go", "mod", "init", config.CurrentProject().Repo + "/api/gen/go")
-		c.Dir = filepath.Join(apiPath, "gen", "go")
-		err = e.ExecuteCommand(ctx, "go", output.Magenta, c)
-		if err != nil {
-			return err
-		}
-	} else if err != nil {
-		// if there's an error other than the file not existing, return it
 		return err
 	}
 

@@ -10,7 +10,6 @@ lint:
   allow_comment_ignores: true
 build:
   excludes:
-    - gen/
     - vendor/
 deps:
   - buf.build/googleapis/googleapis

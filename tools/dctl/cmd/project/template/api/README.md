@@ -23,7 +23,7 @@ To use the generated files locally, you will need to add a `replace` to the `go.
 ```go.mod
 ...
 
-replace <YOUR_REPO>/api => ../../../api/gen/go
+replace <YOUR_REPO>/api => ../../../api
 
 ...
 ```

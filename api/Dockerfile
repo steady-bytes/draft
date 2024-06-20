@@ -14,7 +14,6 @@ RUN go install github.com/envoyproxy/protoc-gen-validate@v1.0.4
 RUN go install github.com/srikrsna/protoc-gen-gotag@v1.0.1
 
 # WEB
-# TODO: should we have versions on these?
 RUN npm install typescript tsx
 RUN npm install @bufbuild/buf \
     @bufbuild/protobuf \
