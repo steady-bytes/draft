@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/steady-bytes/tools/dctl/cmd"
+	"github.com/steady-bytes/draft/tools/dctl/cmd"
 )
 
 func main() {

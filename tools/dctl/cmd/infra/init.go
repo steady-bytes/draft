@@ -3,8 +3,8 @@ package infra
 import (
 	"fmt"
 
-	"github.com/steady-bytes/tools/dctl/docker"
-	"github.com/steady-bytes/tools/dctl/output"
+	"github.com/steady-bytes/draft/tools/dctl/docker"
+	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
 )

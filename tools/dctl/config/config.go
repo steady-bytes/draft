@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/viper"
-	"github.com/steady-bytes/tools/dctl/output"
+	"github.com/steady-bytes/draft/tools/dctl/output"
 )
 
 type (

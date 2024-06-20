@@ -5,7 +5,7 @@ import (
 	"context"
 	"os/exec"
 
-	"github.com/steady-bytes/tools/dctl/output"
+	"github.com/steady-bytes/draft/tools/dctl/output"
 )
 
 func ExecuteCommand(ctx context.Context, name string, c output.Color, cmd *exec.Cmd) error {

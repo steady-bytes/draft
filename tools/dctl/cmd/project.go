@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/steady-bytes/tools/dctl/cmd/project"
+	"github.com/steady-bytes/draft/tools/dctl/cmd/project"
 
 	"github.com/spf13/cobra"
 )

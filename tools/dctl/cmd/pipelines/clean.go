@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steady-bytes/tools/dctl/config"
-	"github.com/steady-bytes/tools/dctl/execute"
-	"github.com/steady-bytes/tools/dctl/input"
-	"github.com/steady-bytes/tools/dctl/output"
+	"github.com/steady-bytes/draft/tools/dctl/config"
+	"github.com/steady-bytes/draft/tools/dctl/execute"
+	"github.com/steady-bytes/draft/tools/dctl/input"
+	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
 )

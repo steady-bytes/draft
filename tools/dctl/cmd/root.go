@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"path/filepath"
 
-	"github.com/steady-bytes/tools/dctl/output"
+	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

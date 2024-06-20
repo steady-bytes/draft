@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/steady-bytes/tools/dctl/config"
-	"github.com/steady-bytes/tools/dctl/execute"
-	"github.com/steady-bytes/tools/dctl/output"
+	"github.com/steady-bytes/draft/tools/dctl/config"
+	"github.com/steady-bytes/draft/tools/dctl/execute"
+	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
 )
