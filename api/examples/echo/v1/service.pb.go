@@ -72,7 +72,7 @@ type SpeakResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Output string `protobuf:"bytes,2,opt,name=output,proto3" json:"output" bun:"output" yaml:"output" csv:"output" pg:"output"`
+	Output string `protobuf:"bytes,2,opt,name=output,proto3" json:"output" csv:"output" pg:"output" bun:"output" yaml:"output"`
 }
 
 func (x *SpeakResponse) Reset() {
