@@ -1,4 +1,4 @@
-module github.com/steady-bytes/draft/blueprint
+module github.com/steady-bytes/draft/services/core/blueprint
 
 go 1.21.3
 
