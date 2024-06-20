@@ -17,12 +17,6 @@ var apiBuildCmd = &cobra.Command{
 	RunE:  api.Build,
 }
 
-var apiCleanCmd = &cobra.Command{
-	Use:   "clean",
-	Short: "Clean up all compiled (generated) protobuf files",
-	RunE:  api.Clean,
-}
-
 var apiInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Build the Docker image that compiles protobufs",
@@ -34,6 +28,5 @@ func init() {
 	rootCmd.AddCommand(apiCmd)
 	// add children
 	apiCmd.AddCommand(apiBuildCmd)
-	apiCmd.AddCommand(apiCleanCmd)
 	apiCmd.AddCommand(apiInitCmd)
 }

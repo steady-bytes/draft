@@ -31,13 +31,6 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	rootPath := config.Root()
 	apiPath := filepath.Join(rootPath, "api")
 
-	// clean the api directory
-	err = Clean(cmd, args)
-	if err != nil {
-		// don't print as it already has been
-		return err
-	}
-
 	// run docker proto-builder image
 	output.Println("Building api...")
 
@@ -90,7 +83,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 
 	// extra steps for go
 	c := exec.Command("go", "mod", "tidy")
-	c.Dir = filepath.Join(apiPath, "gen", "go")
+	c.Dir = apiPath
 	err = e.ExecuteCommand(ctx, "go", output.Green, c)
 	if err != nil {
 		return err
