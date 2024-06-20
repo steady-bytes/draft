@@ -2,18 +2,18 @@ module github.com/steady-bytes/draft/services/examples/health
 
 go 1.21.3
 
-replace (
-	github.com/steady-bytes/draft/api => ../../../api
-	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
-	github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
-	github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
-)
+// replace (
+// 	github.com/steady-bytes/draft/api => ../../../api
+// 	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+// 	github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
+// 	github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
+// )
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/steady-bytes/draft/api v0.0.1
-	github.com/steady-bytes/draft/pkg/chassis v0.0.1
-	github.com/steady-bytes/draft/pkg/loggers v0.0.1
+	github.com/steady-bytes/draft/api v0.0.2
+	github.com/steady-bytes/draft/pkg/chassis v0.0.2
+	github.com/steady-bytes/draft/pkg/loggers v0.0.2
 )
 
 require (

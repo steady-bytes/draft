@@ -2,16 +2,16 @@ module github.com/steady-bytes/draft/services/core/fuse
 
 go 1.21.3
 
-replace (
-	github.com/steady-bytes/draft/api => ../../../api
-	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
-	github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
-	github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
-)
+// replace (
+// 	github.com/steady-bytes/draft/api => ../../../api
+// 	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+// 	github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
+// 	github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
+// )
 
 require (
-	github.com/steady-bytes/draft/pkg/chassis v0.0.1
-	github.com/steady-bytes/draft/pkg/loggers v0.0.1
+	github.com/steady-bytes/draft/pkg/chassis v0.0.2
+	github.com/steady-bytes/draft/pkg/loggers v0.0.2
 )
 
 require (
@@ -43,7 +43,7 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/steady-bytes/draft/api v0.0.1 // indirect
+	github.com/steady-bytes/draft/api v0.0.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
