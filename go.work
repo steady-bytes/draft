@@ -8,6 +8,7 @@ use (
 	./pkg/repositories
 	./pkg/secrets
 	./services/core/blueprint
+	./services/core/eventer
 	./services/core/fuse
 	./services/examples/crud
 	./services/examples/echo
