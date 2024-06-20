@@ -3,7 +3,7 @@ module github.com/steady-bytes/tests/plugins
 go 1.21.3
 
 replace (
-	github.com/steady-bytes/draft/api => ../../api/gen/go
+	github.com/steady-bytes/draft/api => ../../api
 	github.com/steady-bytes/draft/pkg/brokers => ../../pkg/brokers
 	github.com/steady-bytes/draft/pkg/chassis => ../../pkg/chassis
 	github.com/steady-bytes/draft/pkg/loggers => ../../pkg/loggers
