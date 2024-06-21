@@ -14,10 +14,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	protoImage = "proto:draft"
-)
-
 func Init(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 	dctl, err := docker.NewDockerController()
@@ -25,18 +21,20 @@ func Init(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	project := config.CurrentProject()
+
 	// build out execution path
 	rootPath := config.Root()
 	apiPath := filepath.Join(rootPath, "api")
 
-	err = dctl.BuildImage(ctx, apiPath, protoImage)
+	err = dctl.PullImage(ctx, project.API.ImageName)
 	if err != nil {
 		return err
 	}
 
 	// base configuration for docker container runs
 	config := &container.Config{
-		Image:      protoImage,
+		Image:      project.API.ImageName,
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{
@@ -51,8 +49,8 @@ func Init(cmd *cobra.Command, args []string) error {
 
 	// install node modules
 	output.Println("Installing node modules...")
-	config.Cmd = []string{"npm", "install"}
-	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
+	config.Cmd = []string{"npm", "install", "--no-fund"}
+	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
 	if err != nil {
 		return err
 	}
@@ -64,7 +62,7 @@ func Init(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	config.Cmd = []string{"chown", "-R", fmt.Sprintf("%s:%s", u.Uid, u.Gid), "/workspace"}
-	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
 	if err != nil {
 		return err
 	}

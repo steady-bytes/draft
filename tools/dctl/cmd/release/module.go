@@ -6,15 +6,12 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/steady-bytes/draft/tools/dctl/config"
 	"github.com/steady-bytes/draft/tools/dctl/execute"
 	"github.com/steady-bytes/draft/tools/dctl/input"
 	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/Masterminds/semver/v3"
-)
-
-const (
-	trunkBranch = "main"
 )
 
 var (
@@ -35,8 +32,8 @@ func Module(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	if branchString != trunkBranch {
-		output.Println("You are currently on branch %s, not the trunk branch %s. Would you like to proceed? (yes/NO)", branchString, trunkBranch)
+	if branchString != config.CurrentProject().TrunkBranch {
+		output.Println("You are currently on branch %s, not the trunk branch %s. Would you like to proceed? (yes/NO)", branchString, config.CurrentProject().TrunkBranch)
 		if !input.ConfirmDefaultDeny() {
 			output.Println("Cancelled")
 			return nil
@@ -44,7 +41,7 @@ func Module(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// git fetch to update all local tags
-	command = exec.Command("git", "fetch")
+	command = exec.Command("git", "fetch", "--tags")
 	err = execute.ExecuteCommand(ctx, "git", output.Blue, command)
 	if err != nil {
 		return err
