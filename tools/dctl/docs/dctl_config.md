@@ -9,7 +9,8 @@ dctl config [flags]
 ### Options
 
 ```
-  -h, --help   help for config
+  -f, --force   overwrite existing config if already exists
+  -h, --help    help for config
 ```
 
 ### Options inherited from parent commands
