@@ -91,6 +91,8 @@ func Init(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	setDefaults(name)
+
 	// write project to config
 	err = viper.WriteConfig()
 	if err != nil {
@@ -127,4 +129,10 @@ func writeFiles(dir string) error {
 	}
 
 	return nil
+}
+
+func setDefaults(name string) {
+	viper.Set(fmt.Sprintf("projects.%s.api.image_name", name), defaultAPIImageName)
+	viper.Set(fmt.Sprintf("projects.%s.api.container_name", name), defaultAPIContainerName)
+	viper.Set(fmt.Sprintf("projects.%s.trunk_branch", name), defaultTrunkBranch)
 }

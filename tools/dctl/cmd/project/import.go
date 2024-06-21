@@ -16,6 +16,7 @@ import (
 const (
 	defaultAPIImageName     = "ghcr.io/steady-bytes/draft-api-builder:main"
 	defaultAPIContainerName = "draft-api-builder"
+	defaultTrunkBranch      = "main"
 )
 
 func Import(cmd *cobra.Command, args []string) error {
@@ -40,9 +41,7 @@ func Import(cmd *cobra.Command, args []string) error {
 	}
 	viper.Set(fmt.Sprintf("projects.%s.root", name), Path)
 
-	// set default api builder image/container
-	viper.Set(fmt.Sprintf("projects.%s.api.image_name", name), defaultAPIImageName)
-	viper.Set(fmt.Sprintf("projects.%s.api.container_name", name), defaultAPIContainerName)
+	setDefaults(name)
 
 	// write project to config
 	err = viper.WriteConfig()

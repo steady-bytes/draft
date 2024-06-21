@@ -16,7 +16,7 @@ type (
 	Project struct {
 		Repo        string
 		Root        string
-		TrunkBranch string
+		TrunkBranch string `mapstructure:"trunk_branch"`
 		API         API `mapstructure:"api"`
 	}
 	API struct {
