@@ -77,6 +77,7 @@ func (d *dockerController) BuildImage(ctx context.Context, path, image string) e
 }
 
 func (d *dockerController) PullImage(ctx context.Context, image string) error {
+	output.Println("Pulling image: %s", image)
 	resp, err := d.cli.ImagePull(ctx, image, types.ImagePullOptions{})
 	if err != nil {
 		return err

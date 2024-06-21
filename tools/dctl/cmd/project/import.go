@@ -13,6 +13,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	defaultAPIImageName     = "ghcr.io/steady-bytes/draft-api-builder:main"
+	defaultAPIContainerName = "draft-api-builder"
+)
+
 func Import(cmd *cobra.Command, args []string) error {
 	Path, err := filepath.Abs(Path)
 	if err != nil {
@@ -34,6 +39,10 @@ func Import(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	viper.Set(fmt.Sprintf("projects.%s.root", name), Path)
+
+	// set default api builder image/container
+	viper.Set(fmt.Sprintf("projects.%s.api.image_name", name), defaultAPIImageName)
+	viper.Set(fmt.Sprintf("projects.%s.api.container_name", name), defaultAPIContainerName)
 
 	// write project to config
 	err = viper.WriteConfig()

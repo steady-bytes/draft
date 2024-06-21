@@ -14,8 +14,14 @@ type (
 		Projects map[string]Project
 	}
 	Project struct {
-		Repo string
-		Root string
+		Repo        string
+		Root        string
+		TrunkBranch string
+		API         API `mapstructure:"api"`
+	}
+	API struct {
+		ImageName     string `mapstructure:"image_name"`
+		ContainerName string `mapstructure:"container_name"`
 	}
 )
 

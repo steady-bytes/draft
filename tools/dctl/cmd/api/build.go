@@ -16,16 +16,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	protoContainer = "proto-builder"
-)
-
 func Build(cmd *cobra.Command, args []string) (err error) {
 	ctx := cmd.Context()
 	dctl, err := docker.NewDockerController()
 	if err != nil {
 		return nil
 	}
+
+	project := config.CurrentProject()
 
 	// build out execution path
 	rootPath := config.Root()
@@ -36,7 +34,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 
 	// base configuration for docker container runs
 	config := &container.Config{
-		Image:      protoImage,
+		Image:      project.API.ImageName,
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{
@@ -52,7 +50,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	// mod update
 	output.Println("Running `buf dep update`...")
 	config.Cmd = []string{"buf", "dep", "update"}
-	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
 	if err != nil {
 		return err
 	}
@@ -60,7 +58,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	// generate go
 	output.Println("Generating Go protos...")
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.go.yaml"}
-	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
 	if err != nil {
 		return err
 	}
@@ -68,7 +66,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	// generate gotag
 	output.Println("Generating Gotag protos...")
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.gotag.yaml"}
-	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
 	if err != nil {
 		return err
 	}
@@ -76,7 +74,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	// generate web
 	output.Println("Generating Web protos...")
 	config.Cmd = []string{"npx", "buf", "generate", "--template", "buf.gen.web.yaml"}
-	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
 	if err != nil {
 		return err
 	}
@@ -96,7 +94,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 	config.Cmd = []string{"chown", "-R", fmt.Sprintf("%s:%s", u.Uid, u.Gid), "/workspace"}
-	err = dctl.RunContainer(ctx, protoContainer, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
 	if err != nil {
 		return err
 	}

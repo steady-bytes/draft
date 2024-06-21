@@ -15,4 +15,5 @@ var configCommand = &cobra.Command{
 func init() {
 	// add parent
 	rootCmd.AddCommand(configCommand)
+	configCommand.Flags().BoolVarP(&config.Force, "force", "f", false, "overwrite existing config if already exists")
 }
