@@ -93,7 +93,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/draft-${{ steps.info.outputs.domain}}-${{ steps.info.outputs.service }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ steps.info.outputs.domain}}-${{ steps.info.outputs.service }}
           tags: |
             type=sha
             type=edge,branch=main
