@@ -1,7 +1,7 @@
-name: services - CI
+name: services - CD
 
 on:
-  pull_request:
+  push:
     branches:
       - main
     paths:
@@ -25,32 +25,29 @@ jobs:
 
   build-and-test:
     name: Build-Test (${{ matrix.service-path }})
-    needs: [changed]
+    # needs: [changed]
     runs-on: ubuntu-latest
-    if: needs.changed.outputs.any_changed == 'true'
+    # if: needs.changed.outputs.any_changed == 'true'
     strategy:
       matrix:
         go-version: ['1.21.x']
-        service-path: ${{ fromJSON(needs.changed.outputs.matrix) }}
-
+        # service-path: ${{ fromJSON(needs.changed.outputs.matrix) }}
+        service-path: [ 'examples/crud', 'examples/echo']
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
-        if: matrix.service-path == 'core/blueprint'
         with:
           node-version: 18
           cache-dependency-path: services/${{ matrix.service-path }}/web-client/package-lock.json
 
       - name: Install Node dependencies
-        if: matrix.service-path == 'core/blueprint'
         run: |
           cd services/${{ matrix.service-path }}/web-client &&
           npm i -D @swc/cli @swc/core &&
           npm install
 
       - name: Build web-client
-        if: matrix.service-path == 'core/blueprint'
         run: |
           cd services/${{ matrix.service-path }}/web-client &&
           npm run build
@@ -99,6 +96,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ steps.info.outputs.domain}}-${{ steps.info.outputs.service }}
           tags: |
             type=sha
+            type=edge,branch=main
+            type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='America/Chicago'}}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
