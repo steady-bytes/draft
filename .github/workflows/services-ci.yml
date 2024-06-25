@@ -7,6 +7,10 @@ on:
     paths:
       - services/**
 
+env:
+  REGISTRY: ${{ vars.REGISTRY || 'ghcr.io' }}
+  TARGET_PLATFORMS: linux/amd64,linux/arm64
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
