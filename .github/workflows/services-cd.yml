@@ -25,14 +25,13 @@ jobs:
 
   build-and-test:
     name: Build-Test (${{ matrix.service-path }})
-    # needs: [changed]
+    needs: [changed]
     runs-on: ubuntu-latest
-    # if: needs.changed.outputs.any_changed == 'true'
+    if: needs.changed.outputs.any_changed == 'true'
     strategy:
       matrix:
         go-version: ['1.21.x']
-        # service-path: ${{ fromJSON(needs.changed.outputs.matrix) }}
-        service-path: [ 'examples/crud', 'examples/echo']
+        service-path: ${{ fromJSON(needs.changed.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
