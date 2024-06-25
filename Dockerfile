@@ -2,7 +2,7 @@ ARG GO_VERSION=1.21.3
 ARG ALPINE_VERSION=3.18
 
 # Build web client (if needed)
-FROM node:18 as web-client-builder
+FROM node:18 AS web-client-builder
 WORKDIR /web
 RUN npm i -D @swc/cli @swc/core
 RUN rm package*.json
