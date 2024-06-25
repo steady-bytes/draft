@@ -99,7 +99,6 @@ jobs:
           images: ${{ env.REGISTRY }}/draft-${{ steps.info.outputs.domain}}-${{ steps.info.outputs.service }}
           tags: |
             type=sha
-            type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='America/Chicago'}}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
