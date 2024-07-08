@@ -19,6 +19,7 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/cloudevents/sdk-go/binding/format/protobuf/v2 v2.15.0 // indirect
+	github.com/envoyproxy/go-control-plane v0.12.0 // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect

@@ -103,6 +103,25 @@ func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
 	return new
 }
 
+// / implement log.Logger for `envoyproxy/go-control-plane/pkg/cache/v3`
+func (l *logger) Debugf(format string, args ...any) {
+	l.correctFunctionName().logger.Debug().Msgf(format, args...)
+}
+
+func (l *logger) Infof(format string, args ...any) {
+	l.correctFunctionName().logger.Info().Msgf(format, args...)
+}
+
+func (l *logger) Warnf(format string, args ...any) {
+	l.correctFunctionName().logger.Warn().Msgf(format, args...)
+}
+
+func (l *logger) Errorf(format string, args ...any) {
+	l.correctFunctionName().logger.Error().Msgf(format, args...)
+}
+
+/// implement chassis.Logger
+
 func (l *logger) Trace(msg string) {
 	l.correctFunctionName().logger.Trace().Msg(msg)
 }
