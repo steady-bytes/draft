@@ -92,6 +92,30 @@ func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
 	return newLogger(l.entry.WithFields(logrusFields))
 }
 
+// Implement `log.Logger` for `envoyproxy/go-control-plane/pkg/cache/v3`
+// go-control-plane has it's own logger interface that needs to be implemented for logging
+// to work correctly
+
+// dropping the args parameter for now, as it is not used
+func (l *logger) Debugf(msg string, args ...any) {
+	l.correctFunctionName().entry.Debug(msg)
+}
+
+// dropping the args parameter for now, as it is not used
+func (l *logger) Infof(msg string, args ...any) {
+	l.correctFunctionName().entry.Info(msg)
+}
+
+// dropping the args parameter for now, as it is not used
+func (l *logger) Warnf(msg string, args ...any) {
+	l.correctFunctionName().entry.Warn(msg)
+}
+
+// dropping the args parameter for now, as it is not used
+func (l *logger) Errorf(msg string, args ...any) {
+	l.correctFunctionName().entry.Error(msg)
+}
+
 func (l *logger) WithTime(t time.Time) chassis.Logger {
 	return newLogger(l.entry.WithTime(t))
 }

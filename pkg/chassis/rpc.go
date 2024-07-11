@@ -2,6 +2,10 @@ package chassis
 
 import (
 	"net/http"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 type RPCHandlerKind int
@@ -9,6 +13,13 @@ type RPCHandlerKind int
 const (
 	NullRPCHandlerKind RPCHandlerKind = iota
 	Grpc
+)
+
+const (
+	grpcKeepaliveTime        = 30 * time.Second
+	grpcKeepaliveTimeout     = 5 * time.Second
+	grpcKeepaliveMinTime     = 30 * time.Second
+	grpcMaxConcurrentStreams = 1000000
 )
 
 type (
@@ -20,11 +31,13 @@ type (
 		EnableReflection(string)
 		IsReflection() bool
 		AddHandler(string, http.Handler)
+		GetGrpcServer() *grpc.Server
 		Logger() Logger
 	}
 
 	rpcServer struct {
 		mux            *http.ServeMux
+		grpc 		   *grpc.Server
 		rpcServiceName string
 		isReflection   bool
 		logger         Logger
@@ -62,6 +75,30 @@ func (r *rpcServer) IsReflection() bool {
 
 func (r *rpcServer) AddHandler(name string, handler http.Handler) {
 	r.mux.Handle(name, handler)
+}
+
+func (r *rpcServer) GetGrpcServer() *grpc.Server {
+	if r.grpc == nil {
+		r.setupGrpcServer()
+	}
+
+	return r.grpc
+}
+
+func (r *rpcServer) setupGrpcServer() {
+	var grpcOptions []grpc.ServerOption
+	grpcOptions = append(grpcOptions,
+		grpc.MaxConcurrentStreams(grpcMaxConcurrentStreams),
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			Time:    grpcKeepaliveTime,
+			Timeout: grpcKeepaliveTimeout,
+		}),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             grpcKeepaliveMinTime,
+			PermitWithoutStream: true,
+		}),
+	)
+	r.grpc = grpc.NewServer(grpcOptions...)
 }
 
 func (r *rpcServer) Logger() Logger {

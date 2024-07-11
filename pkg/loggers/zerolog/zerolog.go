@@ -103,6 +103,26 @@ func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
 	return new
 }
 
+// Implement `log.Logger` for `envoyproxy/go-control-plane/pkg/cache/v3`
+// go-control-plane has it's own logger interface that needs to be implemented for logging
+// to work correctly
+func (l *logger) Debugf(format string, args ...any) {
+	l.correctFunctionName().logger.Debug().Msgf(format, args...)
+}
+
+func (l *logger) Infof(format string, args ...any) {
+	l.correctFunctionName().logger.Info().Msgf(format, args...)
+}
+
+func (l *logger) Warnf(format string, args ...any) {
+	l.correctFunctionName().logger.Warn().Msgf(format, args...)
+}
+
+func (l *logger) Errorf(format string, args ...any) {
+	l.correctFunctionName().logger.Error().Msgf(format, args...)
+}
+
+// Default `draft.Logger` interface implementations
 func (l *logger) Trace(msg string) {
 	l.correctFunctionName().logger.Trace().Msg(msg)
 }

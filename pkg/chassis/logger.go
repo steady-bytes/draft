@@ -3,6 +3,8 @@ package chassis
 import (
 	"context"
 	"strings"
+
+	envoy "github.com/envoyproxy/go-control-plane/pkg/log"
 )
 
 // Fields is an alias primarily used for Logger methods
@@ -95,6 +97,9 @@ type Logger interface {
 	// In general, only use panic for programming errors, where the stack trace is important to the context of the error.
 	// If the message isn't targeted at the programmer, you're simply hiding the message in superfluous data.
 	Panic(msg string)
+	// Envoy control plane logger. The `envoyproxy` had defined it's own `log.Logger` interface we are embedding here so the same abstraction
+	// can be used for logging in the control plane as well.
+	envoy.Logger
 }
 
 // ParseLogLevel takes a string level and returns the log level constant.
