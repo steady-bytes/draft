@@ -154,7 +154,7 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "DRAFT_CONFIG": "tests/fuse/config.yaml"
+                "DRAFT_CONFIG": "services/core/fuse/config.yaml"
             },
         },
         {
