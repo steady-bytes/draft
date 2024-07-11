@@ -10,7 +10,7 @@ go 1.21.3
 require (
 	github.com/rs/zerolog v1.32.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/steady-bytes/draft/pkg/chassis v0.0.2
+	github.com/steady-bytes/draft/pkg/chassis v0.1.0
 )
 
 require (
