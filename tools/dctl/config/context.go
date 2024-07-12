@@ -52,7 +52,7 @@ func GetContext() Context {
 	}
 	contextFile := findWorkspaceFile(cwd)
 	if contextFile != "" {
-		return loadWorkspaceContext(contextFile)
+		return LoadWorkspaceContext(contextFile)
 	}
 
 	// fallback on the default context
@@ -72,6 +72,25 @@ func SetDefaultContext(new string) error {
 	}
 	viper.Set("default", new)
 	return viper.WriteConfig()
+}
+
+func LoadWorkspaceContext(path string) Context {
+	output.Print("Using context from workspace file: %s", path)
+	f, err := os.ReadFile(path)
+	if err != nil {
+		output.Error(err)
+		os.Exit(1)
+	}
+	var dctx Context
+	err = yaml.Unmarshal(f, &dctx)
+	if err != nil {
+		output.Error(err)
+		os.Exit(1)
+	}
+	dctx.IsWorkspace = true
+	dctx.Root = filepath.Dir(path)
+	output.Print("Loaded context: %s", dctx.Name)
+	return dctx
 }
 
 // modified from the go source code: src/cmd/go/internal/modload/init.go
@@ -95,25 +114,6 @@ func findWorkspaceFile(dir string) (root string) {
 	return ""
 }
 
-func loadWorkspaceContext(path string) Context {
-	output.Print("Using context from workspace file: %s", path)
-	f, err := os.ReadFile(path)
-	if err != nil {
-		output.Error(err)
-		os.Exit(1)
-	}
-	var dctx Context
-	err = yaml.Unmarshal(f, &dctx)
-	if err != nil {
-		output.Error(err)
-		os.Exit(1)
-	}
-	dctx.IsWorkspace = true
-	dctx.Root = filepath.Dir(path)
-	output.Print("Loaded context: %s", dctx.Name)
-	return dctx
-}
-
 func loadConfigContext(dconfig Config, contextName string) Context {
 	// read the context from the config
 	dctx, ok := dconfig.Contexts[contextName]
@@ -126,7 +126,7 @@ func loadConfigContext(dconfig Config, contextName string) Context {
 	// check if there is a workspace file defined by the context from the config
 	// and load that if available
 	if dctx.Root != "" {
-		return loadWorkspaceContext(filepath.Join(dctx.Root, "draft.yaml"))
+		return LoadWorkspaceContext(filepath.Join(dctx.Root, "draft.yaml"))
 	}
 
 	// fallback on the context from the config
