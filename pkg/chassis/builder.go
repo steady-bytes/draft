@@ -185,7 +185,7 @@ func (c *Runtime) synchronize(pid *sdv1.ProcessIdentity) {
 // them on a background goroutine
 func (c *Runtime) Start() {
 	cors := c.buildCors()
-	handler := cors.Handler(c.mux)
+	handler := h2c.NewHandler(cors.Handler(c.mux), &http2.Server{})
 	if c.mux == nil {
 		c.mux = http.NewServeMux()
 	}
