@@ -32,8 +32,8 @@ func Module(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	if branchString != config.CurrentProject().TrunkBranch {
-		output.Println("You are currently on branch %s, not the trunk branch %s. Would you like to proceed? (yes/NO)", branchString, config.CurrentProject().TrunkBranch)
+	if branchString != config.CurrentContext().TrunkBranch {
+		output.Println("You are currently on branch %s, not the trunk branch %s. Would you like to proceed? (yes/NO)", branchString, config.CurrentContext().TrunkBranch)
 		if !input.ConfirmDefaultDeny() {
 			output.Println("Cancelled")
 			return nil

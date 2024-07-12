@@ -11,9 +11,9 @@ import (
 type (
 	Config struct {
 		Current  string
-		Projects map[string]Project
+		Contexts map[string]Context
 	}
-	Project struct {
+	Context struct {
 		Repo        string
 		Root        string
 		TrunkBranch string `mapstructure:"trunk_branch"`
@@ -35,24 +35,24 @@ func Get() Config {
 	return c
 }
 
-func CurrentProject() Project {
+func CurrentContext() Context {
 	c := Get()
-	return c.Projects[c.Current]
+	return c.Contexts[c.Current]
 }
 
-func SetProject(new string) error {
+func SetContext(new string) error {
 	c := Get()
-	_, ok := c.Projects[new]
+	_, ok := c.Contexts[new]
 	if !ok {
-		keys := make([]string, len(c.Projects))
+		keys := make([]string, len(c.Contexts))
 		i := 0
-		for k := range c.Projects {
+		for k := range c.Contexts {
 			keys[i] = k
 			i++
 		}
-		output.Println("The requested project doesn't exist in the config.")
+		output.Println("The requested context doesn't exist in the config.")
 		output.Println("Available options are: %v", keys)
-		return fmt.Errorf("invalid project name")
+		return fmt.Errorf("invalid context name")
 	}
 	viper.Set("current", new)
 	return viper.WriteConfig()
@@ -60,10 +60,10 @@ func SetProject(new string) error {
 
 func Repo() string {
 	c := Get()
-	return Get().Projects[c.Current].Repo
+	return Get().Contexts[c.Current].Repo
 }
 
 func Root() string {
 	c := Get()
-	return Get().Projects[c.Current].Root
+	return Get().Contexts[c.Current].Root
 }

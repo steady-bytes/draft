@@ -1,4 +1,4 @@
-package project
+package context
 
 import (
 	"embed"
@@ -31,23 +31,23 @@ func Init(cmd *cobra.Command, args []string) error {
 	}
 
 	// get name
-	output.Println("What is the name of this project?")
+	output.Println("What is the name of this context?")
 	name := input.Get()
 
 	// get repo
-	output.Println("What is the git repository for this project? (e.g. github.com/steady-bytes/draft)")
+	output.Println("What is the git repository for this context? (e.g. github.com/steady-bytes/draft)")
 	repo := input.Get()
-	viper.Set(fmt.Sprintf("projects.%s.repo", name), repo)
+	viper.Set(fmt.Sprintf("contexts.%s.repo", name), repo)
 
 	// confirm path
-	output.Println("This will initialize a new Draft project in the directory: %s", Path)
+	output.Println("This will initialize a new Draft context in the directory: %s", Path)
 	output.Println("Would you like to proceed? (yes/NO)")
 	if !input.ConfirmDefaultDeny() {
 		return nil
 	}
-	viper.Set(fmt.Sprintf("projects.%s.root", name), Path)
+	viper.Set(fmt.Sprintf("contexts.%s.root", name), Path)
 
-	output.Println("Intializing project...")
+	output.Println("Intializing context...")
 
 	// make sure path exists
 	_, err = os.ReadDir(Path)
@@ -93,7 +93,7 @@ func Init(cmd *cobra.Command, args []string) error {
 
 	setDefaults(name)
 
-	// write project to config
+	// write context to config
 	err = viper.WriteConfig()
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func writeFiles(dir string) error {
 }
 
 func setDefaults(name string) {
-	viper.Set(fmt.Sprintf("projects.%s.api.image_name", name), defaultAPIImageName)
-	viper.Set(fmt.Sprintf("projects.%s.api.container_name", name), defaultAPIContainerName)
-	viper.Set(fmt.Sprintf("projects.%s.trunk_branch", name), defaultTrunkBranch)
+	viper.Set(fmt.Sprintf("contexts.%s.api.image_name", name), defaultAPIImageName)
+	viper.Set(fmt.Sprintf("contexts.%s.api.container_name", name), defaultAPIContainerName)
+	viper.Set(fmt.Sprintf("contexts.%s.trunk_branch", name), defaultTrunkBranch)
 }

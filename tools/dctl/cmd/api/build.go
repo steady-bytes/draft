@@ -23,7 +23,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 		return nil
 	}
 
-	project := config.CurrentProject()
+	context := config.CurrentContext()
 
 	// build out execution path
 	rootPath := config.Root()
@@ -34,7 +34,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 
 	// base configuration for docker container runs
 	config := &container.Config{
-		Image:      project.API.ImageName,
+		Image:      context.API.ImageName,
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{

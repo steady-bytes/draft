@@ -21,20 +21,20 @@ func Init(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	project := config.CurrentProject()
+	context := config.CurrentContext()
 
 	// build out execution path
 	rootPath := config.Root()
 	apiPath := filepath.Join(rootPath, "api")
 
-	err = dctl.PullImage(ctx, project.API.ImageName)
+	err = dctl.PullImage(ctx, context.API.ImageName)
 	if err != nil {
 		return err
 	}
 
 	// base configuration for docker container runs
 	config := &container.Config{
-		Image:      project.API.ImageName,
+		Image:      context.API.ImageName,
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{
@@ -50,7 +50,7 @@ func Init(cmd *cobra.Command, args []string) error {
 
 	// initialize go module
 	output.Println("Initializing go module...")
-	config.Cmd = []string{"go", "mod", "init", fmt.Sprintf("%s/api", project.Repo)}
+	config.Cmd = []string{"go", "mod", "init", fmt.Sprintf("%s/api", context.Repo)}
 	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err

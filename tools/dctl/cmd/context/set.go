@@ -1,4 +1,4 @@
-package project
+package context
 
 import (
 	"github.com/steady-bytes/draft/tools/dctl/config"
@@ -12,10 +12,10 @@ var (
 )
 
 func Set(cmd *cobra.Command, args []string) error {
-	err := config.SetProject(Project)
+	err := config.SetContext(Project)
 	if err != nil {
 		return err
 	}
-	output.Println("The current project is now: %s", Project)
+	output.Println("The current context is now: %s", Project)
 	return nil
 }

@@ -1,4 +1,4 @@
-package project
+package context
 
 import (
 	"fmt"
@@ -26,35 +26,35 @@ func Import(cmd *cobra.Command, args []string) error {
 	}
 
 	// get name
-	output.Println("What is the name of this project?")
+	output.Println("What is the name of this context?")
 	name := input.Get()
 
 	// get repo
-	output.Println("What is the git repository for this project? (e.g. github.com/steady-bytes/draft)")
+	output.Println("What is the git repository for this context? (e.g. github.com/steady-bytes/draft)")
 	repo := input.Get()
-	viper.Set(fmt.Sprintf("projects.%s.repo", name), repo)
+	viper.Set(fmt.Sprintf("contexts.%s.repo", name), repo)
 
 	// set path
 	_, err = os.ReadDir(Path)
 	if err != nil {
 		return err
 	}
-	viper.Set(fmt.Sprintf("projects.%s.root", name), Path)
+	viper.Set(fmt.Sprintf("contexts.%s.root", name), Path)
 
 	setDefaults(name)
 
-	// write project to config
+	// write context to config
 	err = viper.WriteConfig()
 	if err != nil {
 		return err
 	}
 
-	// set project
-	err = config.SetProject(name)
+	// set context
+	err = config.SetContext(name)
 	if err != nil {
 		return err
 	}
-	output.Println("The current project is now: %s", name)
+	output.Println("The current context is now: %s", name)
 
 	return nil
 }
