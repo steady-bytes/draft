@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 
 	"github.com/steady-bytes/draft/tools/dctl/config"
 	"github.com/steady-bytes/draft/tools/dctl/output"
@@ -24,7 +25,7 @@ var rootCmd = &cobra.Command{
 It does everything from generate code from Protobufs to spin up your local infrastructure for
 development.`,
 	DisableAutoGenTag: true,
-	SilenceUsage: true,
+	SilenceUsage:      true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -79,7 +80,11 @@ func initConfig() {
 	} else {
 		// Find home directory.
 		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+		if err != nil {
+			output.Error(err)
+			os.Exit(1)
+		}
+		cfgFile = filepath.Join(home, ".config", "dctl", "config.yaml")
 
 		// Search config in home directory with name ".dctl" (without extension).
 		viper.AddConfigPath(filepath.Join(home, ".config", "dctl"))
@@ -89,11 +94,18 @@ func initConfig() {
 
 	viper.AutomaticEnv() // read in environment variables that match
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err != nil {
-		output.Error(err)
+	// attempt to read config
+	err := viper.ReadInConfig()
+	if err != nil {
+		output.Warn(err.Error())
+		// create config file if not found
+		if strings.Contains(err.Error(), "Not Found") {
+			output.Print("Creating config file")
+			viper.WriteConfigAs(cfgFile)
+		}
+	} else {
+		output.Print("Using config file: %s", viper.ConfigFileUsed())
 	}
-	output.Print("Using config file: %s", viper.ConfigFileUsed())
 }
 
 // requireWorkspace can be used as a PreRunE on a cobra.Command to make sure
