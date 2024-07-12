@@ -47,6 +47,14 @@ func Init(cmd *cobra.Command, args []string) error {
 		},
 	}
 
+	// initialize go module
+	output.Println("Initializing go module...")
+	config.Cmd = []string{"go", "mod", "init", fmt.Sprintf("%s/api", project.Repo)}
+	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
+	if err != nil {
+		return err
+	}
+
 	// install node modules
 	output.Println("Installing node modules...")
 	config.Cmd = []string{"npm", "install", "--no-fund"}
