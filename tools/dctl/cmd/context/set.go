@@ -1,4 +1,4 @@
-package project
+package context
 
 import (
 	"github.com/steady-bytes/draft/tools/dctl/config"
@@ -8,14 +8,14 @@ import (
 )
 
 var (
-	Project string
+	Context string
 )
 
-func Set(cmd *cobra.Command, args []string) error {
-	err := config.SetProject(Project)
+func SetDefault(cmd *cobra.Command, args []string) error {
+	err := config.SetDefaultContext(Context)
 	if err != nil {
 		return err
 	}
-	output.Println("The current project is now: %s", Project)
+	output.Print("The default context is now: %s", Context)
 	return nil
 }

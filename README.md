@@ -42,15 +42,21 @@ Here are some simple descriptions of what you'll find in each directory:
 * [Docker](https://docs.docker.com/get-docker/)
 * [Kubernetes](https://kubernetes.io/docs/tasks/tools/) (this is for running testing suites locally: if on Mac or Windows you can use the Kubernetes engine built into Docker Desktop)
 
-Clone the repository. Then navigate to `tools/dctl` and run `go install`. This will install the `dctl` binary to your `$GOPATH/bin` directory.
+You'll need the `dctl` CLI tool to work with everything in Draft. Let's install it now:
+
+```shell
+go install github.com/steady-bytes/draft/tools/dctl@latest
+```
+
+We'll need to import this project as a usable context into `dctl` so it can manage things for us. After cloning the repo run the below command from the root of the repo:
+
+```shell
+dctl context import
+```
 
 Now you can set up your local environment:
 
 ```shell
-# initialize configuration
-dctl config
-dctl project import -p <PATH_TO_DRAFT_REPO>
-
 # initialize and start local infrastructure using Docker
 dctl infra init
 dctl infra start

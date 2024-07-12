@@ -27,8 +27,9 @@ type TemplateConfig struct {
 
 func Run(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
+	dctx := config.GetContext()
 
-	p := filepath.Join(config.Root(), "pipelines", "runs", fmt.Sprintf("%s.yaml", RunConfig.Pipeline))
+	p := filepath.Join(dctx.Root, "pipelines", "runs", fmt.Sprintf("%s.yaml", RunConfig.Pipeline))
 
 	// read in go template from def
 	def, err := os.ReadFile(p)
@@ -50,8 +51,6 @@ func Run(cmd *cobra.Command, args []string) error {
 	defer f.Close()
 	defer os.Remove(f.Name())
 
-	output.Println(f.Name())
-
 	// execute template
 	err = t.Execute(f, RunConfig)
 	if err != nil {
@@ -65,6 +64,5 @@ func Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	output.Println("Finished")
 	return nil
 }

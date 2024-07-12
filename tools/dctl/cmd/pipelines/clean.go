@@ -16,9 +16,10 @@ import (
 
 func Clean(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
+	dctx := config.GetContext()
 
 	// set the path to the pipelines manifests
-	pipelinesPath := filepath.Join(config.Root(), "pipelines")
+	pipelinesPath := filepath.Join(dctx.Root, "pipelines")
 
 	// check current kube context and ask to proceed
 	command := exec.Command("kubectl", "config", "current-context")
@@ -26,10 +27,10 @@ func Clean(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	output.Println("Current kube context: %s", kubeContext)
-	output.Println("The above context will be used to delete pipeline manifests. Would you like to proceed? (yes/NO)")
+	output.Print("Current kube context: %s", kubeContext)
+	output.Print("The above context will be used to delete pipeline manifests. Would you like to proceed? (yes/NO)")
 	if !input.ConfirmDefaultDeny() {
-		output.Println("Aborted")
+		output.Warn("Aborted")
 		return nil
 	}
 
@@ -42,16 +43,15 @@ func Clean(cmd *cobra.Command, args []string) error {
 		delete(ctx, path)
 	}
 
-	output.Println("Finished")
 	return nil
 }
 
 func delete(ctx context.Context, path string) {
 	// confirm with user
-	output.Println("About to delete the manifest(s) located at: %s", path)
-	output.Println("Would you like to proceed? (YES/no)")
+	output.Print("About to delete the manifest(s) located at: %s", path)
+	output.Print("Would you like to proceed? (YES/no)")
 	if !input.ConfirmDefaultAllow() {
-		output.Println("Skipped")
+		output.Warn("Skipped")
 		return
 	}
 	// delete the manifest

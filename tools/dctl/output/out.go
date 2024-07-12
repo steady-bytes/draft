@@ -5,9 +5,15 @@ import (
 	"os"
 )
 
-// Println can be used for all general CLI prints and will append a magenta `dctl` prefix to all output
-func Println(msg string, opts ...interface{}) {
+// Print can be used for all general CLI prints and will append a magenta `dctl` prefix to all output
+func Print(msg string, opts ...interface{}) {
 	msg = fmt.Sprintf("%s dctl %s - %s\n", Magenta.String(), noColor, msg)
+	print(msg, opts...)
+}
+
+// Warn can be used for user warnings and append an yellow `dctl` prefix to all output
+func Warn(msg string, opts ...interface{}) {
+	msg = fmt.Sprintf("%s dctl %s - %s\n", Yellow.String(), noColor, msg)
 	print(msg, opts...)
 }
 

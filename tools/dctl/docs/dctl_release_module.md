@@ -12,6 +12,12 @@ a git tag with the new version and push it to the git origin.
 dctl release module [flags]
 ```
 
+### Examples
+
+```
+dctl release module --path pkg/chassis
+```
+
 ### Options
 
 ```
@@ -22,7 +28,8 @@ dctl release module [flags]
 ### Options inherited from parent commands
 
 ```
-      --config string   config file
+      --config string    config file
+      --context string   override the current context
 ```
 
 ### SEE ALSO

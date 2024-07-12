@@ -18,23 +18,23 @@ import (
 
 func Build(cmd *cobra.Command, args []string) (err error) {
 	ctx := cmd.Context()
-	dctl, err := docker.NewDockerController()
+	dctx := config.GetContext()
+
+	dockerCtl, err := docker.NewDockerController()
 	if err != nil {
 		return nil
 	}
 
-	project := config.CurrentProject()
-
 	// build out execution path
-	rootPath := config.Root()
+	rootPath := dctx.Root
 	apiPath := filepath.Join(rootPath, "api")
 
 	// run docker proto-builder image
-	output.Println("Building api...")
+	output.Print("Building api...")
 
 	// base configuration for docker container runs
 	config := &container.Config{
-		Image:      project.API.ImageName,
+		Image:      dctx.API.ImageName,
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{
@@ -49,33 +49,33 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// mod update
-	output.Println("Running `buf dep update`...")
+	output.Print("Running `buf dep update`...")
 	config.Cmd = []string{"buf", "dep", "update"}
-	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
+	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
 
 	// generate go
-	output.Println("Generating Go protos...")
+	output.Print("Generating Go protos...")
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.go.yaml"}
-	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
+	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
 
 	// generate gotag
-	output.Println("Generating Gotag protos...")
+	output.Print("Generating Gotag protos...")
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.gotag.yaml"}
-	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
+	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
 
 	// generate web
-	output.Println("Generating Web protos...")
+	output.Print("Generating Web protos...")
 	config.Cmd = []string{"npx", "buf", "generate", "--template", "buf.gen.web.yaml"}
-	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
+	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
@@ -89,17 +89,17 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// make sure to chown the files to the current user
-	output.Println("Correcting file permissions...")
+	output.Print("Correcting file permissions...")
 	u, err := user.Current()
 	if err != nil {
 		return err
 	}
 	config.Cmd = []string{"chown", "-R", fmt.Sprintf("%s:%s", u.Uid, u.Gid), "/workspace"}
-	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
+	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
 
-	output.Println("Finished")
+	output.Print("Finished")
 	return err
 }

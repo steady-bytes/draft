@@ -1,0 +1,5 @@
+name: draft
+repo: github.com/steady-bytes/draft
+trunk_branch: main
+api:
+  image_name: ghcr.io/steady-bytes/draft-api-builder:main

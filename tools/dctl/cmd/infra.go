@@ -7,8 +7,17 @@ import (
 )
 
 var infraCmd = &cobra.Command{
-	Use:   "infra",
-	Short: "Manage all local draft infra (Docker containers)",
+	Use:     "infra",
+	Aliases: []string{"infrastructure"},
+	Short:   "Manage all local draft infra services (Docker containers)",
+	Long: `Manage all local draft infra services (Docker containers). dctl runs all local
+infrastructure as Docker containers and you can manage their lifecycle with the commands
+below this one.
+
+Note that you can specify which services to operate on with any of the other commands
+using the flag --services:
+
+dctl infra start --services 'postgres,nats,hasura'`,
 }
 
 var infraCleanCmd = &cobra.Command{
@@ -19,19 +28,19 @@ var infraCleanCmd = &cobra.Command{
 
 var infraInitCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Build all custom draft infra Docker images",
+	Short: "Pull Docker images required for draft infra",
 	RunE:  infra.Init,
 }
 
 var infraStartCmd = &cobra.Command{
 	Use:   "start",
-	Short: "Start all draft infra locally",
+	Short: "Run draft infra Docker containers",
 	RunE:  infra.Start,
 }
 
 var infraStopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "Stop all running draft infra",
+	Short: "Stop running draft infra Docker containers",
 	RunE:  infra.Stop,
 }
 
