@@ -22,7 +22,7 @@ var (
 
 func Run(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
-	dctx := config.CurrentContext()
+	dctx := config.GetContext()
 
 	if len(Services) > 0 && len(Domains) > 0 {
 		return fmt.Errorf("cannot specify both services and domains to run at once")
@@ -33,7 +33,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(Services) > 0 {
-		output.Println("running service(s): %s", Services)
+		output.Print("running service(s): %s", Services)
 
 		for _, name := range Services {
 			paths := strings.Split(name, string(os.PathSeparator))
@@ -45,7 +45,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(Domains) > 0 {
-		output.Println("running domain(s): %s", Domains)
+		output.Print("running domain(s): %s", Domains)
 
 		for _, d := range Domains {
 			// build out execution path

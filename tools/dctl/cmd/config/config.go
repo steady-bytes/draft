@@ -34,7 +34,7 @@ func Config(cmd *cobra.Command, args []string) error {
 		err = v.SafeWriteConfigAs(fileName)
 		if err != nil {
 			if strings.Contains(err.Error(), "Already Exists") {
-				output.Println("Config file already exists. Provide --force/-f flag to overwrite.")
+				output.Print("Config file already exists. Provide --force/-f flag to overwrite.")
 				return nil
 			}
 			return err

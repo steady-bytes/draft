@@ -32,10 +32,10 @@ func Module(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	if branchString != config.CurrentContext().TrunkBranch {
-		output.Println("You are currently on branch %s, not the trunk branch %s. Would you like to proceed? (yes/NO)", branchString, config.CurrentContext().TrunkBranch)
+	if branchString != config.GetContext().TrunkBranch {
+		output.Print("You are currently on branch %s, not the trunk branch %s. Would you like to proceed? (yes/NO)", branchString, config.GetContext().TrunkBranch)
 		if !input.ConfirmDefaultDeny() {
-			output.Println("Cancelled")
+			output.Warn("Cancelled")
 			return nil
 		}
 	}
@@ -71,10 +71,10 @@ func Module(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	output.Println("New version will be: v%s", newVersion)
-	output.Println("Would you like to proceed? (YES/no)")
+	output.Print("New version will be: v%s", newVersion)
+	output.Print("Would you like to proceed? (YES/no)")
 	if !input.ConfirmDefaultAllow() {
-		output.Println("Cancelled")
+		output.Warn("Cancelled")
 		return nil
 	}
 
@@ -97,12 +97,12 @@ func Module(cmd *cobra.Command, args []string) (err error) {
 }
 
 func initialVersion() (semver.Version, error) {
-	output.Println("Looks like this module doesn't yet have a version. Would you like to create an initial version? (YES/no)")
+	output.Print("Looks like this module doesn't yet have a version. Would you like to create an initial version? (YES/no)")
 	if !input.ConfirmDefaultAllow() {
-		output.Println("Cancelled")
+		output.Warn("Cancelled")
 		return semver.Version{}, nil
 	}
-	output.Println("Enter a new version in semver format (Major.Minor.Patch):")
+	output.Print("Enter a new version in semver format (Major.Minor.Patch):")
 	newVersionString := input.Get()
 	newVersion, err := semver.NewVersion(newVersionString)
 	if err != nil {
@@ -122,8 +122,8 @@ func incrementVersion(tagsString string) (semver.Version, error) {
 	}
 
 	// show current version and ask for upgrade increment
-	output.Println("Most recent version: v%s", currentVersion)
-	output.Println("Would you like to release a (M)ajor, (m)inor, or (p)atch release?")
+	output.Print("Most recent version: v%s", currentVersion)
+	output.Print("Would you like to release a (M)ajor, (m)inor, or (p)atch release?")
 	selection := input.Get()
 	var newVersion semver.Version
 	switch selection {

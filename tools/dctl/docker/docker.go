@@ -80,7 +80,7 @@ func (d *dockerController) BuildImage(ctx context.Context, path, image string) e
 }
 
 func (d *dockerController) PullImage(ctx context.Context, image string) error {
-	output.Println("Pulling image: %s", image)
+	output.Print("Pulling image: %s", image)
 	resp, err := d.cli.ImagePull(ctx, image, types.ImagePullOptions{})
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (d *dockerController) PullImage(ctx context.Context, image string) error {
 }
 
 func (d *dockerController) RunContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) error {
-	output.Println("Running container: %s", containerName)
+	output.Print("Running container: %s", containerName)
 
 	// configure and create container
 	if showOutput {
@@ -130,7 +130,7 @@ func (d *dockerController) RunContainer(ctx context.Context, containerName strin
 }
 
 func (d *dockerController) StartContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) (string, error) {
-	output.Println("Starting container: %s", containerName)
+	output.Print("Starting container: %s", containerName)
 
 	id, err := d.getContainerID(ctx, containerName)
 	if err != nil {
@@ -138,7 +138,6 @@ func (d *dockerController) StartContainer(ctx context.Context, containerName str
 	}
 
 	if id == "" {
-		output.Println("No existing container found for %s. Creating new container...", containerName)
 		// configure and create container
 		if showOutput {
 			config.AttachStdout = true
@@ -178,7 +177,7 @@ func (d *dockerController) StopContainer(ctx context.Context, id string) error {
 }
 
 func (d *dockerController) StopContainerByName(ctx context.Context, containerName string) error {
-	output.Println("Stopping container: %s", containerName)
+	output.Print("Stopping container: %s", containerName)
 	id, err := d.getContainerID(ctx, containerName)
 	if err != nil {
 		return err
@@ -191,7 +190,7 @@ func (d *dockerController) RemoveContainer(ctx context.Context, id string) error
 }
 
 func (d *dockerController) RemoveContainerByName(ctx context.Context, containerName string) error {
-	output.Println("Removing container: %s", containerName)
+	output.Print("Removing container: %s", containerName)
 	id, err := d.getContainerID(ctx, containerName)
 	if err != nil {
 		return err

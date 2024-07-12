@@ -16,6 +16,6 @@ func SetDefault(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	output.Println("The default context is now: %s", Context)
+	output.Print("The default context is now: %s", Context)
 	return nil
 }

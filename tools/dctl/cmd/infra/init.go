@@ -21,13 +21,12 @@ func Init(cmd *cobra.Command, args []string) error {
 		if !ok {
 			output.Error(fmt.Errorf("invalid infra service name: %s", name))
 		}
-		output.Println("Pulling Docker image for: %s", name)
+		output.Print("Pulling Docker image for: %s", name)
 		err = dockerCtl.PullImage(ctx, config.containerConfig.Image)
 		if err != nil {
 			return err
 		}
 	}
 
-	output.Println("Finished")
 	return nil
 }

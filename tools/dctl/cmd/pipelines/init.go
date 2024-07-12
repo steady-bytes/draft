@@ -54,7 +54,7 @@ type InitConfig struct {
 
 func Init(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
-	dctx := config.CurrentContext()
+	dctx := config.GetContext()
 
 	if SshIdFile == "" {
 		// get the home directory
@@ -111,10 +111,10 @@ func Init(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	output.Println("Current kube context: %s", kubeContext)
-	output.Println("The above context will be used to install required pipeline manifests. Would you like to proceed? (yes/NO)")
+	output.Print("Current kube context: %s", kubeContext)
+	output.Print("The above context will be used to install required pipeline manifests. Would you like to proceed? (yes/NO)")
 	if !input.ConfirmDefaultDeny() {
-		output.Println("Aborted")
+		output.Warn("Aborted")
 		return nil
 	}
 
@@ -129,7 +129,7 @@ func Init(cmd *cobra.Command, args []string) error {
 		}
 		// on initial tekton manifest install, watch for pods to be ready before continuing
 		if index == 0 {
-			output.Println("Waiting for up to 30 seconds for Tekton pods to be ready...")
+			output.Print("Waiting for up to 30 seconds for Tekton pods to be ready...")
 			for i := 0; i < 30; i++ {
 				time.Sleep(1 * time.Second)
 				command := exec.Command("kubectl", "get", "pods", "--namespace", "tekton-pipelines", "--field-selector", "status.phase==Running")
@@ -144,7 +144,6 @@ func Init(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	output.Println("Finished")
 	return nil
 }
 
@@ -162,10 +161,10 @@ func file(filePath string) (*os.File, error) {
 
 func apply(ctx context.Context, path string) error {
 	// confirm with user
-	output.Println("About to apply the manifest(s) located at: %s", path)
-	output.Println("Would you like to proceed? (YES/no)")
+	output.Print("About to apply the manifest(s) located at: %s", path)
+	output.Print("Would you like to proceed? (YES/no)")
 	if !input.ConfirmDefaultAllow() {
-		output.Println("Skipped")
+		output.Warn("Skipped")
 		return nil
 	}
 	// apply the manifest

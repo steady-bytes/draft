@@ -31,23 +31,23 @@ func Init(cmd *cobra.Command, args []string) error {
 	}
 
 	// get name
-	output.Println("What is the name of this context?")
+	output.Print("What is the name of this context?")
 	name := input.Get()
 
 	// get repo
-	output.Println("What is the git repository for this context? (e.g. github.com/steady-bytes/draft)")
+	output.Print("What is the git repository for this context? (e.g. github.com/steady-bytes/draft)")
 	repo := input.Get()
 	viper.Set(fmt.Sprintf("contexts.%s.repo", name), repo)
 
 	// confirm path
-	output.Println("This will initialize a new Draft context in the directory: %s", Path)
-	output.Println("Would you like to proceed? (yes/NO)")
+	output.Print("This will initialize a new Draft context in the directory: %s", Path)
+	output.Print("Would you like to proceed? (yes/NO)")
 	if !input.ConfirmDefaultDeny() {
 		return nil
 	}
 	viper.Set(fmt.Sprintf("contexts.%s.root", name), Path)
 
-	output.Println("Intializing context...")
+	output.Print("Intializing context...")
 
 	// make sure path exists
 	_, err = os.ReadDir(Path)

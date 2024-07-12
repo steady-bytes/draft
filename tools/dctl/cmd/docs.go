@@ -15,7 +15,7 @@ var docsCmd = &cobra.Command{
 	Use:   "docs",
 	Short: "Generate docs for dctl",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		output.Println("Writing docs to: %s", docsDirectory)
+		output.Print("Writing docs to: %s", docsDirectory)
 		err := doc.GenMarkdownTree(rootCmd, docsDirectory)
 		if err != nil {
 			return err

@@ -24,6 +24,7 @@ var rootCmd = &cobra.Command{
 It does everything from generate code from Protobufs to spin up your local infrastructure for
 development.`,
 	DisableAutoGenTag: true,
+	SilenceUsage: true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -49,9 +50,10 @@ func Execute() {
 
 	err := rootCmd.ExecuteContext(ctx)
 	if err != nil {
-		output.Error(err)
+		output.PrintlnWithNameAndColor("dctl", "Failed", output.Red)
 		os.Exit(1)
 	}
+	output.PrintlnWithNameAndColor("dctl", "Finished", output.Green)
 }
 
 func init() {
@@ -91,16 +93,16 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		output.Error(err)
 	}
-	output.Println("Using config file: %s", viper.ConfigFileUsed())
+	output.Print("Using config file: %s", viper.ConfigFileUsed())
 }
 
 // requireWorkspace can be used as a PreRunE on a cobra.Command to make sure
 // the current context is a workspace and fail out if not.
 func requireWorkspace(cmd *cobra.Command, args []string) error {
-	dctx := config.CurrentContext()
+	dctx := config.GetContext()
 	if !dctx.IsWorkspace {
-		return fmt.Errorf("this command must be called using a context with an associated workspace")
+		return fmt.Errorf("this command must be called using a context with an associated workspace - make sure the context has a `root` value of a directory with a valid draft.yaml workspace definition file")
 	}
-	config.SetCurrentContext(dctx)
+	config.SetContext(dctx)
 	return nil
 }

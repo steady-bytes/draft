@@ -18,7 +18,7 @@ import (
 
 func Init(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
-	dctx := config.CurrentContext()
+	dctx := config.GetContext()
 
 	dockerCtl, err := docker.NewDockerController()
 	if err != nil {
@@ -53,7 +53,7 @@ func Init(cmd *cobra.Command, args []string) error {
 	// initialize go module (if it doesn't already exist)
 	goModPath := filepath.Join(dctx.Repo, "api")
 	if _, err := os.Stat(goModPath); errors.Is(err, os.ErrNotExist) {
-		output.Println("Initializing go module...")
+		output.Print("Initializing go module...")
 		config.Cmd = []string{"go", "mod", "init", }
 		err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 		if err != nil {
@@ -62,7 +62,7 @@ func Init(cmd *cobra.Command, args []string) error {
 	}
 
 	// install node modules
-	output.Println("Installing node modules...")
+	output.Print("Installing node modules...")
 	config.Cmd = []string{"npm", "install", "--no-fund"}
 	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
@@ -70,7 +70,7 @@ func Init(cmd *cobra.Command, args []string) error {
 	}
 
 	// make sure to chown the files to the current user
-	output.Println("Correcting file permissions...")
+	output.Print("Correcting file permissions...")
 	u, err := user.Current()
 	if err != nil {
 		return err
@@ -81,6 +81,6 @@ func Init(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	output.Println("Finished")
+	output.Print("Finished")
 	return nil
 }

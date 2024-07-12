@@ -26,11 +26,11 @@ func Import(cmd *cobra.Command, args []string) error {
 	}
 
 	// get name
-	output.Println("What is the name of this context?")
+	output.Print("What is the name of this context?")
 	name := input.Get()
 
 	// get repo
-	output.Println("What is the git repository for this context? (e.g. github.com/steady-bytes/draft)")
+	output.Print("What is the git repository for this context? (e.g. github.com/steady-bytes/draft)")
 	repo := input.Get()
 	viper.Set(fmt.Sprintf("contexts.%s.repo", name), repo)
 
@@ -54,7 +54,7 @@ func Import(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	output.Println("The current context is now: %s", name)
+	output.Print("The current context is now: %s", name)
 
 	return nil
 }

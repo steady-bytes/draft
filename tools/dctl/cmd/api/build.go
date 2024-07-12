@@ -18,7 +18,7 @@ import (
 
 func Build(cmd *cobra.Command, args []string) (err error) {
 	ctx := cmd.Context()
-	dctx := config.CurrentContext()
+	dctx := config.GetContext()
 
 	dockerCtl, err := docker.NewDockerController()
 	if err != nil {
@@ -30,7 +30,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	apiPath := filepath.Join(rootPath, "api")
 
 	// run docker proto-builder image
-	output.Println("Building api...")
+	output.Print("Building api...")
 
 	// base configuration for docker container runs
 	config := &container.Config{
@@ -49,7 +49,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// mod update
-	output.Println("Running `buf dep update`...")
+	output.Print("Running `buf dep update`...")
 	config.Cmd = []string{"buf", "dep", "update"}
 	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
@@ -57,7 +57,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// generate go
-	output.Println("Generating Go protos...")
+	output.Print("Generating Go protos...")
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.go.yaml"}
 	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
@@ -65,7 +65,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// generate gotag
-	output.Println("Generating Gotag protos...")
+	output.Print("Generating Gotag protos...")
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.gotag.yaml"}
 	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
@@ -73,7 +73,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// generate web
-	output.Println("Generating Web protos...")
+	output.Print("Generating Web protos...")
 	config.Cmd = []string{"npx", "buf", "generate", "--template", "buf.gen.web.yaml"}
 	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
@@ -89,7 +89,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// make sure to chown the files to the current user
-	output.Println("Correcting file permissions...")
+	output.Print("Correcting file permissions...")
 	u, err := user.Current()
 	if err != nil {
 		return err
@@ -100,6 +100,6 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	output.Println("Finished")
+	output.Print("Finished")
 	return err
 }
