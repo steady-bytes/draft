@@ -14,6 +14,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	BuildImage     bool
+	ImageName string
+)
+
 func Init(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 	dctx := config.GetContext()
@@ -27,14 +32,21 @@ func Init(cmd *cobra.Command, args []string) error {
 	rootPath := dctx.Root
 	apiPath := filepath.Join(rootPath, "api")
 
-	err = dockerCtl.PullImage(ctx, dctx.API.ImageName)
+	var image string
+	if BuildImage {
+		image = ImageName
+		err = dockerCtl.BuildImage(ctx, apiPath, image)
+	} else {
+		image = dctx.API.ImageName
+		err = dockerCtl.PullImage(ctx, image)
+	}
 	if err != nil {
 		return err
 	}
 
 	// base configuration for docker container runs
 	config := &container.Config{
-		Image:      dctx.API.ImageName,
+		Image:      image,
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{
