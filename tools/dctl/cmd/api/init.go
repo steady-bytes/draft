@@ -38,6 +38,7 @@ func Init(cmd *cobra.Command, args []string) error {
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{
+		AutoRemove: true,
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
@@ -58,7 +59,7 @@ func Init(cmd *cobra.Command, args []string) error {
 	// install node modules
 	output.Println("Installing node modules...")
 	config.Cmd = []string{"npm", "install", "--no-fund"}
-	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,7 @@ func Init(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	config.Cmd = []string{"chown", "-R", fmt.Sprintf("%s:%s", u.Uid, u.Gid), "/workspace"}
-	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
