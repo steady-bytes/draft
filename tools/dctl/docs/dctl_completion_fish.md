@@ -31,7 +31,8 @@ dctl completion fish [flags]
 ### Options inherited from parent commands
 
 ```
-      --config string   config file
+      --config string    config file
+      --context string   override the current context
 ```
 
 ### SEE ALSO

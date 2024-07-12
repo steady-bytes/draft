@@ -11,20 +11,20 @@ development.
 ### Options
 
 ```
-      --config string   config file
-  -h, --help            help for dctl
-  -t, --toggle          Help message for toggle
+      --config string    config file
+      --context string   override the current context
+  -h, --help             help for dctl
+  -t, --toggle           Help message for toggle
 ```
 
 ### SEE ALSO
 
 * [dctl api](dctl_api.md)	 - Commands for managing the draft API (protobufs)
 * [dctl completion](dctl_completion.md)	 - Generate the autocompletion script for the specified shell
-* [dctl config](dctl_config.md)	 - Initialize the dctl configuration
+* [dctl context](dctl_context.md)	 - Commands to manage draft contexts
 * [dctl docs](dctl_docs.md)	 - Generate docs for dctl
-* [dctl infra](dctl_infra.md)	 - Manage all local draft infra (Docker containers)
+* [dctl infra](dctl_infra.md)	 - Manage all local draft infra services (Docker containers)
 * [dctl pipelines](dctl_pipelines.md)	 - Manage and run draft pipelines
-* [dctl project](dctl_project.md)	 - Commands to manage draft projects
 * [dctl release](dctl_release.md)	 - Commands for releasing Draft components
 * [dctl run](dctl_run.md)	 - Run services locally
 

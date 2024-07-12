@@ -16,10 +16,11 @@ dctl infra status [flags]
 ### Options inherited from parent commands
 
 ```
-      --config string   config file
+      --config string    config file
+      --context string   override the current context
 ```
 
 ### SEE ALSO
 
-* [dctl infra](dctl_infra.md)	 - Manage all local draft infra (Docker containers)
+* [dctl infra](dctl_infra.md)	 - Manage all local draft infra services (Docker containers)
 
