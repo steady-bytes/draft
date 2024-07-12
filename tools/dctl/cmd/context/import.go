@@ -2,12 +2,9 @@ package context
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/steady-bytes/draft/tools/dctl/config"
-	"github.com/steady-bytes/draft/tools/dctl/input"
-	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -20,41 +17,19 @@ const (
 )
 
 func Import(cmd *cobra.Command, args []string) error {
-	Path, err := filepath.Abs(Path)
+	// load the workspace file from the given path
+	path, err := filepath.Abs(Path)
 	if err != nil {
 		return err
 	}
+	dctx := config.LoadWorkspaceContext(filepath.Join(path, "draft.yaml"))
 
-	// get name
-	output.Print("What is the name of this context?")
-	name := input.Get()
-
-	// get repo
-	output.Print("What is the git repository for this context? (e.g. github.com/steady-bytes/draft)")
-	repo := input.Get()
-	viper.Set(fmt.Sprintf("contexts.%s.repo", name), repo)
-
-	// set path
-	_, err = os.ReadDir(Path)
-	if err != nil {
-		return err
-	}
-	viper.Set(fmt.Sprintf("contexts.%s.root", name), Path)
-
-	setDefaults(name)
-
-	// write context to config
+	// save context (with root path) to dctl config
+	viper.Set(fmt.Sprintf("contexts.%s.root", dctx.Name), path)
 	err = viper.WriteConfig()
 	if err != nil {
 		return err
 	}
-
-	// set context
-	err = config.SetDefaultContext(name)
-	if err != nil {
-		return err
-	}
-	output.Print("The current context is now: %s", name)
 
 	return nil
 }
