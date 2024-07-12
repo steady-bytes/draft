@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/google/uuid"
 	"github.com/moby/term"
 )
 
@@ -28,7 +29,7 @@ type DockerController interface {
 	// PullImage pulls the given image down from the Docker registry
 	PullImage(ctx context.Context, image string) error
 	// RunContainer creates a container, starts it, waits for it to complete, and removes it if requested
-	RunContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput, removeContainer bool) error
+	RunContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) error
 	// StartContainer runs an existing container or creates a new one if none already exist with the given name. It exists without waiting for the container to exit
 	StartContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) (string, error)
 	// StopContainer stops a container by the given id
@@ -41,6 +42,8 @@ type DockerController interface {
 	RemoveContainerByName(ctx context.Context, containerName string) error
 	// GetContainerByName gets a container by the given name
 	GetContainerByName(ctx context.Context, containerName string) (*types.Container, error)
+	// GenerateContainerName generates a random container name in the format of: dctl-UUID
+	GenerateContainerName() (name string)
 }
 
 type dockerController struct {
@@ -89,7 +92,7 @@ func (d *dockerController) PullImage(ctx context.Context, image string) error {
 	return nil
 }
 
-func (d *dockerController) RunContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput, removeContainer bool) error {
+func (d *dockerController) RunContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) error {
 	output.Println("Running container: %s", containerName)
 
 	// configure and create container
@@ -123,13 +126,6 @@ func (d *dockerController) RunContainer(ctx context.Context, containerName strin
 		return err
 	}
 
-	if removeContainer {
-		// remove completed container
-		err = d.cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{})
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -211,6 +207,10 @@ func (d *dockerController) GetContainerByName(ctx context.Context, containerName
 		}
 	}
 	return container, nil
+}
+
+func (d *dockerController) GenerateContainerName() (name string) {
+	return fmt.Sprintf("dctl-%s", uuid.New().String())
 }
 
 // HELPER FUNCTIONS

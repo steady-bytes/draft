@@ -38,6 +38,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{
+		AutoRemove: true,
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
@@ -50,7 +51,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	// mod update
 	output.Println("Running `buf dep update`...")
 	config.Cmd = []string{"buf", "dep", "update"}
-	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
@@ -58,7 +59,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	// generate go
 	output.Println("Generating Go protos...")
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.go.yaml"}
-	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
@@ -66,7 +67,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	// generate gotag
 	output.Println("Generating Gotag protos...")
 	config.Cmd = []string{"buf", "generate", "--template", "buf.gen.gotag.yaml"}
-	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
@@ -74,7 +75,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 	// generate web
 	output.Println("Generating Web protos...")
 	config.Cmd = []string{"npx", "buf", "generate", "--template", "buf.gen.web.yaml"}
-	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
@@ -94,7 +95,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 	config.Cmd = []string{"chown", "-R", fmt.Sprintf("%s:%s", u.Uid, u.Gid), "/workspace"}
-	err = dctl.RunContainer(ctx, project.API.ContainerName, config, hostConfig, true, true)
+	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
