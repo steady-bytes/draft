@@ -22,6 +22,7 @@ var (
 
 func Run(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
+	dctx := config.CurrentContext()
 
 	if len(Services) > 0 && len(Domains) > 0 {
 		return fmt.Errorf("cannot specify both services and domains to run at once")
@@ -31,7 +32,6 @@ func Run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("must specify at least one service or one domain to run")
 	}
 
-	rootPath := config.Root()
 	if len(Services) > 0 {
 		output.Println("running service(s): %s", Services)
 
@@ -40,7 +40,7 @@ func Run(cmd *cobra.Command, args []string) error {
 			if len(paths) != 2 {
 				return fmt.Errorf("invalid service name, must take shape 'domain/service': %s", name)
 			}
-			go run(ctx, filepath.Join(rootPath, "services", paths[0]), paths[1])
+			go run(ctx, filepath.Join(dctx.Root, "services", paths[0]), paths[1])
 		}
 	}
 
@@ -49,7 +49,7 @@ func Run(cmd *cobra.Command, args []string) error {
 
 		for _, d := range Domains {
 			// build out execution path
-			domainPath := filepath.Join(rootPath, "services", d)
+			domainPath := filepath.Join(dctx.Root, "services", d)
 
 			// iterate through all services in domain
 			services, err := os.ReadDir(domainPath)

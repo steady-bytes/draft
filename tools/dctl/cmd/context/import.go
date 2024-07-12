@@ -50,7 +50,7 @@ func Import(cmd *cobra.Command, args []string) error {
 	}
 
 	// set context
-	err = config.SetContext(name)
+	err = config.SetDefaultContext(name)
 	if err != nil {
 		return err
 	}

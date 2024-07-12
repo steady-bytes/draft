@@ -27,8 +27,9 @@ type TemplateConfig struct {
 
 func Run(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
+	dctx := config.CurrentContext()
 
-	p := filepath.Join(config.Root(), "pipelines", "runs", fmt.Sprintf("%s.yaml", RunConfig.Pipeline))
+	p := filepath.Join(dctx.Root, "pipelines", "runs", fmt.Sprintf("%s.yaml", RunConfig.Pipeline))
 
 	// read in go template from def
 	def, err := os.ReadFile(p)

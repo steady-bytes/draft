@@ -11,7 +11,7 @@ import (
 
 func Init(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
-	dctl, err := docker.NewDockerController()
+	dockerCtl, err := docker.NewDockerController()
 	if err != nil {
 		return nil
 	}
@@ -22,7 +22,7 @@ func Init(cmd *cobra.Command, args []string) error {
 			output.Error(fmt.Errorf("invalid infra service name: %s", name))
 		}
 		output.Println("Pulling Docker image for: %s", name)
-		err = dctl.PullImage(ctx, config.containerConfig.Image)
+		err = dockerCtl.PullImage(ctx, config.containerConfig.Image)
 		if err != nil {
 			return err
 		}

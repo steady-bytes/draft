@@ -8,14 +8,14 @@ import (
 )
 
 var (
-	Project string
+	Context string
 )
 
-func Set(cmd *cobra.Command, args []string) error {
-	err := config.SetContext(Project)
+func SetDefault(cmd *cobra.Command, args []string) error {
+	err := config.SetDefaultContext(Context)
 	if err != nil {
 		return err
 	}
-	output.Println("The current context is now: %s", Project)
+	output.Println("The default context is now: %s", Context)
 	return nil
 }

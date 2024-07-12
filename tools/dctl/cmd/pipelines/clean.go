@@ -16,9 +16,10 @@ import (
 
 func Clean(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
+	dctx := config.CurrentContext()
 
 	// set the path to the pipelines manifests
-	pipelinesPath := filepath.Join(config.Root(), "pipelines")
+	pipelinesPath := filepath.Join(dctx.Root, "pipelines")
 
 	// check current kube context and ask to proceed
 	command := exec.Command("kubectl", "config", "current-context")

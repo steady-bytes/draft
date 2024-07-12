@@ -54,6 +54,7 @@ type InitConfig struct {
 
 func Init(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
+	dctx := config.CurrentContext()
 
 	if SshIdFile == "" {
 		// get the home directory
@@ -79,7 +80,7 @@ func Init(cmd *cobra.Command, args []string) error {
 	}
 
 	// set the path to the pipelines secrets
-	pipelinesPath := filepath.Join(config.Root(), "pipelines")
+	pipelinesPath := filepath.Join(dctx.Root, "pipelines")
 
 	// create the directory if it doesn't exist
 	secretsPath := filepath.Join(pipelinesPath, "secrets")

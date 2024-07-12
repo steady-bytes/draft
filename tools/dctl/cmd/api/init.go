@@ -1,7 +1,9 @@
 package api
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"os/user"
 	"path/filepath"
 
@@ -16,25 +18,25 @@ import (
 
 func Init(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
-	dctl, err := docker.NewDockerController()
+	dctx := config.CurrentContext()
+
+	dockerCtl, err := docker.NewDockerController()
 	if err != nil {
 		return nil
 	}
 
-	context := config.CurrentContext()
-
 	// build out execution path
-	rootPath := config.Root()
+	rootPath := dctx.Root
 	apiPath := filepath.Join(rootPath, "api")
 
-	err = dctl.PullImage(ctx, context.API.ImageName)
+	err = dockerCtl.PullImage(ctx, dctx.API.ImageName)
 	if err != nil {
 		return err
 	}
 
 	// base configuration for docker container runs
 	config := &container.Config{
-		Image:      context.API.ImageName,
+		Image:      dctx.API.ImageName,
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{
@@ -48,18 +50,21 @@ func Init(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	// initialize go module
-	output.Println("Initializing go module...")
-	config.Cmd = []string{"go", "mod", "init", fmt.Sprintf("%s/api", context.Repo)}
-	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
-	if err != nil {
-		return err
+	// initialize go module (if it doesn't already exist)
+	goModPath := filepath.Join(dctx.Repo, "api")
+	if _, err := os.Stat(goModPath); errors.Is(err, os.ErrNotExist) {
+		output.Println("Initializing go module...")
+		config.Cmd = []string{"go", "mod", "init", }
+		err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
+		if err != nil {
+			return err
+		}
 	}
 
 	// install node modules
 	output.Println("Installing node modules...")
 	config.Cmd = []string{"npm", "install", "--no-fund"}
-	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
+	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
@@ -71,7 +76,7 @@ func Init(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	config.Cmd = []string{"chown", "-R", fmt.Sprintf("%s:%s", u.Uid, u.Gid), "/workspace"}
-	err = dctl.RunContainer(ctx, dctl.GenerateContainerName(), config, hostConfig, true)
+	err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
 	if err != nil {
 		return err
 	}
