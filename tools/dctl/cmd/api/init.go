@@ -1,9 +1,7 @@
 package api
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"os/user"
 	"path/filepath"
 
@@ -48,17 +46,6 @@ func Init(cmd *cobra.Command, args []string) error {
 				Target: "/workspace",
 			},
 		},
-	}
-
-	// initialize go module (if it doesn't already exist)
-	goModPath := filepath.Join(dctx.Repo, "api")
-	if _, err := os.Stat(goModPath); errors.Is(err, os.ErrNotExist) {
-		output.Print("Initializing go module...")
-		config.Cmd = []string{"go", "mod", "init", }
-		err = dockerCtl.RunContainer(ctx, dockerCtl.GenerateContainerName(), config, hostConfig, true)
-		if err != nil {
-			return err
-		}
 	}
 
 	// install node modules

@@ -4,9 +4,11 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/steady-bytes/draft/tools/dctl/execute"
 	"github.com/steady-bytes/draft/tools/dctl/input"
 	"github.com/steady-bytes/draft/tools/dctl/output"
 
@@ -24,6 +26,7 @@ var (
 )
 
 func Init(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
 
 	Path, err := filepath.Abs(Path)
 	if err != nil {
@@ -91,9 +94,15 @@ func Init(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	setDefaults(name)
+	// initialize api go module
+	command := exec.Command("go", "mod", "init", fmt.Sprintf("%s/api", repo))
+	err = execute.ExecuteCommand(ctx, "go", output.Cyan, command)
+	if err != nil {
+		return err
+	}
 
 	// write context to config
+	setDefaults(name)
 	err = viper.WriteConfig()
 	if err != nil {
 		return err
@@ -110,7 +119,7 @@ func writeFiles(dir string) error {
 
 	for _, e := range entries {
 		readPath := filepath.Join(dir, e.Name())
-		writePath := strings.TrimPrefix(readPath, templateDir + string(os.PathSeparator))
+		writePath := strings.TrimPrefix(readPath, templateDir+string(os.PathSeparator))
 		if e.IsDir() {
 			err = writeFiles(readPath)
 			if err != nil {
@@ -133,6 +142,5 @@ func writeFiles(dir string) error {
 
 func setDefaults(name string) {
 	viper.Set(fmt.Sprintf("contexts.%s.api.image_name", name), defaultAPIImageName)
-	viper.Set(fmt.Sprintf("contexts.%s.api.container_name", name), defaultAPIContainerName)
 	viper.Set(fmt.Sprintf("contexts.%s.trunk_branch", name), defaultTrunkBranch)
 }
