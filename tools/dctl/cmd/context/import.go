@@ -25,9 +25,9 @@ func Import(cmd *cobra.Command, args []string) error {
 	dctx := config.LoadWorkspaceContext(filepath.Join(path, "draft.yaml"))
 
 	// check if a default is set and if not set the new context to the default
-	c := config.Get()
-	if c.Default == "" {
-		config.SetDefaultContext(dctx.Name)
+	d := viper.GetString("default")
+	if d == "" {
+		viper.SetDefault("default", dctx.Name)
 	}
 
 	// save context (with root path) to dctl config
