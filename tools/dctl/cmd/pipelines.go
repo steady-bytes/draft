@@ -13,15 +13,17 @@ var pipelinesCmd = &cobra.Command{
 }
 
 var pipelinesInitCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize pipelines configuration",
-	RunE:  pipelines.Init,
+	Use:     "init",
+	Short:   "Initialize pipelines configuration",
+	PreRunE: requireWorkspace,
+	RunE:    pipelines.Init,
 }
 
 var pipelinesCleanCmd = &cobra.Command{
-	Use:   "clean",
-	Short: "Cleanup any existing pipelines configuration on the cluster",
-	RunE:  pipelines.Clean,
+	Use:     "clean",
+	Short:   "Cleanup any existing pipelines configuration on the cluster",
+	PreRunE: requireWorkspace,
+	RunE:    pipelines.Clean,
 }
 
 var pipelinesDashboardCmd = &cobra.Command{
@@ -32,9 +34,10 @@ var pipelinesDashboardCmd = &cobra.Command{
 }
 
 var pipelinesRunCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Run a pipeline",
-	RunE:  pipelines.Run,
+	Use:     "run",
+	Short:   "Run a pipeline",
+	PreRunE: requireWorkspace,
+	RunE:    pipelines.Run,
 }
 
 func init() {

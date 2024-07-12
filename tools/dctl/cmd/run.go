@@ -20,7 +20,8 @@ And to run all services within both the 'examples' domain and the 'core' domain 
 
 dctl run -d examples,core
 `,
-	RunE:  run.Run,
+	PreRunE: requireWorkspace,
+	RunE:    run.Run,
 }
 
 func init() {

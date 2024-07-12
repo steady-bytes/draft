@@ -18,7 +18,8 @@ var releaseModule = &cobra.Command{
 	Long: `Release a Go module using a git tag. This will check the latest tag for the given module
 and will ask how you would like to increment the semantic version (major.minor.patch). It will create
 a git tag with the new version and push it to the git origin.`,
-	RunE: release.Module,
+	PreRunE: requireWorkspace,
+	RunE:    release.Module,
 }
 
 func init() {

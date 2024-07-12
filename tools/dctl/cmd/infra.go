@@ -19,7 +19,7 @@ var infraCleanCmd = &cobra.Command{
 
 var infraInitCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Build all custom draft infra Docker images",
+	Short: "Pull all draft infra Docker images",
 	RunE:  infra.Init,
 }
 

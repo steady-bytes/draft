@@ -18,15 +18,15 @@ var contextInitCmd = &cobra.Command{
 }
 
 var contextSetCmd = &cobra.Command{
-	Use: "set",
-	Short: "Set the current context",
-	RunE: context.Set,
+	Use:   "set",
+	Short: "Set the default context",
+	RunE:  context.SetDefault,
 }
 
 var contextImportCmd = &cobra.Command{
-	Use: "import",
+	Use:   "import",
 	Short: "Import an existing context",
-	RunE: context.Import,
+	RunE:  context.Import,
 }
 
 func init() {
@@ -36,7 +36,7 @@ func init() {
 	contextCmd.AddCommand(contextInitCmd)
 	contextInitCmd.Flags().StringVarP(&context.Path, "path", "p", ".", "the path to initialize the context in")
 	contextCmd.AddCommand(contextSetCmd)
-	contextSetCmd.Flags().StringVarP(&context.Project, "context", "p", ".", "the context to make currently active")
+	contextSetCmd.Flags().StringVarP(&context.Context, "default", "d", "", "the context to make the default")
 	contextCmd.AddCommand(contextImportCmd)
-	contextImportCmd.Flags().StringVarP(&context.Path, "path", "p", ".", "the path to initialize the context in")
+	contextImportCmd.Flags().StringVarP(&context.Path, "path", "p", ".", "the path to import the context from")
 }

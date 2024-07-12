@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
 
+	"github.com/steady-bytes/draft/tools/dctl/config"
 	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
@@ -60,6 +62,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
+	rootCmd.PersistentFlags().StringVar(&config.ContextOverride, "context", "", "override the current context")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -89,4 +92,15 @@ func initConfig() {
 		output.Error(err)
 	}
 	output.Println("Using config file: %s", viper.ConfigFileUsed())
+}
+
+// requireWorkspace can be used as a PreRunE on a cobra.Command to make sure
+// the current context is a workspace and fail out if not.
+func requireWorkspace(cmd *cobra.Command, args []string) error {
+	dctx := config.CurrentContext()
+	if !dctx.IsWorkspace {
+		return fmt.Errorf("this command must be called using a context with an associated workspace")
+	}
+	config.SetCurrentContext(dctx)
+	return nil
 }

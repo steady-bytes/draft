@@ -12,15 +12,17 @@ var apiCmd = &cobra.Command{
 }
 
 var apiBuildCmd = &cobra.Command{
-	Use:   "build",
-	Short: "Compile all protobuf files",
-	RunE:  api.Build,
+	Use:     "build",
+	Short:   "Compile all protobuf files",
+	PreRunE: requireWorkspace,
+	RunE:    api.Build,
 }
 
 var apiInitCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Build the Docker image that compiles protobufs",
-	RunE:  api.Init,
+	Use:     "init",
+	Short:   "Build the Docker image that compiles protobufs",
+	PreRunE: requireWorkspace,
+	RunE:    api.Init,
 }
 
 func init() {
