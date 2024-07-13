@@ -8,22 +8,18 @@ import (
 )
 
 type Runtime struct {
-	config Config
-	logger Logger
-
-	brokers      []Broker
-	repositories []Repository
-	secretStores []SecretStore
-
+	config                    Config
+	logger                    Logger
+	brokers                   []Broker
+	repositories              []Repository
+	secretStores              []SecretStore
 	isRPC                     bool
 	rpcReflectionServiceNames []string
 	mux                       *http.ServeMux
-
-	consensusKind        ConsensusKind
-	raftAdvertiseAddress *net.TCPAddr
-
-	// registry client
-	blueprintClient sdv1Cnt.ServiceDiscoveryServiceClient
+	consensusKind             ConsensusKind
+	raftAdvertiseAddress      *net.TCPAddr
+	onStart                   []func(logger Logger, config Config)
+	blueprintClient           sdv1Cnt.ServiceDiscoveryServiceClient
 }
 
 func New(logger Logger) *Runtime {
