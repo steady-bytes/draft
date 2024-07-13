@@ -9,6 +9,5 @@ node_3
 __debug_*
 
 node_modules
-dist
 target
 main

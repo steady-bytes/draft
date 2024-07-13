@@ -3,6 +3,6 @@ service:
   env: local
   logging:
     level: info
-  port: 51000
+  port: 18000
   # Location of `blueprint` service to register with
   entrypoint: http://localhost:2221
