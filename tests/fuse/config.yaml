@@ -3,5 +3,5 @@ service:
   env: local
   logging:
     level: info
-  port: 51000
+  port: 18000 
   entrypoint: http://localhost:2221

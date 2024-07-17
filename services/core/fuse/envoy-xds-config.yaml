@@ -1,10 +1,15 @@
 # Base config for a split xDS management server on 18000, admin port on 19000
+node:
+  cluster: fuze-proxy
+  id: fuze-proxy-1
+
 admin:
   access_log_path: /dev/null
   address:
     socket_address:
       address: 127.0.0.1
       port_value: 19000
+
 dynamic_resources:
   cds_config:
     resource_api_version: V3
@@ -24,9 +29,7 @@ dynamic_resources:
       - envoy_grpc:
           cluster_name: xds_cluster
       set_node_on_first_message_only: true
-node:
-  cluster: test-cluster
-  id: test-id
+
 static_resources:
   clusters:
   - connect_timeout: 1s
@@ -37,7 +40,8 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: 127.0.0.1
+                # address in which fuse is running on
+                address: 10.0.0.108
                 port_value: 18000
     http2_protocol_options: {}
     name: xds_cluster
@@ -53,6 +57,7 @@ static_resources:
                 port_value: 18090
     http2_protocol_options: {}
     name: als_cluster
+
 layered_runtime:
   layers:
     - name: runtime-0
