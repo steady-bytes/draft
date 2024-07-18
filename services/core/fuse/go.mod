@@ -7,8 +7,8 @@ go 1.21.3
 
 require (
 	github.com/envoyproxy/go-control-plane v0.12.0
-	github.com/steady-bytes/draft/pkg/chassis v0.0.2
-	github.com/steady-bytes/draft/pkg/loggers v0.0.2
+	github.com/steady-bytes/draft/pkg/chassis v0.2.0
+	github.com/steady-bytes/draft/pkg/loggers v0.2.0
 	google.golang.org/protobuf v1.34.2
 )
 
