@@ -2,6 +2,7 @@ package chassis
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -28,19 +29,14 @@ type (
 	}
 
 	Rpcer interface {
-		EnableReflection(string)
-		IsReflection() bool
-		AddHandler(string, http.Handler)
+		AddHandler(pattern string, handler http.Handler, enableReflection bool)
 		GetGrpcServer() *grpc.Server
-		Logger() Logger
 	}
 
 	rpcServer struct {
-		mux            *http.ServeMux
-		grpc 		   *grpc.Server
-		rpcServiceName string
-		isReflection   bool
-		logger         Logger
+		mux                    *http.ServeMux
+		grpc                   *grpc.Server
+		reflectionServiceNames []string
 	}
 )
 
@@ -52,30 +48,35 @@ func (c *Runtime) withRpc(registrar RPCRegistrar) {
 	c.isRPC = true
 
 	server := &rpcServer{
-		mux:          c.mux,
-		isReflection: false,
-		logger:       c.logger,
+		mux:                    c.mux,
+		reflectionServiceNames: make([]string, 0),
 	}
 
 	registrar.RegisterRPC(server)
 
-	if server.IsReflection() {
-		c.rpcReflectionServiceNames = append(c.rpcReflectionServiceNames, server.rpcServiceName)
+	if len(server.reflectionServiceNames) > 0 {
+		c.rpcReflectionServiceNames = append(c.rpcReflectionServiceNames, server.reflectionServiceNames...)
 	}
 }
 
-func (r *rpcServer) EnableReflection(serviceName string) {
-	r.isReflection = true
-	r.rpcServiceName = serviceName
+// AddHandler will register an http handler with a specific pattern to the internal mux server:
+//
+// If you are registering a ConnectRPC server, you can simply call the generated v1connect.NewXXXServiceHandler() to retrieve both the pattern
+// and handler to pass to this method.
+//
+// If you are registering a gRPC server, you can pass in the service name (from the service desc) as the pattern and use the grpc.Server itself
+// as the handler.
+func (r *rpcServer) AddHandler(pattern string, handler http.Handler, enableReflection bool) {
+	r.mux.Handle(pattern, handler)
+	if enableReflection {
+		// ConnectRPC adds some slashes for routing but they're not needed for the service naame
+		pattern = strings.TrimPrefix(pattern, "/")
+		pattern = strings.TrimSuffix(pattern, "/")
+		r.reflectionServiceNames = append(r.reflectionServiceNames, pattern)
+	}
 }
 
-func (r *rpcServer) IsReflection() bool {
-	return r.isReflection
-}
-
-func (r *rpcServer) AddHandler(name string, handler http.Handler) {
-	r.mux.Handle(name, handler)
-}
+// AddGRPC
 
 func (r *rpcServer) GetGrpcServer() *grpc.Server {
 	if r.grpc == nil {
@@ -99,8 +100,4 @@ func (r *rpcServer) setupGrpcServer() {
 		}),
 	)
 	r.grpc = grpc.NewServer(grpcOptions...)
-}
-
-func (r *rpcServer) Logger() Logger {
-	return r.logger
 }
