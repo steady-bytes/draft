@@ -2,8 +2,9 @@ module github.com/steady-bytes/draft/services/core/blueprint
 
 go 1.21.3
 
-// github.com/steady-bytes/draft/api => ../../../api
 // replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+
+// replace github.com/steady-bytes/draft/api => ../../../api
 
 require (
 	connectrpc.com/connect v1.16.2
@@ -11,8 +12,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/raft v1.6.0
 	github.com/steady-bytes/draft/api v0.0.2
-	github.com/steady-bytes/draft/pkg/chassis v0.0.2
-	github.com/steady-bytes/draft/pkg/loggers v0.0.2
+	github.com/steady-bytes/draft/pkg/chassis v0.2.0
+	github.com/steady-bytes/draft/pkg/loggers v0.2.0
 	github.com/steady-bytes/draft/pkg/repositories v0.0.2
 	google.golang.org/protobuf v1.34.2
 )
@@ -26,11 +27,11 @@ require (
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/envoyproxy/go-control-plane v0.12.0 // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-msgpack/v2 v2.1.1 // indirect
@@ -61,6 +62,8 @@ require (
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
+	google.golang.org/grpc v1.65.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

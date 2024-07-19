@@ -1,7 +1,7 @@
 # Base config for a split xDS management server on 18000, admin port on 19000
 node:
-  cluster: fuze-proxy
-  id: fuze-proxy-1
+  cluster: fuse-proxy
+  id: fuse-proxy-1
 
 admin:
   access_log_path: /dev/null
@@ -41,7 +41,7 @@ static_resources:
             address:
               socket_address:
                 # address in which fuse is running on
-                address: 10.0.0.108
+                address: 127.0.0.1
                 port_value: 18000
     http2_protocol_options: {}
     name: xds_cluster

@@ -46,7 +46,7 @@ func New(logger chassis.Logger) *controlPlane {
 	}
 
 	// set the snapshot to the cache
-	if err := cache.SetSnapshot(context.Background(), "example", snapshot); err != nil {
+	if err := cache.SetSnapshot(ctx, "fuse-proxy-1", snapshot); err != nil {
 		logger.Errorf("snapshot error: %+v", err)
 		os.Exit(1)
 	}
@@ -61,16 +61,19 @@ func New(logger chassis.Logger) *controlPlane {
 }
 
 func (c *controlPlane) RegisterRPC(server chassis.Rpcer) {
-	server.EnableReflection("control_plane")
 	grpcServer := server.GetGrpcServer()
-
 	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, c.xDSServer)
+	server.AddHandler("/envoy.service.discovery.v3.AggregatedDiscoveryService/", grpcServer, false)
 	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, c.xDSServer)
+	server.AddHandler("/envoy.service.endpoint.v3.EndpointDiscoveryService/", grpcServer, false)
 	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, c.xDSServer)
+	server.AddHandler("/envoy.service.cluster.v3.ClusterDiscoveryService/", grpcServer, false)
 	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, c.xDSServer)
+	server.AddHandler("/envoy.service.route.v3.RouteDiscoveryService/", grpcServer, false)
 	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, c.xDSServer)
+	server.AddHandler("/envoy.service.listener.v3.ListenerDiscoveryService/", grpcServer, false)
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, c.xDSServer)
+	server.AddHandler("/envoy.service.secret.v3.SecretDiscoveryService/", grpcServer, false)
 	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, c.xDSServer)
-
-	c.logger = server.Logger()
+	server.AddHandler("/envoy.service.runtime.v3.RuntimeDiscoveryService/", grpcServer, false)
 }
