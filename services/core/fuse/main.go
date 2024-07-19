@@ -4,7 +4,7 @@ import (
 	"github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 
-	cp "github.com/steady-bytes/draft/fuse/control_plane"
+	cp "github.com/steady-bytes/draft/services/core/fuse/control_plane"
 )
 
 func main() {

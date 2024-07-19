@@ -2,9 +2,9 @@ module github.com/steady-bytes/draft/services/core/blueprint
 
 go 1.21.3
 
-// replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
-
 // replace github.com/steady-bytes/draft/api => ../../../api
+
+// replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 
 require (
 	connectrpc.com/connect v1.16.2
@@ -12,7 +12,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/raft v1.6.0
 	github.com/steady-bytes/draft/api v0.0.2
-	github.com/steady-bytes/draft/pkg/chassis v0.2.0
+	github.com/steady-bytes/draft/pkg/chassis v0.2.1
 	github.com/steady-bytes/draft/pkg/loggers v0.2.0
 	github.com/steady-bytes/draft/pkg/repositories v0.0.2
 	google.golang.org/protobuf v1.34.2
@@ -32,7 +32,6 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-msgpack/v2 v2.1.1 // indirect
