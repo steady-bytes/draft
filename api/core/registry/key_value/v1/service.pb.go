@@ -26,7 +26,7 @@ type SetRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key   string     `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
+	Key   string     `protobuf:"bytes,1,opt,name=key,proto3" json:"key" bun:"key" yaml:"key" csv:"key" pg:"key"`
 	Value *anypb.Any `protobuf:"bytes,2,opt,name=value,proto3" json:"value" pg:"value" bun:"value" yaml:"value" csv:"value"`
 }
 
@@ -129,7 +129,7 @@ type GetRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	Key   string     `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
-	Value *anypb.Any `protobuf:"bytes,2,opt,name=value,proto3" json:"value" csv:"value" pg:"value" bun:"value" yaml:"value"`
+	Value *anypb.Any `protobuf:"bytes,2,opt,name=value,proto3" json:"value" yaml:"value" csv:"value" pg:"value" bun:"value"`
 }
 
 func (x *GetRequest) Reset() {
@@ -183,7 +183,7 @@ type GetResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Value *anypb.Any `protobuf:"bytes,1,opt,name=value,proto3" json:"value" bun:"value" yaml:"value" csv:"value" pg:"value"`
+	Value *anypb.Any `protobuf:"bytes,1,opt,name=value,proto3" json:"value" pg:"value" bun:"value" yaml:"value" csv:"value"`
 }
 
 func (x *GetResponse) Reset() {
@@ -230,7 +230,7 @@ type DeleteRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" yaml:"key" csv:"key" pg:"key" bun:"key"`
 }
 
 func (x *DeleteRequest) Reset() {
@@ -277,7 +277,7 @@ type DeleteResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" bun:"key" yaml:"key" csv:"key" pg:"key"`
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
 }
 
 func (x *DeleteResponse) Reset() {
@@ -371,7 +371,7 @@ type ListResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Values map[string]*anypb.Any `protobuf:"bytes,2,rep,name=values,proto3" json:"values" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" pg:"values" bun:"values" yaml:"values" csv:"values"`
+	Values map[string]*anypb.Any `protobuf:"bytes,2,rep,name=values,proto3" json:"values" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" csv:"values" pg:"values" bun:"values" yaml:"values"`
 }
 
 func (x *ListResponse) Reset() {

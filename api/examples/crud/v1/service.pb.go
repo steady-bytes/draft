@@ -25,7 +25,7 @@ type CreateRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name *Name `protobuf:"bytes,1,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
+	Name *Name `protobuf:"bytes,1,opt,name=name,proto3" json:"name" yaml:"name" csv:"name" pg:"name" bun:"name"`
 }
 
 func (x *CreateRequest) Reset() {
@@ -72,7 +72,7 @@ type CreateResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" csv:"id" pg:"id" bun:"id" yaml:"id"`
 }
 
 func (x *CreateResponse) Reset() {
@@ -119,7 +119,7 @@ type ReadRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" csv:"id" pg:"id" bun:"id" yaml:"id"`
 }
 
 func (x *ReadRequest) Reset() {
@@ -213,7 +213,7 @@ type UpdateRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name *Name `protobuf:"bytes,1,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
+	Name *Name `protobuf:"bytes,1,opt,name=name,proto3" json:"name" yaml:"name" csv:"name" pg:"name" bun:"name"`
 }
 
 func (x *UpdateRequest) Reset() {
@@ -260,7 +260,7 @@ type UpdateResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" yaml:"id" csv:"id" pg:"id" bun:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
 }
 
 func (x *UpdateResponse) Reset() {
@@ -354,7 +354,7 @@ type DeleteResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" csv:"id" pg:"id" bun:"id" yaml:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
 }
 
 func (x *DeleteResponse) Reset() {

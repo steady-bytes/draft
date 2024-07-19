@@ -228,9 +228,9 @@ type ProcessIdentity struct {
 	// and in a stage ready to receive traffic
 	Pid string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" pg:"pid" bun:"pid" yaml:"pid" csv:"pid"`
 	// the address the registering process must stream it's health, and status messages to
-	RegistryAddress string `protobuf:"bytes,2,opt,name=registry_address,json=registryAddress,proto3" json:"registry_address" pg:"registry_address" bun:"registry_address" yaml:"registry_address" csv:"registry_address"`
+	RegistryAddress string `protobuf:"bytes,2,opt,name=registry_address,json=registryAddress,proto3" json:"registry_address" yaml:"registry_address" csv:"registry_address" pg:"registry_address" bun:"registry_address"`
 	// authentication credentials that must be added to each request to the registry
-	Token *Token `protobuf:"bytes,3,opt,name=token,proto3" json:"token" bun:"token" yaml:"token" csv:"token" pg:"token"`
+	Token *Token `protobuf:"bytes,3,opt,name=token,proto3" json:"token" pg:"token" bun:"token" yaml:"token" csv:"token"`
 }
 
 func (x *ProcessIdentity) Reset() {
@@ -292,7 +292,7 @@ type StartupConfiguration struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	AssignedPort uint32 `protobuf:"varint,1,opt,name=assigned_port,json=assignedPort,proto3" json:"assigned_port" csv:"assigned_port" pg:"assigned_port" bun:"assigned_port" yaml:"assigned_port"`
+	AssignedPort uint32 `protobuf:"varint,1,opt,name=assigned_port,json=assignedPort,proto3" json:"assigned_port" yaml:"assigned_port" csv:"assigned_port" pg:"assigned_port" bun:"assigned_port"`
 }
 
 func (x *StartupConfiguration) Reset() {
@@ -348,17 +348,17 @@ type Process struct {
 	// name is not required to be unique between other processes. The `pid`
 	// is the specific identifier used to lookup a single process.s
 	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
-	Group          string                 `protobuf:"bytes,3,opt,name=group,proto3" json:"group" yaml:"group" csv:"group" pg:"group" bun:"group"`
-	Local          string                 `protobuf:"bytes,4,opt,name=local,proto3" json:"local" yaml:"local" csv:"local" pg:"local" bun:"local"`
-	IpAddress      string                 `protobuf:"bytes,5,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address" csv:"ip_address" pg:"ip_address" bun:"ip_address" yaml:"ip_address"` // port?
-	ProcessKind    ProcessKind            `protobuf:"varint,6,opt,name=process_kind,json=processKind,proto3,enum=core.registry.service_discovery.v1.ProcessKind" json:"process_kind" yaml:"process_kind" csv:"process_kind" pg:"process_kind" bun:"process_kind"`
+	Group          string                 `protobuf:"bytes,3,opt,name=group,proto3" json:"group" pg:"group" bun:"group" yaml:"group" csv:"group"`
+	Local          string                 `protobuf:"bytes,4,opt,name=local,proto3" json:"local" pg:"local" bun:"local" yaml:"local" csv:"local"`
+	IpAddress      string                 `protobuf:"bytes,5,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address" pg:"ip_address" bun:"ip_address" yaml:"ip_address" csv:"ip_address"` // port?
+	ProcessKind    ProcessKind            `protobuf:"varint,6,opt,name=process_kind,json=processKind,proto3,enum=core.registry.service_discovery.v1.ProcessKind" json:"process_kind" pg:"process_kind" bun:"process_kind" yaml:"process_kind" csv:"process_kind"`
 	Metadata       []*Metadata            `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata" pg:"metadata" bun:"metadata" yaml:"metadata" csv:"metadata"`
-	Location       *GeoPoint              `protobuf:"bytes,8,opt,name=location,proto3" json:"location" yaml:"location" csv:"location" pg:"location" bun:"location"`
-	JoinedTime     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=joined_time,json=joinedTime,proto3" json:"joined_time" pg:"joined_time" bun:"joined_time" yaml:"joined_time" csv:"joined_time"`
-	LeftTime       *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=left_time,json=leftTime,proto3" json:"left_time" bun:"left_time" yaml:"left_time" csv:"left_time" pg:"left_time"`
-	LastStatusTime *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=last_status_time,json=lastStatusTime,proto3" json:"last_status_time" pg:"last_status_time" bun:"last_status_time" yaml:"last_status_time" csv:"last_status_time"`
+	Location       *GeoPoint              `protobuf:"bytes,8,opt,name=location,proto3" json:"location" pg:"location" bun:"location" yaml:"location" csv:"location"`
+	JoinedTime     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=joined_time,json=joinedTime,proto3" json:"joined_time" yaml:"joined_time" csv:"joined_time" pg:"joined_time" bun:"joined_time"`
+	LeftTime       *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=left_time,json=leftTime,proto3" json:"left_time" pg:"left_time" bun:"left_time" yaml:"left_time" csv:"left_time"`
+	LastStatusTime *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=last_status_time,json=lastStatusTime,proto3" json:"last_status_time" csv:"last_status_time" pg:"last_status_time" bun:"last_status_time" yaml:"last_status_time"`
 	RunningState   ProcessRunningState    `protobuf:"varint,12,opt,name=running_state,json=runningState,proto3,enum=core.registry.service_discovery.v1.ProcessRunningState" json:"running_state" pg:"running_state" bun:"running_state" yaml:"running_state" csv:"running_state"`
-	HealthState    ProcessHealthState     `protobuf:"varint,13,opt,name=health_state,json=healthState,proto3,enum=core.registry.service_discovery.v1.ProcessHealthState" json:"health_state" pg:"health_state" bun:"health_state" yaml:"health_state" csv:"health_state"`
+	HealthState    ProcessHealthState     `protobuf:"varint,13,opt,name=health_state,json=healthState,proto3,enum=core.registry.service_discovery.v1.ProcessHealthState" json:"health_state" bun:"health_state" yaml:"health_state" csv:"health_state" pg:"health_state"`
 	Token          *Token                 `protobuf:"bytes,14,opt,name=token,proto3" json:"token" pg:"token" bun:"token" yaml:"token" csv:"token"`
 }
 
@@ -498,8 +498,8 @@ type Metadata struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Pid   string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" pg:"pid" bun:"pid" yaml:"pid" csv:"pid"`
-	Key   string `protobuf:"bytes,2,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
+	Pid   string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" csv:"pid" pg:"pid" bun:"pid" yaml:"pid"`
+	Key   string `protobuf:"bytes,2,opt,name=key,proto3" json:"key" csv:"key" pg:"key" bun:"key" yaml:"key"`
 	Value string `protobuf:"bytes,3,opt,name=value,proto3" json:"value" pg:"value" bun:"value" yaml:"value" csv:"value"`
 }
 
@@ -562,7 +562,7 @@ type GeoPoint struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Lat float32 `protobuf:"fixed32,1,opt,name=lat,proto3" json:"lat" yaml:"lat" csv:"lat" pg:"lat" bun:"lat"`
+	Lat float32 `protobuf:"fixed32,1,opt,name=lat,proto3" json:"lat" pg:"lat" bun:"lat" yaml:"lat" csv:"lat"`
 	Lng float32 `protobuf:"fixed32,2,opt,name=lng,proto3" json:"lng" pg:"lng" bun:"lng" yaml:"lng" csv:"lng"`
 }
 
@@ -618,7 +618,7 @@ type Token struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id  string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" csv:"id" pg:"id" bun:"id" yaml:"id"`
+	Id  string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" yaml:"id" csv:"id" pg:"id" bun:"id"`
 	Jwt string `protobuf:"bytes,3,opt,name=jwt,proto3" json:"jwt" pg:"jwt" bun:"jwt" yaml:"jwt" csv:"jwt"`
 }
 
