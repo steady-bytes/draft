@@ -2,7 +2,6 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { Provider } from "react-redux";
-import Dashboard from "./pages/Dashboard";
 import { store } from "./store";
 
 import '../public/globals.css';
@@ -14,7 +13,7 @@ root.render(
   <React.StrictMode>
     <Provider store={store}>
       <BrowserRouter>
-        <Dashboard />
+        <h1>Fuse</h1>
       </BrowserRouter>
     </Provider>
   </React.StrictMode>

@@ -11,3 +11,6 @@ __debug_*
 node_modules
 target
 main
+
+# ignore user specific vscode settings
+.vscode/settings.json
