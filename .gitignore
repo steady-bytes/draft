@@ -12,5 +12,8 @@ node_modules
 target
 main
 
+go.work
+go.work.sum
+
 # ignore user specific vscode settings
 .vscode/settings.json
