@@ -9,6 +9,11 @@ node_3
 __debug_*
 
 node_modules
-dist
 target
 main
+
+go.work
+go.work.sum
+
+# ignore user specific vscode settings
+.vscode/settings.json

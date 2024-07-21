@@ -10,12 +10,13 @@ import (
 func main() {
 
 	var (
-		db    = bun.New("")
-		model = service.NewModel(db)
+		logger = zerolog.New()
+		db     = bun.New("")
+		model  = service.NewModel(db)
 	)
 
-	defer draft.New(zerolog.New()).
+	defer draft.New(logger).
 		WithRepository(db).
-		WithRPCHandler(service.NewHandler(model)).
+		WithRPCHandler(service.NewHandler(logger, model)).
 		Start()
 }

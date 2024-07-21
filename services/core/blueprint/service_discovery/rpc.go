@@ -23,17 +23,17 @@ type (
 	}
 )
 
-func New(controller Controller) Rpc {
+func NewRPC(logger chassis.Logger, controller Controller) Rpc {
 	return &rpc{
 		controller: controller,
+		logger:     logger,
 	}
 }
 
 // Implement the `RPCRegistrar` interface of draft so the `grpc` handlers are enabled
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
-	server.EnableReflection(sdConnect.ServiceDiscoveryServiceName)
-	server.AddHandler(sdConnect.NewServiceDiscoveryServiceHandler(h))
-	h.logger = server.Logger()
+	pattern, handler := sdConnect.NewServiceDiscoveryServiceHandler(h)
+	server.AddHandler(pattern, handler, true)
 }
 
 var (

@@ -6,3 +6,5 @@
 .gitignore
 Dockerfile
 .dockerignore
+go.work
+go.work.sum
