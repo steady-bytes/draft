@@ -10,12 +10,18 @@ import (
 func main() {
 	var (
 		logger       = zerolog.New()
-		controlPlane = cp.New(logger)
+		controlPlane = cp.NewControlPlane(logger)
+		// xDS server containing a share cache between the envoy proxies
+		xdsServer = cp.NewXDSRpc(logger, controlPlane)
+		// fuse control plane rpc interface
+		controlPlaneRPC = cp.NewRPC(logger, controlPlane)
 	)
+
 	defer chassis.New(zerolog.New()).
 		Register(chassis.RegistrationOptions{
 			Namespace: "fuse",
 		}).
-		WithRPCHandler(controlPlane).
+		WithRPCHandler(xdsServer).
+		WithRPCHandler(controlPlaneRPC).
 		Start()
 }

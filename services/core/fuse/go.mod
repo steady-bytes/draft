@@ -7,7 +7,9 @@ go 1.21.3
 // replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 
 require (
+	connectrpc.com/connect v1.16.2
 	github.com/envoyproxy/go-control-plane v0.12.0
+	github.com/steady-bytes/draft/api v0.2.1
 	github.com/steady-bytes/draft/pkg/chassis v0.2.1
 	github.com/steady-bytes/draft/pkg/loggers v0.2.0
 	google.golang.org/protobuf v1.34.2
@@ -15,7 +17,6 @@ require (
 
 require (
 	cel.dev/expr v0.15.0 // indirect
-	connectrpc.com/connect v1.16.2 // indirect
 	connectrpc.com/grpcreflect v1.2.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
@@ -47,7 +48,6 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/steady-bytes/draft/api v0.0.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
