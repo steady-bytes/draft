@@ -182,7 +182,7 @@ type RemoveResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" yaml:"node_id" csv:"node_id" pg:"node_id" bun:"node_id"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" pg:"node_id" bun:"node_id" yaml:"node_id" csv:"node_id"`
 }
 
 func (x *RemoveResponse) Reset() {
@@ -229,7 +229,7 @@ type StatsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" yaml:"node_id" csv:"node_id" pg:"node_id" bun:"node_id"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" pg:"node_id" bun:"node_id" yaml:"node_id" csv:"node_id"`
 }
 
 func (x *StatsRequest) Reset() {
@@ -331,7 +331,7 @@ type Stats struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Stats map[string]string `protobuf:"bytes,1,rep,name=stats,proto3" json:"stats" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" bun:"stats" yaml:"stats" csv:"stats" pg:"stats"`
+	Stats map[string]string `protobuf:"bytes,1,rep,name=stats,proto3" json:"stats" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" csv:"stats" pg:"stats" bun:"stats" yaml:"stats"`
 }
 
 func (x *Stats) Reset() {
