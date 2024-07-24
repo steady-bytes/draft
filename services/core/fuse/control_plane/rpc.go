@@ -2,10 +2,13 @@ package control_plane
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
 
 	"connectrpc.com/connect"
 	"github.com/steady-bytes/draft/pkg/chassis"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
 	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -17,6 +20,8 @@ import (
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	ntConnect "github.com/steady-bytes/draft/api/core/control_plane/networking/v1/v1connect"
+	kvv1 "github.com/steady-bytes/draft/api/core/registry/key_value/v1"
+	kvConnect "github.com/steady-bytes/draft/api/core/registry/key_value/v1/v1connect"
 )
 
 /////////////////////
@@ -51,23 +56,74 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 }
 
 var (
-	AddingRoute       = "Add route request received"
-	ErrNotImplemented = errors.New("not implemented")
+	AddingRoute = "Add route request received"
+	// Errors
+	ErrNotImplemented     = errors.New("not implemented")
+	ErrInvalidRequest     = errors.New("invalid request")
+	ErrInvalidRoute       = errors.New("invalid route")
+	ErrInvalidRoutePrefix = errors.New("invalid route prefix")
+	ErrInvalidRouteName   = errors.New("invalid route name")
+	ErrUnableToSaveRoute  = errors.New("unable to save route in the key/value store")
 )
 
 func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRequest]) (*connect.Response[ntv1.AddRouteResponse], error) {
 	var (
 		logger = h.logger.WithContext(ctx)
 		msg    = req.Msg
+		err    error
 	)
 
 	logger.WithField("msg", msg).Debug(AddingRoute)
 
 	// validate incoming request
+	// TODO: Add validation to the proto message
+	if msg == nil {
+		return nil, ErrInvalidRequest
+	}
 
-	// Add route to blueprint
+	if msg.GetRoute() == nil {
+		return nil, ErrInvalidRoute
+	}
 
-	// create a new snapshot in the cache
+	if msg.GetRoute().Match.Prefix == "" {
+		return nil, ErrInvalidRoutePrefix
+	}
+
+	if msg.GetRoute().Name == "" {
+		return nil, ErrInvalidRouteName
+	}
+
+	route := msg.GetRoute()
+	routeJSON, err := json.Marshal(route)
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, ErrInvalidRoute
+	}
+
+	// upsert route in the blueprint key/value store
+	val, err := anypb.New(&kvv1.Value{
+		// I think I like saving the `Route` as a JSON string
+		Data: string(routeJSON),
+	})
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, ErrUnableToSaveRoute
+	}
+
+	setReq := connect.NewRequest(&kvv1.SetRequest{
+		Key:   msg.GetRoute().Name,
+		Value: val,
+	})
+
+	// TODO: use address from config
+	client := kvConnect.NewKeyValueServiceClient(http.DefaultClient, "localhost:8080")
+	_, err = client.Set(context.Background(), setReq)
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, ErrUnableToSaveRoute
+	}
+
+	// TODO: create a new snapshot in the cache
 
 	return nil, ErrNotImplemented
 }
