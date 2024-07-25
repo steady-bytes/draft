@@ -8,12 +8,16 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
 
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
+
 	"github.com/steady-bytes/draft/pkg/chassis"
 )
 
 type (
 	ControlPlane interface {
 		cache.SnapshotCache
+
+		UpdateCacheWithNewRoute(route *ntv1.Route) error
 	}
 
 	controlPlane struct {
@@ -50,4 +54,18 @@ func NewControlPlane(logger chassis.Logger) *controlPlane {
 		logger:    logger,
 		cache:     cache,
 	}
+}
+
+func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
+	// Get snapshot from the cache
+	ss, err := cp.cache.GetSnapshot(CLUSTER_NAME)
+	if err != nil {
+		return err
+	}
+
+	// then add new route
+
+	// then set the snapshot to the cache
+
+	return nil
 }

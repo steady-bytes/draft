@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	ClusterName  = "example_proxy_cluster"
+	CLUSTER_NAME = "fuse_cluster"
+
 	RouteName    = "local_route"
 	ListenerName = "listener_0"
 	ListenerPort = 10000
@@ -28,11 +29,11 @@ const (
 
 func makeCluster(clusterName string) *cluster.Cluster {
 	return &cluster.Cluster{
-		Name:                 clusterName,
+		Name:                 CLUSTER_NAME,
 		ConnectTimeout:       durationpb.New(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_LOGICAL_DNS},
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
-		LoadAssignment:       makeEndpoint(clusterName),
+		LoadAssignment:       makeEndpoint(CLUSTER_NAME),
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
 	}
 }
@@ -156,8 +157,8 @@ func makeConfigSource() *core.ConfigSource {
 func GenerateSnapshot() *cache.Snapshot {
 	snap, _ := cache.NewSnapshot("1",
 		map[resource.Type][]types.Resource{
-			resource.ClusterType:  {makeCluster(ClusterName)},
-			resource.RouteType:    {makeRoute(RouteName, ClusterName)},
+			resource.ClusterType:  {makeCluster(CLUSTER_NAME)},
+			resource.RouteType:    {makeRoute(RouteName, CLUSTER_NAME)},
 			resource.ListenerType: {makeHTTPListener(ListenerName, RouteName)},
 		},
 	)

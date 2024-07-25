@@ -41,6 +41,10 @@ type (
 	}
 )
 
+const (
+	ENTRY_POINT = "http://localhost:2221"
+)
+
 // rpc interface to `fuse` `control_plane`
 func NewRPC(logger chassis.Logger, cp *controlPlane) Rpc {
 	return &rpc{
@@ -58,12 +62,13 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 var (
 	AddingRoute = "Add route request received"
 	// Errors
-	ErrNotImplemented     = errors.New("not implemented")
-	ErrInvalidRequest     = errors.New("invalid request")
-	ErrInvalidRoute       = errors.New("invalid route")
-	ErrInvalidRoutePrefix = errors.New("invalid route prefix")
-	ErrInvalidRouteName   = errors.New("invalid route name")
-	ErrUnableToSaveRoute  = errors.New("unable to save route in the key/value store")
+	ErrNotImplemented           = errors.New("not implemented")
+	ErrInvalidRequest           = errors.New("invalid request")
+	ErrInvalidRoute             = errors.New("invalid route")
+	ErrInvalidRoutePrefix       = errors.New("invalid route prefix")
+	ErrInvalidRouteName         = errors.New("invalid route name")
+	ErrUnableToSaveRoute        = errors.New("unable to save route in the key/value store")
+	ErrUnableToUpdateProxyCache = errors.New("unable to update proxy cache")
 )
 
 func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRequest]) (*connect.Response[ntv1.AddRouteResponse], error) {
@@ -115,15 +120,17 @@ func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRe
 		Value: val,
 	})
 
-	// TODO: use address from config
-	client := kvConnect.NewKeyValueServiceClient(http.DefaultClient, "localhost:8080")
+	// TODO: use entrypoint from config to connect to the key/value store
+	client := kvConnect.NewKeyValueServiceClient(http.DefaultClient, ENTRY_POINT)
 	_, err = client.Set(context.Background(), setReq)
 	if err != nil {
 		logger.Error(err.Error())
 		return nil, ErrUnableToSaveRoute
 	}
 
-	// TODO: create a new snapshot in the cache
+	if err != h.controlPlane.UpdateCacheWithNewRoute(msg.GetRoute()) {
+		return nil, ErrUnableToUpdateProxyCache
+	}
 
 	return nil, ErrNotImplemented
 }

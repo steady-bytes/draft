@@ -1,0 +1,6 @@
+service:
+  name: file_host 
+  env: local
+  logging:
+    level: info
+  port: 8080
