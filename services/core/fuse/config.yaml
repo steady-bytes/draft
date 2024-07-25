@@ -1,8 +1,11 @@
 service:
   name: fuse
+  # domain is the domain name of the whole draft cluster that is running. (ie. draft.com)
+  # This is used to generate the urls for the processes that register themselves with `fuse`
+  domain: localhost
   env: local
   logging:
     level: info
-  port: 51000
+  port: 18000
   # Location of `blueprint` service to register with
   entrypoint: http://localhost:2221

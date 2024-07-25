@@ -21,16 +21,16 @@ type (
 	}
 )
 
-func NewHandler(model Model) Handler {
+func NewHandler(logger chassis.Logger, model Model) Handler {
 	return &handler{
-		model: model,
+		model:  model,
+		logger: logger,
 	}
 }
 
 func (h *handler) RegisterRPC(server chassis.Rpcer) {
-	server.EnableReflection(crudv1Connect.CrudServiceName)
-	server.AddHandler(crudv1Connect.NewCrudServiceHandler(h))
-	h.logger = server.Logger()
+	pattern, handler := crudv1Connect.NewCrudServiceHandler(h)
+	server.AddHandler(pattern, handler, true)
 }
 
 func (h *handler) Create(ctx context.Context, req *connect.Request[crudv1.CreateRequest]) (*connect.Response[crudv1.CreateResponse], error) {

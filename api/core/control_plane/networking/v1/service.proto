@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package core.control_plane.networking.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/control_plane/networking/v1";
+
+// An interface to modify the networking configuration of the system. The networking configuration is primarly used to
+// make endpoints available outside of the system (public, or private). To efficiently route traffic to the correct process, the 
+// networking configuration is used to configure the `Envoy` proxy. The `Envoy` proxy is used to route traffic to the correct process
+// based on the provided `Route` configuration when the process registers to the system in this case `fuse`.
+// 
+// 1. The `NetworkingService` is a `core` service implemented in `fuse`
+// 2. Alot of the networking configuration is specific for `Envoy`. The `Route` proto is an example of this. It's basically a one to one mapping
+//    of all fields that can't already be inferred by the `draft` framework.
+//
+service NetworkingService {
+    // Add route exposing an endpoint on the gateway and routing traffic to the correct process
+    rpc AddRoute(AddRouteRequest) returns (AddRouteResponse) {}
+    // List all routes in the networking configuration
+    rpc ListRoutes(ListRoutesRequest) returns (ListRoutesResponse) {}
+    // Delete a route from the networking configuration, requires the name of the route
+    // and returns a response code to indicate the success of the operation
+    rpc DeleteRoute(DeleteRouteRequest) returns (DeleteRouteResponse) {}
+}
+
+// AddRouteRequest - Add a route to the networking configuration
+message AddRouteRequest {
+    // should this be the route type from envoy config. So that I can use the same proto
+    // or should I make an internal proto and convert them back and forth
+    // An advantage of using the envoy `Route` proto is that it's already ubuqitous in the
+    // wild. A disadvantage is that it's a bit more complex than what I need.
+    Route route = 1;
+}
+
+enum AddRouteResponseCode {
+    INVALID_ADD_ROUTE_RESPONSE_CODE = 0;
+    OK = 1;
+    ERROR = 2;
+    INVALID_REQUEST = 3;
+}
+
+// AddRouteResponse - Response to adding a route to the networking configuration. Just because a message
+// was received doesn't mean it was successful. The `code` field is used to determine the success of the
+// route entry.
+message AddRouteResponse {
+    AddRouteResponseCode code = 1;
+}
+
+message ListRoutesRequest {}
+
+message ListRoutesResponse {
+    repeated Route routes = 1;
+}
+
+message DeleteRouteRequest {
+    // route names must be unique making name the primary identifier of a route
+    string name = 1;
+}
+
+enum DeleteRouteCode {
+    INVALID_DELETE_ROUTE_RESPONSE_CODE = 0;
+    DELETE_ROUTE_OK = 1;
+    DELETE_ROUTE_ERROR = 2;
+}
+
+message DeleteRouteResponse {
+    DeleteRouteCode code = 1;
+}
+
+// Primary Networking Primitives
+
+// Route - Close match to the `Route` proto in envoy. Anything that can't be inferred by the draft
+// framework needs to be added by the `process` adding the route configuration.
+// 
+// The process will register individual routes, while cluster and virtual host configuration will be handled by the framework.
+// current integration is `process` -> `fuse` -> `envoy`
+message Route {
+    // Name for the route
+    string name  = 1;
+    // Route matching parameters.
+    RouteMatch match = 2;
+}
+
+// parameters for matching a route
+message RouteMatch {
+    // domains for the url a configured in `fuse` but the path to be matched of a route is configured by the `process`
+    // (ie. api.draft.com/health -> /health) 
+    string prefix = 1;
+    // option to match headers of a request
+    // TODO -> implement pre 1.0 relase of `fuse`
+    optional HeaderMatchOptions headers = 2;
+    // options to simplify the matching of a route for grpc. Most request will be grpc and this configuration
+    // makes that integration easier.
+    // TODO -> implement pre 1.0 relase of `fuse`
+    optional GrpcMatchOptions grpc_match_options = 3;
+    // REF: Envoy
+    // Specifies a set of dynamic metadata that a route must match.
+	// The router will check the dynamic metadata against all the specified dynamic metadata matchers.
+	// If the number of specified dynamic metadata matchers is nonzero, they all must match the
+	// dynamic metadata for a match to occur.
+    // TODO -> implement pre 2.0 relase of `fuse`
+    optional DynamicMetadata dynamic_metadata = 4;
+}
+
+// consider using the `key/value` from `blueprint` key/value store
+// TODO -> implement pre 1.0 relase of `fuse`
+message HeaderMatchOptions { 
+    string key = 1;
+    string value = 2;
+}
+
+// GrpcMatchOptions - Options to simplify the matching of a route for grpc. Most request will be grpc and this configuration
+// should make the integration easier.
+// TODO -> implement pre 1.0 relase of `fuse`
+message GrpcMatchOptions {}
+
+// DynamicMetadata - Specifies a set of dynamic metadata that a route must match. Dynamic metadata can be used in a variety of ways
+// and is a powerful feature of envoy `fuse` will most likely use this feature to add additional information to the route.
+// TODO -> implement pre 2.0 relase of `fuse`
+message DynamicMetadata {}

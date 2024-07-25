@@ -16,15 +16,16 @@ var files embed.FS
 
 func main() {
 	var (
+		logger             = zerolog.New()
 		keyValueModel      = kv.NewModel()
 		keyValueController = kv.NewController(keyValueModel)
-		keyValueRPC        = kv.NewRpc(keyValueController)
+		keyValueRPC        = kv.NewRPC(logger, keyValueController)
 
 		serviceDiscoveryController = sd.NewController(keyValueController)
-		serviceDiscoveryRPC        = sd.New(serviceDiscoveryController)
+		serviceDiscoveryRPC        = sd.NewRPC(logger, serviceDiscoveryController)
 	)
 
-	defer chassis.New(zerolog.New()).
+	defer chassis.New(logger).
 		WithRepository(keyValueModel).
 		WithConsensus(chassis.Raft, keyValueController).
 		WithRPCHandler(keyValueRPC).

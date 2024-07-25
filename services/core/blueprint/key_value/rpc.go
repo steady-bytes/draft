@@ -27,10 +27,10 @@ type (
 	}
 )
 
-func NewRpc(controller Controller) Rpc {
+func NewRPC(logger chassis.Logger, controller Controller) Rpc {
 	return &rpc{
 		controller: controller,
-		logger:     nil,
+		logger:     logger,
 	}
 }
 
@@ -40,29 +40,28 @@ var (
 )
 
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
-	server.EnableReflection(kvConnect.KeyValueServiceName)
-	server.AddHandler(kvConnect.NewKeyValueServiceHandler(h))
-	h.logger = server.Logger()
+	pattern, handler := kvConnect.NewKeyValueServiceHandler(h)
+	server.AddHandler(pattern, handler, true)
 }
 
 func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*connect.Response[kvv1.SetResponse], error) {
 	var (
-		log   = h.logger.WithContext(ctx)
-		key   = strings.TrimSpace(req.Msg.GetKey())
-		value = req.Msg.GetValue()
-		err   error
+		logger = h.logger.WithContext(ctx)
+		key    = strings.TrimSpace(req.Msg.GetKey())
+		value  = req.Msg.GetValue()
+		err    error
 	)
 
-	_, err = h.controller.Set(log, key, value, 500*time.Millisecond)
+	_, err = h.controller.Set(logger, key, value, 500*time.Millisecond)
 	if err != nil {
-		log.
+		logger.
 			WithError(err).
 			Error(ErrFailedSet.Error())
 
 		return nil, err
 	}
 
-	log.WithField("key", key).Info("value saved")
+	logger.WithField("key", key).Info("value saved")
 
 	return connect.NewResponse(&kvv1.SetResponse{
 		Key: key,
@@ -82,11 +81,9 @@ func (h *rpc) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*
 		return nil, errors.New("failed to get value for key")
 	}
 
-	res := &kvv1.GetResponse{
+	return connect.NewResponse(&kvv1.GetResponse{
 		Value: value,
-	}
-
-	return connect.NewResponse[kvv1.GetResponse](res), nil
+	}), nil
 }
 
 func (h *rpc) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteRequest]) (*connect.Response[kvv1.DeleteResponse], error) {
@@ -95,21 +92,17 @@ func (h *rpc) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteReques
 
 func (h *rpc) List(ctx context.Context, req *connect.Request[kvv1.ListRequest]) (*connect.Response[kvv1.ListResponse], error) {
 	var (
-		log   = h.logger.WithContext(ctx)
-		kind = req.Msg.GetValue()
+		logger = h.logger.WithContext(ctx)
+		kind   = req.Msg.GetValue()
 	)
 
-	valuesMap, err := h.controller.List(log, kind)
+	valuesMap, err := h.controller.List(logger, kind)
 	if err != nil {
 		fmt.Println(err)
 		return nil, ErrFailedList
 	}
 
-	fmt.Println(valuesMap)
-
-	res := &kvv1.ListResponse{
+	return connect.NewResponse(&kvv1.ListResponse{
 		Values: valuesMap,
-	}
-
-	return connect.NewResponse[kvv1.ListResponse](res), nil
+	}), nil
 }

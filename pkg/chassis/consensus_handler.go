@@ -29,7 +29,8 @@ func NewRaftRPCHandler(raftController RaftController) RaftRPCHandler {
 func (r *raftRPCHandler) RegisterRPC(server Rpcer) {
 	// NOTE: don't enable reflection for this handler. It's using a separate `tcp` connection then
 	// http, and rpc interfaces implemented at the service level
-	server.AddHandler(rfConnect.NewRaftServiceHandler(r))
+	pattern, handler := rfConnect.NewRaftServiceHandler(r)
+	server.AddHandler(pattern, handler, false)
 }
 
 func (r *raftRPCHandler) Join(ctx context.Context, req *connect.Request[rfv1.JoinRequest]) (*connect.Response[rfv1.JoinResponse], error) {
