@@ -84,6 +84,15 @@ func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *
 	return c
 }
 
+// WithRunner adds a function to be called in a goroutine when Runtime.Start is called
+func (c *Runtime) WithRunner(f func()) *Runtime {
+	if c.onStart == nil {
+		c.onStart = make([]func(), 0)
+	}
+	c.onStart = append(c.onStart, f)
+	return c
+}
+
 // /////////////////
 // System Functions
 // /////////////////
@@ -199,6 +208,13 @@ func (c *Runtime) Start() {
 	go c.runMux(close, handler)
 
 	// TODO: start consumers
+
+	if c.onStart != nil {
+		for _, f := range c.onStart {
+			// TODO: do we want to pass a close channel so the routine can cleanly shutdown?
+			go f()
+		}
+	}
 
 	// wait for close signal
 	<-close
