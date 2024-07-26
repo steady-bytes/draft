@@ -18,7 +18,7 @@ type Runtime struct {
 	mux                       *http.ServeMux
 	consensusKind             ConsensusKind
 	raftAdvertiseAddress      *net.TCPAddr
-	onStart                   []func(logger Logger, config Config)
+	onStart                   []func()
 	blueprintClient           sdv1Cnt.ServiceDiscoveryServiceClient
 }
 

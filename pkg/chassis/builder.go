@@ -85,9 +85,9 @@ func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *
 }
 
 // WithRunner adds a function to be called in a goroutine when Runtime.Start is called
-func (c *Runtime) WithRunner(f func(logger Logger, config Config)) *Runtime {
+func (c *Runtime) WithRunner(f func()) *Runtime {
 	if c.onStart == nil {
-		c.onStart = make([]func(logger Logger, config Config), 0)
+		c.onStart = make([]func(), 0)
 	}
 	c.onStart = append(c.onStart, f)
 	return c
@@ -212,7 +212,7 @@ func (c *Runtime) Start() {
 	if c.onStart != nil {
 		for _, f := range c.onStart {
 			// TODO: do we want to pass a close channel so the routine can cleanly shutdown?
-			go f(c.logger, c.config)
+			go f()
 		}
 	}
 
