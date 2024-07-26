@@ -5,6 +5,8 @@ import (
 
 	"github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
+
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 )
 
 //go:embed web-client/dist/index.html
@@ -17,5 +19,11 @@ func main() {
 
 	defer chassis.New(logger).
 		WithClientApplication(files).
+		WithRoute(&ntv1.Route{
+			Name: "file_host",
+			Match: &ntv1.RouteMatch{
+				Prefix: "/",
+			},
+		}).
 		Start()
 }

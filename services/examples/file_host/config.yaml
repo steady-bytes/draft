@@ -4,3 +4,5 @@ service:
   logging:
     level: info
   port: 8080
+  # Location of `blueprint` service to register with
+  entrypoint: http://localhost:2221

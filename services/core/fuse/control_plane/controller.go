@@ -4,9 +4,12 @@ import (
 	"context"
 	"os"
 
+	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
+	"github.com/google/uuid"
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 
@@ -18,9 +21,12 @@ type (
 		cache.SnapshotCache
 
 		UpdateCacheWithNewRoute(route *ntv1.Route) error
+		Increment() string
 	}
 
 	controlPlane struct {
+		count string
+
 		xDSServer server.Server
 		logger    chassis.Logger
 		cache     cache.SnapshotCache
@@ -57,15 +63,34 @@ func NewControlPlane(logger chassis.Logger) *controlPlane {
 }
 
 func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
+	var (
+		ctx = context.Background()
+	)
+
+	version := cp.Increment()
+
+	snapshot, _ := cache.NewSnapshot(version,
+		map[resource.Type][]types.Resource{
+			resource.ClusterType:  {makeCluster(CLUSTER_NAME)},
+			resource.RouteType:    {makeRoute(cp.urlDomain, cp.name, cp.clusterName, route)},
+			resource.ListenerType: {makeHTTPListener(ListenerName, RouteName)},
+		},
+	)
+
 	// Get snapshot from the cache
-	ss, err := cp.cache.GetSnapshot(CLUSTER_NAME)
-	if err != nil {
+	if err := cp.cache.SetSnapshot(ctx, "fuse-proxy-1", snapshot); err != nil {
+		cp.logger.Errorf("snapshot error: %+v", err)
 		return err
 	}
 
-	// then add new route
-
-	// then set the snapshot to the cache
-
 	return nil
+}
+
+// Increase the version of the snapshot. At this point we are just generating a random UUID.
+//
+// TODO: Keep track of the version in `blueprint` to load historical routing configurations.
+// Having an audit trail of routing configurations is important for debugging
+func (cp *controlPlane) Increment() string {
+	cp.count = uuid.New().String()
+	return cp.count
 }
