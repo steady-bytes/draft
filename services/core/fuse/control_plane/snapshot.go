@@ -20,29 +20,38 @@ import (
 )
 
 const (
-	CLUSTER_NAME = "fuse_cluster"
+	DEFAULT_CLUSTER_NAME     = "draft-fuse"
+	DEFAULT_LISTENER_ADDRESS = "0.0.0.0"
+	DEFAULT_LISTENER_PORT    = 10000
+	DEFAULT_LISTENER_NAME    = "listener_0"
 
-	RouteName    = "local_route"
-	ListenerName = "listener_0"
-	ListenerPort = 10000
-	UpstreamHost = "www.envoyproxy.io"
-	UpstreamPort = 80
+	// RouteName    = "local_route"
+	// ListenerName = "listener_0"
+	// ListenerPort = 10000
+	// UpstreamHost = "www.envoyproxy.io"
+	// UpstreamPort = 80
 )
 
-func makeCluster(clusterName string) *cluster.Cluster {
+func makeCluster(clusterName string, loadAssignment *endpoint.ClusterLoadAssignment) *cluster.Cluster {
 	return &cluster.Cluster{
-		Name:                 CLUSTER_NAME,
+		Name:                 clusterName,
 		ConnectTimeout:       durationpb.New(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_LOGICAL_DNS},
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
-		LoadAssignment:       makeEndpoint(CLUSTER_NAME),
+		LoadAssignment:       loadAssignment,
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
 	}
 }
 
-func makeEndpoint(clusterName string) *endpoint.ClusterLoadAssignment {
+// `urlDomain` 			:`url_domain` found in the `config.yaml` file of a process. (ie. steady-bytes.com)
+// `virtualHostName`	:draft `chassis.Namespace` that is defined in `main.go` and configured in the `chassis.Builder`. (ie. fuse, or file_host)
+// `upstreamHost` 		:the host ip (IPv4) that the cluster will be forwarding the traffic to
+// `upstreamPort`		:the port that the cluster will be forwarding the traffic to
+func makeEndpoint(urlDomain, virtualHostName, upstreamHost string, upstreamPort uint32) *endpoint.ClusterLoadAssignment {
+	domain := makeDomain(urlDomain, virtualHostName)
+
 	return &endpoint.ClusterLoadAssignment{
-		ClusterName: clusterName,
+		ClusterName: domain,
 		Endpoints: []*endpoint.LocalityLbEndpoints{{
 			LbEndpoints: []*endpoint.LbEndpoint{{
 				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
@@ -50,10 +59,14 @@ func makeEndpoint(clusterName string) *endpoint.ClusterLoadAssignment {
 						Address: &core.Address{
 							Address: &core.Address_SocketAddress{
 								SocketAddress: &core.SocketAddress{
+									// defaulting to tcp, this can be changed but will also depend on the protocol
+									// the upstream is using. In this case it's http.
 									Protocol: core.SocketAddress_TCP,
-									Address:  UpstreamHost,
+									// I think this is the ip address of the process that is trying to add the route.
+									Address: upstreamHost,
 									PortSpecifier: &core.SocketAddress_PortValue{
-										PortValue: UpstreamPort,
+										// I think this is the port of the process that is trying to add the route.
+										PortValue: upstreamPort,
 									},
 								},
 							},
@@ -65,24 +78,26 @@ func makeEndpoint(clusterName string) *endpoint.ClusterLoadAssignment {
 	}
 }
 
+func makeDomain(urlDomain, virtualHostName string) string {
+	return fmt.Sprintf("%s.%s", urlDomain, virtualHostName)
+}
+
 // `makeRoute` creates a route for the given cluster, and a virtual host for the process that is attempting to add the route.
 //
 // `urlDomain` 			:`url_domain` found in the `config.yaml` file of a process. (ie. steady-bytes.com)
-// `virtualHostName`	:draft `chassis.Namespace` that is defined in `main.go` and configured in the `chassis.Builder`. (ie. fuse, or file_host)
-// `upstreamClusterName`:name of the cluster that the route will be forwarding the traffic to (i.e `fuse`).
 // `nt_route` 			:route configuration that is being added to the snapshot.
-func makeRoute(urlDomain, virtualHostName, upstreamClusterName string, nt_route *ntv1.Route) *route.RouteConfiguration {
+func makeRoute(urlDomain string, nt_route *ntv1.Route) *route.RouteConfiguration {
 	// The domain is the virtual host name and the route name combined.
 	// (i.e file_host.steady-bytes.com)
 	//
 	// TODO: Add the support for root domains. (i.e "*")
 	// so that is possible to have a route for all domains. It's currently not needed but it's a good feature to have.
-	domain := fmt.Sprintf("%s.%s", urlDomain, virtualHostName)
+	domain := makeDomain(urlDomain, nt_route.GetName())
 
 	return &route.RouteConfiguration{
 		Name: urlDomain,
 		VirtualHosts: []*route.VirtualHost{{
-			Name:    virtualHostName,
+			Name:    nt_route.GetName(),
 			Domains: []string{domain},
 			Routes: []*route.Route{{
 				Match: &route.RouteMatch{
@@ -93,12 +108,8 @@ func makeRoute(urlDomain, virtualHostName, upstreamClusterName string, nt_route 
 				Action: &route.Route_Route{
 					Route: &route.RouteAction{
 						ClusterSpecifier: &route.RouteAction_Cluster{
-							Cluster: upstreamClusterName,
+							Cluster: domain,
 						},
-						// I'm not 100% sure this is needed
-						// HostRewriteSpecifier: &route.RouteAction_HostRewriteLiteral{
-						// 	HostRewriteLiteral: UpstreamHost,
-						// },
 					},
 				},
 			}},
@@ -107,7 +118,7 @@ func makeRoute(urlDomain, virtualHostName, upstreamClusterName string, nt_route 
 }
 
 // `makeHTTPListener`
-func makeHTTPListener(listenerName, route string) *listener.Listener {
+func makeHTTPListener(listenerName, urlDomain string) *listener.Listener {
 	routerConfig, _ := anypb.New(&router.Router{})
 
 	// HTTP filter configuration
@@ -117,7 +128,7 @@ func makeHTTPListener(listenerName, route string) *listener.Listener {
 		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
 			Rds: &hcm.Rds{
 				ConfigSource:    makeConfigSource(),
-				RouteConfigName: route,
+				RouteConfigName: urlDomain,
 			},
 		},
 		HttpFilters: []*hcm.HttpFilter{{
@@ -137,9 +148,9 @@ func makeHTTPListener(listenerName, route string) *listener.Listener {
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Protocol: core.SocketAddress_TCP,
-					Address:  "0.0.0.0",
+					Address:  DEFAULT_LISTENER_ADDRESS,
 					PortSpecifier: &core.SocketAddress_PortValue{
-						PortValue: ListenerPort,
+						PortValue: DEFAULT_LISTENER_PORT,
 					},
 				},
 			},
@@ -178,12 +189,11 @@ func makeConfigSource() *core.ConfigSource {
 	return source
 }
 
+// `GenerateSnapshot` creates a snapshot with a cluster. This is only used to start the control plane.
 func GenerateSnapshot() *cache.Snapshot {
 	snap, _ := cache.NewSnapshot("1",
 		map[resource.Type][]types.Resource{
-			resource.ClusterType:  {makeCluster(CLUSTER_NAME)},
-			resource.RouteType:    {makeRoute(RouteName, CLUSTER_NAME)},
-			resource.ListenerType: {makeHTTPListener(ListenerName, RouteName)},
+			resource.ClusterType: {makeCluster(DEFAULT_CLUSTER_NAME, &endpoint.ClusterLoadAssignment{})},
 		},
 	)
 	return snap

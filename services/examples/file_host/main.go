@@ -21,6 +21,8 @@ func main() {
 		WithClientApplication(files).
 		WithRoute(&ntv1.Route{
 			Name: "file_host",
+			Host: "0.0.0.0",
+			Port: 8080,
 			Match: &ntv1.RouteMatch{
 				Prefix: "/",
 			},

@@ -132,7 +132,11 @@ func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRe
 		return nil, ErrUnableToUpdateProxyCache
 	}
 
-	return nil, ErrNotImplemented
+	return &connect.Response[ntv1.AddRouteResponse]{
+		Msg: &ntv1.AddRouteResponse{
+			Code: ntv1.AddRouteResponseCode_OK,
+		},
+	}, nil
 }
 
 // DeleteRoute implements Rpc.

@@ -35,7 +35,6 @@ func (c *Runtime) withRoute(route *ntv1.Route) error {
 		Get(ctx, connect.NewRequest(&kvv1.GetRequest{}))
 	if err != nil {
 		c.logger.WithError(err).Error("failed to get fuse address")
-		return ErrCouldNotGetFuseAddress
 	}
 
 	res, err := ntv1Connect.NewNetworkingServiceClient(http.DefaultClient, LOCAL_FUSE_ADDRESS).

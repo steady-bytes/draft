@@ -30,10 +30,13 @@ type (
 		xDSServer server.Server
 		logger    chassis.Logger
 		cache     cache.SnapshotCache
+
+		urlDomain string
+		name      string
 	}
 )
 
-func NewControlPlane(logger chassis.Logger) *controlPlane {
+func NewControlPlane(logger chassis.Logger, urlDomain string) *controlPlane {
 	var (
 		cache    = cache.NewSnapshotCache(false, cache.IDHash{}, logger)
 		snapshot = GenerateSnapshot()
@@ -67,17 +70,22 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 		ctx = context.Background()
 	)
 
-	version := cp.Increment()
+	clusterLoadAssignment := makeEndpoint(
+		cp.urlDomain,
+		route.GetName(),
+		route.GetHost(),
+		route.GetPort())
 
-	snapshot, _ := cache.NewSnapshot(version,
+	// make a new snapshot with the new route
+	snapshot, _ := cache.NewSnapshot(cp.Increment(),
 		map[resource.Type][]types.Resource{
-			resource.ClusterType:  {makeCluster(CLUSTER_NAME)},
-			resource.RouteType:    {makeRoute(cp.urlDomain, cp.name, cp.clusterName, route)},
-			resource.ListenerType: {makeHTTPListener(ListenerName, RouteName)},
+			resource.ClusterType:  {makeCluster(DEFAULT_CLUSTER_NAME, clusterLoadAssignment)},
+			resource.RouteType:    {makeRoute(cp.urlDomain, route)},
+			resource.ListenerType: {makeHTTPListener(DEFAULT_LISTENER_NAME, cp.urlDomain)},
 		},
 	)
 
-	// Get snapshot from the cache
+	// Apply the newly generated snapshot to the cache
 	if err := cp.cache.SetSnapshot(ctx, "fuse-proxy-1", snapshot); err != nil {
 		cp.logger.Errorf("snapshot error: %+v", err)
 		return err
