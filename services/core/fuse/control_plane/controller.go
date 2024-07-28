@@ -62,6 +62,7 @@ func NewControlPlane(logger chassis.Logger, urlDomain string) *controlPlane {
 		xDSServer: server.NewServer(ctx, cache, cb),
 		logger:    logger,
 		cache:     cache,
+		urlDomain: urlDomain,
 	}
 }
 
@@ -76,10 +77,12 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 		route.GetHost(),
 		route.GetPort())
 
+	domain := makeDomain(cp.urlDomain, route.GetName())
+
 	// make a new snapshot with the new route
 	snapshot, _ := cache.NewSnapshot(cp.Increment(),
 		map[resource.Type][]types.Resource{
-			resource.ClusterType:  {makeCluster(DEFAULT_CLUSTER_NAME, clusterLoadAssignment)},
+			resource.ClusterType:  {makeCluster(domain, clusterLoadAssignment)},
 			resource.RouteType:    {makeRoute(cp.urlDomain, route)},
 			resource.ListenerType: {makeHTTPListener(DEFAULT_LISTENER_NAME, cp.urlDomain)},
 		},

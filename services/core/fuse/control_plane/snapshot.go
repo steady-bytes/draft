@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	DEFAULT_CLUSTER_NAME     = "draft-fuse"
+	DEFAULT_CLUSTER_NAME     = "fuse"
 	DEFAULT_LISTENER_ADDRESS = "0.0.0.0"
 	DEFAULT_LISTENER_PORT    = 10000
 	DEFAULT_LISTENER_NAME    = "listener_0"
@@ -79,7 +79,7 @@ func makeEndpoint(urlDomain, virtualHostName, upstreamHost string, upstreamPort 
 }
 
 func makeDomain(urlDomain, virtualHostName string) string {
-	return fmt.Sprintf("%s.%s", urlDomain, virtualHostName)
+	return fmt.Sprintf("%s.%s", virtualHostName, urlDomain)
 }
 
 // `makeRoute` creates a route for the given cluster, and a virtual host for the process that is attempting to add the route.
@@ -98,7 +98,7 @@ func makeRoute(urlDomain string, nt_route *ntv1.Route) *route.RouteConfiguration
 		Name: urlDomain,
 		VirtualHosts: []*route.VirtualHost{{
 			Name:    nt_route.GetName(),
-			Domains: []string{domain},
+			Domains: []string{"*"},
 			Routes: []*route.Route{{
 				Match: &route.RouteMatch{
 					PathSpecifier: &route.RouteMatch_Prefix{
@@ -193,7 +193,7 @@ func makeConfigSource() *core.ConfigSource {
 func GenerateSnapshot() *cache.Snapshot {
 	snap, _ := cache.NewSnapshot("1",
 		map[resource.Type][]types.Resource{
-			resource.ClusterType: {makeCluster(DEFAULT_CLUSTER_NAME, &endpoint.ClusterLoadAssignment{})},
+			// resource.ClusterType: {makeCluster(DEFAULT_CLUSTER_NAME, &endpoint.ClusterLoadAssignment{})},
 		},
 	)
 	return snap
