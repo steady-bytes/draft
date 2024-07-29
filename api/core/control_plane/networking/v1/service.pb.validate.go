@@ -764,6 +764,10 @@ func (m *Route) validate(all bool) error {
 		}
 	}
 
+	// no validation rules for Host
+
+	// no validation rules for Port
+
 	if len(errors) > 0 {
 		return RouteMultiError(errors)
 	}

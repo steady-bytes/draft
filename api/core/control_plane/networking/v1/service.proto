@@ -79,6 +79,10 @@ message Route {
     string name  = 1;
     // Route matching parameters.
     RouteMatch match = 2;
+    // Host ip address for the route
+    string host = 3;
+    // Host port for the route
+    uint32 port = 4;
 }
 
 // parameters for matching a route
