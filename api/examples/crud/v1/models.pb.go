@@ -25,8 +25,8 @@ type Name struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id        string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" csv:"id" pg:"id" bun:"id" yaml:"id"`
-	FirstName string `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name" pg:"first_name" bun:"first_name" yaml:"first_name" csv:"first_name"`
+	Id        string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
+	FirstName string `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name" yaml:"first_name" csv:"first_name" pg:"first_name" bun:"first_name"`
 	LastName  string `protobuf:"bytes,3,opt,name=last_name,json=lastName,proto3" json:"last_name" pg:"last_name" bun:"last_name" yaml:"last_name" csv:"last_name"`
 }
 
