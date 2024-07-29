@@ -22,7 +22,7 @@ import (
 const (
 	DEFAULT_CLUSTER_NAME     = "fuse"
 	DEFAULT_LISTENER_ADDRESS = "0.0.0.0"
-	DEFAULT_LISTENER_PORT    = 10000
+	DEFAULT_LISTENER_PORT    = 80
 	DEFAULT_LISTENER_NAME    = "listener_0"
 
 	// RouteName    = "local_route"
@@ -98,7 +98,7 @@ func makeRoute(urlDomain string, nt_route *ntv1.Route) *route.RouteConfiguration
 		Name: urlDomain,
 		VirtualHosts: []*route.VirtualHost{{
 			Name:    nt_route.GetName(),
-			Domains: []string{"*"},
+			Domains: []string{domain},
 			Routes: []*route.Route{{
 				Match: &route.RouteMatch{
 					PathSpecifier: &route.RouteMatch_Prefix{
@@ -142,6 +142,26 @@ func makeHTTPListener(listenerName, urlDomain string) *listener.Listener {
 		panic(err)
 	}
 
+	// TransportSocket configuration
+	// tlsConfig := &tls.DownstreamTlsContext{
+	// 	CommonTlsContext: &tls.CommonTlsContext{
+	// 		TlsCertificates: []*tls.TlsCertificate{{
+	// 			CertificateChain: &core.DataSource{
+	// 				Specifier: &core.DataSource_Filename{
+	// 					Filename: "/etc/letsencrypt/live/steady-bytes.com/fullchain.pem",
+	// 				},
+	// 			},
+	// 			PrivateKey: &core.DataSource{
+	// 				Specifier: &core.DataSource_Filename{
+	// 					Filename: "/etc/letsencrypt/live/steady-bytes.com/privkey.pem",
+	// 				},
+	// 			},
+	// 		}},
+	// 	},
+	// }
+
+	// tlspb, _ := anypb.New(tlsConfig)
+
 	return &listener.Listener{
 		Name: listenerName,
 		Address: &core.Address{
@@ -162,10 +182,11 @@ func makeHTTPListener(listenerName, urlDomain string) *listener.Listener {
 					TypedConfig: pbst,
 				},
 			}},
-			// TransportSocket is used to configure the TLS settings for the listener.
 			// TransportSocket: &core.TransportSocket{
-			// 	Name:       "envoy.transport_sockets.tls",
-			// 	ConfigType: &core.TransportSocket_TypedConfig{}},
+			// 	Name: "envoy.transport_sockets.tls",
+			// 	ConfigType: &core.TransportSocket_TypedConfig{
+			// 		TypedConfig: tlspb,
+			// 	},
 			// },
 		}},
 	}
