@@ -86,7 +86,10 @@ func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *
 }
 
 func (c *Runtime) WithRoute(route *ntv1.Route) *Runtime {
-	c.withRoute(route)
+	err := c.withRoute(route)
+	if err != nil {
+		c.logger.WithError(err).Panic("failed to register route")
+	}
 	return c
 }
 
@@ -262,7 +265,7 @@ func (c *Runtime) shutdown() {
 }
 
 // TODO -> use closer
-func (c *Runtime) runRPC(close CloseChan, handler http.Handler) {
+func (c *Runtime) runRPC(_ CloseChan, _ http.Handler) {
 	if len(c.rpcReflectionServiceNames) > 0 {
 		reflector := grpcreflect.NewStaticReflector(c.rpcReflectionServiceNames...)
 		c.mux.Handle(grpcreflect.NewHandlerV1(reflector))
@@ -271,7 +274,7 @@ func (c *Runtime) runRPC(close CloseChan, handler http.Handler) {
 }
 
 // TODO -> use closer
-func (c *Runtime) runMux(close CloseChan, handler http.Handler) {
+func (c *Runtime) runMux(_ CloseChan, handler http.Handler) {
 	addr := fmt.Sprintf("0.0.0.0:%s", c.config.GetString("service.port"))
 	c.logger.Info(fmt.Sprintf("running server on: %s", addr))
 	if err := http.ListenAndServe(addr, h2c.NewHandler(handler, &http2.Server{})); err != nil {

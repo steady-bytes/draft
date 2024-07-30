@@ -11,6 +11,7 @@ import (
 type (
 	Config interface {
 		Name() string
+		Domain() string
 		NodeID() string
 		Title() string
 		Env() string
@@ -72,6 +73,10 @@ func (c *config) Name() string {
 	return c.GetString("service.name")
 }
 
+func (c *config) Domain() string {
+	return c.GetString("service.domain")
+}
+
 func (c *config) NodeID() string {
 	return c.GetString("raft.node-id")
 }
@@ -88,6 +93,6 @@ func (c *config) Env() string {
 	return c.GetString("service.env")
 }
 
-func GetConfig() Reader {
+func GetConfig() Config {
 	return configSingleton
 }
