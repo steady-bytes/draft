@@ -1,5 +1,6 @@
 service:
-  name: file_host 
+  name: file_host
+  domain: examples
   env: local
   logging:
     level: info
