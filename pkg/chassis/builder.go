@@ -106,6 +106,14 @@ func (c *Runtime) WithRunner(f func()) *Runtime {
 	return c
 }
 
+func (c *Runtime) WithRoute(route *ntv1.Route) *Runtime {
+	err := c.withRoute(route)
+	if err != nil {
+		c.logger.WithError(err).Panic("failed to register route")
+	}
+	return c
+}
+
 // /////////////////
 // System Functions
 // /////////////////
