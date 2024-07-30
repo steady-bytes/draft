@@ -33,8 +33,8 @@ type ClientDetails struct {
 	HealthState  ProcessHealthState  `protobuf:"varint,3,opt,name=health_state,json=healthState,proto3,enum=core.registry.service_discovery.v1.ProcessHealthState" json:"health_state" pg:"health_state" bun:"health_state" yaml:"health_state" csv:"health_state"`
 	ProcessKind  ProcessKind         `protobuf:"varint,4,opt,name=process_kind,json=processKind,proto3,enum=core.registry.service_discovery.v1.ProcessKind" json:"process_kind" pg:"process_kind" bun:"process_kind" yaml:"process_kind" csv:"process_kind"`
 	// only check the token when a `ProcessDetails` message is received.
-	Token    string      `protobuf:"bytes,5,opt,name=token,proto3" json:"token" pg:"token" bun:"token" yaml:"token" csv:"token"`
-	Location *GeoPoint   `protobuf:"bytes,7,opt,name=location,proto3" json:"location" yaml:"location" csv:"location" pg:"location" bun:"location"`
+	Token    string      `protobuf:"bytes,5,opt,name=token,proto3" json:"token" csv:"token" pg:"token" bun:"token" yaml:"token"`
+	Location *GeoPoint   `protobuf:"bytes,7,opt,name=location,proto3" json:"location" pg:"location" bun:"location" yaml:"location" csv:"location"`
 	Metadata []*Metadata `protobuf:"bytes,8,rep,name=metadata,proto3" json:"metadata" pg:"metadata" bun:"metadata" yaml:"metadata" csv:"metadata"`
 }
 
@@ -166,7 +166,7 @@ type InitializeRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Name of the process to be registered. This field is not required to be unique with the other processes in the registry
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" yaml:"name" csv:"name" pg:"name" bun:"name"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" csv:"name" pg:"name" bun:"name" yaml:"name"`
 	// A token will not be issued, and a process will not be able to connect to the `SystemJournal` if the `nonce` is not signed with the correct public key
 	Nonce string `protobuf:"bytes,2,opt,name=nonce,proto3" json:"nonce" pg:"nonce" bun:"nonce" yaml:"nonce" csv:"nonce"`
 }
@@ -229,7 +229,7 @@ type InitializeResponse struct {
 	// can stream it's operational details to the registry
 	ProcessIdentity *ProcessIdentity `protobuf:"bytes,1,opt,name=process_identity,json=processIdentity,proto3" json:"process_identity" bun:"process_identity" yaml:"process_identity" csv:"process_identity" pg:"process_identity"`
 	// Startup configuration
-	Configuration *StartupConfiguration `protobuf:"bytes,2,opt,name=configuration,proto3" json:"configuration" pg:"configuration" bun:"configuration" yaml:"configuration" csv:"configuration"`
+	Configuration *StartupConfiguration `protobuf:"bytes,2,opt,name=configuration,proto3" json:"configuration" csv:"configuration" pg:"configuration" bun:"configuration" yaml:"configuration"`
 }
 
 func (x *InitializeResponse) Reset() {
@@ -403,11 +403,11 @@ type isFilter_Attribute interface {
 }
 
 type Filter_Id struct {
-	Id string `protobuf:"bytes,1,opt,name=id,proto3,oneof" pg:"id" bun:"id" yaml:"id" csv:"id" json:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3,oneof" bun:"id" yaml:"id" csv:"id" json:"id" pg:"id"`
 }
 
 type Filter_Group struct {
-	Group string `protobuf:"bytes,2,opt,name=group,proto3,oneof" pg:"group" bun:"group" yaml:"group" csv:"group" json:"group"`
+	Group string `protobuf:"bytes,2,opt,name=group,proto3,oneof" yaml:"group" csv:"group" json:"group" pg:"group" bun:"group"`
 }
 
 type Filter_All struct {

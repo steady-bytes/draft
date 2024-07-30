@@ -27,7 +27,7 @@ type SetRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	Key   string     `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
-	Value *anypb.Any `protobuf:"bytes,2,opt,name=value,proto3" json:"value" yaml:"value" csv:"value" pg:"value" bun:"value"`
+	Value *anypb.Any `protobuf:"bytes,2,opt,name=value,proto3" json:"value" pg:"value" bun:"value" yaml:"value" csv:"value"`
 }
 
 func (x *SetRequest) Reset() {

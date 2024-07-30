@@ -536,7 +536,7 @@ type RouteMatch struct {
 
 	// domains for the url a configured in `fuse` but the path to be matched of a route is configured by the `process`
 	// (ie. api.draft.com/health -> /health)
-	Prefix string `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix" pg:"prefix" bun:"prefix" yaml:"prefix" csv:"prefix"`
+	Prefix string `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix" bun:"prefix" yaml:"prefix" csv:"prefix" pg:"prefix"`
 	// option to match headers of a request
 	// TODO -> implement pre 1.0 relase of `fuse`
 	Headers *HeaderMatchOptions `protobuf:"bytes,2,opt,name=headers,proto3,oneof" json:"headers" bun:"headers" yaml:"headers" csv:"headers" pg:"headers"`

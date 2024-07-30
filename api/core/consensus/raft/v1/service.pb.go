@@ -229,7 +229,7 @@ type StatsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" bun:"node_id" yaml:"node_id" csv:"node_id" pg:"node_id"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" csv:"node_id" pg:"node_id" bun:"node_id" yaml:"node_id"`
 }
 
 func (x *StatsRequest) Reset() {
@@ -277,7 +277,7 @@ type StatsResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" pg:"node_id" bun:"node_id" yaml:"node_id" csv:"node_id"`
-	Stats  *Stats `protobuf:"bytes,2,opt,name=stats,proto3" json:"stats" pg:"stats" bun:"stats" yaml:"stats" csv:"stats"`
+	Stats  *Stats `protobuf:"bytes,2,opt,name=stats,proto3" json:"stats" csv:"stats" pg:"stats" bun:"stats" yaml:"stats"`
 }
 
 func (x *StatsResponse) Reset() {
