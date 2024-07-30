@@ -131,7 +131,7 @@ type AddRouteRequest struct {
 	// or should I make an internal proto and convert them back and forth
 	// An advantage of using the envoy `Route` proto is that it's already ubuqitous in the
 	// wild. A disadvantage is that it's a bit more complex than what I need.
-	Route *Route `protobuf:"bytes,1,opt,name=route,proto3" json:"route" pg:"route" bun:"route" yaml:"route" csv:"route"`
+	Route *Route `protobuf:"bytes,1,opt,name=route,proto3" json:"route" csv:"route" pg:"route" bun:"route" yaml:"route"`
 }
 
 func (x *AddRouteRequest) Reset() {
@@ -266,7 +266,7 @@ type ListRoutesResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Routes []*Route `protobuf:"bytes,1,rep,name=routes,proto3" json:"routes" bun:"routes" yaml:"routes" csv:"routes" pg:"routes"`
+	Routes []*Route `protobuf:"bytes,1,rep,name=routes,proto3" json:"routes" pg:"routes" bun:"routes" yaml:"routes" csv:"routes"`
 }
 
 func (x *ListRoutesResponse) Reset() {
@@ -361,7 +361,7 @@ type DeleteRouteResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Code DeleteRouteCode `protobuf:"varint,1,opt,name=code,proto3,enum=core.control_plane.networking.v1.DeleteRouteCode" json:"code" csv:"code" pg:"code" bun:"code" yaml:"code"`
+	Code DeleteRouteCode `protobuf:"varint,1,opt,name=code,proto3,enum=core.control_plane.networking.v1.DeleteRouteCode" json:"code" yaml:"code" csv:"code" pg:"code" bun:"code"`
 }
 
 func (x *DeleteRouteResponse) Reset() {
@@ -415,9 +415,10 @@ type Route struct {
 
 	// Name for the route
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" pg:"name" bun:"name" yaml:"name" csv:"name"`
-	// Route matching parameters.
-	Match    *RouteMatch `protobuf:"bytes,2,opt,name=match,proto3" json:"match" pg:"match" bun:"match" yaml:"match" csv:"match"`
-	Endpoint *Endpoint   `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint" pg:"endpoint" bun:"endpoint" yaml:"endpoint" csv:"endpoint"`
+	// Route matching parameters
+	Match *RouteMatch `protobuf:"bytes,2,opt,name=match,proto3" json:"match" pg:"match" bun:"match" yaml:"match" csv:"match"`
+	// Endpoint parameters
+	Endpoint *Endpoint `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint" pg:"endpoint" bun:"endpoint" yaml:"endpoint" csv:"endpoint"`
 }
 
 func (x *Route) Reset() {
@@ -473,12 +474,15 @@ func (x *Route) GetEndpoint() *Endpoint {
 	return nil
 }
 
+// parameters for the endpoint a route will map to
 type Endpoint struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host" csv:"host" pg:"host" bun:"host" yaml:"host"`
+	// host represents the address of the endpoint (upstream). can be either a hostname or an ip address
+	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host" yaml:"host" csv:"host" pg:"host" bun:"host"`
+	// port represents the port on the host of the endpoint (upstream)
 	Port uint32 `protobuf:"varint,2,opt,name=port,proto3" json:"port" pg:"port" bun:"port" yaml:"port" csv:"port"`
 }
 
@@ -536,10 +540,10 @@ type RouteMatch struct {
 
 	// domains for the url a configured in `fuse` but the path to be matched of a route is configured by the `process`
 	// (ie. api.draft.com/health -> /health)
-	Prefix string `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix" bun:"prefix" yaml:"prefix" csv:"prefix" pg:"prefix"`
+	Prefix string `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix" pg:"prefix" bun:"prefix" yaml:"prefix" csv:"prefix"`
 	// option to match headers of a request
 	// TODO -> implement pre 1.0 relase of `fuse`
-	Headers *HeaderMatchOptions `protobuf:"bytes,2,opt,name=headers,proto3,oneof" json:"headers" bun:"headers" yaml:"headers" csv:"headers" pg:"headers"`
+	Headers *HeaderMatchOptions `protobuf:"bytes,2,opt,name=headers,proto3,oneof" json:"headers" pg:"headers" bun:"headers" yaml:"headers" csv:"headers"`
 	// options to simplify the matching of a route for grpc. Most request will be grpc and this configuration
 	// makes that integration easier.
 	// TODO -> implement pre 1.0 relase of `fuse`
@@ -629,8 +633,8 @@ type HeaderMatchOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key   string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" bun:"key" yaml:"key" csv:"key" pg:"key"`
-	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value" yaml:"value" csv:"value" pg:"value" bun:"value"`
+	Key   string `protobuf:"bytes,1,opt,name=key,proto3" json:"key" pg:"key" bun:"key" yaml:"key" csv:"key"`
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value" pg:"value" bun:"value" yaml:"value" csv:"value"`
 }
 
 func (x *HeaderMatchOptions) Reset() {

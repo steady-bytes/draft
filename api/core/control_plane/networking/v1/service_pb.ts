@@ -311,13 +311,15 @@ export class Route extends Message<Route> {
   name = "";
 
   /**
-   * Route matching parameters.
+   * Route matching parameters
    *
    * @generated from field: core.control_plane.networking.v1.RouteMatch match = 2;
    */
   match?: RouteMatch;
 
   /**
+   * Endpoint parameters
+   *
    * @generated from field: core.control_plane.networking.v1.Endpoint endpoint = 3;
    */
   endpoint?: Endpoint;
@@ -353,15 +355,21 @@ export class Route extends Message<Route> {
 }
 
 /**
+ * parameters for the endpoint a route will map to
+ *
  * @generated from message core.control_plane.networking.v1.Endpoint
  */
 export class Endpoint extends Message<Endpoint> {
   /**
+   * host represents the address of the endpoint (upstream). can be either a hostname or an ip address
+   *
    * @generated from field: string host = 1;
    */
   host = "";
 
   /**
+   * port represents the port on the host of the endpoint (upstream)
+   *
    * @generated from field: uint32 port = 2;
    */
   port = 0;

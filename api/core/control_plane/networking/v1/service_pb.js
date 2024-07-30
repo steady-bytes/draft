@@ -113,6 +113,8 @@ export const Route = proto3.makeMessageType(
 );
 
 /**
+ * parameters for the endpoint a route will map to
+ *
  * @generated from message core.control_plane.networking.v1.Endpoint
  */
 export const Endpoint = proto3.makeMessageType(
