@@ -22,11 +22,6 @@ func main() {
 		WithRoute(&ntv1.Route{
 			Match: &ntv1.RouteMatch{
 				Prefix: "/",
-				Host: "localhost",
-			},
-			Endpoint: &ntv1.Endpoint{
-				Host: "localhost",
-				Port: 8080,
 			},
 		}).
 		Start()
