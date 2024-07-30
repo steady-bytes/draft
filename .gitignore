@@ -11,6 +11,7 @@ __debug_*
 node_modules
 target
 main
+dist
 
 go.work
 go.work.sum
