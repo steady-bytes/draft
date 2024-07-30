@@ -1,6 +1,3 @@
 service:
   name: echo
-  env: local
-  logging:
-    level: info
-  port: 8080
+  domain: examples
