@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
 	sdv1Cnt "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1/v1connect"
 
@@ -90,6 +91,14 @@ func (c *Runtime) WithRunner(f func()) *Runtime {
 		c.onStart = make([]func(), 0)
 	}
 	c.onStart = append(c.onStart, f)
+	return c
+}
+
+func (c *Runtime) WithRoute(route *ntv1.Route) *Runtime {
+	err := c.withRoute(route)
+	if err != nil {
+		c.logger.WithError(err).Panic("failed to register route")
+	}
 	return c
 }
 
@@ -268,7 +277,7 @@ func (c *Runtime) shutdown() {
 }
 
 // TODO -> use closer
-func (c *Runtime) runRPC(close CloseChan, handler http.Handler) {
+func (c *Runtime) runRPC(_ CloseChan, _ http.Handler) {
 	if len(c.rpcReflectionServiceNames) > 0 {
 		reflector := grpcreflect.NewStaticReflector(c.rpcReflectionServiceNames...)
 		c.mux.Handle(grpcreflect.NewHandlerV1(reflector))
@@ -277,8 +286,8 @@ func (c *Runtime) runRPC(close CloseChan, handler http.Handler) {
 }
 
 // TODO -> use closer
-func (c *Runtime) runMux(close CloseChan, handler http.Handler) {
-	addr := fmt.Sprintf("0.0.0.0:%s", c.config.GetString("service.port"))
+func (c *Runtime) runMux(_ CloseChan, handler http.Handler) {
+	addr := fmt.Sprintf("%s:%d", c.config.GetString("service.network.bind_address"), c.config.GetInt("service.network.port"))
 	c.logger.Info(fmt.Sprintf("running server on: %s", addr))
 	if err := http.ListenAndServe(addr, h2c.NewHandler(handler, &http2.Server{})); err != nil {
 		c.logger.WithError(err).Panic("failed to start mux server")

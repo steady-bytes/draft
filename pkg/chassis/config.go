@@ -11,6 +11,7 @@ import (
 type (
 	Config interface {
 		Name() string
+		Domain() string
 		NodeID() string
 		Title() string
 		Env() string
@@ -50,14 +51,15 @@ var configSingleton *config
 
 // TODO -> Read config from the key/value store and not from a local static file.
 func LoadConfig() Config {
+	setDefaults()
 	viper.SetEnvPrefix("DRAFT")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	configPath := viper.GetString("config")
 	if configPath == "" {
-		fmt.Println("using default config path")
 		configPath = "./config.yaml"
+		fmt.Printf("using default config path: %s\n", configPath)
 	}
 	viper.SetConfigFile(configPath)
 	if err := viper.ReadInConfig(); err != nil {
@@ -68,8 +70,19 @@ func LoadConfig() Config {
 	return configSingleton
 }
 
+func setDefaults() {
+	viper.SetDefault("service.network.port", 8090)
+	viper.SetDefault("service.network.bind_address", "0.0.0.0")
+	viper.SetDefault("service.env", "local")
+	viper.SetDefault("service.logging.level", "info")
+}
+
 func (c *config) Name() string {
 	return c.GetString("service.name")
+}
+
+func (c *config) Domain() string {
+	return c.GetString("service.domain")
 }
 
 func (c *config) NodeID() string {
@@ -88,6 +101,9 @@ func (c *config) Env() string {
 	return c.GetString("service.env")
 }
 
-func GetConfig() Reader {
+func GetConfig() Config {
+	if configSingleton == nil {
+		LoadConfig()
+	}
 	return configSingleton
 }
