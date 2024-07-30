@@ -2,13 +2,13 @@ module github.com/steady-bytes/draft/services/examples/file_host
 
 go 1.21.3
 
-replace github.com/steady-bytes/draft/api => ../../../api
+// replace github.com/steady-bytes/draft/api => ../../../api
 
-replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+// replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 
 require (
-	github.com/steady-bytes/draft/api v0.2.1
-	github.com/steady-bytes/draft/pkg/chassis v0.2.1
+	github.com/steady-bytes/draft/api v0.3.1
+	github.com/steady-bytes/draft/pkg/chassis v0.3.0
 	github.com/steady-bytes/draft/pkg/loggers v0.2.0
 )
 

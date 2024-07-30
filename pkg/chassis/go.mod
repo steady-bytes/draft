@@ -2,7 +2,7 @@ module github.com/steady-bytes/draft/pkg/chassis
 
 go 1.21.3
 
-replace github.com/steady-bytes/draft/api => ../../api
+// replace github.com/steady-bytes/draft/api => ../../api
 
 require (
 	connectrpc.com/connect v1.16.2
