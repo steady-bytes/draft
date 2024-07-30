@@ -85,18 +85,6 @@ func (c *Runtime) WithConsensus(kind ConsensusKind, plugin ConsensusRegistrar) *
 	return c
 }
 
-func (c *Runtime) WithRoute(route *ntv1.Route) *Runtime {
-	err := c.withRoute(route)
-	if err != nil {
-		c.logger.WithError(err).Panic("failed to register route")
-	}
-	return c
-}
-
-func (c *Runtime) GetConfig() Config {
-	return c.config
-}
-
 // WithRunner adds a function to be called in a goroutine when Runtime.Start is called
 func (c *Runtime) WithRunner(f func()) *Runtime {
 	if c.onStart == nil {
