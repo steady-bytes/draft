@@ -6,10 +6,12 @@ import (
 	"errors"
 	"net/http"
 
-	"connectrpc.com/connect"
-	"github.com/steady-bytes/draft/pkg/chassis"
-	"google.golang.org/protobuf/types/known/anypb"
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
+	ntConnect "github.com/steady-bytes/draft/api/core/control_plane/networking/v1/v1connect"
+	kvv1 "github.com/steady-bytes/draft/api/core/registry/key_value/v1"
+	kvv1Connect "github.com/steady-bytes/draft/api/core/registry/key_value/v1/v1connect"
 
+	"connectrpc.com/connect"
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
 	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	endpointservice "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
@@ -17,11 +19,8 @@ import (
 	routeservice "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
 	runtimeservice "github.com/envoyproxy/go-control-plane/envoy/service/runtime/v3"
 	secretservice "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
-
-	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
-	ntConnect "github.com/steady-bytes/draft/api/core/control_plane/networking/v1/v1connect"
-	kvv1 "github.com/steady-bytes/draft/api/core/registry/key_value/v1"
-	kvConnect "github.com/steady-bytes/draft/api/core/registry/key_value/v1/v1connect"
+	"github.com/steady-bytes/draft/pkg/chassis"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 /////////////////////
@@ -41,10 +40,6 @@ type (
 	}
 )
 
-const (
-	ENTRY_POINT = "http://localhost:2221"
-)
-
 // rpc interface to `fuse` `control_plane`
 func NewRPC(logger chassis.Logger, cp *controlPlane) Rpc {
 	return &rpc{
@@ -55,6 +50,27 @@ func NewRPC(logger chassis.Logger, cp *controlPlane) Rpc {
 
 // register the `fuse` control plance rpc interface
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
+	// TODO: for some reason the h.logger doesn't work even though I *think* it should be instantiated in the chassis by this point
+	val, err := anypb.New(&kvv1.Value{
+		Data: chassis.GetConfig().GetString("fuse.address"),
+	})
+	if err != nil {
+		panic("failed to create the `value` struct")
+	}
+
+	// add the fuse address to blueprint
+	ctx := context.Background()
+	kvClient := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
+	_, err = kvClient.Set(ctx, connect.NewRequest(&kvv1.SetRequest{
+		Key: chassis.FuseAddressBlueprintKey,
+		Value: val,
+	}))
+	if err != nil {
+		// h.logger.WithError(err).Panic("failed to register fuse address with blueprint")
+		panic("failed to register fuse address with blueprint")
+	}
+	h.logger.Info("registered fuse address with blueprint")
+
 	pattern, handler := ntConnect.NewNetworkingServiceHandler(h)
 	server.AddHandler(pattern, handler, true)
 }
@@ -120,8 +136,7 @@ func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRe
 		Value: val,
 	})
 
-	// TODO: use entrypoint from config to connect to the key/value store
-	client := kvConnect.NewKeyValueServiceClient(http.DefaultClient, ENTRY_POINT)
+	client := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
 	_, err = client.Set(context.Background(), setReq)
 	if err != nil {
 		logger.Error(err.Error())

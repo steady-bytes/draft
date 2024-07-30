@@ -25,18 +25,14 @@ type (
 	}
 
 	controlPlane struct {
-		count string
-
+		count     string
 		xDSServer server.Server
 		logger    chassis.Logger
 		cache     cache.SnapshotCache
-
-		urlDomain string
-		name      string
 	}
 )
 
-func NewControlPlane(logger chassis.Logger, urlDomain string) *controlPlane {
+func NewControlPlane(logger chassis.Logger) *controlPlane {
 	var (
 		cache    = cache.NewSnapshotCache(false, cache.IDHash{}, logger)
 		snapshot = GenerateSnapshot()
@@ -62,7 +58,6 @@ func NewControlPlane(logger chassis.Logger, urlDomain string) *controlPlane {
 		xDSServer: server.NewServer(ctx, cache, cb),
 		logger:    logger,
 		cache:     cache,
-		urlDomain: urlDomain,
 	}
 }
 
@@ -71,20 +66,14 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 		ctx = context.Background()
 	)
 
-	clusterLoadAssignment := makeEndpoint(
-		cp.urlDomain,
-		route.GetName(),
-		route.GetHost(),
-		route.GetPort())
-
-	domain := makeDomain(cp.urlDomain, route.GetName())
+	clusterLoadAssignment := makeEndpoint(route)
 
 	// make a new snapshot with the new route
 	snapshot, _ := cache.NewSnapshot(cp.Increment(),
 		map[resource.Type][]types.Resource{
-			resource.ClusterType:  {makeCluster(domain, clusterLoadAssignment)},
-			resource.RouteType:    {makeRoute(cp.urlDomain, route)},
-			resource.ListenerType: {makeHTTPListener(DEFAULT_LISTENER_NAME, cp.urlDomain)},
+			resource.ClusterType:  {makeCluster(route, clusterLoadAssignment)},
+			resource.RouteType:    {makeRoute(route)},
+			resource.ListenerType: {makeHTTPListener(DEFAULT_LISTENER_NAME, route)},
 		},
 	)
 

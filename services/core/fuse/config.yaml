@@ -9,3 +9,11 @@ service:
   port: 18000
   # Location of `blueprint` service to register with
   entrypoint: http://localhost:2221
+
+fuse:
+  address: http://localhost:18000
+  listener:
+    address: 0.0.0.0
+    port: 10000
+  default:
+    route_host: localhost

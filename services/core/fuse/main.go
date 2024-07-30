@@ -10,7 +10,7 @@ import (
 func main() {
 	var (
 		logger       = zerolog.New()
-		controlPlane = cp.NewControlPlane(logger, "steady-bytes.com")
+		controlPlane = cp.NewControlPlane(logger)
 		// xDS server containing a share cache between the envoy proxies
 		xdsServer = cp.NewXDSRpc(logger, controlPlane)
 		// fuse control plane rpc interface
