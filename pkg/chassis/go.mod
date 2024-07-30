@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/raft-boltdb/v2 v2.3.0
 	github.com/rs/cors v1.10.1
 	github.com/spf13/viper v1.18.2
-	github.com/steady-bytes/draft/api v0.0.2
+	github.com/steady-bytes/draft/api v0.3.0
 	golang.org/x/net v0.25.0
 	golang.org/x/sync v0.7.0
 	google.golang.org/grpc v1.65.0

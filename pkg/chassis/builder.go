@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
 	sdv1Cnt "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1/v1connect"
 
@@ -91,6 +92,15 @@ func (c *Runtime) WithRunner(f func()) *Runtime {
 	}
 	c.onStart = append(c.onStart, f)
 	return c
+}
+
+func (c *Runtime) WithRoute(route *ntv1.Route) *Runtime {
+	c.withRoute(route)
+	return c
+}
+
+func (c *Runtime) GetConfig() Config {
+	return c.config
 }
 
 // /////////////////
