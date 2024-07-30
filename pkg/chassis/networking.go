@@ -24,7 +24,7 @@ func (c *Runtime) withRoute(route *ntv1.Route) error {
 		ctx = context.Background()
 	)
 
-	route = c.routeDefaults(route)
+	route = c.setAndValidateRoute(route)
 
 	val, err := anypb.New(&kvv1.Value{})
 	if err != nil {
@@ -65,22 +65,49 @@ func (c *Runtime) withRoute(route *ntv1.Route) error {
 	return nil
 }
 
-// routeDefaults will set defaults on the Route for anything not specified by the user
-func (c *Runtime) routeDefaults(route *ntv1.Route) (*ntv1.Route) {
+// setAndValidateRoute will set defaults on the Route for anything not specified by the user and
+// validates the route is valid
+// TODO: we should do validation through protobuf annotations instead
+func (c *Runtime) setAndValidateRoute(route *ntv1.Route) (*ntv1.Route) {
 	if route.Name == "" {
 		route.Name = fmt.Sprintf("%s-%s", c.config.Domain(), c.config.Name())
 	}
+	if route.Match == nil {
+		c.logger.Panic("route requested but no match provided")
+	}
+	if route.Match.Host == "" {
+		route.Match.Host = c.config.GetString("service.network.external.host")
+	}
+	if route.Match.Host == "" {
+		c.logger.Panic("route requested but no host provided in the match")
+	}
 	if route.Endpoint == nil {
 		route.Endpoint = &ntv1.Endpoint{
-			Host: c.config.GetString("service.address"),
-			Port: c.config.GetUint32("service.port"),
+			Host: c.getConfigInternalHost(),
+			Port: c.getConfigInternalPort(),
 		}
 	}
 	if route.Endpoint.Host == "" {
-		route.Endpoint.Host = c.config.GetString("service.address")
+		route.Endpoint.Host = c.getConfigInternalHost()
 	}
 	if route.Endpoint.Port == 0 {
-		route.Endpoint.Port = c.config.GetUint32("service.port")
+		route.Endpoint.Port = c.getConfigInternalPort()
 	}
 	return route
+}
+
+func (c *Runtime) getConfigInternalHost() string {
+	host := c.config.GetString("service.network.internal.host")
+	if host == "" {
+		c.logger.Panic("route requested but no internal host name provided")
+	}
+	return host
+}
+
+func (c *Runtime) getConfigInternalPort() uint32 {
+	port := c.config.GetUint32("service.network.internal.port")
+	if port == 0 {
+		c.logger.Panic("route requested but no internal port provided")
+	}
+	return port
 }
