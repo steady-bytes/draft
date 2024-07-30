@@ -11,8 +11,8 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/raft v1.6.0
-	github.com/steady-bytes/draft/api v0.0.2
-	github.com/steady-bytes/draft/pkg/chassis v0.2.1
+	github.com/steady-bytes/draft/api v0.3.1
+	github.com/steady-bytes/draft/pkg/chassis v0.3.0
 	github.com/steady-bytes/draft/pkg/loggers v0.2.0
 	github.com/steady-bytes/draft/pkg/repositories v0.0.2
 	google.golang.org/protobuf v1.34.2

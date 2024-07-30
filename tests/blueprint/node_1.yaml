@@ -1,9 +1,8 @@
 service:
   name: blueprint_1
-  env: local
-  logging:
-    level: info
-  port: 2221
+  domain: core
+  network:
+    port: 2221
 
 raft:
   node-id: node_1

@@ -1,7 +1,12 @@
 service:
-  name: fuse 
-  env: local
-  logging:
-    level: info
-  port: 18000 
+  name: fuse
+  domain: core
   entrypoint: http://localhost:2221
+  network:
+    port: 18000
+
+fuse:
+  address: http://localhost:18000
+  listener:
+    address: 0.0.0.0
+    port: 80
