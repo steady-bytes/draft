@@ -5,7 +5,6 @@ import (
 	"time"
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
-	"github.com/steady-bytes/draft/pkg/chassis"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -23,8 +22,6 @@ import (
 
 const (
 	DEFAULT_CLUSTER_NAME   = "fuse"
-	defaultListenerAddress = "0.0.0.0"
-	defaultListenerPort    = 10000
 	DEFAULT_LISTENER_NAME  = "listener_0"
 )
 
@@ -99,7 +96,7 @@ func makeRoute(r *ntv1.Route) *route.RouteConfiguration {
 }
 
 // `makeHTTPListener`
-func makeHTTPListener(listenerName string, r *ntv1.Route) *listener.Listener {
+func (cp *controlPlane) makeHTTPListener(listenerName string, r *ntv1.Route) *listener.Listener {
 	routerConfig, _ := anypb.New(&router.Router{})
 
 	// HTTP filter configuration
@@ -143,25 +140,15 @@ func makeHTTPListener(listenerName string, r *ntv1.Route) *listener.Listener {
 
 	// tlspb, _ := anypb.New(tlsConfig)
 
-	// if not set in the config, use the default listener address and port
-	listenerAddress := chassis.GetConfig().GetString("fuse.listener.address")
-	if listenerAddress == "" {
-		listenerAddress = defaultListenerAddress
-	}
-	listenerPort := chassis.GetConfig().GetUint32("fuse.listener.port")
-	if listenerPort == 0 {
-		listenerPort = defaultListenerPort
-	}
-
 	return &listener.Listener{
 		Name: listenerName,
 		Address: &core.Address{
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Protocol: core.SocketAddress_TCP,
-					Address:  listenerAddress,
+					Address:  cp.listenerAddress,
 					PortSpecifier: &core.SocketAddress_PortValue{
-						PortValue: listenerPort,
+						PortValue: cp.listenerPort,
 					},
 				},
 			},

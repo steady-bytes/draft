@@ -55,7 +55,8 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 		Data: chassis.GetConfig().GetString("fuse.address"),
 	})
 	if err != nil {
-		panic("failed to create the `value` struct")
+		h.logger.WithError(err).Panic("failed create kvv1.Value struct")
+		panic("failed create kvv1.Value struct")
 	}
 
 	// add the fuse address to blueprint
@@ -66,7 +67,7 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 		Value: val,
 	}))
 	if err != nil {
-		// h.logger.WithError(err).Panic("failed to register fuse address with blueprint")
+		h.logger.WithError(err).Panic("failed to register fuse address with blueprint")
 		panic("failed to register fuse address with blueprint")
 	}
 	h.logger.Info("registered fuse address with blueprint")
