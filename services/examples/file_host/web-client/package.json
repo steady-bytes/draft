@@ -1,6 +1,6 @@
 {
   "name": "placeholder",
   "scripts": {
-    "build": ""
+    "build": "mkdir dist && echo \"Hello World\" > dist/index.html"
   }
 }
