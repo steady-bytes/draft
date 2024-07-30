@@ -51,14 +51,15 @@ var configSingleton *config
 
 // TODO -> Read config from the key/value store and not from a local static file.
 func LoadConfig() Config {
+	setDefaults()
 	viper.SetEnvPrefix("DRAFT")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	configPath := viper.GetString("config")
 	if configPath == "" {
-		fmt.Println("using default config path")
 		configPath = "./config.yaml"
+		fmt.Printf("using default config path: %s\n", configPath)
 	}
 	viper.SetConfigFile(configPath)
 	if err := viper.ReadInConfig(); err != nil {
@@ -67,6 +68,13 @@ func LoadConfig() Config {
 	}
 	configSingleton = &config{viper.GetViper()}
 	return configSingleton
+}
+
+func setDefaults() {
+	viper.SetDefault("service.network.port", 8090)
+	viper.SetDefault("service.network.bind_address", "0.0.0.0")
+	viper.SetDefault("service.env", "local")
+	viper.SetDefault("service.logging.level", "info")
 }
 
 func (c *config) Name() string {
@@ -94,5 +102,8 @@ func (c *config) Env() string {
 }
 
 func GetConfig() Config {
+	if configSingleton == nil {
+		LoadConfig()
+	}
 	return configSingleton
 }
