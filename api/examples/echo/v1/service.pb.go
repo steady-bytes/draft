@@ -25,7 +25,7 @@ type SpeakRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Input string `protobuf:"bytes,1,opt,name=input,proto3" json:"input" pg:"input" bun:"input" yaml:"input" csv:"input"`
+	Input string `protobuf:"bytes,1,opt,name=input,proto3" json:"input" csv:"input" pg:"input" bun:"input" yaml:"input"`
 }
 
 func (x *SpeakRequest) Reset() {
@@ -72,7 +72,7 @@ type SpeakResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Output string `protobuf:"bytes,2,opt,name=output,proto3" json:"output" bun:"output" yaml:"output" csv:"output" pg:"output"`
+	Output string `protobuf:"bytes,2,opt,name=output,proto3" json:"output" pg:"output" bun:"output" yaml:"output" csv:"output"`
 }
 
 func (x *SpeakResponse) Reset() {
