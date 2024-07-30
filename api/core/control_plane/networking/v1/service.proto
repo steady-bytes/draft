@@ -77,12 +77,18 @@ message DeleteRouteResponse {
 message Route {
     // Name for the route
     string name  = 1;
-    // Route matching parameters.
+    // Route matching parameters
     RouteMatch match = 2;
-    // Host ip address for the route
-    string host = 3;
-    // Host port for the route
-    uint32 port = 4;
+    // Endpoint parameters
+    Endpoint endpoint = 3;
+}
+
+// parameters for the endpoint a route will map to
+message Endpoint {
+    // host represents the address of the endpoint (upstream). can be either a hostname or an ip address
+    string host = 1;
+    // port represents the port on the host of the endpoint (upstream)
+    uint32 port = 2;
 }
 
 // parameters for matching a route
@@ -104,6 +110,8 @@ message RouteMatch {
 	// dynamic metadata for a match to occur.
     // TODO -> implement pre 2.0 relase of `fuse`
     optional DynamicMetadata dynamic_metadata = 4;
+    // Host address for the route
+    string host = 5;
 }
 
 // consider using the `key/value` from `blueprint` key/value store

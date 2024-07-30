@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
+
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -14,27 +16,18 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 const (
-	DEFAULT_CLUSTER_NAME     = "fuse"
-	DEFAULT_LISTENER_ADDRESS = "0.0.0.0"
-	DEFAULT_LISTENER_PORT    = 80
-	DEFAULT_LISTENER_NAME    = "listener_0"
-
-	// RouteName    = "local_route"
-	// ListenerName = "listener_0"
-	// ListenerPort = 10000
-	// UpstreamHost = "www.envoyproxy.io"
-	// UpstreamPort = 80
+	DEFAULT_CLUSTER_NAME   = "fuse"
+	DEFAULT_LISTENER_NAME  = "listener_0"
 )
 
-func makeCluster(clusterName string, loadAssignment *endpoint.ClusterLoadAssignment) *cluster.Cluster {
+func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) *cluster.Cluster {
 	return &cluster.Cluster{
-		Name:                 clusterName,
+		Name:                 clusterName(r),
 		ConnectTimeout:       durationpb.New(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_LOGICAL_DNS},
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
@@ -47,11 +40,9 @@ func makeCluster(clusterName string, loadAssignment *endpoint.ClusterLoadAssignm
 // `virtualHostName`	:draft `chassis.Namespace` that is defined in `main.go` and configured in the `chassis.Builder`. (ie. fuse, or file_host)
 // `upstreamHost` 		:the host ip (IPv4) that the cluster will be forwarding the traffic to
 // `upstreamPort`		:the port that the cluster will be forwarding the traffic to
-func makeEndpoint(urlDomain, virtualHostName, upstreamHost string, upstreamPort uint32) *endpoint.ClusterLoadAssignment {
-	domain := makeDomain(urlDomain, virtualHostName)
-
+func makeEndpoint(r *ntv1.Route) *endpoint.ClusterLoadAssignment {
 	return &endpoint.ClusterLoadAssignment{
-		ClusterName: domain,
+		ClusterName: clusterName(r),
 		Endpoints: []*endpoint.LocalityLbEndpoints{{
 			LbEndpoints: []*endpoint.LbEndpoint{{
 				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
@@ -62,11 +53,9 @@ func makeEndpoint(urlDomain, virtualHostName, upstreamHost string, upstreamPort 
 									// defaulting to tcp, this can be changed but will also depend on the protocol
 									// the upstream is using. In this case it's http.
 									Protocol: core.SocketAddress_TCP,
-									// I think this is the ip address of the process that is trying to add the route.
-									Address: upstreamHost,
+									Address:  r.Endpoint.Host,
 									PortSpecifier: &core.SocketAddress_PortValue{
-										// I think this is the port of the process that is trying to add the route.
-										PortValue: upstreamPort,
+										PortValue: r.Endpoint.Port,
 									},
 								},
 							},
@@ -78,37 +67,26 @@ func makeEndpoint(urlDomain, virtualHostName, upstreamHost string, upstreamPort 
 	}
 }
 
-func makeDomain(urlDomain, virtualHostName string) string {
-	return fmt.Sprintf("%s.%s", virtualHostName, urlDomain)
-}
-
 // `makeRoute` creates a route for the given cluster, and a virtual host for the process that is attempting to add the route.
 //
 // `urlDomain` 			:`url_domain` found in the `config.yaml` file of a process. (ie. steady-bytes.com)
 // `nt_route` 			:route configuration that is being added to the snapshot.
-func makeRoute(urlDomain string, nt_route *ntv1.Route) *route.RouteConfiguration {
-	// The domain is the virtual host name and the route name combined.
-	// (i.e file_host.steady-bytes.com)
-	//
-	// TODO: Add the support for root domains. (i.e "*")
-	// so that is possible to have a route for all domains. It's currently not needed but it's a good feature to have.
-	domain := makeDomain(urlDomain, nt_route.GetName())
-
+func makeRoute(r *ntv1.Route) *route.RouteConfiguration {
 	return &route.RouteConfiguration{
-		Name: urlDomain,
+		Name: routeName(r),
 		VirtualHosts: []*route.VirtualHost{{
-			Name:    nt_route.GetName(),
-			Domains: []string{domain},
+			Name:    r.Name,
+			Domains: []string{r.Match.Host},
 			Routes: []*route.Route{{
 				Match: &route.RouteMatch{
 					PathSpecifier: &route.RouteMatch_Prefix{
-						Prefix: nt_route.GetMatch().Prefix,
+						Prefix: r.Match.Prefix,
 					},
 				},
 				Action: &route.Route_Route{
 					Route: &route.RouteAction{
 						ClusterSpecifier: &route.RouteAction_Cluster{
-							Cluster: domain,
+							Cluster: clusterName(r),
 						},
 					},
 				},
@@ -118,7 +96,7 @@ func makeRoute(urlDomain string, nt_route *ntv1.Route) *route.RouteConfiguration
 }
 
 // `makeHTTPListener`
-func makeHTTPListener(listenerName, urlDomain string) *listener.Listener {
+func (cp *controlPlane) makeHTTPListener(listenerName string, r *ntv1.Route) *listener.Listener {
 	routerConfig, _ := anypb.New(&router.Router{})
 
 	// HTTP filter configuration
@@ -128,7 +106,7 @@ func makeHTTPListener(listenerName, urlDomain string) *listener.Listener {
 		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
 			Rds: &hcm.Rds{
 				ConfigSource:    makeConfigSource(),
-				RouteConfigName: urlDomain,
+				RouteConfigName: routeName(r),
 			},
 		},
 		HttpFilters: []*hcm.HttpFilter{{
@@ -168,9 +146,9 @@ func makeHTTPListener(listenerName, urlDomain string) *listener.Listener {
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Protocol: core.SocketAddress_TCP,
-					Address:  DEFAULT_LISTENER_ADDRESS,
+					Address:  cp.listenerAddress,
 					PortSpecifier: &core.SocketAddress_PortValue{
-						PortValue: DEFAULT_LISTENER_PORT,
+						PortValue: cp.listenerPort,
 					},
 				},
 			},
@@ -218,4 +196,12 @@ func GenerateSnapshot() *cache.Snapshot {
 		},
 	)
 	return snap
+}
+
+func routeName(r *ntv1.Route) string {
+	return fmt.Sprintf("%s-%s", r.Name, r.Match.Host)
+}
+
+func clusterName(r *ntv1.Route) string {
+	return r.Name
 }

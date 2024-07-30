@@ -1,9 +1,6 @@
 service:
   name: crud
-  env: local
-  logging:
-    level: info
-  port: 8081
+  domain: examples
 
 repositories:
   postgres:

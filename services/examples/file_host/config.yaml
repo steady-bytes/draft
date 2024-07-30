@@ -1,8 +1,35 @@
 service:
-  name: file_host 
+  # * draft process name
+  name: file_host
+  # * draft domain name
+  domain: examples
+  # current env (adjusts things like log formatting)
+  # default: local
   env: local
+
   logging:
-    level: info
-  port: 8080
-  # Location of `blueprint` service to register with
+    # the logging level
+    # default: info
+    level: debug
+
+  # address of the blueprint node to register to
+  # required if registration is enabled
   entrypoint: http://localhost:2221
+
+  network:
+    # the bind address when opening ports for the web server
+    # default: "0.0.0.0"
+    bind_address: "localhost"
+    # the port the process will bind to (if it hosts a web server of any kind)
+    # default: 8090
+    port: 8080
+    # routing information within the draft cluster
+    internal:
+      # e.g. this could be http://file_host.examples.svc.cluster.local:8080 if running in kubernetes
+      host: localhost
+      # the port to route internal traffic to (e.g. envoy -> process)
+      port: 8080
+    # routing information from outside of the draft cluster
+    external:
+      # e.g. this could be file_host.examples.steady-bytes.com
+      host: localhost

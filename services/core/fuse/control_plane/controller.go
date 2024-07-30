@@ -2,7 +2,6 @@ package control_plane
 
 import (
 	"context"
-	"os"
 
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
@@ -25,44 +24,58 @@ type (
 	}
 
 	controlPlane struct {
-		count string
-
-		xDSServer server.Server
-		logger    chassis.Logger
-		cache     cache.SnapshotCache
-
-		urlDomain string
-		name      string
+		count           string
+		xDSServer       server.Server
+		logger          chassis.Logger
+		cache           cache.SnapshotCache
+		listenerAddress string
+		listenerPort    uint32
 	}
 )
 
-func NewControlPlane(logger chassis.Logger, urlDomain string) *controlPlane {
+const (
+	defaultListenerAddress   = "0.0.0.0"
+	defaultListenerPort      = 10000
+	listenerAddressConfigKey = "fuse.listener.address"
+	listenerPortConfigKey    = "fuse.listener.port"
+)
+
+func NewControlPlane(logger chassis.Logger) *controlPlane {
 	var (
+		ctx      = context.Background()
 		cache    = cache.NewSnapshotCache(false, cache.IDHash{}, logger)
 		snapshot = GenerateSnapshot()
-		ctx      = context.Background()
+		config   = chassis.GetConfig()
 	)
 
 	// ensure the snapshot is well-formed
 	if err := snapshot.Consistent(); err != nil {
-		logger.Errorf("snapshot inconsistency: %+v\n%+v", snapshot, err)
-		os.Exit(1)
+		logger.WithError(err).WithField("snapshot", snapshot).Panic("snapshot failed consistency check")
 	}
 
 	// set the snapshot to the cache
 	if err := cache.SetSnapshot(ctx, "fuse-proxy-1", snapshot); err != nil {
-		logger.Errorf("snapshot error: %+v", err)
-		os.Exit(1)
+		logger.WithError(err).WithField("snapshot", snapshot).Panic("failed to set snapshot")
 	}
 
 	// TODO: find a more elegant way to handle debug enable.
 	cb := &test.Callbacks{Debug: true}
 
+	// set listener attributes from config (or defaults)
+	listenerAddress := config.GetString(listenerAddressConfigKey)
+	if listenerAddress == "" {
+		listenerAddress = defaultListenerAddress
+	}
+	listenerPort := config.GetUint32(listenerPortConfigKey)
+	if listenerPort == 0 {
+		listenerPort = defaultListenerPort
+	}
 	return &controlPlane{
-		xDSServer: server.NewServer(ctx, cache, cb),
-		logger:    logger,
-		cache:     cache,
-		urlDomain: urlDomain,
+		xDSServer:       server.NewServer(ctx, cache, cb),
+		logger:          logger,
+		cache:           cache,
+		listenerAddress: listenerAddress,
+		listenerPort:    listenerPort,
 	}
 }
 
@@ -71,20 +84,14 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 		ctx = context.Background()
 	)
 
-	clusterLoadAssignment := makeEndpoint(
-		cp.urlDomain,
-		route.GetName(),
-		route.GetHost(),
-		route.GetPort())
-
-	domain := makeDomain(cp.urlDomain, route.GetName())
+	clusterLoadAssignment := makeEndpoint(route)
 
 	// make a new snapshot with the new route
 	snapshot, _ := cache.NewSnapshot(cp.Increment(),
 		map[resource.Type][]types.Resource{
-			resource.ClusterType:  {makeCluster(domain, clusterLoadAssignment)},
-			resource.RouteType:    {makeRoute(cp.urlDomain, route)},
-			resource.ListenerType: {makeHTTPListener(DEFAULT_LISTENER_NAME, cp.urlDomain)},
+			resource.ClusterType:  {makeCluster(route, clusterLoadAssignment)},
+			resource.RouteType:    {makeRoute(route)},
+			resource.ListenerType: {cp.makeHTTPListener(DEFAULT_LISTENER_NAME, route)},
 		},
 	)
 

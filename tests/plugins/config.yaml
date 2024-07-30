@@ -1,11 +1,6 @@
 service:
   name: plugins
-  env: local
-  logging:
-    level: info
-
-http:
-  port: '12345'
+  domain: tests
 
 repositories:
   badger:
