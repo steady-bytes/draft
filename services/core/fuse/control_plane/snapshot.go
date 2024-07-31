@@ -13,6 +13,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	upstreams "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -26,6 +27,16 @@ const (
 )
 
 func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) *cluster.Cluster {
+	// enables grpc routing
+	a, _ := anypb.New(&upstreams.HttpProtocolOptions{
+		UpstreamProtocolOptions: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_{
+			ExplicitHttpConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig{
+				ProtocolConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
+					Http2ProtocolOptions: &core.Http2ProtocolOptions{},
+				},
+			},
+		},
+	})
 	return &cluster.Cluster{
 		Name:                 clusterName(r),
 		ConnectTimeout:       durationpb.New(5 * time.Second),
@@ -33,6 +44,9 @@ func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) 
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment:       loadAssignment,
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
+		TypedExtensionProtocolOptions: map[string]*anypb.Any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": a,
+		},
 	}
 }
 
