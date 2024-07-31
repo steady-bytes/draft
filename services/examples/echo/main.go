@@ -8,12 +8,19 @@ import (
 	"github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
+
 	"connectrpc.com/connect"
 )
 
 func main() {
 	defer chassis.New(zerolog.New()).
 		WithRPCHandler(&controller{}).
+		WithRoute(&ntv1.Route{
+			Match: &ntv1.RouteMatch{
+				Prefix: "/",
+			},
+		}).
 		Start()
 }
 
