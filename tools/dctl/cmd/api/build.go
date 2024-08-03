@@ -25,6 +25,14 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 		return nil
 	}
 
+	var image string
+	if ImageName != "" {
+		image = ImageName
+		output.Print("Using image: %s", image)
+	} else {
+		image = dctx.API.ImageName
+	}
+
 	// build out execution path
 	rootPath := dctx.Root
 	apiPath := filepath.Join(rootPath, "api")
@@ -34,7 +42,7 @@ func Build(cmd *cobra.Command, args []string) (err error) {
 
 	// base configuration for docker container runs
 	config := &container.Config{
-		Image:      dctx.API.ImageName,
+		Image:      image,
 		WorkingDir: "/workspace",
 	}
 	hostConfig := &container.HostConfig{
