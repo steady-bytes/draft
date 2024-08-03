@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	BuildImage     bool
-	ImageName string
+	BuildImage bool
+	ImageName  string
 )
 
 func Init(cmd *cobra.Command, args []string) error {
