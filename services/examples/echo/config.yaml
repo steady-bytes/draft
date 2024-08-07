@@ -19,7 +19,7 @@ service:
   network:
     # the bind address when opening ports for the web server
     # default: "0.0.0.0"
-    bind_address: "0.0.0.0"
+    bind_address: "localhost"
     # the port the process will bind to (if it hosts a web server of any kind)
     # default: 8090
     port: 9090
@@ -28,8 +28,8 @@ service:
       # e.g. this could be http://file_host.examples.svc.cluster.local:8080 if running in kubernetes
       host: localhost
       # the port to route internal traffic to (e.g. envoy -> process)
-      port: 9090 
+      port: 9090
     # routing information from outside of the draft cluster
     external:
       # e.g. this could be file_host.examples.steady-bytes.com
-      host: localhost 
+      host: localhost
