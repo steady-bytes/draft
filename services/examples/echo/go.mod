@@ -11,8 +11,8 @@ go 1.21.3
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/steady-bytes/draft/api v0.0.2
-	github.com/steady-bytes/draft/pkg/chassis v0.2.1
+	github.com/steady-bytes/draft/api v0.3.1
+	github.com/steady-bytes/draft/pkg/chassis v0.3.0
 	github.com/steady-bytes/draft/pkg/loggers v0.2.0
 )
 

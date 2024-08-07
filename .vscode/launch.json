@@ -170,6 +170,18 @@
             },
         },
         {
+            "name": "Echo",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/examples/echo/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "DRAFT_CONFIG": "services/examples/echo/config.yaml"
+            },
+        },
+        {
             "name": "Plugins (test)",
             "type": "go",
             "request": "launch",

@@ -2,7 +2,6 @@ package control_plane
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -63,7 +62,7 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 	ctx := context.Background()
 	kvClient := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
 	_, err = kvClient.Set(ctx, connect.NewRequest(&kvv1.SetRequest{
-		Key: chassis.FuseAddressBlueprintKey,
+		Key:   chassis.FuseAddressBlueprintKey,
 		Value: val,
 	}))
 	if err != nil {
@@ -84,7 +83,6 @@ var (
 	ErrInvalidRoute             = errors.New("invalid route")
 	ErrInvalidRoutePrefix       = errors.New("invalid route prefix")
 	ErrInvalidRouteName         = errors.New("invalid route name")
-	ErrUnableToSaveRoute        = errors.New("unable to save route in the key/value store")
 	ErrUnableToUpdateProxyCache = errors.New("unable to update proxy cache")
 )
 
@@ -113,35 +111,6 @@ func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRe
 
 	if msg.GetRoute().Name == "" {
 		return nil, ErrInvalidRouteName
-	}
-
-	route := msg.GetRoute()
-	routeJSON, err := json.Marshal(route)
-	if err != nil {
-		logger.Error(err.Error())
-		return nil, ErrInvalidRoute
-	}
-
-	// upsert route in the blueprint key/value store
-	val, err := anypb.New(&kvv1.Value{
-		// I think I like saving the `Route` as a JSON string
-		Data: string(routeJSON),
-	})
-	if err != nil {
-		logger.Error(err.Error())
-		return nil, ErrUnableToSaveRoute
-	}
-
-	setReq := connect.NewRequest(&kvv1.SetRequest{
-		Key:   msg.GetRoute().Name,
-		Value: val,
-	})
-
-	client := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
-	_, err = client.Set(context.Background(), setReq)
-	if err != nil {
-		logger.Error(err.Error())
-		return nil, ErrUnableToSaveRoute
 	}
 
 	if err != h.controlPlane.UpdateCacheWithNewRoute(msg.GetRoute()) {
