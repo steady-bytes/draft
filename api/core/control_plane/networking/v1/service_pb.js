@@ -109,7 +109,7 @@ export const Route = proto3.makeMessageType(
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "match", kind: "message", T: RouteMatch },
     { no: 3, name: "endpoint", kind: "message", T: Endpoint },
-    { no: 4, name: "enableHTTP2", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "enable_http2", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ],
 );
 

@@ -82,7 +82,7 @@ message Route {
     // Endpoint parameters
     Endpoint endpoint = 3;
     // EnableHTTP2 enables HTTP2 support
-    bool enableHTTP2 = 4;
+    bool enable_http2 = 4;
 }
 
 // parameters for the endpoint a route will map to

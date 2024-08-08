@@ -327,9 +327,9 @@ export class Route extends Message<Route> {
   /**
    * EnableHTTP2 enables HTTP2 support
    *
-   * @generated from field: bool enableHTTP2 = 4;
+   * @generated from field: bool enable_http2 = 4;
    */
-  enableHTTP2 = false;
+  enableHttp2 = false;
 
   constructor(data?: PartialMessage<Route>) {
     super();
@@ -342,7 +342,7 @@ export class Route extends Message<Route> {
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "match", kind: "message", T: RouteMatch },
     { no: 3, name: "endpoint", kind: "message", T: Endpoint },
-    { no: 4, name: "enableHTTP2", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "enable_http2", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Route {
