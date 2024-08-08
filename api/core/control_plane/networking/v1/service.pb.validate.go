@@ -793,6 +793,8 @@ func (m *Route) validate(all bool) error {
 		}
 	}
 
+	// no validation rules for EnableHTTP2
+
 	if len(errors) > 0 {
 		return RouteMultiError(errors)
 	}

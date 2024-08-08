@@ -324,6 +324,13 @@ export class Route extends Message<Route> {
    */
   endpoint?: Endpoint;
 
+  /**
+   * EnableHTTP2 enables HTTP2 support
+   *
+   * @generated from field: bool enableHTTP2 = 4;
+   */
+  enableHTTP2 = false;
+
   constructor(data?: PartialMessage<Route>) {
     super();
     proto3.util.initPartial(data, this);
@@ -335,6 +342,7 @@ export class Route extends Message<Route> {
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "match", kind: "message", T: RouteMatch },
     { no: 3, name: "endpoint", kind: "message", T: Endpoint },
+    { no: 4, name: "enableHTTP2", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Route {
