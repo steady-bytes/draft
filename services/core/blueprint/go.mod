@@ -6,6 +6,8 @@ go 1.21.3
 
 // replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 
+// replace github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
+
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/dgraph-io/badger/v2 v2.2007.4
@@ -14,7 +16,7 @@ require (
 	github.com/steady-bytes/draft/api v0.3.1
 	github.com/steady-bytes/draft/pkg/chassis v0.3.0
 	github.com/steady-bytes/draft/pkg/loggers v0.2.0
-	github.com/steady-bytes/draft/pkg/repositories v0.0.2
+	github.com/steady-bytes/draft/pkg/repositories v0.0.3
 	google.golang.org/protobuf v1.34.2
 )
 

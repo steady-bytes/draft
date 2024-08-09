@@ -4,6 +4,9 @@ service:
   network:
     port: 2221
 
+badger:
+  path: tmp/
+
 raft:
   node-id: node_1
   address: localhost
