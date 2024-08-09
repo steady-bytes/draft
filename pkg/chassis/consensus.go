@@ -95,7 +95,11 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 	raftConf.SnapshotThreshold = 1024
 
 	// set the path to the directory bolt will use to write to the filesystem
-	store, err := raftboltdb.NewBoltStore(filepath.Join(raftNodeID, "raft.dataRepo"))
+	basePath := c.config.GetString("badger.path")
+	if basePath == "" {
+		basePath = raftNodeID
+	}
+	store, err := raftboltdb.NewBoltStore(filepath.Join(basePath, "raft.dataRepo"))
 	if err != nil {
 		c.logger.Fatal(err.Error())
 	}
@@ -107,7 +111,7 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 	}
 
 	// TODO -> understand this more when diving into snapshots, and how they can be used to recover data
-	snapshotStore, err := raft.NewFileSnapshotStore(raftNodeID, raftSnapShotRetain, os.Stdout)
+	snapshotStore, err := raft.NewFileSnapshotStore(basePath, raftSnapShotRetain, os.Stdout)
 	if err != nil {
 		c.logger.Fatal(err.Error())
 	}
