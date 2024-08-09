@@ -23,5 +23,7 @@ func main() {
 		}).
 		WithRPCHandler(xdsServer).
 		WithRPCHandler(controlPlaneRPC).
+		// make sure to load the cache on boot
+		WithRunner(controlPlane.LoadCache).
 		Start()
 }

@@ -36,6 +36,7 @@ type (
 	ControlPlane interface {
 		cache.SnapshotCache
 
+		LoadCache()
 		UpdateCacheWithNewRoute(route *ntv1.Route) error
 		Increment() string
 	}
@@ -106,6 +107,18 @@ func NewControlPlane(logger chassis.Logger) *controlPlane {
 	}
 }
 
+func (cp *controlPlane) LoadCache() {
+	var (
+		ctx    = context.Background()
+		client = kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
+	)
+
+	err := cp.apply(ctx, client)
+	if err != nil {
+		cp.logger.WithError(err).Error("failed to load cache")
+	}
+}
+
 func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 	var (
 		ctx    = context.Background()
@@ -129,6 +142,11 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 		cp.logger.Error(err.Error())
 		return ErrUnableToSaveRoute
 	}
+
+	return cp.apply(ctx, client)
+}
+
+func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueServiceClient) error {
 
 	routeModel, err := anypb.New(&ntv1.Route{})
 	if err != nil {
@@ -247,27 +265,32 @@ func (cp *controlPlane) increment() string {
 }
 
 func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) *cluster.Cluster {
-	// enables grpc routing
-	a, _ := anypb.New(&upstreams.HttpProtocolOptions{
-		UpstreamProtocolOptions: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_{
-			ExplicitHttpConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig{
-				ProtocolConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
-					Http2ProtocolOptions: &core.Http2ProtocolOptions{},
-				},
-			},
-		},
-	})
-	return &cluster.Cluster{
+	c := &cluster.Cluster{
 		Name:                 clusterName(r),
 		ConnectTimeout:       durationpb.New(5 * time.Second),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_LOGICAL_DNS},
 		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment:       loadAssignment,
 		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
-		TypedExtensionProtocolOptions: map[string]*anypb.Any{
-			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": a,
-		},
 	}
+
+	// enabling HTTP2 supports gRPC but can cause servers without HTTP2 support to fail the connection with a protocol error
+	if r.EnableHttp2 {
+		a, _ := anypb.New(&upstreams.HttpProtocolOptions{
+			UpstreamProtocolOptions: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_{
+				ExplicitHttpConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig{
+					ProtocolConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
+						Http2ProtocolOptions: &core.Http2ProtocolOptions{},
+					},
+				},
+			},
+		})
+		c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": a,
+		}
+	}
+
+	return c
 }
 
 // `makeRoute` creates a route for the given cluster, and a virtual host for the process that is attempting to add the route.
