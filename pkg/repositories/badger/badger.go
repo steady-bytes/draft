@@ -29,7 +29,11 @@ func (r *repository) Client() *badger.DB {
 }
 
 func (r *repository) Open(ctx context.Context, config chassis.Config) error {
-	badgerOpt := badger.DefaultOptions(config.NodeID())
+	path := config.GetString("badger.path")
+	if path == "" {
+		path = config.NodeID()
+	}
+	badgerOpt := badger.DefaultOptions(path)
 	db, err := badger.Open(badgerOpt)
 	if err != nil {
 		return err
