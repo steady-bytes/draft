@@ -206,6 +206,11 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 			Name:       "fuse-http-router",
 			ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: routerConfig},
 		}},
+		UpgradeConfigs: []*hcm.HttpConnectionManager_UpgradeConfig{
+			{
+				UpgradeType: "websocket",
+			},
+		},
 	}
 
 	pbst, err := anypb.New(manager)
