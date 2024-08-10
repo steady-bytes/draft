@@ -25,8 +25,8 @@ type JoinRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId      string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" bun:"node_id" yaml:"node_id" csv:"node_id" pg:"node_id"`
-	RaftAddress string `protobuf:"bytes,2,opt,name=raft_address,json=raftAddress,proto3" json:"raft_address" pg:"raft_address" bun:"raft_address" yaml:"raft_address" csv:"raft_address"`
+	NodeId      string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" bun:"node_id" csv:"node_id" pg:"node_id" yaml:"node_id"`
+	RaftAddress string `protobuf:"bytes,2,opt,name=raft_address,json=raftAddress,proto3" json:"raft_address" bun:"raft_address" csv:"raft_address" pg:"raft_address" yaml:"raft_address"`
 }
 
 func (x *JoinRequest) Reset() {
@@ -80,8 +80,8 @@ type JoinResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId      string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" pg:"node_id" bun:"node_id" yaml:"node_id" csv:"node_id"`
-	RaftAddress string `protobuf:"bytes,2,opt,name=raft_address,json=raftAddress,proto3" json:"raft_address" pg:"raft_address" bun:"raft_address" yaml:"raft_address" csv:"raft_address"`
+	NodeId      string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" bun:"node_id" csv:"node_id" pg:"node_id" yaml:"node_id"`
+	RaftAddress string `protobuf:"bytes,2,opt,name=raft_address,json=raftAddress,proto3" json:"raft_address" bun:"raft_address" csv:"raft_address" pg:"raft_address" yaml:"raft_address"`
 }
 
 func (x *JoinResponse) Reset() {
@@ -135,7 +135,7 @@ type RemoveRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" pg:"node_id" bun:"node_id" yaml:"node_id" csv:"node_id"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" bun:"node_id" csv:"node_id" pg:"node_id" yaml:"node_id"`
 }
 
 func (x *RemoveRequest) Reset() {
@@ -182,7 +182,7 @@ type RemoveResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" pg:"node_id" bun:"node_id" yaml:"node_id" csv:"node_id"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" bun:"node_id" csv:"node_id" pg:"node_id" yaml:"node_id"`
 }
 
 func (x *RemoveResponse) Reset() {
@@ -229,7 +229,7 @@ type StatsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" csv:"node_id" pg:"node_id" bun:"node_id" yaml:"node_id"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" bun:"node_id" csv:"node_id" pg:"node_id" yaml:"node_id"`
 }
 
 func (x *StatsRequest) Reset() {
@@ -276,8 +276,8 @@ type StatsResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" pg:"node_id" bun:"node_id" yaml:"node_id" csv:"node_id"`
-	Stats  *Stats `protobuf:"bytes,2,opt,name=stats,proto3" json:"stats" csv:"stats" pg:"stats" bun:"stats" yaml:"stats"`
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id" bun:"node_id" csv:"node_id" pg:"node_id" yaml:"node_id"`
+	Stats  *Stats `protobuf:"bytes,2,opt,name=stats,proto3" json:"stats" bun:"stats" csv:"stats" pg:"stats" yaml:"stats"`
 }
 
 func (x *StatsResponse) Reset() {
@@ -331,7 +331,7 @@ type Stats struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Stats map[string]string `protobuf:"bytes,1,rep,name=stats,proto3" json:"stats" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" csv:"stats" pg:"stats" bun:"stats" yaml:"stats"`
+	Stats map[string]string `protobuf:"bytes,1,rep,name=stats,proto3" json:"stats" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" bun:"stats" csv:"stats" pg:"stats" yaml:"stats"`
 }
 
 func (x *Stats) Reset() {
