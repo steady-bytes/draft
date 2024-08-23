@@ -14,6 +14,7 @@ type Runtime struct {
 	repositories              []Repository
 	secretStores              []SecretStore
 	isRPC                     bool
+	noMux                     bool
 	rpcReflectionServiceNames []string
 	mux                       *http.ServeMux
 	consensusKind             ConsensusKind
