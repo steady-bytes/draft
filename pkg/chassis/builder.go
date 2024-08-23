@@ -102,6 +102,11 @@ func (c *Runtime) WithRoute(route *ntv1.Route) *Runtime {
 	return c
 }
 
+func (c *Runtime) DisableMux() *Runtime {
+	c.noMux = true
+	return c
+}
+
 // /////////////////
 // System Functions
 // /////////////////
@@ -214,7 +219,9 @@ func (c *Runtime) Start() {
 		c.runRPC(close, handler)
 	}
 
-	go c.runMux(close, handler)
+	if !c.noMux {
+		go c.runMux(close, handler)
+	}
 
 	// TODO: start consumers
 
