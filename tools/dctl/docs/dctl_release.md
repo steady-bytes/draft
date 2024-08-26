@@ -18,5 +18,6 @@ Commands for releasing Draft components
 ### SEE ALSO
 
 * [dctl](dctl.md)	 - dctl (Draft Controller) is the built-in CLI for managing everything in Draft
+* [dctl release image](dctl_release_image.md)	 - Release a Docker image
 * [dctl release module](dctl_release_module.md)	 - Release a Go module
 
