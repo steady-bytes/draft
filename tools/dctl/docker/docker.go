@@ -3,6 +3,8 @@ package docker
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -28,6 +31,10 @@ type DockerController interface {
 	BuildImage(ctx context.Context, path, image string) error
 	// PullImage pulls the given image down from the Docker registry
 	PullImage(ctx context.Context, image string) error
+	// TagImage tags an existing image with a new tag
+	TagImage(ctx context.Context, image string, source, target string) error
+	// PushImage pushes the given image up to the Docker registry
+	PushImage(ctx context.Context, image string) error
 	// RunContainer creates a container, starts it, waits for it to complete, and removes it if requested
 	RunContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) error
 	// StartContainer runs an existing container or creates a new one if none already exist with the given name. It exists without waiting for the container to exit
@@ -82,6 +89,33 @@ func (d *dockerController) BuildImage(ctx context.Context, path, image string) e
 func (d *dockerController) PullImage(ctx context.Context, image string) error {
 	output.Print("Pulling image: %s", image)
 	resp, err := d.cli.ImagePull(ctx, image, types.ImagePullOptions{})
+	if err != nil {
+		return err
+	}
+
+	id, isTerm := term.GetFdInfo(os.Stdout)
+	_ = jsonmessage.DisplayJSONMessagesStream(resp, os.Stdout, id, isTerm, nil)
+
+	return nil
+}
+
+func (d *dockerController) TagImage(ctx context.Context, image string, source, target string) error {
+	output.Print("Tagging image %s:%s with new tag %s", image, source, target)
+	s := fmt.Sprintf("%s:%s", image, source)
+	t := fmt.Sprintf("%s:%s", image, target)
+	err := d.cli.ImageTag(ctx, s, t)
+	if err != nil {
+		return nil
+	}
+	return nil
+}
+
+func (d *dockerController) PushImage(ctx context.Context, image string) error {
+	output.Print("Pushing image: %s", image)
+
+	resp, err := d.cli.ImagePush(ctx, image, types.ImagePushOptions{
+		RegistryAuth: auth(),
+	})
 	if err != nil {
 		return err
 	}
@@ -297,4 +331,16 @@ func (d *dockerController) getContainerByName(ctx context.Context, containerName
 		return nil, fmt.Errorf(errContainerNotFound)
 	}
 	return con, nil
+}
+
+func auth() string {
+	authConfig := registry.AuthConfig{
+		Username: os.Getenv("CONTAINER_REGISTRY_USERNAME"),
+		Password: os.Getenv("CONTAINER_REGISTRY_PASSWORD"),
+	}
+	encodedJSON, err := json.Marshal(authConfig)
+	if err != nil {
+		panic(err)
+	}
+	return base64.URLEncoding.EncodeToString(encodedJSON)
 }
