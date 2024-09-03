@@ -49,8 +49,7 @@ func (l *logger) Start(config chassis.Config) {
 		zl = zl.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 	l.level = chassis.ParseLogLevel(config.GetString("service.logging.level"))
-	zl.Level(parseLevel(l.level))
-	l.logger = zl
+	l.logger = zl.Level(parseLevel(l.level))
 }
 
 func (l *logger) SetLevel(level chassis.LogLevel) {
