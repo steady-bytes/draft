@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package core.message_broker.actors.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/message_broker/actors/v1";
+
+import "core/message_broker/actors/v1/models.proto";
+
+service Producer {
+    rpc Produce(stream ProduceRequest) returns (stream ProduceRequest) {}
+}
+
+// Send this `Message` to the other `Actors` in the system that are subscribed to this `Message`
+message ProduceRequest {
+    Message message = 1;
+}
+
+message ProduceResponse {
+    // The message id is returned as a way to acknowledge the message as been committed
+    string id = 1;
+}

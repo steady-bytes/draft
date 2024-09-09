@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package core.message_broker.actors.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/message_broker/actors/v1";
+
+import "google/protobuf/any.proto";
+
+//////////
+/// MODELS
+//////////
+
+// Count is what determines the total order of the `Messages` in the system
+message Count {
+    // The page a message can be found on
+    uint64 page = 1;
+    // The number for that page
+    uint64 number = 2;
+}
+
+// Message is the main data structure that is sent between the `Producer` and the `Consumer`
+message Message {
+    string id = 1;
+    // use this domain key, and send me all the messages 
+    string domain = 2;
+    // of this kind
+    google.protobuf.Any kind = 3;
+    Count count = 4;
+}
