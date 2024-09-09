@@ -7,22 +7,16 @@ option go_package = "github.com/steady-bytes/draft/api/core/message_broker/actor
 import "core/message_broker/actors/v1/models.proto";
 import "google/protobuf/any.proto";
 
-// Two different interfaces that could be implemented depending on the the desired outcome for the `Actor`.
-// For example a `Process` can only be considered a `Producer` and never consume messages. This might be a short running
-// task, or a heartbeat. Or, the `Process` can be a `Consumer` and receive a specific message kind that's determined by the
-// any type in the `Message`.
-
-// The `Producer` will be implemented by a process that needs to send a message to other actors.
 service Producer {
     rpc Produce(stream ProduceRequest) returns (stream ProduceRequest) {}
 }
 
-// Send this `Message` to the other `Actors` in the system that might care about this message.
+// Send this `Message` to the other `Actors` in the system that are subscribed to this `Message`
 message ProduceRequest {
     Message message = 1;
 }
 
 message ProduceResponse {
-    // The message id is returned as a way to acknowledge the message as been committed. 
+    // The message id is returned as a way to acknowledge the message as been committed
     string id = 1;
 }

@@ -8,7 +8,7 @@ import { Message, proto3 } from "@bufbuild/protobuf";
 import { Message as Message$1 } from "./models_pb.js";
 
 /**
- * Send this `Message` to the other `Actors` in the system that might care about this message.
+ * Send this `Message` to the other `Actors` in the system that are subscribed to this `Message`
  *
  * @generated from message core.message_broker.actors.v1.ProduceRequest
  */
@@ -51,7 +51,7 @@ export class ProduceRequest extends Message<ProduceRequest> {
  */
 export class ProduceResponse extends Message<ProduceResponse> {
   /**
-   * The message id is returned as a way to acknowledge the message as been committed. 
+   * The message id is returned as a way to acknowledge the message as been committed
    *
    * @generated from field: string id = 1;
    */

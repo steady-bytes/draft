@@ -7,7 +7,7 @@ import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialM
 import { Any, Message as Message$1, proto3, protoInt64 } from "@bufbuild/protobuf";
 
 /**
- * Index is what determines the total order of the `Messages` in the system
+ * Count is what determines the total order of the `Messages` in the system
  *
  * @generated from message core.message_broker.actors.v1.Count
  */
@@ -56,6 +56,8 @@ export class Count extends Message$1<Count> {
 }
 
 /**
+ * Message is the main data structure that is sent between the `Producer` and the `Consumer`
+ *
  * @generated from message core.message_broker.actors.v1.Message
  */
 export class Message extends Message$1<Message> {

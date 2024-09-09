@@ -7,8 +7,6 @@ import { ConsumeRequest, ConsumeResponse } from "./consumer_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
- * The `Consumer` registers the messages that it cares about with `INSERT_PRODUCT_NAME`.
- *
  * @generated from service core.message_broker.actors.v1.Consumer
  */
 export const Consumer = {

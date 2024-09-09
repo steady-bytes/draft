@@ -7,7 +7,6 @@ option go_package = "github.com/steady-bytes/draft/api/core/message_broker/actor
 import "core/message_broker/actors/v1/models.proto";
 import "google/protobuf/any.proto";
 
-// The `Consumer` registers the messages that it cares about with `INSERT_PRODUCT_NAME`.
 service Consumer {
     rpc Consume(ConsumeRequest) returns (stream ConsumeResponse) {}
 }

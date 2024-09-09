@@ -7,7 +7,7 @@ import { proto3 } from "@bufbuild/protobuf";
 import { Message } from "./models_pb.js";
 
 /**
- * Send this `Message` to the other `Actors` in the system that might care about this message.
+ * Send this `Message` to the other `Actors` in the system that are subscribed to this `Message`
  *
  * @generated from message core.message_broker.actors.v1.ProduceRequest
  */

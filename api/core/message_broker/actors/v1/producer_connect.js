@@ -7,8 +7,6 @@ import { ProduceRequest } from "./producer_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
- * The `Producer` will be implemented by a process that needs to send a message to other actors.
- *
  * @generated from service core.message_broker.actors.v1.Producer
  */
 export const Producer = {

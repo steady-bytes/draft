@@ -6,7 +6,7 @@
 import { Any, proto3 } from "@bufbuild/protobuf";
 
 /**
- * Index is what determines the total order of the `Messages` in the system
+ * Count is what determines the total order of the `Messages` in the system
  *
  * @generated from message core.message_broker.actors.v1.Count
  */
@@ -19,6 +19,8 @@ export const Count = proto3.makeMessageType(
 );
 
 /**
+ * Message is the main data structure that is sent between the `Producer` and the `Consumer`
+ *
  * @generated from message core.message_broker.actors.v1.Message
  */
 export const Message = proto3.makeMessageType(

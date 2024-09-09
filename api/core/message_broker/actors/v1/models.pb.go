@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Index is what determines the total order of the `Messages` in the system
+// Count is what determines the total order of the `Messages` in the system
 type Count struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -79,6 +79,7 @@ func (x *Count) GetNumber() uint64 {
 	return 0
 }
 
+// Message is the main data structure that is sent between the `Producer` and the `Consumer`
 type Message struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

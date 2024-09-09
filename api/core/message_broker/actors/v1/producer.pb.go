@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Send this `Message` to the other `Actors` in the system that might care about this message.
+// Send this `Message` to the other `Actors` in the system that are subscribed to this `Message`
 type ProduceRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -74,7 +74,7 @@ type ProduceResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// The message id is returned as a way to acknowledge the message as been committed.
+	// The message id is returned as a way to acknowledge the message as been committed
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bun:"id" csv:"id" pg:"id" yaml:"id"`
 }
 
