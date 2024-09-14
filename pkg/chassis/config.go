@@ -40,6 +40,7 @@ type (
 		GetSizeInBytes(key string) uint
 		Unmarshal(rawVal interface{}, opts ...viper.DecoderConfigOption) error
 		UnmarshalKey(key string, rawVal interface{}, opts ...viper.DecoderConfigOption) error
+		SetDefault(key string, value any)
 	}
 
 	config struct {
