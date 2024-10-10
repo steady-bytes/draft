@@ -3,6 +3,12 @@ module github.com/steady-bytes/draft/services/core/catalyst
 go 1.23.2
 
 require (
+	github.com/steady-bytes/draft/api v0.4.0
+	github.com/steady-bytes/draft/pkg/chassis v0.3.4
+	github.com/steady-bytes/draft/pkg/loggers v0.2.1
+)
+
+require (
 	connectrpc.com/connect v1.16.2 // indirect
 	connectrpc.com/grpcreflect v1.2.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
@@ -32,9 +38,6 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/steady-bytes/draft/api v0.3.2 // indirect
-	github.com/steady-bytes/draft/pkg/chassis v0.3.4 // indirect
-	github.com/steady-bytes/draft/pkg/loggers v0.2.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
