@@ -330,6 +330,8 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 						ClusterSpecifier: &route.RouteAction_Cluster{
 							Cluster: clusterName(r),
 						},
+						// disable with 0 value
+						Timeout: &durationpb.Duration{},
 					},
 				},
 				TypedPerFilterConfig: map[string]*anypb.Any{},
