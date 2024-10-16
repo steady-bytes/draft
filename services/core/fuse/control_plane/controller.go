@@ -211,6 +211,8 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 				UpgradeType: "websocket",
 			},
 		},
+		// disable with 0 value
+		StreamIdleTimeout: &durationpb.Duration{},
 	}
 
 	pbst, err := anypb.New(manager)
@@ -328,6 +330,8 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 						ClusterSpecifier: &route.RouteAction_Cluster{
 							Cluster: clusterName(r),
 						},
+						// disable with 0 value
+						Timeout: &durationpb.Duration{},
 					},
 				},
 				TypedPerFilterConfig: map[string]*anypb.Any{},
