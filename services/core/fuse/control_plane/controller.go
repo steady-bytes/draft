@@ -211,6 +211,8 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 				UpgradeType: "websocket",
 			},
 		},
+		// disable with 0 value
+		StreamIdleTimeout: &durationpb.Duration{},
 	}
 
 	pbst, err := anypb.New(manager)
