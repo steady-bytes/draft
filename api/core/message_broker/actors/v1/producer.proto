@@ -7,7 +7,7 @@ option go_package = "github.com/steady-bytes/draft/api/core/message_broker/actor
 import "core/message_broker/actors/v1/models.proto";
 
 service Producer {
-    rpc Produce(stream ProduceRequest) returns (stream ProduceRequest) {}
+    rpc Produce(stream ProduceRequest) returns (stream ProduceResponse) {}
 }
 
 // Send this `Message` to the other `Actors` in the system that are subscribed to this `Message`
