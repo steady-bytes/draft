@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
 
 import {
   MenuFoldOutlined,
@@ -11,12 +12,19 @@ import {
 import { Button, Layout, Menu, theme } from 'antd';
 const { Header, Sider, Content } = Layout;
 
+// Pages
+import KeyValuePage from "../pages/KeyValue"
+import ServiceRegistryPage from "./ServiceRegistry";
+import MetricsPage from "./Metrics";
+
 // Dashboard is the main component
 export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  const naviage = useNavigate();
 
   return (
     <>
@@ -26,20 +34,24 @@ export default function Dashboard() {
           <Menu
             theme="dark"
             mode="inline"
-            defaultSelectedKeys={['1']}
+            defaultSelectedKeys={['']}
+            onClick={(evt) => {
+              console.log(evt)
+              naviage(evt.key)
+            }}
             items={[
               {
-                key: '1',
+                key: '',
                 icon: <SwapOutlined />,
                 label: 'Key/Value',
               },
               {
-                key: '2',
+                key: 'service-registry',
                 icon: <RadiusSettingOutlined />,
                 label: 'Service Registry',
               },
               {
-                key: '3',
+                key: 'metrics',
                 icon: <ClusterOutlined />,
                 label: 'Metrics',
               },
@@ -73,7 +85,11 @@ export default function Dashboard() {
               borderRadius: borderRadiusLG,
             }}
           >
-            Content
+            <Routes>
+              <Route index path="/" element={<KeyValuePage />} /> 
+              <Route path="/service-registry" element={<ServiceRegistryPage />} /> 
+              <Route path="/metrics" element={<MetricsPage />} /> 
+            </Routes>
           </Content>
         </Layout>
       </Layout>

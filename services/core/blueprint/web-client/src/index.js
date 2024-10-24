@@ -26,11 +26,16 @@ root.render(
             colorBgBase: "#1e2122",
             colorBgContainer: "#1e2122",
             colorBgBase: "#353b3d",
+            colorTextBase: "#A9B1B1"
           },
           components: {
             Layout: {
               siderBg: "#1e2122",
-              headerBg: "#1e2122"
+              headerBg: "#1e2122",
+              triggerBg: "#1e2122"
+            },
+            Menu: {
+              darkItemBg: "#1e2122"
             }
           }
         }}>
