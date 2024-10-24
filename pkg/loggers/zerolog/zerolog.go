@@ -45,7 +45,7 @@ func (l *logger) Logger() zerolog.Logger {
 
 func (l *logger) Start(config chassis.Config) {
 	zl := zerolog.New(os.Stdout).With().Str("service", config.Name()).Timestamp().Logger()
-	if config.Env() == "local" {
+	if config.Env() == "local" || config.Env() == "test" {
 		zl = zl.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 	l.level = chassis.ParseLogLevel(config.GetString("service.logging.level"))
