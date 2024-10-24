@@ -40,7 +40,7 @@ func (l *logger) Entry() *logrus.Entry {
 }
 
 func (l *logger) Start(config chassis.Config) {
-	if config.Env() != "local" {
+	if config.Env() != "local" && config.Env() != "test" {
 		logrus.SetFormatter(&Formatter{
 			Line:    true,
 			Package: true,
