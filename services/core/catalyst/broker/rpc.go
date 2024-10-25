@@ -48,5 +48,6 @@ func (h *rpc) Consume(ctx context.Context, request *connect.Request[acv1.Consume
 }
 
 func (h *rpc) Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceRequest]) error {
-	return errors.New("not implemented")
+	h.logger.Info("produce request")
+	return h.controller.Produce(ctx, inputStream)
 }
