@@ -36,7 +36,7 @@ func NewRPC(logger chassis.Logger, controller Controller) Rpc {
 
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 	// regiser the handler for the consumer service
-	producerPattern, producerHandler := acConnect.NewConsumerHandler(h)
+	producerPattern, producerHandler := acConnect.NewProducerHandler(h)
 	server.AddHandler(producerPattern, producerHandler, true)
 	// regiser the handler for the producer service
 	consumerPattern, consumerHandler := acConnect.NewConsumerHandler(h)
@@ -49,5 +49,6 @@ func (h *rpc) Consume(ctx context.Context, request *connect.Request[acv1.Consume
 
 func (h *rpc) Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceRequest]) error {
 	h.logger.Info("produce request")
+
 	return h.controller.Produce(ctx, inputStream)
 }

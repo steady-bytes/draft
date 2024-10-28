@@ -146,6 +146,28 @@
             },
         },
         {
+            "name": "Catalyst",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/catalyst/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "DRAFT_CONFIG": "tests/catalyst/config.yaml"
+            },
+        },
+        {
+            "name": "dctl - Produce",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tools/dctl/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "args": ["broker", "produce"],
+        },
+        {
             "name": "Fuse",
             "type": "go",
             "request": "launch",

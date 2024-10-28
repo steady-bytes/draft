@@ -9,7 +9,7 @@ require (
 )
 
 require (
-	connectrpc.com/connect v1.16.2 // indirect
+	connectrpc.com/connect v1.16.2
 	connectrpc.com/grpcreflect v1.2.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect

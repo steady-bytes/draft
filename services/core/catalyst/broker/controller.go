@@ -32,7 +32,7 @@ func NewController() Controller {
 		make(map[string]string),
 	}
 
-	ctr.start(producerMsgChan)
+	go ctr.start(producerMsgChan)
 
 	return ctr
 }
