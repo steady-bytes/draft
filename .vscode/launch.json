@@ -168,6 +168,16 @@
             "args": ["broker", "produce"],
         },
         {
+            "name": "dctl - Consume",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "tools/dctl/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "args": ["broker", "consume"],
+        },
+        {
             "name": "Fuse",
             "type": "go",
             "request": "launch",
