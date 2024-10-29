@@ -18,11 +18,11 @@ type (
 	}
 
 	producer struct {
-		producerChan chan acv1.Message
+		producerChan chan *acv1.Message
 	}
 )
 
-func NewProducer(produceChan chan acv1.Message) Producer {
+func NewProducer(produceChan chan *acv1.Message) Producer {
 	return &producer{
 		producerChan: produceChan,
 	}
@@ -44,11 +44,9 @@ func (p *producer) Produce(ctx context.Context, inputStream *connect.BidiStream[
 			return fmt.Errorf("receive request: %w", err)
 		}
 
-		fmt.Println("test")
-
 		// do business logic
 		fmt.Println("request: ", request)
-		p.producerChan <- *request.GetMessage()
+		p.producerChan <- request.GetMessage()
 
 		if err := inputStream.Send(&acv1.ProduceRequest{
 			Message: &acv1.Message{
