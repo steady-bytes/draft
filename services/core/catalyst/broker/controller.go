@@ -63,7 +63,6 @@ func (am *atomicMap) Insert(key string, resStream *connect.ServerStream[acv1.Con
 
 func (am *atomicMap) Broker(key string, resStream *connect.ServerStream[acv1.ConsumeResponse]) {
 	am.mu.RLock()
-	defer am.mu.RUnlock()
 	ch, found := am.n[key]
 	if !found {
 		// create the channel to add to map
@@ -77,13 +76,21 @@ func (am *atomicMap) Broker(key string, resStream *connect.ServerStream[acv1.Con
 
 		// now start a new routine and keep it open as long as the `ch` channel has connected clients
 		go send(ch, resStream)
+
+		return
 	} else {
 		// the channel is already made and shared with other consumers, and producers so we can just use `ch`
 		go send(ch, resStream)
+		am.mu.RUnlock()
 	}
 }
 
 func send(ch chan *acv1.Message, stream *connect.ServerStream[acv1.ConsumeResponse]) {
+	fmt.Println("test")
+	fmt.Println("msg: ", ch)
+	fmt.Println("stream: ", stream)
+	fmt.Println("???")
+
 	// when the channel receives a message send to the stream the client is holding onto
 	for {
 		m := <-ch
