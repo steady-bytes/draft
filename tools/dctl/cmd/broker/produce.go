@@ -60,6 +60,7 @@ func Produce(cmd *cobra.Command, args []string) error {
 		if err := streams.Send(req.Msg); err != nil {
 			return err
 		}
+		fmt.Println("sent test message")
 	}
 
 	// close connection

@@ -24,6 +24,9 @@ message Message {
     // use this domain key, and send me all the messages 
     string domain = 2;
     // of this kind
-    google.protobuf.Any kind = 3;
+    oneof {
+        google.protobuf.Any kind = 3;
+        string kind_string = 4;
+    }
     Count count = 4;
 }
