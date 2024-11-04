@@ -9,7 +9,6 @@ import (
 	acv1 "github.com/steady-bytes/draft/api/core/message_broker/actors/v1"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
 )
 
 type (
@@ -46,15 +45,7 @@ func (p *producer) Produce(ctx context.Context, inputStream *connect.BidiStream[
 
 		// do business logic
 		fmt.Println("request: ", request)
-		p.producerChan <- request.GetMessage()
 
-		if err := inputStream.Send(&acv1.ProduceRequest{
-			Message: &acv1.Message{
-				Id:     uuid.NewString(),
-				Domain: "",
-			},
-		}); err != nil {
-			return fmt.Errorf("send response: %w", err)
-		}
+		p.producerChan <- request.GetMessage()
 	}
 }

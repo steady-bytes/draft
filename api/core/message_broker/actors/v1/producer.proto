@@ -12,6 +12,7 @@ service Producer {
 
 // Send this `Message` to the other `Actors` in the system that are subscribed to this `Message`
 message ProduceRequest {
+    // TODO: Change to `CloudEvent` message type
     Message message = 1;
 }
 
