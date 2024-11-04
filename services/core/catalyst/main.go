@@ -11,7 +11,7 @@ func main() {
 	var (
 		logger = zerolog.New()
 
-		cnt = broker.NewController()
+		cnt = broker.NewController(logger)
 		rpc = broker.NewRPC(logger, cnt)
 	)
 
