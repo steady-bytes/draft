@@ -15,7 +15,7 @@ type (
 		// Store the routine client connection
 		m map[string][]*connect.ServerStream[acv1.ConsumeResponse]
 		// yield the client connection to a thread, and then send events to it
-		n map[string]chan *acv1.Message
+		n map[string]chan *acv1.CloudEvent
 	}
 )
 
@@ -23,7 +23,7 @@ func newAtomicMap() *atomicMap {
 	return &atomicMap{
 		mu: sync.RWMutex{},
 		m:  make(map[string][]*connect.ServerStream[acv1.ConsumeResponse]),
-		n:  make(map[string]chan *acv1.Message),
+		n:  make(map[string]chan *acv1.CloudEvent),
 	}
 }
 
@@ -57,7 +57,7 @@ func (am *atomicMap) Broker(key string, resStream *connect.ServerStream[acv1.Con
 	ch, found := am.n[key]
 	if !found {
 		// create the channel to add to map
-		ch := make(chan *acv1.Message)
+		ch := make(chan *acv1.CloudEvent)
 		// store channel in map for future connections
 		am.mu.RUnlock()
 		am.mu.Lock()
@@ -74,7 +74,7 @@ func (am *atomicMap) Broker(key string, resStream *connect.ServerStream[acv1.Con
 	}
 }
 
-func (am *atomicMap) send(ch chan *acv1.Message, stream *connect.ServerStream[acv1.ConsumeResponse]) {
+func (am *atomicMap) send(ch chan *acv1.CloudEvent, stream *connect.ServerStream[acv1.ConsumeResponse]) {
 	// when the channel receives a message send to the stream the client is holding onto
 	for {
 		m := <-ch
@@ -85,7 +85,7 @@ func (am *atomicMap) send(ch chan *acv1.Message, stream *connect.ServerStream[ac
 	}
 }
 
-func (am *atomicMap) Broadcast(key string, msg *acv1.Message) {
+func (am *atomicMap) Broadcast(key string, msg *acv1.CloudEvent) {
 	ch, ok := am.n[key]
 	if ok {
 		ch <- msg

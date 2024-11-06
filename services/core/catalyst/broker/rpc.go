@@ -73,6 +73,5 @@ func (h *rpc) Consume(ctx context.Context, req *connect.Request[acv1.ConsumeRequ
 
 func (h *rpc) Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceRequest]) error {
 	h.logger.Info("produce request")
-
 	return h.controller.Produce(ctx, inputStream)
 }

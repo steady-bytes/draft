@@ -22,14 +22,14 @@ type (
 	}
 
 	register struct {
-		*acv1.Message
+		*acv1.CloudEvent
 		*connect.ServerStream[acv1.ConsumeResponse]
 	}
 )
 
 func NewController(logger chassis.Logger) Controller {
 	var (
-		producerMsgChan          = make(chan *acv1.Message)
+		producerMsgChan          = make(chan *acv1.CloudEvent)
 		consumerRegistrationChan = make(chan register)
 	)
 
@@ -53,7 +53,7 @@ const (
 	LOG_KEY_TO_CH = "key to channel"
 )
 
-func (c *controller) produce(producerMsgChan chan *acv1.Message) {
+func (c *controller) produce(producerMsgChan chan *acv1.CloudEvent) {
 	for {
 		msg := <-producerMsgChan
 		c.logger.WithField("msg: ", msg).Info("produce massage received")

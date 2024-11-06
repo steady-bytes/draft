@@ -9,7 +9,7 @@ import (
 
 type (
 	Consumer interface {
-		Consume(ctx context.Context, msg *acv1.Message, stream *connect.ServerStream[acv1.ConsumeResponse]) error
+		Consume(ctx context.Context, msg *acv1.CloudEvent, stream *connect.ServerStream[acv1.ConsumeResponse]) error
 	}
 
 	consumer struct {
@@ -24,10 +24,10 @@ func NewConsumer(consumerRegistrationChan chan register) Consumer {
 
 }
 
-func (c *consumer) Consume(ctx context.Context, msg *acv1.Message, stream *connect.ServerStream[acv1.ConsumeResponse]) error {
+func (c *consumer) Consume(ctx context.Context, msg *acv1.CloudEvent, stream *connect.ServerStream[acv1.ConsumeResponse]) error {
 	// fling the consumer stream into the controller
 	c.consumerRegistrationChan <- register{
-		Message:      msg,
+		CloudEvent:      msg,
 		ServerStream: stream,
 	}
 

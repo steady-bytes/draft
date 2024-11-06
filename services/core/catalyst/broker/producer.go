@@ -17,11 +17,11 @@ type (
 	}
 
 	producer struct {
-		producerChan chan *acv1.Message
+		producerChan chan *acv1.CloudEvent
 	}
 )
 
-func NewProducer(produceChan chan *acv1.Message) Producer {
+func NewProducer(produceChan chan *acv1.CloudEvent) Producer {
 	return &producer{
 		producerChan: produceChan,
 	}
