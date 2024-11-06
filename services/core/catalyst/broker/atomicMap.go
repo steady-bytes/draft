@@ -2,7 +2,6 @@ package broker
 
 import (
 	"encoding/base64"
-	"fmt"
 	"sync"
 
 	"connectrpc.com/connect"
@@ -28,9 +27,8 @@ func newAtomicMap() *atomicMap {
 }
 
 // hash to calculate the same key for two strings
-func (am *atomicMap) hash(domain, msgKindName string) string {
-	key := fmt.Sprintf("%s%s", domain, msgKindName)
-	bs := []byte(key)
+func (am *atomicMap) hash(msgKindName string) string {
+	bs := []byte(msgKindName)
 	return base64.StdEncoding.EncodeToString(bs)
 }
 

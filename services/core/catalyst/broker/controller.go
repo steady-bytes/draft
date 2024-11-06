@@ -59,7 +59,7 @@ func (c *controller) produce(producerMsgChan chan *acv1.CloudEvent) {
 		c.logger.WithField("msg: ", msg).Info("produce massage received")
 
 		// make hash of <domain><msg.Type.String>
-		key := c.state.hash(msg.GetDomain(), msg.GetKind().GetTypeUrl())
+		key := c.state.hash(string(msg.ProtoReflect().Descriptor().FullName()))
 
 		// do I save to blueprint?
 		// - default config is to be durable
@@ -98,7 +98,10 @@ func (c *controller) consume(registerChan chan register) {
 		// received up to the client connect.
 		msg := <-registerChan
 		c.logger.WithField("msg", msg).Info("consume channel registration")
-		key := c.state.hash(msg.GetDomain(), msg.GetKind().GetTypeUrl())
+
+		key := c.state.hash(string(msg.ProtoReflect().Descriptor().FullName()))
+
+		// key := c.state.hash(msg.GetDomain(), msg.GetKind().GetTypeUrl())
 		c.logger.WithField("key", key).Info(LOG_KEY_TO_CH)
 		c.state.Broker(key, msg.ServerStream)
 	}

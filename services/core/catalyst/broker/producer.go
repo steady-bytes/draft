@@ -13,7 +13,7 @@ import (
 
 type (
 	Producer interface {
-		Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceRequest]) error
+		Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceResponse]) error
 	}
 
 	producer struct {
@@ -29,7 +29,7 @@ func NewProducer(produceChan chan *acv1.CloudEvent) Producer {
 
 // Accepts an incomming bidirectional stream to keep open and push incomming
 // messages into the broker when a message is `produce`'ed
-func (p *producer) Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceRequest]) error {
+func (p *producer) Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceResponse]) error {
 	fmt.Println("test")
 	for {
 		if err := ctx.Err(); err != nil {

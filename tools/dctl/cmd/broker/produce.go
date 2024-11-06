@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -40,17 +41,35 @@ func Produce(cmd *cobra.Command, args []string) error {
 
 	streams := client.Produce(ctx)
 
-	evt := &kvv1.Value{
-		Data: "This is a test",
+	value := &kvv1.Value{
+		Data: "test message",
 	}
 
-	a, _ := anypb.New(evt)
+	a, _ := anypb.New(value)
+
+	fmt.Println("value message:", value)
+
+	attrs := make(map[string]*acv1.CloudEvent_CloudEventAttributeValue)
+
+	attrs["isDurable"] = &acv1.CloudEvent_CloudEventAttributeValue{
+		Attr: &acv1.CloudEvent_CloudEventAttributeValue_CeBoolean{
+			CeBoolean: true,
+		},
+	}
+
+	msg := &acv1.CloudEvent{
+		Id:          uuid.NewString(),
+		Source:      string(value.ProtoReflect().Descriptor().FullName()),
+		SpecVersion: "v1",
+		Type:        string(value.ProtoReflect().Descriptor().Name()),
+		Attributes:  attrs,
+		Data: &acv1.CloudEvent_ProtoData{
+			ProtoData: a,
+		},
+	}
 
 	req := connect.NewRequest(&acv1.ProduceRequest{
-		Message: &acv1.Message{
-			Domain: "test",
-			Kind:   a,
-		},
+		Message: msg,
 	})
 
 	var wg sync.WaitGroup

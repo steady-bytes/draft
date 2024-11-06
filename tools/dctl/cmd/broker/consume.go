@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	acv1 "github.com/steady-bytes/draft/api/core/message_broker/actors/v1"
 	"github.com/steady-bytes/draft/api/core/message_broker/actors/v1/v1connect"
@@ -35,16 +36,35 @@ func Consume(cmd *cobra.Command, args []string) error {
 	client := v1connect.NewConsumerClient(httpClient, "http://0.0.0.0:3331", connect.WithGRPC())
 
 	ctx := context.Background()
+	value := &kvv1.Value{
+		Data: "test message",
+	}
 
-	evt := &kvv1.Value{}
-	a, _ := anypb.New(evt)
+	a, _ := anypb.New(value)
+
+	fmt.Println("value message:", value)
+
+	attrs := make(map[string]*acv1.CloudEvent_CloudEventAttributeValue)
+
+	attrs["isDurable"] = &acv1.CloudEvent_CloudEventAttributeValue{
+		Attr: &acv1.CloudEvent_CloudEventAttributeValue_CeBoolean{
+			CeBoolean: true,
+		},
+	}
+
+	msg := &acv1.CloudEvent{
+		Id:          uuid.NewString(),
+		Source:      string(value.ProtoReflect().Descriptor().FullName()),
+		SpecVersion: "v1",
+		Type:        string(value.ProtoReflect().Descriptor().Name()),
+		Attributes:  attrs,
+		Data: &acv1.CloudEvent_ProtoData{
+			ProtoData: a,
+		},
+	}
 
 	req := connect.NewRequest(&acv1.ConsumeRequest{
-		Message: &acv1.Message{
-			Domain: "test",
-			Kind:   a,
-		},
-		Count: &acv1.Count{},
+		Message: msg,
 	})
 
 	stream, err := client.Consume(ctx, req)
