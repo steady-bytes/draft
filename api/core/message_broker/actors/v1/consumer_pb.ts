@@ -5,21 +5,16 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { Count, Message as Message$1 } from "./models_pb.js";
+import { CloudEvent } from "./models_pb.js";
 
 /**
  * @generated from message core.message_broker.actors.v1.ConsumeRequest
  */
 export class ConsumeRequest extends Message<ConsumeRequest> {
   /**
-   * @generated from field: core.message_broker.actors.v1.Message message = 1;
+   * @generated from field: core.message_broker.actors.v1.CloudEvent message = 1;
    */
-  message?: Message$1;
-
-  /**
-   * @generated from field: optional core.message_broker.actors.v1.Count count = 2;
-   */
-  count?: Count;
+  message?: CloudEvent;
 
   constructor(data?: PartialMessage<ConsumeRequest>) {
     super();
@@ -29,8 +24,7 @@ export class ConsumeRequest extends Message<ConsumeRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "core.message_broker.actors.v1.ConsumeRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "message", kind: "message", T: Message$1 },
-    { no: 2, name: "count", kind: "message", T: Count, opt: true },
+    { no: 1, name: "message", kind: "message", T: CloudEvent },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ConsumeRequest {
@@ -55,9 +49,9 @@ export class ConsumeRequest extends Message<ConsumeRequest> {
  */
 export class ConsumeResponse extends Message<ConsumeResponse> {
   /**
-   * @generated from field: core.message_broker.actors.v1.Message message = 1;
+   * @generated from field: core.message_broker.actors.v1.CloudEvent message = 1;
    */
-  message?: Message$1;
+  message?: CloudEvent;
 
   constructor(data?: PartialMessage<ConsumeResponse>) {
     super();
@@ -67,7 +61,7 @@ export class ConsumeResponse extends Message<ConsumeResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "core.message_broker.actors.v1.ConsumeResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "message", kind: "message", T: Message$1 },
+    { no: 1, name: "message", kind: "message", T: CloudEvent },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ConsumeResponse {

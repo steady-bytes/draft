@@ -4,115 +4,235 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Any, Message as Message$1, proto3, protoInt64 } from "@bufbuild/protobuf";
+import { Any, Message, proto3, Timestamp } from "@bufbuild/protobuf";
 
 /**
- * Count is what determines the total order of the `Messages` in the system
+ * *
+ * CloudEvent Protobuf Format
  *
- * @generated from message core.message_broker.actors.v1.Count
- */
-export class Count extends Message$1<Count> {
-  /**
-   * The page a message can be found on
-   *
-   * @generated from field: uint64 page = 1;
-   */
-  page = protoInt64.zero;
-
-  /**
-   * The number for that page
-   *
-   * @generated from field: uint64 number = 2;
-   */
-  number = protoInt64.zero;
-
-  constructor(data?: PartialMessage<Count>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "core.message_broker.actors.v1.Count";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "page", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-    { no: 2, name: "number", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Count {
-    return new Count().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Count {
-    return new Count().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Count {
-    return new Count().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: Count | PlainMessage<Count> | undefined, b: Count | PlainMessage<Count> | undefined): boolean {
-    return proto3.util.equals(Count, a, b);
-  }
-}
-
-/**
- * Message is the main data structure that is sent between the `Producer` and the `Consumer`
+ * - Required context attributes are explicity represented.
+ * - Optional and Extension context attributes are carried in a map structure.
+ * - Data may be represented as binary, text, or protobuf messages.
  *
- * @generated from message core.message_broker.actors.v1.Message
+ * REF: [https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/formats/cloudevents.proto]
+ *
+ * @generated from message core.message_broker.actors.v1.CloudEvent
  */
-export class Message extends Message$1<Message> {
+export class CloudEvent extends Message<CloudEvent> {
   /**
+   * Required Attributes
+   *
    * @generated from field: string id = 1;
    */
   id = "";
 
   /**
-   * use this domain key, and send me all the messages 
+   * URI-reference
    *
-   * @generated from field: string domain = 2;
+   * @generated from field: string source = 2;
    */
-  domain = "";
+  source = "";
 
   /**
-   * of this kind
-   *
-   * @generated from field: google.protobuf.Any kind = 3;
+   * @generated from field: string spec_version = 3;
    */
-  kind?: Any;
+  specVersion = "";
 
   /**
-   * @generated from field: core.message_broker.actors.v1.Count count = 4;
+   * @generated from field: string type = 4;
    */
-  count?: Count;
+  type = "";
 
-  constructor(data?: PartialMessage<Message>) {
+  /**
+   * Optional & Extension Attributes
+   *
+   * @generated from field: map<string, core.message_broker.actors.v1.CloudEvent.CloudEventAttributeValue> attributes = 5;
+   */
+  attributes: { [key: string]: CloudEvent_CloudEventAttributeValue } = {};
+
+  /**
+   * -- CloudEvent Data (Bytes, Text, or Proto)
+   *
+   * @generated from oneof core.message_broker.actors.v1.CloudEvent.data
+   */
+  data: {
+    /**
+     * @generated from field: bytes binary_data = 6;
+     */
+    value: Uint8Array;
+    case: "binaryData";
+  } | {
+    /**
+     * @generated from field: string text_data = 7;
+     */
+    value: string;
+    case: "textData";
+  } | {
+    /**
+     * @generated from field: google.protobuf.Any proto_data = 8;
+     */
+    value: Any;
+    case: "protoData";
+  } | { case: undefined; value?: undefined } = { case: undefined };
+
+  constructor(data?: PartialMessage<CloudEvent>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "core.message_broker.actors.v1.Message";
+  static readonly typeName = "core.message_broker.actors.v1.CloudEvent";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "domain", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "kind", kind: "message", T: Any },
-    { no: 4, name: "count", kind: "message", T: Count },
+    { no: 2, name: "source", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "spec_version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "attributes", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: CloudEvent_CloudEventAttributeValue} },
+    { no: 6, name: "binary_data", kind: "scalar", T: 12 /* ScalarType.BYTES */, oneof: "data" },
+    { no: 7, name: "text_data", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "data" },
+    { no: 8, name: "proto_data", kind: "message", T: Any, oneof: "data" },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Message {
-    return new Message().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CloudEvent {
+    return new CloudEvent().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Message {
-    return new Message().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CloudEvent {
+    return new CloudEvent().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Message {
-    return new Message().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CloudEvent {
+    return new CloudEvent().fromJsonString(jsonString, options);
   }
 
-  static equals(a: Message | PlainMessage<Message> | undefined, b: Message | PlainMessage<Message> | undefined): boolean {
-    return proto3.util.equals(Message, a, b);
+  static equals(a: CloudEvent | PlainMessage<CloudEvent> | undefined, b: CloudEvent | PlainMessage<CloudEvent> | undefined): boolean {
+    return proto3.util.equals(CloudEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message core.message_broker.actors.v1.CloudEvent.CloudEventAttributeValue
+ */
+export class CloudEvent_CloudEventAttributeValue extends Message<CloudEvent_CloudEventAttributeValue> {
+  /**
+   * @generated from oneof core.message_broker.actors.v1.CloudEvent.CloudEventAttributeValue.attr
+   */
+  attr: {
+    /**
+     * @generated from field: bool ce_boolean = 1;
+     */
+    value: boolean;
+    case: "ceBoolean";
+  } | {
+    /**
+     * @generated from field: int32 ce_integer = 2;
+     */
+    value: number;
+    case: "ceInteger";
+  } | {
+    /**
+     * @generated from field: string ce_string = 3;
+     */
+    value: string;
+    case: "ceString";
+  } | {
+    /**
+     * @generated from field: bytes ce_bytes = 4;
+     */
+    value: Uint8Array;
+    case: "ceBytes";
+  } | {
+    /**
+     * @generated from field: string ce_uri = 5;
+     */
+    value: string;
+    case: "ceUri";
+  } | {
+    /**
+     * @generated from field: string ce_uri_ref = 6;
+     */
+    value: string;
+    case: "ceUriRef";
+  } | {
+    /**
+     * @generated from field: google.protobuf.Timestamp ce_timestamp = 7;
+     */
+    value: Timestamp;
+    case: "ceTimestamp";
+  } | { case: undefined; value?: undefined } = { case: undefined };
+
+  constructor(data?: PartialMessage<CloudEvent_CloudEventAttributeValue>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "core.message_broker.actors.v1.CloudEvent.CloudEventAttributeValue";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "ce_boolean", kind: "scalar", T: 8 /* ScalarType.BOOL */, oneof: "attr" },
+    { no: 2, name: "ce_integer", kind: "scalar", T: 5 /* ScalarType.INT32 */, oneof: "attr" },
+    { no: 3, name: "ce_string", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "attr" },
+    { no: 4, name: "ce_bytes", kind: "scalar", T: 12 /* ScalarType.BYTES */, oneof: "attr" },
+    { no: 5, name: "ce_uri", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "attr" },
+    { no: 6, name: "ce_uri_ref", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "attr" },
+    { no: 7, name: "ce_timestamp", kind: "message", T: Timestamp, oneof: "attr" },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CloudEvent_CloudEventAttributeValue {
+    return new CloudEvent_CloudEventAttributeValue().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CloudEvent_CloudEventAttributeValue {
+    return new CloudEvent_CloudEventAttributeValue().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CloudEvent_CloudEventAttributeValue {
+    return new CloudEvent_CloudEventAttributeValue().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CloudEvent_CloudEventAttributeValue | PlainMessage<CloudEvent_CloudEventAttributeValue> | undefined, b: CloudEvent_CloudEventAttributeValue | PlainMessage<CloudEvent_CloudEventAttributeValue> | undefined): boolean {
+    return proto3.util.equals(CloudEvent_CloudEventAttributeValue, a, b);
+  }
+}
+
+/**
+ * *
+ * CloudEvent Protobuf Batch Format
+ *
+ *
+ * @generated from message core.message_broker.actors.v1.CloudEventBatch
+ */
+export class CloudEventBatch extends Message<CloudEventBatch> {
+  /**
+   * @generated from field: repeated core.message_broker.actors.v1.CloudEvent events = 1;
+   */
+  events: CloudEvent[] = [];
+
+  constructor(data?: PartialMessage<CloudEventBatch>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "core.message_broker.actors.v1.CloudEventBatch";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "events", kind: "message", T: CloudEvent, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CloudEventBatch {
+    return new CloudEventBatch().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CloudEventBatch {
+    return new CloudEventBatch().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CloudEventBatch {
+    return new CloudEventBatch().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CloudEventBatch | PlainMessage<CloudEventBatch> | undefined, b: CloudEventBatch | PlainMessage<CloudEventBatch> | undefined): boolean {
+    return proto3.util.equals(CloudEventBatch, a, b);
   }
 }
 

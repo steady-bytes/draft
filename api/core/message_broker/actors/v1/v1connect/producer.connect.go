@@ -45,7 +45,7 @@ var (
 
 // ProducerClient is a client for the core.message_broker.actors.v1.Producer service.
 type ProducerClient interface {
-	Produce(context.Context) *connect.BidiStreamForClient[v1.ProduceRequest, v1.ProduceRequest]
+	Produce(context.Context) *connect.BidiStreamForClient[v1.ProduceRequest, v1.ProduceResponse]
 }
 
 // NewProducerClient constructs a client for the core.message_broker.actors.v1.Producer service. By
@@ -58,7 +58,7 @@ type ProducerClient interface {
 func NewProducerClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ProducerClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &producerClient{
-		produce: connect.NewClient[v1.ProduceRequest, v1.ProduceRequest](
+		produce: connect.NewClient[v1.ProduceRequest, v1.ProduceResponse](
 			httpClient,
 			baseURL+ProducerProduceProcedure,
 			connect.WithSchema(producerProduceMethodDescriptor),
@@ -69,17 +69,17 @@ func NewProducerClient(httpClient connect.HTTPClient, baseURL string, opts ...co
 
 // producerClient implements ProducerClient.
 type producerClient struct {
-	produce *connect.Client[v1.ProduceRequest, v1.ProduceRequest]
+	produce *connect.Client[v1.ProduceRequest, v1.ProduceResponse]
 }
 
 // Produce calls core.message_broker.actors.v1.Producer.Produce.
-func (c *producerClient) Produce(ctx context.Context) *connect.BidiStreamForClient[v1.ProduceRequest, v1.ProduceRequest] {
+func (c *producerClient) Produce(ctx context.Context) *connect.BidiStreamForClient[v1.ProduceRequest, v1.ProduceResponse] {
 	return c.produce.CallBidiStream(ctx)
 }
 
 // ProducerHandler is an implementation of the core.message_broker.actors.v1.Producer service.
 type ProducerHandler interface {
-	Produce(context.Context, *connect.BidiStream[v1.ProduceRequest, v1.ProduceRequest]) error
+	Produce(context.Context, *connect.BidiStream[v1.ProduceRequest, v1.ProduceResponse]) error
 }
 
 // NewProducerHandler builds an HTTP handler from the service implementation. It returns the path on
@@ -107,6 +107,6 @@ func NewProducerHandler(svc ProducerHandler, opts ...connect.HandlerOption) (str
 // UnimplementedProducerHandler returns CodeUnimplemented from all methods.
 type UnimplementedProducerHandler struct{}
 
-func (UnimplementedProducerHandler) Produce(context.Context, *connect.BidiStream[v1.ProduceRequest, v1.ProduceRequest]) error {
+func (UnimplementedProducerHandler) Produce(context.Context, *connect.BidiStream[v1.ProduceRequest, v1.ProduceResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("core.message_broker.actors.v1.Producer.Produce is not implemented"))
 }

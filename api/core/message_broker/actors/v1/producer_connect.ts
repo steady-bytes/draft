@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ProduceRequest } from "./producer_pb.js";
+import { ProduceRequest, ProduceResponse } from "./producer_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -18,7 +18,7 @@ export const Producer = {
     produce: {
       name: "Produce",
       I: ProduceRequest,
-      O: ProduceRequest,
+      O: ProduceResponse,
       kind: MethodKind.BiDiStreaming,
     },
   }

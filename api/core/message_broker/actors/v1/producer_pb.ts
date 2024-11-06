@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { Message as Message$1 } from "./models_pb.js";
+import { CloudEvent } from "./models_pb.js";
 
 /**
  * Send this `Message` to the other `Actors` in the system that are subscribed to this `Message`
@@ -14,9 +14,11 @@ import { Message as Message$1 } from "./models_pb.js";
  */
 export class ProduceRequest extends Message<ProduceRequest> {
   /**
-   * @generated from field: core.message_broker.actors.v1.Message message = 1;
+   * TODO: Change to `CloudEvent` message type
+   *
+   * @generated from field: core.message_broker.actors.v1.CloudEvent message = 1;
    */
-  message?: Message$1;
+  message?: CloudEvent;
 
   constructor(data?: PartialMessage<ProduceRequest>) {
     super();
@@ -26,7 +28,7 @@ export class ProduceRequest extends Message<ProduceRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "core.message_broker.actors.v1.ProduceRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "message", kind: "message", T: Message$1 },
+    { no: 1, name: "message", kind: "message", T: CloudEvent },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProduceRequest {
