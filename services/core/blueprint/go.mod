@@ -1,6 +1,6 @@
 module github.com/steady-bytes/draft/services/core/blueprint
 
-go 1.21.3
+go 1.23.2
 
 // replace github.com/steady-bytes/draft/api => ../../../api
 
