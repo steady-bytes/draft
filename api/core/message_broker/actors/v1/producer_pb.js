@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import { proto3 } from "@bufbuild/protobuf";
-import { Message } from "./models_pb.js";
+import { CloudEvent } from "./models_pb.js";
 
 /**
  * Send this `Message` to the other `Actors` in the system that are subscribed to this `Message`
@@ -14,7 +14,7 @@ import { Message } from "./models_pb.js";
 export const ProduceRequest = proto3.makeMessageType(
   "core.message_broker.actors.v1.ProduceRequest",
   () => [
-    { no: 1, name: "message", kind: "message", T: Message },
+    { no: 1, name: "message", kind: "message", T: CloudEvent },
   ],
 );
 

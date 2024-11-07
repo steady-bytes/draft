@@ -35,123 +35,22 @@ var (
 	_ = sort.Sort
 )
 
-// Validate checks the field values on Count with the rules defined in the
+// Validate checks the field values on CloudEvent with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *Count) Validate() error {
+func (m *CloudEvent) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on Count with the rules defined in the
-// proto definition for this message. If any rules are violated, the result is
-// a list of violation errors wrapped in CountMultiError, or nil if none found.
-func (m *Count) ValidateAll() error {
+// ValidateAll checks the field values on CloudEvent with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in CloudEventMultiError, or
+// nil if none found.
+func (m *CloudEvent) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *Count) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for Page
-
-	// no validation rules for Number
-
-	if len(errors) > 0 {
-		return CountMultiError(errors)
-	}
-
-	return nil
-}
-
-// CountMultiError is an error wrapping multiple validation errors returned by
-// Count.ValidateAll() if the designated constraints aren't met.
-type CountMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m CountMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m CountMultiError) AllErrors() []error { return m }
-
-// CountValidationError is the validation error returned by Count.Validate if
-// the designated constraints aren't met.
-type CountValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e CountValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e CountValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e CountValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e CountValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e CountValidationError) ErrorName() string { return "CountValidationError" }
-
-// Error satisfies the builtin error interface
-func (e CountValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sCount.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = CountValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = CountValidationError{}
-
-// Validate checks the field values on Message with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *Message) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on Message with the rules defined in the
-// proto definition for this message. If any rules are violated, the result is
-// a list of violation errors wrapped in MessageMultiError, or nil if none found.
-func (m *Message) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *Message) validate(all bool) error {
+func (m *CloudEvent) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -160,79 +59,141 @@ func (m *Message) validate(all bool) error {
 
 	// no validation rules for Id
 
-	// no validation rules for Domain
+	// no validation rules for Source
 
-	if all {
-		switch v := interface{}(m.GetKind()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, MessageValidationError{
-					field:  "Kind",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, MessageValidationError{
-					field:  "Kind",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
+	// no validation rules for SpecVersion
+
+	// no validation rules for Type
+
+	{
+		sorted_keys := make([]string, len(m.GetAttributes()))
+		i := 0
+		for key := range m.GetAttributes() {
+			sorted_keys[i] = key
+			i++
 		}
-	} else if v, ok := interface{}(m.GetKind()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return MessageValidationError{
-				field:  "Kind",
-				reason: "embedded message failed validation",
-				cause:  err,
+		sort.Slice(sorted_keys, func(i, j int) bool { return sorted_keys[i] < sorted_keys[j] })
+		for _, key := range sorted_keys {
+			val := m.GetAttributes()[key]
+			_ = val
+
+			// no validation rules for Attributes[key]
+
+			if all {
+				switch v := interface{}(val).(type) {
+				case interface{ ValidateAll() error }:
+					if err := v.ValidateAll(); err != nil {
+						errors = append(errors, CloudEventValidationError{
+							field:  fmt.Sprintf("Attributes[%v]", key),
+							reason: "embedded message failed validation",
+							cause:  err,
+						})
+					}
+				case interface{ Validate() error }:
+					if err := v.Validate(); err != nil {
+						errors = append(errors, CloudEventValidationError{
+							field:  fmt.Sprintf("Attributes[%v]", key),
+							reason: "embedded message failed validation",
+							cause:  err,
+						})
+					}
+				}
+			} else if v, ok := interface{}(val).(interface{ Validate() error }); ok {
+				if err := v.Validate(); err != nil {
+					return CloudEventValidationError{
+						field:  fmt.Sprintf("Attributes[%v]", key),
+						reason: "embedded message failed validation",
+						cause:  err,
+					}
+				}
 			}
+
 		}
 	}
 
-	if all {
-		switch v := interface{}(m.GetCount()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, MessageValidationError{
-					field:  "Count",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
+	switch v := m.Data.(type) {
+	case *CloudEvent_BinaryData:
+		if v == nil {
+			err := CloudEventValidationError{
+				field:  "Data",
+				reason: "oneof value cannot be a typed-nil",
 			}
-		case interface{ Validate() error }:
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for BinaryData
+	case *CloudEvent_TextData:
+		if v == nil {
+			err := CloudEventValidationError{
+				field:  "Data",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for TextData
+	case *CloudEvent_ProtoData:
+		if v == nil {
+			err := CloudEventValidationError{
+				field:  "Data",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetProtoData()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, CloudEventValidationError{
+						field:  "ProtoData",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, CloudEventValidationError{
+						field:  "ProtoData",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetProtoData()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
-				errors = append(errors, MessageValidationError{
-					field:  "Count",
+				return CloudEventValidationError{
+					field:  "ProtoData",
 					reason: "embedded message failed validation",
 					cause:  err,
-				})
+				}
 			}
 		}
-	} else if v, ok := interface{}(m.GetCount()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return MessageValidationError{
-				field:  "Count",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
+
+	default:
+		_ = v // ensures v is used
 	}
 
 	if len(errors) > 0 {
-		return MessageMultiError(errors)
+		return CloudEventMultiError(errors)
 	}
 
 	return nil
 }
 
-// MessageMultiError is an error wrapping multiple validation errors returned
-// by Message.ValidateAll() if the designated constraints aren't met.
-type MessageMultiError []error
+// CloudEventMultiError is an error wrapping multiple validation errors
+// returned by CloudEvent.ValidateAll() if the designated constraints aren't met.
+type CloudEventMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m MessageMultiError) Error() string {
+func (m CloudEventMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -241,11 +202,11 @@ func (m MessageMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m MessageMultiError) AllErrors() []error { return m }
+func (m CloudEventMultiError) AllErrors() []error { return m }
 
-// MessageValidationError is the validation error returned by Message.Validate
-// if the designated constraints aren't met.
-type MessageValidationError struct {
+// CloudEventValidationError is the validation error returned by
+// CloudEvent.Validate if the designated constraints aren't met.
+type CloudEventValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -253,22 +214,22 @@ type MessageValidationError struct {
 }
 
 // Field function returns field value.
-func (e MessageValidationError) Field() string { return e.field }
+func (e CloudEventValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e MessageValidationError) Reason() string { return e.reason }
+func (e CloudEventValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e MessageValidationError) Cause() error { return e.cause }
+func (e CloudEventValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e MessageValidationError) Key() bool { return e.key }
+func (e CloudEventValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e MessageValidationError) ErrorName() string { return "MessageValidationError" }
+func (e CloudEventValidationError) ErrorName() string { return "CloudEventValidationError" }
 
 // Error satisfies the builtin error interface
-func (e MessageValidationError) Error() string {
+func (e CloudEventValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -280,14 +241,14 @@ func (e MessageValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sMessage.%s: %s%s",
+		"invalid %sCloudEvent.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = MessageValidationError{}
+var _ error = CloudEventValidationError{}
 
 var _ interface {
 	Field() string
@@ -295,4 +256,361 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = MessageValidationError{}
+} = CloudEventValidationError{}
+
+// Validate checks the field values on CloudEventBatch with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *CloudEventBatch) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CloudEventBatch with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// CloudEventBatchMultiError, or nil if none found.
+func (m *CloudEventBatch) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CloudEventBatch) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	for idx, item := range m.GetEvents() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, CloudEventBatchValidationError{
+						field:  fmt.Sprintf("Events[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, CloudEventBatchValidationError{
+						field:  fmt.Sprintf("Events[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return CloudEventBatchValidationError{
+					field:  fmt.Sprintf("Events[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return CloudEventBatchMultiError(errors)
+	}
+
+	return nil
+}
+
+// CloudEventBatchMultiError is an error wrapping multiple validation errors
+// returned by CloudEventBatch.ValidateAll() if the designated constraints
+// aren't met.
+type CloudEventBatchMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CloudEventBatchMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CloudEventBatchMultiError) AllErrors() []error { return m }
+
+// CloudEventBatchValidationError is the validation error returned by
+// CloudEventBatch.Validate if the designated constraints aren't met.
+type CloudEventBatchValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CloudEventBatchValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CloudEventBatchValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CloudEventBatchValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CloudEventBatchValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CloudEventBatchValidationError) ErrorName() string { return "CloudEventBatchValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CloudEventBatchValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCloudEventBatch.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CloudEventBatchValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CloudEventBatchValidationError{}
+
+// Validate checks the field values on CloudEvent_CloudEventAttributeValue with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, the first error encountered is returned, or nil if there are
+// no violations.
+func (m *CloudEvent_CloudEventAttributeValue) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CloudEvent_CloudEventAttributeValue
+// with the rules defined in the proto definition for this message. If any
+// rules are violated, the result is a list of violation errors wrapped in
+// CloudEvent_CloudEventAttributeValueMultiError, or nil if none found.
+func (m *CloudEvent_CloudEventAttributeValue) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CloudEvent_CloudEventAttributeValue) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	switch v := m.Attr.(type) {
+	case *CloudEvent_CloudEventAttributeValue_CeBoolean:
+		if v == nil {
+			err := CloudEvent_CloudEventAttributeValueValidationError{
+				field:  "Attr",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for CeBoolean
+	case *CloudEvent_CloudEventAttributeValue_CeInteger:
+		if v == nil {
+			err := CloudEvent_CloudEventAttributeValueValidationError{
+				field:  "Attr",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for CeInteger
+	case *CloudEvent_CloudEventAttributeValue_CeString:
+		if v == nil {
+			err := CloudEvent_CloudEventAttributeValueValidationError{
+				field:  "Attr",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for CeString
+	case *CloudEvent_CloudEventAttributeValue_CeBytes:
+		if v == nil {
+			err := CloudEvent_CloudEventAttributeValueValidationError{
+				field:  "Attr",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for CeBytes
+	case *CloudEvent_CloudEventAttributeValue_CeUri:
+		if v == nil {
+			err := CloudEvent_CloudEventAttributeValueValidationError{
+				field:  "Attr",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for CeUri
+	case *CloudEvent_CloudEventAttributeValue_CeUriRef:
+		if v == nil {
+			err := CloudEvent_CloudEventAttributeValueValidationError{
+				field:  "Attr",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+		// no validation rules for CeUriRef
+	case *CloudEvent_CloudEventAttributeValue_CeTimestamp:
+		if v == nil {
+			err := CloudEvent_CloudEventAttributeValueValidationError{
+				field:  "Attr",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetCeTimestamp()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, CloudEvent_CloudEventAttributeValueValidationError{
+						field:  "CeTimestamp",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, CloudEvent_CloudEventAttributeValueValidationError{
+						field:  "CeTimestamp",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetCeTimestamp()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return CloudEvent_CloudEventAttributeValueValidationError{
+					field:  "CeTimestamp",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	default:
+		_ = v // ensures v is used
+	}
+
+	if len(errors) > 0 {
+		return CloudEvent_CloudEventAttributeValueMultiError(errors)
+	}
+
+	return nil
+}
+
+// CloudEvent_CloudEventAttributeValueMultiError is an error wrapping multiple
+// validation errors returned by
+// CloudEvent_CloudEventAttributeValue.ValidateAll() if the designated
+// constraints aren't met.
+type CloudEvent_CloudEventAttributeValueMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CloudEvent_CloudEventAttributeValueMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CloudEvent_CloudEventAttributeValueMultiError) AllErrors() []error { return m }
+
+// CloudEvent_CloudEventAttributeValueValidationError is the validation error
+// returned by CloudEvent_CloudEventAttributeValue.Validate if the designated
+// constraints aren't met.
+type CloudEvent_CloudEventAttributeValueValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CloudEvent_CloudEventAttributeValueValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CloudEvent_CloudEventAttributeValueValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CloudEvent_CloudEventAttributeValueValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CloudEvent_CloudEventAttributeValueValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CloudEvent_CloudEventAttributeValueValidationError) ErrorName() string {
+	return "CloudEvent_CloudEventAttributeValueValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e CloudEvent_CloudEventAttributeValueValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCloudEvent_CloudEventAttributeValue.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CloudEvent_CloudEventAttributeValueValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CloudEvent_CloudEventAttributeValueValidationError{}

@@ -11,11 +11,9 @@ service Consumer {
 }
 
 message ConsumeRequest { 
-    Message message = 1;
-
-    optional Count count = 2;
+    CloudEvent message = 1;
 }
 
 message ConsumeResponse {
-    Message message = 1;
+    CloudEvent message = 1;
 }
