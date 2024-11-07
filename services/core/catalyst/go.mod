@@ -1,6 +1,8 @@
 module github.com/steady-bytes/draft/services/core/catalyst
 
-go 1.23.2
+go 1.22.5
+
+toolchain go1.23.2
 
 require (
 	github.com/steady-bytes/draft/api v0.6.0
