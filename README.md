@@ -8,6 +8,9 @@ Draft is a framework for easily building reliable, efficient, and scalable distr
 
 Blueprint is a core service that provides both a service registry and a generic key/value store for dynamic service configuration. All processes in a Draft cluster register themselves with Blueprint at startup so that Blueprint can manage all service configuration and provide a single view into the status of the cluster.
 
+### Catalyst
+Catalyst is a core service that acts as the primary message broker, and actor system. Services, and clients can `Produce` and `Consume` [CloudEvent](https://cloudevents.io/) messages. Currently a simple `Broadcast` message delivery is implemented so each `Consumer` of the same channel will receive the message at the same time.
+
 ### Fuse
 
 Fuse is a core service that enabled routing between Draft processes as well as ingress into the cluster. It manages an installation of [Envoy](https://www.envoyproxy.io/) to route requests from clients to services.

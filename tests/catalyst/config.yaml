@@ -1,0 +1,6 @@
+service:
+  name: catalyst 
+  domain: core
+  entrypoint: http://localhost:2221
+  network:
+    port: 3331 
