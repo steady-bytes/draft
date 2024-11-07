@@ -86,39 +86,6 @@ func (m *ConsumeRequest) validate(all bool) error {
 		}
 	}
 
-	if m.Count != nil {
-
-		if all {
-			switch v := interface{}(m.GetCount()).(type) {
-			case interface{ ValidateAll() error }:
-				if err := v.ValidateAll(); err != nil {
-					errors = append(errors, ConsumeRequestValidationError{
-						field:  "Count",
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			case interface{ Validate() error }:
-				if err := v.Validate(); err != nil {
-					errors = append(errors, ConsumeRequestValidationError{
-						field:  "Count",
-						reason: "embedded message failed validation",
-						cause:  err,
-					})
-				}
-			}
-		} else if v, ok := interface{}(m.GetCount()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return ConsumeRequestValidationError{
-					field:  "Count",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	}
-
 	if len(errors) > 0 {
 		return ConsumeRequestMultiError(errors)
 	}

@@ -3,33 +3,62 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { Any, proto3 } from "@bufbuild/protobuf";
+import { Any, proto3, Timestamp } from "@bufbuild/protobuf";
 
 /**
- * Count is what determines the total order of the `Messages` in the system
+ * *
+ * CloudEvent Protobuf Format
  *
- * @generated from message core.message_broker.actors.v1.Count
+ * - Required context attributes are explicity represented.
+ * - Optional and Extension context attributes are carried in a map structure.
+ * - Data may be represented as binary, text, or protobuf messages.
+ *
+ * REF: [https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/formats/cloudevents.proto]
+ *
+ * @generated from message core.message_broker.actors.v1.CloudEvent
  */
-export const Count = proto3.makeMessageType(
-  "core.message_broker.actors.v1.Count",
+export const CloudEvent = proto3.makeMessageType(
+  "core.message_broker.actors.v1.CloudEvent",
   () => [
-    { no: 1, name: "page", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
-    { no: 2, name: "number", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "source", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "spec_version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "attributes", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: CloudEvent_CloudEventAttributeValue} },
+    { no: 6, name: "binary_data", kind: "scalar", T: 12 /* ScalarType.BYTES */, oneof: "data" },
+    { no: 7, name: "text_data", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "data" },
+    { no: 8, name: "proto_data", kind: "message", T: Any, oneof: "data" },
   ],
 );
 
 /**
- * Message is the main data structure that is sent between the `Producer` and the `Consumer`
- *
- * @generated from message core.message_broker.actors.v1.Message
+ * @generated from message core.message_broker.actors.v1.CloudEvent.CloudEventAttributeValue
  */
-export const Message = proto3.makeMessageType(
-  "core.message_broker.actors.v1.Message",
+export const CloudEvent_CloudEventAttributeValue = proto3.makeMessageType(
+  "core.message_broker.actors.v1.CloudEvent.CloudEventAttributeValue",
   () => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "domain", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "kind", kind: "message", T: Any },
-    { no: 4, name: "count", kind: "message", T: Count },
+    { no: 1, name: "ce_boolean", kind: "scalar", T: 8 /* ScalarType.BOOL */, oneof: "attr" },
+    { no: 2, name: "ce_integer", kind: "scalar", T: 5 /* ScalarType.INT32 */, oneof: "attr" },
+    { no: 3, name: "ce_string", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "attr" },
+    { no: 4, name: "ce_bytes", kind: "scalar", T: 12 /* ScalarType.BYTES */, oneof: "attr" },
+    { no: 5, name: "ce_uri", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "attr" },
+    { no: 6, name: "ce_uri_ref", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "attr" },
+    { no: 7, name: "ce_timestamp", kind: "message", T: Timestamp, oneof: "attr" },
+  ],
+  {localName: "CloudEvent_CloudEventAttributeValue"},
+);
+
+/**
+ * *
+ * CloudEvent Protobuf Batch Format
+ *
+ *
+ * @generated from message core.message_broker.actors.v1.CloudEventBatch
+ */
+export const CloudEventBatch = proto3.makeMessageType(
+  "core.message_broker.actors.v1.CloudEventBatch",
+  () => [
+    { no: 1, name: "events", kind: "message", T: CloudEvent, repeated: true },
   ],
 );
 
