@@ -44,6 +44,8 @@ message GetResponse {
 
 message DeleteRequest {
     string key = 1;
+    // value is only used to determine the underlying type, the content within the type does not matter
+    google.protobuf.Any value = 2;
 }
 
 message DeleteResponse {

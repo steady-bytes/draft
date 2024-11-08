@@ -26,7 +26,7 @@ type ProduceRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Message *CloudEvent `protobuf:"bytes,1,opt,name=message,proto3" json:"message" bun:"message" csv:"message" pg:"message" yaml:"message"`
+	Message *CloudEvent `protobuf:"bytes,1,opt,name=message,proto3" json:"message" yaml:"message" csv:"message" pg:"message" bun:"message"`
 }
 
 func (x *ProduceRequest) Reset() {
@@ -74,7 +74,7 @@ type ProduceResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	// The message id is returned as a way to acknowledge the message as been committed
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bun:"id" csv:"id" pg:"id" yaml:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
 }
 
 func (x *ProduceResponse) Reset() {
