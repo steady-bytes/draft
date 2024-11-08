@@ -54,6 +54,7 @@ export const DeleteRequest = proto3.makeMessageType(
   "core.registry.key_value.v1.DeleteRequest",
   () => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "value", kind: "message", T: Any },
   ],
 );
 

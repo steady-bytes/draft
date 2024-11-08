@@ -36,12 +36,12 @@ type CloudEvent struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Required Attributes
-	Id          string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bun:"id" csv:"id" pg:"id" yaml:"id"`
-	Source      string `protobuf:"bytes,2,opt,name=source,proto3" json:"source" bun:"source" csv:"source" pg:"source" yaml:"source"` // URI-reference
-	SpecVersion string `protobuf:"bytes,3,opt,name=spec_version,json=specVersion,proto3" json:"spec_version" bun:"spec_version" csv:"spec_version" pg:"spec_version" yaml:"spec_version"`
-	Type        string `protobuf:"bytes,4,opt,name=type,proto3" json:"type" bun:"type" csv:"type" pg:"type" yaml:"type"`
+	Id          string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" pg:"id" bun:"id" yaml:"id" csv:"id"`
+	Source      string `protobuf:"bytes,2,opt,name=source,proto3" json:"source" pg:"source" bun:"source" yaml:"source" csv:"source"` // URI-reference
+	SpecVersion string `protobuf:"bytes,3,opt,name=spec_version,json=specVersion,proto3" json:"spec_version" pg:"spec_version" bun:"spec_version" yaml:"spec_version" csv:"spec_version"`
+	Type        string `protobuf:"bytes,4,opt,name=type,proto3" json:"type" csv:"type" pg:"type" bun:"type" yaml:"type"`
 	// Optional & Extension Attributes
-	Attributes map[string]*CloudEvent_CloudEventAttributeValue `protobuf:"bytes,5,rep,name=attributes,proto3" json:"attributes" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" bun:"attributes" csv:"attributes" pg:"attributes" yaml:"attributes"`
+	Attributes map[string]*CloudEvent_CloudEventAttributeValue `protobuf:"bytes,5,rep,name=attributes,proto3" json:"attributes" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" bun:"attributes" yaml:"attributes" csv:"attributes" pg:"attributes"`
 	// -- CloudEvent Data (Bytes, Text, or Proto)
 	//
 	// Types that are assignable to Data:
@@ -152,15 +152,15 @@ type isCloudEvent_Data interface {
 }
 
 type CloudEvent_BinaryData struct {
-	BinaryData []byte `protobuf:"bytes,6,opt,name=binary_data,json=binaryData,proto3,oneof" bun:"binary_data" csv:"binary_data" json:"binary_data" pg:"binary_data" yaml:"binary_data"`
+	BinaryData []byte `protobuf:"bytes,6,opt,name=binary_data,json=binaryData,proto3,oneof" bun:"binary_data" yaml:"binary_data" csv:"binary_data" json:"binary_data" pg:"binary_data"`
 }
 
 type CloudEvent_TextData struct {
-	TextData string `protobuf:"bytes,7,opt,name=text_data,json=textData,proto3,oneof" bun:"text_data" csv:"text_data" json:"text_data" pg:"text_data" yaml:"text_data"`
+	TextData string `protobuf:"bytes,7,opt,name=text_data,json=textData,proto3,oneof" pg:"text_data" bun:"text_data" yaml:"text_data" csv:"text_data" json:"text_data"`
 }
 
 type CloudEvent_ProtoData struct {
-	ProtoData *anypb.Any `protobuf:"bytes,8,opt,name=proto_data,json=protoData,proto3,oneof" bun:"proto_data" csv:"proto_data" json:"proto_data" pg:"proto_data" yaml:"proto_data"`
+	ProtoData *anypb.Any `protobuf:"bytes,8,opt,name=proto_data,json=protoData,proto3,oneof" yaml:"proto_data" csv:"proto_data" json:"proto_data" pg:"proto_data" bun:"proto_data"`
 }
 
 func (*CloudEvent_BinaryData) isCloudEvent_Data() {}
@@ -176,7 +176,7 @@ type CloudEventBatch struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Events []*CloudEvent `protobuf:"bytes,1,rep,name=events,proto3" json:"events" bun:"events" csv:"events" pg:"events" yaml:"events"`
+	Events []*CloudEvent `protobuf:"bytes,1,rep,name=events,proto3" json:"events" yaml:"events" csv:"events" pg:"events" bun:"events"`
 }
 
 func (x *CloudEventBatch) Reset() {

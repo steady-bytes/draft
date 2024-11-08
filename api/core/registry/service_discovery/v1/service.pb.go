@@ -27,15 +27,15 @@ type ClientDetails struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Pid string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" bun:"pid" csv:"pid" pg:"pid" yaml:"pid"`
+	Pid string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" pg:"pid" bun:"pid" yaml:"pid" csv:"pid"`
 	// Ops details
-	RunningState ProcessRunningState `protobuf:"varint,2,opt,name=running_state,json=runningState,proto3,enum=core.registry.service_discovery.v1.ProcessRunningState" json:"running_state" bun:"running_state" csv:"running_state" pg:"running_state" yaml:"running_state"`
-	HealthState  ProcessHealthState  `protobuf:"varint,3,opt,name=health_state,json=healthState,proto3,enum=core.registry.service_discovery.v1.ProcessHealthState" json:"health_state" bun:"health_state" csv:"health_state" pg:"health_state" yaml:"health_state"`
-	ProcessKind  ProcessKind         `protobuf:"varint,4,opt,name=process_kind,json=processKind,proto3,enum=core.registry.service_discovery.v1.ProcessKind" json:"process_kind" bun:"process_kind" csv:"process_kind" pg:"process_kind" yaml:"process_kind"`
+	RunningState ProcessRunningState `protobuf:"varint,2,opt,name=running_state,json=runningState,proto3,enum=core.registry.service_discovery.v1.ProcessRunningState" json:"running_state" pg:"running_state" bun:"running_state" yaml:"running_state" csv:"running_state"`
+	HealthState  ProcessHealthState  `protobuf:"varint,3,opt,name=health_state,json=healthState,proto3,enum=core.registry.service_discovery.v1.ProcessHealthState" json:"health_state" pg:"health_state" bun:"health_state" yaml:"health_state" csv:"health_state"`
+	ProcessKind  ProcessKind         `protobuf:"varint,4,opt,name=process_kind,json=processKind,proto3,enum=core.registry.service_discovery.v1.ProcessKind" json:"process_kind" csv:"process_kind" pg:"process_kind" bun:"process_kind" yaml:"process_kind"`
 	// only check the token when a `ProcessDetails` message is received.
-	Token    string      `protobuf:"bytes,5,opt,name=token,proto3" json:"token" bun:"token" csv:"token" pg:"token" yaml:"token"`
-	Location *GeoPoint   `protobuf:"bytes,7,opt,name=location,proto3" json:"location" bun:"location" csv:"location" pg:"location" yaml:"location"`
-	Metadata []*Metadata `protobuf:"bytes,8,rep,name=metadata,proto3" json:"metadata" bun:"metadata" csv:"metadata" pg:"metadata" yaml:"metadata"`
+	Token    string      `protobuf:"bytes,5,opt,name=token,proto3" json:"token" pg:"token" bun:"token" yaml:"token" csv:"token"`
+	Location *GeoPoint   `protobuf:"bytes,7,opt,name=location,proto3" json:"location" yaml:"location" csv:"location" pg:"location" bun:"location"`
+	Metadata []*Metadata `protobuf:"bytes,8,rep,name=metadata,proto3" json:"metadata" pg:"metadata" bun:"metadata" yaml:"metadata" csv:"metadata"`
 }
 
 func (x *ClientDetails) Reset() {
@@ -166,9 +166,9 @@ type InitializeRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Name of the process to be registered. This field is not required to be unique with the other processes in the registry
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" bun:"name" csv:"name" pg:"name" yaml:"name"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" bun:"name" yaml:"name" csv:"name" pg:"name"`
 	// A token will not be issued, and a process will not be able to connect to the `SystemJournal` if the `nonce` is not signed with the correct public key
-	Nonce string `protobuf:"bytes,2,opt,name=nonce,proto3" json:"nonce" bun:"nonce" csv:"nonce" pg:"nonce" yaml:"nonce"`
+	Nonce string `protobuf:"bytes,2,opt,name=nonce,proto3" json:"nonce" pg:"nonce" bun:"nonce" yaml:"nonce" csv:"nonce"`
 }
 
 func (x *InitializeRequest) Reset() {
@@ -227,9 +227,9 @@ type InitializeResponse struct {
 
 	// If the init request was succesful then an identity will be given to the process so that it
 	// can stream it's operational details to the registry
-	ProcessIdentity *ProcessIdentity `protobuf:"bytes,1,opt,name=process_identity,json=processIdentity,proto3" json:"process_identity" bun:"process_identity" csv:"process_identity" pg:"process_identity" yaml:"process_identity"`
+	ProcessIdentity *ProcessIdentity `protobuf:"bytes,1,opt,name=process_identity,json=processIdentity,proto3" json:"process_identity" pg:"process_identity" bun:"process_identity" yaml:"process_identity" csv:"process_identity"`
 	// Startup configuration
-	Configuration *StartupConfiguration `protobuf:"bytes,2,opt,name=configuration,proto3" json:"configuration" bun:"configuration" csv:"configuration" pg:"configuration" yaml:"configuration"`
+	Configuration *StartupConfiguration `protobuf:"bytes,2,opt,name=configuration,proto3" json:"configuration" pg:"configuration" bun:"configuration" yaml:"configuration" csv:"configuration"`
 }
 
 func (x *InitializeResponse) Reset() {
@@ -283,7 +283,7 @@ type QueryRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Filter *Filter `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter" bun:"filter" csv:"filter" pg:"filter" yaml:"filter"`
+	Filter *Filter `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter" bun:"filter" yaml:"filter" csv:"filter" pg:"filter"`
 }
 
 func (x *QueryRequest) Reset() {
@@ -403,15 +403,15 @@ type isFilter_Attribute interface {
 }
 
 type Filter_Id struct {
-	Id string `protobuf:"bytes,1,opt,name=id,proto3,oneof" bun:"id" csv:"id" json:"id" pg:"id" yaml:"id"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3,oneof" pg:"id" bun:"id" yaml:"id" csv:"id" json:"id"`
 }
 
 type Filter_Group struct {
-	Group string `protobuf:"bytes,2,opt,name=group,proto3,oneof" bun:"group" csv:"group" json:"group" pg:"group" yaml:"group"`
+	Group string `protobuf:"bytes,2,opt,name=group,proto3,oneof" csv:"group" json:"group" pg:"group" bun:"group" yaml:"group"`
 }
 
 type Filter_All struct {
-	All string `protobuf:"bytes,3,opt,name=all,proto3,oneof" bun:"all" csv:"all" json:"all" pg:"all" yaml:"all"`
+	All string `protobuf:"bytes,3,opt,name=all,proto3,oneof" bun:"all" yaml:"all" csv:"all" json:"all" pg:"all"`
 }
 
 func (*Filter_Id) isFilter_Attribute() {}
@@ -425,7 +425,7 @@ type QueryResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Data map[string]*Process `protobuf:"bytes,1,rep,name=data,proto3" json:"data" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" bun:"data" csv:"data" pg:"data" yaml:"data"`
+	Data map[string]*Process `protobuf:"bytes,1,rep,name=data,proto3" json:"data" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" csv:"data" pg:"data" bun:"data" yaml:"data"`
 }
 
 func (x *QueryResponse) Reset() {
@@ -472,7 +472,7 @@ type FinalizeRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Pid string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" bun:"pid" csv:"pid" pg:"pid" yaml:"pid"`
+	Pid string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" pg:"pid" bun:"pid" yaml:"pid" csv:"pid"`
 }
 
 func (x *FinalizeRequest) Reset() {
@@ -519,7 +519,7 @@ type FinalizeResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Pid string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" bun:"pid" csv:"pid" pg:"pid" yaml:"pid"`
+	Pid string `protobuf:"bytes,1,opt,name=pid,proto3" json:"pid" pg:"pid" bun:"pid" yaml:"pid" csv:"pid"`
 }
 
 func (x *FinalizeResponse) Reset() {

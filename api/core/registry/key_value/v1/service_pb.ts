@@ -175,6 +175,13 @@ export class DeleteRequest extends Message<DeleteRequest> {
    */
   key = "";
 
+  /**
+   * value is only used to determine the underlying type, the content within the type does not matter
+   *
+   * @generated from field: google.protobuf.Any value = 2;
+   */
+  value?: Any;
+
   constructor(data?: PartialMessage<DeleteRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -184,6 +191,7 @@ export class DeleteRequest extends Message<DeleteRequest> {
   static readonly typeName = "core.registry.key_value.v1.DeleteRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "value", kind: "message", T: Any },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteRequest {

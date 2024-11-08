@@ -26,7 +26,7 @@ type Value struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Data string `protobuf:"bytes,1,opt,name=data,proto3" json:"data" bun:"data" csv:"data" pg:"data" yaml:"data"`
+	Data string `protobuf:"bytes,1,opt,name=data,proto3" json:"data" pg:"data" bun:"data" yaml:"data" csv:"data"`
 }
 
 func (x *Value) Reset() {
