@@ -79,20 +79,21 @@ func (l *logger) WithContext(ctx context.Context) chassis.Logger {
 }
 
 func (l *logger) WithField(key string, value any) chassis.Logger {
-	str := fmt.Sprintf("%v", value)
-	l.fields[key] = str
-	return &logger{
-		logger: l.logger.With().Str(key, str).Logger(),
-		fields: l.fields,
-		level:  l.level,
-	}
+	return l.WithFields(chassis.Fields{key: value})
 }
 
 func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
+	newFields := make(chassis.Fields, len(l.fields)+len(fields))
+	// copy old fields
+	for k, v := range l.fields {
+		newFields[k] = v
+	}
+	// copy old logger
 	new := &logger{
 		logger: l.logger.With().Logger(),
-		fields: l.fields,
+		fields: newFields,
 	}
+	// append new fields
 	for key, value := range fields {
 		str := fmt.Sprintf("%v", value)
 		new.fields[key] = str
