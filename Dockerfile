@@ -1,11 +1,9 @@
-ARG GO_VERSION=1.23.2
+ARG GO_VERSION=1.23
 ARG ALPINE_VERSION=3.18
 
 # Build web client (if needed)
 FROM node:18 AS web-client-builder
 WORKDIR /web
-RUN npm i -D @swc/cli @swc/core
-RUN rm package*.json
 
 ARG DOMAIN
 ARG SERVICE
@@ -16,6 +14,7 @@ RUN npm install
 
 # Build dist
 COPY ./services/${DOMAIN}/${SERVICE}/web-client .
+ENV NODE_ENV=production
 RUN npm run build
 
 # Make sure dist directory exists even if there's no client to build
