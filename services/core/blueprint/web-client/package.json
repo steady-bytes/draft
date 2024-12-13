@@ -10,7 +10,7 @@
   },
   "author": "Blueprint Team",
   "license": "Apache-2.0",
-  "proxy": "http://localhost:2221",
+  "proxy": "http://localhost:3000",
   "dependencies": {
     "@bufbuild/buf": "^1.47.2",
     "@bufbuild/protobuf": "1.10.0",

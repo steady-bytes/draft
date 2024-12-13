@@ -109,6 +109,7 @@ const App: React.FC = () => {
           {contextHolder}
           <Routes>
             {/* <Route path="/" Component={HomePage} /> */}
+            <Route path="/" Component={KeyValuePage} />
             <Route path="/store" Component={KeyValuePage} />
             {/* <Route path="/upload" Component={UploadPage} /> */}
             {/* <Route path="/settings" Component={SettingsPage} /> */}
