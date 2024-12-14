@@ -7,6 +7,7 @@ import {
   Menu,
   message,
   ConfigProvider,
+  ThemeConfig
 } from 'antd';
 
 import {
@@ -25,7 +26,7 @@ const { Header, Sider, Content } = Layout;
 
 const primaryBG = "#0e0e0e"
 
-const theme = {
+const theme: ThemeConfig = {
   token: {
     colorPrimary: "#ff873c",
     borderRadius: 2,
@@ -37,11 +38,11 @@ const theme = {
     Layout: {
       siderBg: primaryBG,
       headerBg: primaryBG,
-      colorBgBase: primaryBG,
-      triggerBg: primaryBG
+      triggerBg: primaryBG,
+      bodyBg: "#201f1f",
     },
     Menu: {
-      darkItemBg: primaryBG
+      darkItemBg: primaryBG,
     },
   }
 }
