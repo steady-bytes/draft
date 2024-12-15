@@ -57,7 +57,7 @@ export function EventsProvider(props: Props) {
 
 // NOTE: this will load twice because of React.StrictMode loading all components twice
 export function EventListener() {
-  const { setConnected, setEvent } = useEvents() as ProviderValue;
+  const { setConnected } = useEvents() as ProviderValue;
 
   useEffect(() => {
     console.log('initializing event listener');

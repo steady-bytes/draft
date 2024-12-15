@@ -48,7 +48,7 @@ const theme: ThemeConfig = {
 }
 
 const App: React.FC = () => {
-  const [api, contextHolder] = message.useMessage();
+  const [, contextHolder] = message.useMessage();
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 

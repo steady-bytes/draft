@@ -35,6 +35,8 @@ const KeyValuePage: React.FC = () => {
                     value: v.data
                 };
                 arr.push(newValue);
+
+                return newValue
             })
             return arr
         }

@@ -4,13 +4,12 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { createConnectTransport } from '@connectrpc/connect-web';
 import { TransportProvider } from '@connectrpc/connect-query';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { EventListener, EventsProvider } from './services/consumer';
+import { EventsProvider } from './services/consumer';
 
 
-import { createRegistry, IMessageTypeRegistry, createRegistryFromDescriptors, ServiceOptions, JsonReadOptions, JsonFormat } from '@bufbuild/protobuf';
-import { ListRequest, ListResponse } from 'api/core/registry/key_value/v1/service_pb'
+import { createRegistry, IMessageTypeRegistry } from '@bufbuild/protobuf';
+import { ListRequest } from 'api/core/registry/key_value/v1/service_pb'
 import { Value } from 'api/core/registry/key_value/v1/models_pb'
-import { Route } from 'api/core/control_plane/networking/v1/service_pb'
 
 import './index.css';
 
