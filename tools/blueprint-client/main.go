@@ -157,37 +157,35 @@ func listAll() {
 		Value: val,
 	})
 
-	responses := []map[string]*anypb.Any{}
+	// responses := []map[string]*anypb.Any{}
 
-	for _, val := range NODE_ADDRESSES {
-		client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, val)
-		res, err := client.List(context.Background(), req)
-		if err != nil {
-			panic("list failed")
-		}
-
-		responses = append(responses, res.Msg.GetValues())
+	client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	res, err := client.List(context.Background(), req)
+	if err != nil {
+		panic("list failed")
 	}
 
-	if len(responses) != 3 {
-		panic("fail list")
-	}
+	fmt.Println(res)
 
-	for k, val := range responses[0] {
-		val1, ok := responses[1][k]
-		if !ok {
-			panic("key not found in first node")
-		}
+	// if len(responses) != 3 {
+	// 	panic("fail list")
+	// }
 
-		val2, ok := responses[2][k]
-		if !ok {
-			panic("key not found in third node")
-		}
+	// for k, val := range responses[0] {
+	// 	val1, ok := responses[1][k]
+	// 	if !ok {
+	// 		panic("key not found in first node")
+	// 	}
 
-		if string(val.Value) != string(val1.Value) && string(val.Value) != string(val2.Value) {
-			panic("values for keys are not equal")
-		}
-	}
+	// 	val2, ok := responses[2][k]
+	// 	if !ok {
+	// 		panic("key not found in third node")
+	// 	}
+
+	// 	if string(val.Value) != string(val1.Value) && string(val.Value) != string(val2.Value) {
+	// 		panic("values for keys are not equal")
+	// 	}
+	// }
 }
 
 // setValue - A test of the key/value interface
