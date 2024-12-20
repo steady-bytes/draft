@@ -165,9 +165,8 @@ func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 		panic(ErrProcessRegistrationFailed)
 	}
 
-	// create channel
-
 	// now that a system identity has been established, we can synchronize the process state with blueprint
+
 	// TODO: Test what would happen if the `blueprint` leader dies when synchronizing
 	go c.synchronize(context.Background(), pid, options)
 
@@ -197,23 +196,12 @@ func (c *Runtime) initialize() (*sdv1.ProcessIdentity, error) {
 //   - Add a channel to stop the synchronization
 //   - Add a state machine around health, and running state of the process that can be reported by the service layer
 func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, opts RegistrationOptions) {
-	stream := c.blueprintClient.Synchronize(ctx)
-	waitc := make(chan struct{})
+	var (
+		stream = c.blueprintClient.Synchronize(ctx)
+		closer = make(chan struct{})
+	)
 
-	go func() {
-		for {
-			in, err := stream.Receive()
-			if err == io.EOF {
-				close(waitc)
-				return
-			}
-			if err != nil {
-				c.logger.WithError(err).Error("stream closed")
-				return
-			}
-			c.logger.WithField("nodes", in.GetNodes()).Info("got message")
-		}
-	}()
+	go c.receiveAck(stream, closer)
 
 	for {
 		meta := make([]*sdv1.Metadata, 0)
@@ -241,16 +229,41 @@ func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, op
 		if err := stream.Send(req.Msg); err != nil {
 			// TODO: need gracefully handle this error
 			// if the blueprint nodes dies then we should try to reconnect to a new node
-			c.logger.WithError(err).Fatal("failed to send process details to blueprint")
-			// TODO
-			// if a connection is lost with the leader how will this service recover?
-			// I think it might be a good idea to not panic. But attempt to connect to other known blueprint
-			// instances to find the new leader and attempt a connection
+			c.logger.WithError(err).Error("failed to send process details to blueprint, starting recovery process")
+			// TODO: If a connection is lost with the leader how will this service recover?
+			// 		 I think it might be a good idea to not panic. But attempt to connect to other known blueprint
+			// 		 instances to find the new leader and attempt a connection.
 
 			// If all know blueprint services are down. Then log out the error but keep the process running
 		}
 
 		time.Sleep(SYNC_INTERVAL)
+	}
+}
+
+// `receiveAck` processes all incoming messages from the synchronize stream. `ClusterDetails` are received and updated in a local store
+// wrapped with a mutex to store any changes to a connected blueprint cluster. This lends it's self to a more realtime gossip data dissemination
+// of blueprint cluster details.
+func (c *Runtime) receiveAck(stream *connect.BidiStreamForClient[sdv1.ClientDetails, sdv1.ClusterDetails], closer chan struct{}) {
+	for {
+		in, err := stream.Receive()
+		if err == io.EOF {
+			close(closer)
+			return
+		}
+		if err != nil {
+			c.logger.WithError(err).Error("stream closed")
+			close(closer)
+			return
+		}
+		c.logger.WithField("nodes", in.GetNodes()).Info("got message")
+		// when an ack message is received from the connected blueprint node is received
+		// save the nodes to memory so when a failure occurs on the blueprint cluster the
+		// chassis synchronize connection can be reestablished to the blueprint leader to report
+		// it's status
+		c.blueprintCluster.Lock()
+		c.blueprintCluster.Nodes = in.GetNodes()
+		c.blueprintCluster.Unlock()
 	}
 }
 

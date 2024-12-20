@@ -3,7 +3,9 @@ package chassis
 import (
 	"net"
 	"net/http"
+	"sync"
 
+	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
 	sdv1Cnt "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1/v1connect"
 )
 
@@ -23,6 +25,12 @@ type Runtime struct {
 	RaftController            RaftController
 	onStart                   []func()
 	blueprintClient           sdv1Cnt.ServiceDiscoveryServiceClient
+	blueprintCluster          *BlueprintCluster
+}
+
+type BlueprintCluster struct {
+	sync.Mutex
+	Nodes []*sdv1.Node
 }
 
 func New(logger Logger) *Runtime {
@@ -32,6 +40,10 @@ func New(logger Logger) *Runtime {
 
 	rt := &Runtime{
 		config: LoadConfig(),
+		blueprintCluster: &BlueprintCluster{
+			Mutex: sync.Mutex{},
+			Nodes: []*sdv1.Node{},
+		},
 	}
 
 	logger.Start(rt.config)
