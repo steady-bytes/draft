@@ -19,6 +19,8 @@ import {
 } from '@ant-design/icons';
 
 import KeyValuePage  from './pages/key_value'
+import ServiceRegistryPage from './pages/service_registry';
+import MetricsPage from './pages/metrics';
 
 const { Header, Sider, Content } = Layout;
 // make {blueprint} as svg
@@ -68,6 +70,7 @@ const App: React.FC = () => {
         <Menu
           mode="inline"
           theme="dark"
+          openKeys={['store']}
           defaultSelectedKeys={['store']}
           onSelect={({ key }) => { navigate(key) }}
           items={[
@@ -109,11 +112,9 @@ const App: React.FC = () => {
         >
           {contextHolder}
           <Routes>
-            {/* <Route path="/" Component={HomePage} /> */}
-            <Route path="/" Component={KeyValuePage} />
-            <Route path="/store" Component={KeyValuePage} />
-            {/* <Route path="/upload" Component={UploadPage} /> */}
-            {/* <Route path="/settings" Component={SettingsPage} /> */}
+            <Route index={true} path="/store" Component={KeyValuePage} />
+            <Route path="/service-registry" Component={ServiceRegistryPage} />
+            <Route path="/metrics" Component={MetricsPage} />
           </Routes>
         </Content>
       </Layout>

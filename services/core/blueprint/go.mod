@@ -2,9 +2,9 @@ module github.com/steady-bytes/draft/services/core/blueprint
 
 go 1.23.2
 
-// replace github.com/steady-bytes/draft/api => ../../../api
+replace github.com/steady-bytes/draft/api => ../../../api
 
-// replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 
 // replace github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
 

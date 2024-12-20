@@ -2,8 +2,11 @@ package chassis
 
 import (
 	"context"
+	"crypto/tls"
 	"embed"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -121,16 +124,31 @@ const (
 
 type RegistrationOptions struct {
 	Namespace string
+	Metadata  map[string]string
 }
 
 func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 	entrypoint := c.config.GetString("service.entrypoint")
-	c.blueprintClient = sdv1Cnt.NewServiceDiscoveryServiceClient(http.DefaultClient, entrypoint)
+
+	httpClient := &http.Client{
+		Transport: &http2.Transport{
+			AllowHTTP: true,
+			DialTLS: func(network, addr string, _ *tls.Config) (net.Conn, error) {
+				// If you're also using this client for non-h2c traffic, you may want
+				// to delegate to tls.Dial if the network isn't TCP or the addr isn't
+				// in an allowlist.
+				return net.Dial(network, addr)
+			},
+		},
+	}
+
+	c.blueprintClient = sdv1Cnt.NewServiceDiscoveryServiceClient(httpClient, entrypoint)
 
 	var (
 		pid *sdv1.ProcessIdentity
 		err error
 	)
+
 	for range [INTITIALIZE_LIMIT]int{} {
 		// connect with `blueprint` to get an identity
 		pid, err = c.initialize()
@@ -147,9 +165,11 @@ func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 		panic(ErrProcessRegistrationFailed)
 	}
 
+	// create channel
+
 	// now that a system identity has been established, we can synchronize the process state with blueprint
 	// TODO: Test what would happen if the `blueprint` leader dies when synchronizing
-	go c.synchronize(pid)
+	go c.synchronize(context.Background(), pid, options)
 
 	return c
 }
@@ -176,24 +196,58 @@ func (c *Runtime) initialize() (*sdv1.ProcessIdentity, error) {
 //   - Test what would happen if the `blueprint` leader dies when synchronizing
 //   - Add a channel to stop the synchronization
 //   - Add a state machine around health, and running state of the process that can be reported by the service layer
-func (c *Runtime) synchronize(pid *sdv1.ProcessIdentity) {
-	req := connect.NewRequest(&sdv1.ClientDetails{
-		Pid:          pid.GetPid(),
-		RunningState: sdv1.ProcessRunningState_PROCESS_RUNNING,
-		HealthState:  sdv1.ProcessHealthState_PROCESS_HEALTHY,
-		ProcessKind:  sdv1.ProcessKind_SERVER_PROCESS,
-		Token:        pid.Token.GetJwt(),
-		Location:     &sdv1.GeoPoint{},
-		Metadata:     []*sdv1.Metadata{},
-	})
+func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, opts RegistrationOptions) {
+	stream := c.blueprintClient.Synchronize(ctx)
+	waitc := make(chan struct{})
 
-	stream := c.blueprintClient.Synchronize(context.Background())
+	go func() {
+		for {
+			in, err := stream.Receive()
+			if err == io.EOF {
+				close(waitc)
+				return
+			}
+			if err != nil {
+				c.logger.WithError(err).Error("stream closed")
+				return
+			}
+			c.logger.WithField("nodes", in.GetNodes()).Info("got message")
+		}
+	}()
 
 	for {
+		meta := make([]*sdv1.Metadata, 0)
+		for _, v := range c.rpcServiceNames {
+			meta = append(meta, &sdv1.Metadata{
+				Pid:   pid.GetPid(),
+				Key:   v,
+				Value: v,
+			})
+		}
+
+		adder := fmt.Sprintf("%s:%d", c.config.GetString("service.network.advertise_address"), c.config.GetInt("service.network.port"))
+
+		req := connect.NewRequest(&sdv1.ClientDetails{
+			Pid:              pid.GetPid(),
+			RunningState:     sdv1.ProcessRunningState_PROCESS_RUNNING,
+			HealthState:      sdv1.ProcessHealthState_PROCESS_HEALTHY,
+			ProcessKind:      sdv1.ProcessKind_SERVER_PROCESS,
+			Token:            pid.Token.GetJwt(),
+			Location:         &sdv1.GeoPoint{},
+			Metadata:         meta,
+			AdvertiseAddress: adder,
+		})
+
 		if err := stream.Send(req.Msg); err != nil {
 			// TODO: need gracefully handle this error
-			// if the leader dies then we should try to reconnect to the new leader
+			// if the blueprint nodes dies then we should try to reconnect to a new node
 			c.logger.WithError(err).Fatal("failed to send process details to blueprint")
+			// TODO
+			// if a connection is lost with the leader how will this service recover?
+			// I think it might be a good idea to not panic. But attempt to connect to other known blueprint
+			// instances to find the new leader and attempt a connection
+
+			// If all know blueprint services are down. Then log out the error but keep the process running
 		}
 
 		time.Sleep(SYNC_INTERVAL)

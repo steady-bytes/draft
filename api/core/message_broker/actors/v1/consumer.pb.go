@@ -25,7 +25,7 @@ type ConsumeRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Message *CloudEvent `protobuf:"bytes,1,opt,name=message,proto3" json:"message" yaml:"message" csv:"message" pg:"message" bun:"message"`
+	Message *CloudEvent `protobuf:"bytes,1,opt,name=message,proto3" json:"message" bun:"message" csv:"message" pg:"message" yaml:"message"`
 }
 
 func (x *ConsumeRequest) Reset() {
@@ -72,7 +72,7 @@ type ConsumeResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Message *CloudEvent `protobuf:"bytes,1,opt,name=message,proto3" json:"message" pg:"message" bun:"message" yaml:"message" csv:"message"`
+	Message *CloudEvent `protobuf:"bytes,1,opt,name=message,proto3" json:"message" bun:"message" csv:"message" pg:"message" yaml:"message"`
 }
 
 func (x *ConsumeResponse) Reset() {

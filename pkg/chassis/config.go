@@ -74,6 +74,7 @@ func LoadConfig() Config {
 func setDefaults() {
 	viper.SetDefault("service.network.port", 8090)
 	viper.SetDefault("service.network.bind_address", "0.0.0.0")
+	viper.SetDefault("service.network.advertise_address", "127.0.0.1")
 	viper.SetDefault("service.env", "local")
 	viper.SetDefault("service.logging.level", "info")
 }

@@ -130,6 +130,8 @@ func (m *ClientDetails) validate(all bool) error {
 
 	}
 
+	// no validation rules for AdvertiseAddress
+
 	if len(errors) > 0 {
 		return ClientDetailsMultiError(errors)
 	}
@@ -208,40 +210,76 @@ var _ interface {
 	ErrorName() string
 } = ClientDetailsValidationError{}
 
-// Validate checks the field values on Empty with the rules defined in the
-// proto definition for this message. If any rules are violated, the first
+// Validate checks the field values on ClusterDetails with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
-func (m *Empty) Validate() error {
+func (m *ClusterDetails) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on Empty with the rules defined in the
-// proto definition for this message. If any rules are violated, the result is
-// a list of violation errors wrapped in EmptyMultiError, or nil if none found.
-func (m *Empty) ValidateAll() error {
+// ValidateAll checks the field values on ClusterDetails with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ClusterDetailsMultiError,
+// or nil if none found.
+func (m *ClusterDetails) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *Empty) validate(all bool) error {
+func (m *ClusterDetails) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
+	for idx, item := range m.GetNodes() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ClusterDetailsValidationError{
+						field:  fmt.Sprintf("Nodes[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ClusterDetailsValidationError{
+						field:  fmt.Sprintf("Nodes[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ClusterDetailsValidationError{
+					field:  fmt.Sprintf("Nodes[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
 	if len(errors) > 0 {
-		return EmptyMultiError(errors)
+		return ClusterDetailsMultiError(errors)
 	}
 
 	return nil
 }
 
-// EmptyMultiError is an error wrapping multiple validation errors returned by
-// Empty.ValidateAll() if the designated constraints aren't met.
-type EmptyMultiError []error
+// ClusterDetailsMultiError is an error wrapping multiple validation errors
+// returned by ClusterDetails.ValidateAll() if the designated constraints
+// aren't met.
+type ClusterDetailsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m EmptyMultiError) Error() string {
+func (m ClusterDetailsMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -250,11 +288,11 @@ func (m EmptyMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m EmptyMultiError) AllErrors() []error { return m }
+func (m ClusterDetailsMultiError) AllErrors() []error { return m }
 
-// EmptyValidationError is the validation error returned by Empty.Validate if
-// the designated constraints aren't met.
-type EmptyValidationError struct {
+// ClusterDetailsValidationError is the validation error returned by
+// ClusterDetails.Validate if the designated constraints aren't met.
+type ClusterDetailsValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -262,22 +300,22 @@ type EmptyValidationError struct {
 }
 
 // Field function returns field value.
-func (e EmptyValidationError) Field() string { return e.field }
+func (e ClusterDetailsValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e EmptyValidationError) Reason() string { return e.reason }
+func (e ClusterDetailsValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e EmptyValidationError) Cause() error { return e.cause }
+func (e ClusterDetailsValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e EmptyValidationError) Key() bool { return e.key }
+func (e ClusterDetailsValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e EmptyValidationError) ErrorName() string { return "EmptyValidationError" }
+func (e ClusterDetailsValidationError) ErrorName() string { return "ClusterDetailsValidationError" }
 
 // Error satisfies the builtin error interface
-func (e EmptyValidationError) Error() string {
+func (e ClusterDetailsValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -289,14 +327,14 @@ func (e EmptyValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sEmpty.%s: %s%s",
+		"invalid %sClusterDetails.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = EmptyValidationError{}
+var _ error = ClusterDetailsValidationError{}
 
 var _ interface {
 	Field() string
@@ -304,7 +342,111 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = EmptyValidationError{}
+} = ClusterDetailsValidationError{}
+
+// Validate checks the field values on Node with the rules defined in the proto
+// definition for this message. If any rules are violated, the first error
+// encountered is returned, or nil if there are no violations.
+func (m *Node) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Node with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in NodeMultiError, or nil if none found.
+func (m *Node) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Node) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Id
+
+	// no validation rules for Address
+
+	// no validation rules for LeadershipStatus
+
+	if len(errors) > 0 {
+		return NodeMultiError(errors)
+	}
+
+	return nil
+}
+
+// NodeMultiError is an error wrapping multiple validation errors returned by
+// Node.ValidateAll() if the designated constraints aren't met.
+type NodeMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m NodeMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m NodeMultiError) AllErrors() []error { return m }
+
+// NodeValidationError is the validation error returned by Node.Validate if the
+// designated constraints aren't met.
+type NodeValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e NodeValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e NodeValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e NodeValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e NodeValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e NodeValidationError) ErrorName() string { return "NodeValidationError" }
+
+// Error satisfies the builtin error interface
+func (e NodeValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sNode.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = NodeValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = NodeValidationError{}
 
 // Validate checks the field values on InitializeRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the

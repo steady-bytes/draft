@@ -2,6 +2,7 @@ service:
   name: fuse
   domain: core
   entrypoint: http://localhost:2221
+  advertise_address: 127.0.0.1
   network:
     port: 18000
 

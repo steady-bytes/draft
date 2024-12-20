@@ -8,6 +8,32 @@ import { Message, proto3 } from "@bufbuild/protobuf";
 import { GeoPoint, Metadata, Process, ProcessHealthState, ProcessIdentity, ProcessKind, ProcessRunningState, StartupConfiguration } from "./models_pb.js";
 
 /**
+ * @generated from enum core.registry.service_discovery.v1.LeadershipStatus
+ */
+export enum LeadershipStatus {
+  /**
+   * @generated from enum value: LEADERSHIP_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: LEADERSHIP_STATUS_LEADER = 1;
+   */
+  LEADER = 1,
+
+  /**
+   * @generated from enum value: LEADERSHIP_STATUS_FOLLOWER = 2;
+   */
+  FOLLOWER = 2,
+}
+// Retrieve enum metadata with: proto3.getEnumType(LeadershipStatus)
+proto3.util.setEnumType(LeadershipStatus, "core.registry.service_discovery.v1.LeadershipStatus", [
+  { no: 0, name: "LEADERSHIP_STATUS_UNSPECIFIED" },
+  { no: 1, name: "LEADERSHIP_STATUS_LEADER" },
+  { no: 2, name: "LEADERSHIP_STATUS_FOLLOWER" },
+]);
+
+/**
  * ProcessDetails - Messages that are sent from the `Process` to the registry.
  * These details are basic operating messages
  *
@@ -53,6 +79,11 @@ export class ClientDetails extends Message<ClientDetails> {
    */
   metadata: Metadata[] = [];
 
+  /**
+   * @generated from field: string advertise_address = 9;
+   */
+  advertiseAddress = "";
+
   constructor(data?: PartialMessage<ClientDetails>) {
     super();
     proto3.util.initPartial(data, this);
@@ -68,6 +99,7 @@ export class ClientDetails extends Message<ClientDetails> {
     { no: 5, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "location", kind: "message", T: GeoPoint },
     { no: 8, name: "metadata", kind: "message", T: Metadata, repeated: true },
+    { no: 9, name: "advertise_address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ClientDetails {
@@ -88,36 +120,88 @@ export class ClientDetails extends Message<ClientDetails> {
 }
 
 /**
- * Empty - The `Connect` method is intentionally uni-directional from the process. In the future it might be worth
- * sending messages from blueprint to the process.
- *
- * @generated from message core.registry.service_discovery.v1.Empty
+ * @generated from message core.registry.service_discovery.v1.ClusterDetails
  */
-export class Empty extends Message<Empty> {
-  constructor(data?: PartialMessage<Empty>) {
+export class ClusterDetails extends Message<ClusterDetails> {
+  /**
+   * @generated from field: repeated core.registry.service_discovery.v1.Node nodes = 1;
+   */
+  nodes: Node[] = [];
+
+  constructor(data?: PartialMessage<ClusterDetails>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "core.registry.service_discovery.v1.Empty";
+  static readonly typeName = "core.registry.service_discovery.v1.ClusterDetails";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "nodes", kind: "message", T: Node, repeated: true },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Empty {
-    return new Empty().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ClusterDetails {
+    return new ClusterDetails().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Empty {
-    return new Empty().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ClusterDetails {
+    return new ClusterDetails().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Empty {
-    return new Empty().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ClusterDetails {
+    return new ClusterDetails().fromJsonString(jsonString, options);
   }
 
-  static equals(a: Empty | PlainMessage<Empty> | undefined, b: Empty | PlainMessage<Empty> | undefined): boolean {
-    return proto3.util.equals(Empty, a, b);
+  static equals(a: ClusterDetails | PlainMessage<ClusterDetails> | undefined, b: ClusterDetails | PlainMessage<ClusterDetails> | undefined): boolean {
+    return proto3.util.equals(ClusterDetails, a, b);
+  }
+}
+
+/**
+ * @generated from message core.registry.service_discovery.v1.Node
+ */
+export class Node extends Message<Node> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * @generated from field: string address = 2;
+   */
+  address = "";
+
+  /**
+   * @generated from field: core.registry.service_discovery.v1.LeadershipStatus leadership_status = 3;
+   */
+  leadershipStatus = LeadershipStatus.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<Node>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "core.registry.service_discovery.v1.Node";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "leadership_status", kind: "enum", T: proto3.getEnumType(LeadershipStatus) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Node {
+    return new Node().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Node {
+    return new Node().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Node {
+    return new Node().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Node | PlainMessage<Node> | undefined, b: Node | PlainMessage<Node> | undefined): boolean {
+    return proto3.util.equals(Node, a, b);
   }
 }
 
