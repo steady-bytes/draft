@@ -65,9 +65,9 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 	configSingleton.SetDefault("raft.host", "localhost")
 	var (
 		raftConf    = raft.DefaultConfig()
-		raftScheme = c.config.GetString("raft.scheme")
-		raftPort = c.config.GetString("raft.port")
-		raftHost   = c.config.GetString("raft.host")
+		raftScheme  = c.config.GetString("raft.scheme")
+		raftPort    = c.config.GetString("raft.port")
+		raftHost    = c.config.GetString("raft.host")
 		raftNodeID  = c.config.GetString("raft.node-id")
 		raftBinAddr = ""
 	)
@@ -156,21 +156,8 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 	registrar.RegisterConsensus(raftServer)
 
 	// todo -> The self created rpc raft interface needs to be on a different port then the raft server
-	raftController := NewRaftController(raftServer)
-	raftHandler := NewRaftRPCHandler(raftController)
+	c.RaftController = NewRaftController(raftServer)
+	raftHandler := NewRaftRPCHandler(c.RaftController)
 
 	c.withRpc(raftHandler)
-
-	// the server will be implemented as an rpc interface instead of a rest interface
-
-	// server is it's own custom implementation
-	// TODO -> Implement the rpc methods for the raft server
-	// 		   This will be local to the runtime given consistency will be
-	//         a configuration of the runtime, and not a feature of the server that is
-	//         being implemented.
-
-	// srv := server.New(fmt.Sprintf(":%d", c.config.Service.Port), c.badger, raftServer)
-	// if err := srv.Start(); err != nil {
-	// 	c.logger.Fatal(err.Error())
-	// }
 }

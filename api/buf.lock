@@ -9,8 +9,8 @@ deps:
   - remote: buf.build
     owner: googleapis
     repository: googleapis
-    commit: 553fd4b4b3a640be9b69a3fa0c17b383
-    digest: shake256:e30e3247f84b7ff9d09941ce391eb4b6f04734e1e5fae796bfc471f167e6f90813630cc39397ee46b8bc0ea7d6935c416d15c219cc5732d9778cbfdf73a1ed6e
+    commit: acd896313c55464b993332136ded1b6e
+    digest: shake256:66626d5e4d9c8ecf25cd72bdbfbbf62b9a68e9e9c33dab6b9b39a53a67063eeba6b8493247dd6d6240b1ac1c32eb2dc311484e67dd7d271884a960c2e5ce8c9a
   - remote: buf.build
     owner: srikrsna
     repository: protoc-gen-gotag

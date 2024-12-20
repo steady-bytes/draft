@@ -16,9 +16,11 @@ type Runtime struct {
 	isRPC                     bool
 	noMux                     bool
 	rpcReflectionServiceNames []string
+	rpcServiceNames           []string
 	mux                       *http.ServeMux
 	consensusKind             ConsensusKind
 	raftAdvertiseAddress      *net.TCPAddr
+	RaftController            RaftController
 	onStart                   []func()
 	blueprintClient           sdv1Cnt.ServiceDiscoveryServiceClient
 }

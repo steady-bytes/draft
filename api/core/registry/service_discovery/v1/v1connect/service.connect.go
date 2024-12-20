@@ -66,7 +66,7 @@ type ServiceDiscoveryServiceClient interface {
 	// Initialize the registeration of the process to the registry
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	// synchronize the client state with the registry
-	Synchronize(context.Context) *connect.ClientStreamForClient[v1.ClientDetails, v1.Empty]
+	Synchronize(context.Context) *connect.BidiStreamForClient[v1.ClientDetails, v1.ClusterDetails]
 	// Gracefully shutdown and `Finalize` the connection of the process to the registry
 	Finalize(context.Context, *connect.Request[v1.FinalizeRequest]) (*connect.Response[v1.FinalizeResponse], error)
 	// Let a follower draft node report health information on the processes it's responsible for checking the health status of
@@ -92,7 +92,7 @@ func NewServiceDiscoveryServiceClient(httpClient connect.HTTPClient, baseURL str
 			connect.WithSchema(serviceDiscoveryServiceInitializeMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		synchronize: connect.NewClient[v1.ClientDetails, v1.Empty](
+		synchronize: connect.NewClient[v1.ClientDetails, v1.ClusterDetails](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceSynchronizeProcedure,
 			connect.WithSchema(serviceDiscoveryServiceSynchronizeMethodDescriptor),
@@ -122,7 +122,7 @@ func NewServiceDiscoveryServiceClient(httpClient connect.HTTPClient, baseURL str
 // serviceDiscoveryServiceClient implements ServiceDiscoveryServiceClient.
 type serviceDiscoveryServiceClient struct {
 	initialize   *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
-	synchronize  *connect.Client[v1.ClientDetails, v1.Empty]
+	synchronize  *connect.Client[v1.ClientDetails, v1.ClusterDetails]
 	finalize     *connect.Client[v1.FinalizeRequest, v1.FinalizeResponse]
 	reportHealth *connect.Client[v1.ReportHealthRequest, v1.ReportHealthResponse]
 	query        *connect.Client[v1.QueryRequest, v1.QueryResponse]
@@ -134,8 +134,8 @@ func (c *serviceDiscoveryServiceClient) Initialize(ctx context.Context, req *con
 }
 
 // Synchronize calls core.registry.service_discovery.v1.ServiceDiscoveryService.Synchronize.
-func (c *serviceDiscoveryServiceClient) Synchronize(ctx context.Context) *connect.ClientStreamForClient[v1.ClientDetails, v1.Empty] {
-	return c.synchronize.CallClientStream(ctx)
+func (c *serviceDiscoveryServiceClient) Synchronize(ctx context.Context) *connect.BidiStreamForClient[v1.ClientDetails, v1.ClusterDetails] {
+	return c.synchronize.CallBidiStream(ctx)
 }
 
 // Finalize calls core.registry.service_discovery.v1.ServiceDiscoveryService.Finalize.
@@ -159,7 +159,7 @@ type ServiceDiscoveryServiceHandler interface {
 	// Initialize the registeration of the process to the registry
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
 	// synchronize the client state with the registry
-	Synchronize(context.Context, *connect.ClientStream[v1.ClientDetails]) (*connect.Response[v1.Empty], error)
+	Synchronize(context.Context, *connect.BidiStream[v1.ClientDetails, v1.ClusterDetails]) error
 	// Gracefully shutdown and `Finalize` the connection of the process to the registry
 	Finalize(context.Context, *connect.Request[v1.FinalizeRequest]) (*connect.Response[v1.FinalizeResponse], error)
 	// Let a follower draft node report health information on the processes it's responsible for checking the health status of
@@ -180,7 +180,7 @@ func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts 
 		connect.WithSchema(serviceDiscoveryServiceInitializeMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
-	serviceDiscoveryServiceSynchronizeHandler := connect.NewClientStreamHandler(
+	serviceDiscoveryServiceSynchronizeHandler := connect.NewBidiStreamHandler(
 		ServiceDiscoveryServiceSynchronizeProcedure,
 		svc.Synchronize,
 		connect.WithSchema(serviceDiscoveryServiceSynchronizeMethodDescriptor),
@@ -229,8 +229,8 @@ func (UnimplementedServiceDiscoveryServiceHandler) Initialize(context.Context, *
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.service_discovery.v1.ServiceDiscoveryService.Initialize is not implemented"))
 }
 
-func (UnimplementedServiceDiscoveryServiceHandler) Synchronize(context.Context, *connect.ClientStream[v1.ClientDetails]) (*connect.Response[v1.Empty], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.service_discovery.v1.ServiceDiscoveryService.Synchronize is not implemented"))
+func (UnimplementedServiceDiscoveryServiceHandler) Synchronize(context.Context, *connect.BidiStream[v1.ClientDetails, v1.ClusterDetails]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.service_discovery.v1.ServiceDiscoveryService.Synchronize is not implemented"))
 }
 
 func (UnimplementedServiceDiscoveryServiceHandler) Finalize(context.Context, *connect.Request[v1.FinalizeRequest]) (*connect.Response[v1.FinalizeResponse], error) {

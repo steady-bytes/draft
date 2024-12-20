@@ -12,6 +12,8 @@ type (
 	RaftController interface {
 		Join(ctx context.Context, nodeID, raftAddress string) error
 		Stats(ctx context.Context) map[string]string
+
+		GetClusterDetails() raft.Configuration
 	}
 
 	raftController struct {
@@ -48,4 +50,8 @@ func (c *raftController) Join(ctx context.Context, nodeID, raftAddress string) e
 
 func (c *raftController) Stats(ctx context.Context) map[string]string {
 	return c.raft.Stats()
+}
+
+func (c *raftController) GetClusterDetails() raft.Configuration {
+	return c.raft.GetConfiguration().Configuration()
 }

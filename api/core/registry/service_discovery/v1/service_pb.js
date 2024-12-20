@@ -7,6 +7,18 @@ import { proto3 } from "@bufbuild/protobuf";
 import { GeoPoint, Metadata, Process, ProcessHealthState, ProcessIdentity, ProcessKind, ProcessRunningState, StartupConfiguration } from "./models_pb.js";
 
 /**
+ * @generated from enum core.registry.service_discovery.v1.LeadershipStatus
+ */
+export const LeadershipStatus = proto3.makeEnum(
+  "core.registry.service_discovery.v1.LeadershipStatus",
+  [
+    {no: 0, name: "LEADERSHIP_STATUS_UNSPECIFIED", localName: "UNSPECIFIED"},
+    {no: 1, name: "LEADERSHIP_STATUS_LEADER", localName: "LEADER"},
+    {no: 2, name: "LEADERSHIP_STATUS_FOLLOWER", localName: "FOLLOWER"},
+  ],
+);
+
+/**
  * ProcessDetails - Messages that are sent from the `Process` to the registry.
  * These details are basic operating messages
  *
@@ -22,18 +34,30 @@ export const ClientDetails = proto3.makeMessageType(
     { no: 5, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "location", kind: "message", T: GeoPoint },
     { no: 8, name: "metadata", kind: "message", T: Metadata, repeated: true },
+    { no: 9, name: "advertise_address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
 /**
- * Empty - The `Connect` method is intentionally uni-directional from the process. In the future it might be worth
- * sending messages from blueprint to the process.
- *
- * @generated from message core.registry.service_discovery.v1.Empty
+ * @generated from message core.registry.service_discovery.v1.ClusterDetails
  */
-export const Empty = proto3.makeMessageType(
-  "core.registry.service_discovery.v1.Empty",
-  [],
+export const ClusterDetails = proto3.makeMessageType(
+  "core.registry.service_discovery.v1.ClusterDetails",
+  () => [
+    { no: 1, name: "nodes", kind: "message", T: Node, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message core.registry.service_discovery.v1.Node
+ */
+export const Node = proto3.makeMessageType(
+  "core.registry.service_discovery.v1.Node",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "leadership_status", kind: "enum", T: proto3.getEnumType(LeadershipStatus) },
+  ],
 );
 
 /**
