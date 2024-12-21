@@ -3,6 +3,7 @@ package chassis
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/spf13/viper"
@@ -16,6 +17,7 @@ type (
 		Title() string
 		Env() string
 		Reader
+		Writer
 		Entrypoint() string
 	}
 	Reader interface {
@@ -42,9 +44,16 @@ type (
 		UnmarshalKey(key string, rawVal interface{}, opts ...viper.DecoderConfigOption) error
 		SetDefault(key string, value any)
 	}
+	Writer interface {
+		Set(key string, value any)
+		SetDefault(key string, value any)
+		SetAndWrite(key string, value any) error
+		WriteConfig() error
+	}
 
 	config struct {
 		*viper.Viper
+		mu sync.Mutex
 	}
 )
 
@@ -52,30 +61,32 @@ var configSingleton *config
 
 // TODO -> Read config from the key/value store and not from a local static file.
 func LoadConfig() Config {
-	setDefaults()
-	viper.SetEnvPrefix("DRAFT")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
+	v := viper.New()
+	setDefaults(v)
+	v.SetEnvPrefix("DRAFT")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
-	configPath := viper.GetString("config")
+	configPath := v.GetString("config")
 	if configPath == "" {
 		configPath = "./config.yaml"
 		fmt.Printf("using default config path: %s\n", configPath)
 	}
-	viper.SetConfigFile(configPath)
-	if err := viper.ReadInConfig(); err != nil {
+	v.SetConfigFile(configPath)
+	if err := v.ReadInConfig(); err != nil {
 		// yes, we actually want to panic here as without a config there's nothing we can do
+		// TODO: make this optional?
 		panic(fmt.Errorf("failed to read in config: %s", err.Error()))
 	}
-	configSingleton = &config{viper.GetViper()}
+	configSingleton = &config{v, sync.Mutex{}}
 	return configSingleton
 }
 
-func setDefaults() {
-	viper.SetDefault("service.network.port", 8090)
-	viper.SetDefault("service.network.bind_address", "0.0.0.0")
-	viper.SetDefault("service.env", "local")
-	viper.SetDefault("service.logging.level", "info")
+func setDefaults(v *viper.Viper) {
+	v.SetDefault("service.network.port", 8090)
+	v.SetDefault("service.network.bind_address", "0.0.0.0")
+	v.SetDefault("service.env", "local")
+	v.SetDefault("service.logging.level", "info")
 }
 
 func (c *config) Name() string {
@@ -107,4 +118,15 @@ func GetConfig() Config {
 		LoadConfig()
 	}
 	return configSingleton
+}
+
+func (c *config) SetAndWrite(key string, value any) error {
+	c.Set(key, value)
+	return c.WriteConfig()
+}
+
+func (c *config) WriteConfig() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Viper.WriteConfig()
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
-	"github.com/spf13/viper"
 )
 
 type ConsensusRegistrar interface {
@@ -62,8 +61,8 @@ const (
 )
 
 func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
-	viper.SetDefault("raft.scheme", "http")
-	viper.SetDefault("raft.host", "localhost")
+	configSingleton.SetDefault("raft.scheme", "http")
+	configSingleton.SetDefault("raft.host", "localhost")
 	var (
 		raftConf    = raft.DefaultConfig()
 		raftScheme = c.config.GetString("raft.scheme")
