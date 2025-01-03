@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	kvv1 "github.com/steady-bytes/draft/api/core/registry/key_value/v1"
 	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
 	"github.com/steady-bytes/draft/pkg/chassis"
 	kv "github.com/steady-bytes/draft/services/core/blueprint/key_value"
@@ -33,6 +34,7 @@ type (
 		Query(ctx context.Context, log chassis.Logger) (map[string]*sdv1.Process, error)
 
 		GetClusterDetails() *sdv1.ClusterDetails
+		GetClusterLeaderAddress(logger chassis.Logger) (string, error)
 	}
 
 	controller struct {
@@ -248,6 +250,24 @@ func (c *controller) GetClusterDetails() *sdv1.ClusterDetails {
 	}
 
 	return cd
+}
+
+func (c *controller) GetClusterLeaderAddress(logger chassis.Logger) (string, error) {
+	a, _ := anypb.New(&kvv1.Value{})
+	anyValue, err := c.kvController.Get(logger, "leader", a)
+	if err != nil {
+		logger.WithError(err).Error("failed to get leader address")
+		return "", err
+	}
+
+	v := &kvv1.Value{}
+	err = anypb.UnmarshalTo(anyValue, v, proto.UnmarshalOptions{})
+	if err != nil {
+		logger.WithError(err).Error("failed to unmarshal leader value")
+		return "", err
+	}
+
+	return v.Data, nil
 }
 
 // TODO -> Figure out how I want to generate a token for the process

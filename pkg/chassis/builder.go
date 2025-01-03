@@ -127,8 +127,17 @@ type RegistrationOptions struct {
 	Metadata  map[string]string
 }
 
-func (c *Runtime) Register(options RegistrationOptions) *Runtime {
-	entrypoint := c.config.GetString("service.entrypoint")
+func (c *Runtime) newBlueprintClient(useEntrypoint bool) {
+	var entrypoint string
+	if useEntrypoint {
+		entrypoint = c.config.GetString("service.entrypoint")
+	} else {
+		if node := c.blueprintCluster.Pop(); node == nil {
+			// TODO: determine what to do if there are not any nodes to connect to
+		} else {
+			entrypoint = fmt.Sprintf("http://%s", node.Address)
+		}
+	}
 
 	httpClient := &http.Client{
 		Transport: &http2.Transport{
@@ -143,7 +152,10 @@ func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 	}
 
 	c.blueprintClient = sdv1Cnt.NewServiceDiscoveryServiceClient(httpClient, entrypoint)
+}
 
+func (c *Runtime) Register(options RegistrationOptions) *Runtime {
+	c.newBlueprintClient(true)
 	var (
 		pid *sdv1.ProcessIdentity
 		err error
@@ -227,14 +239,17 @@ func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, op
 		})
 
 		if err := stream.Send(req.Msg); err != nil {
-			// TODO: need gracefully handle this error
-			// if the blueprint nodes dies then we should try to reconnect to a new node
+			// If a connection is lost with the leader. Attempt to connect to other known blueprint
+			// instances to find the new leader to send status to
 			c.logger.WithError(err).Error("failed to send process details to blueprint, starting recovery process")
-			// TODO: If a connection is lost with the leader how will this service recover?
-			// 		 I think it might be a good idea to not panic. But attempt to connect to other known blueprint
-			// 		 instances to find the new leader and attempt a connection.
+			c.newBlueprintClient(false)
 
-			// If all know blueprint services are down. Then log out the error but keep the process running
+			if c.blueprintClient == nil {
+				c.logger.Error("can't connect to blueprint")
+				return
+			}
+
+			c.synchronize(context.Background(), pid, opts)
 		}
 
 		time.Sleep(SYNC_INTERVAL)
