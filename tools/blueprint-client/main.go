@@ -285,7 +285,7 @@ func makeCluster() {
 	req := connect.NewRequest(
 		&rfv1.JoinRequest{
 			NodeId:      "node_2",
-			RaftAddress: "localhost:1112",
+			RaftAddress: "127.0.0.1:1112",
 		})
 	_, err := raftClient.Join(context.Background(), req)
 	if err != nil {
@@ -293,7 +293,7 @@ func makeCluster() {
 	}
 
 	req.Msg.NodeId = "node_3"
-	req.Msg.RaftAddress = "localhost:1113"
+	req.Msg.RaftAddress = "127.0.0.1:1113"
 	_, err = raftClient.Join(context.Background(), req)
 	if err != nil {
 		fmt.Println("failed to connect to leader")

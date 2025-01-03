@@ -33,6 +33,23 @@ type BlueprintCluster struct {
 	Nodes []*sdv1.Node
 }
 
+func (b *BlueprintCluster) NodeCount() int {
+	return len(b.Nodes)
+}
+
+// remove the first item from the `Nodes` slice while returning the same value
+func (b *BlueprintCluster) Pop() *sdv1.Node {
+	if b.NodeCount() > 0 {
+		n := b.Nodes[0]
+		b.Lock()
+		defer b.Unlock()
+		b.Nodes = append(b.Nodes[:0], b.Nodes[1:]...)
+		return n
+	} else {
+		return nil
+	}
+}
+
 func New(logger Logger) *Runtime {
 	if logger == nil {
 		panic("logger cannot be nil")

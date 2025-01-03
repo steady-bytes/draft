@@ -91,7 +91,23 @@ func (h *rpc) Synchronize(ctx context.Context, stream *connect.BidiStream[sdv1.C
 
 		// when an update packet is received from the service and the connection is still live
 		// send blueprint cluster details down to the client
-		details := h.controller.GetClusterDetails()
+		// TODO: As of right now this is returning the raft address and not the rpc address that can be used for a client to sync
+		// 		 which is the grpc service address
+		leaderRPCAddress, err := h.controller.GetClusterLeaderAddress(log)
+		if err != nil {
+			log.WithError(err).Error("failed to get cluster leader rpc address")
+			return err
+		}
+
+		details := &sdv1.ClusterDetails{
+			Nodes: []*sdv1.Node{
+				{
+					Address:          leaderRPCAddress,
+					LeadershipStatus: sdv1.LeadershipStatus_LEADERSHIP_STATUS_LEADER,
+				},
+			},
+		}
+
 		if err := stream.Send(details); err != nil {
 			log.WithError(err).Error("failed to send cluster details to the client")
 			return err
