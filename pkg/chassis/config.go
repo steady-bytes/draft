@@ -82,7 +82,7 @@ func LoadConfig() Config {
 	return configSingleton
 }
 
-func setDefaults() {
+func setDefaults(v *viper.Viper) {
 	viper.SetDefault("service.network.port", 8090)
 	viper.SetDefault("service.network.bind_address", "0.0.0.0")
 	viper.SetDefault("service.network.advertise_address", "127.0.0.1")
