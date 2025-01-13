@@ -10,7 +10,7 @@ service Consumer {
     rpc Consume(ConsumeRequest) returns (stream ConsumeResponse) {}
 }
 
-message ConsumeRequest { 
+message ConsumeRequest {
     CloudEvent message = 1;
 }
 

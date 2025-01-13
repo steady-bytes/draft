@@ -14,21 +14,26 @@ import (
 var files embed.FS
 
 func main() {
+
 	var (
 		logger             = zerolog.New()
 		keyValueModel      = kv.NewModel()
 		keyValueController = kv.NewController(keyValueModel)
 		keyValueRPC        = kv.NewRPC(logger, keyValueController)
+	)
 
-		serviceDiscoveryController = sd.NewController(keyValueController)
+	c := chassis.New(logger).
+		WithRepository(keyValueModel).
+		WithConsensus(chassis.Raft, keyValueController)
+
+	var (
+		serviceDiscoveryController = sd.NewController(keyValueController, c.RaftController)
 		serviceDiscoveryRPC        = sd.NewRPC(logger, serviceDiscoveryController)
 	)
 
-	defer chassis.New(logger).
-		WithRepository(keyValueModel).
-		WithConsensus(chassis.Raft, keyValueController).
-		WithRPCHandler(keyValueRPC).
+	c.WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
-		WithClientApplication(files).
-		Start()
+		WithClientApplication(files)
+
+	defer c.Start()
 }

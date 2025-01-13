@@ -12,7 +12,7 @@ import { Value } from 'api/core/registry/key_value/v1/models_pb'
 import { list} from 'api/core/registry/key_value/v1/service-KeyValueService_connectquery'
 
 type LocalValue = {
-    id: string,
+    id: string;
     key: string;
     value: string;
 };
@@ -60,6 +60,7 @@ const KeyValuePage: React.FC = () => {
     if ((data) && (!isLoading)) {
         table = <Table dataSource={data} columns={columns} />
     }
+
     const openNotification = (error: ConnectError, placement: NotificationPlacement) => {
         notice['error']({
             message: error.name,

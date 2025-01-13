@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"io"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -14,6 +18,7 @@ import (
 	kvv1Cnt "github.com/steady-bytes/draft/api/core/registry/key_value/v1/v1connect"
 	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
 	sdv1Cnt "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1/v1connect"
+	"golang.org/x/net/http2"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -54,6 +59,10 @@ func main() {
 		makeCluster()
 	}
 
+	if cmd == "cluster_stats" {
+		clusterStats()
+	}
+
 	if cmd == "load_test_key_value" {
 		loadTestKeyValue()
 	}
@@ -79,7 +88,19 @@ func synchronize() {
 		Nonce: "BLUEPRINT",
 	})
 
-	sdClient := sdv1Cnt.NewServiceDiscoveryServiceClient(http.DefaultClient, SERVER_ADDRESS)
+	httpClient := &http.Client{
+		Transport: &http2.Transport{
+			AllowHTTP: true,
+			DialTLS: func(network, addr string, _ *tls.Config) (net.Conn, error) {
+				// If you're also using this client for non-h2c traffic, you may want
+				// to delegate to tls.Dial if the network isn't TCP or the addr isn't
+				// in an allowlist.
+				return net.Dial(network, addr)
+			},
+		},
+	}
+
+	sdClient := sdv1Cnt.NewServiceDiscoveryServiceClient(httpClient, SERVER_ADDRESS)
 	initRes, err := sdClient.Initialize(context.Background(), initReq)
 	if err != nil {
 		panic("failed to Initialize the process")
@@ -95,7 +116,24 @@ func synchronize() {
 		Metadata:     []*sdv1.Metadata{},
 	})
 	stream := sdClient.Synchronize(context.Background())
+	waitc := make(chan struct{})
 
+	// fire a receive stream
+	go func() {
+		for {
+			in, err := stream.Receive()
+			if err == io.EOF {
+				close(waitc)
+				return
+			}
+			if err != nil {
+				log.Fatalf("failed %v", err)
+			}
+			log.Printf("go message %s", in.GetNodes())
+		}
+	}()
+
+	// send messages to blueprint
 	r := 0
 	for r != 100 {
 		fmt.Println("send detail packet", initRes.Msg.ProcessIdentity.GetPid())
@@ -109,6 +147,11 @@ func synchronize() {
 		time.Sleep(1 * time.Second)
 	}
 
+	if err := stream.CloseRequest(); err != nil {
+		log.Print(err)
+	}
+
+	<-waitc
 }
 
 func initializeProcess() {
@@ -242,7 +285,7 @@ func makeCluster() {
 	req := connect.NewRequest(
 		&rfv1.JoinRequest{
 			NodeId:      "node_2",
-			RaftAddress: "localhost:1112",
+			RaftAddress: "127.0.0.1:1112",
 		})
 	_, err := raftClient.Join(context.Background(), req)
 	if err != nil {
@@ -250,11 +293,23 @@ func makeCluster() {
 	}
 
 	req.Msg.NodeId = "node_3"
-	req.Msg.RaftAddress = "localhost:1113"
+	req.Msg.RaftAddress = "127.0.0.1:1113"
 	_, err = raftClient.Join(context.Background(), req)
 	if err != nil {
 		fmt.Println("failed to connect to leader")
 	}
+}
+
+func clusterStats() {
+	raftClient := rfv1Cnt.NewRaftServiceClient(http.DefaultClient, SERVER_ADDRESS)
+
+	req := connect.NewRequest(&rfv1.StatsRequest{})
+	res, err := raftClient.Stats(context.Background(), req)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("res: ", res)
 }
 
 const (

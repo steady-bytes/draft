@@ -27,7 +27,7 @@ func NewProducer(produceChan chan *acv1.CloudEvent) Producer {
 	}
 }
 
-// Accepts an incomming bidirectional stream to keep open and push incomming
+// Accepts an incoming bidirectional stream to keep open and push incoming
 // messages into the broker when a message is `produce`'ed
 func (p *producer) Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceResponse]) error {
 	for {

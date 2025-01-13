@@ -2,19 +2,13 @@ module github.com/steady-bytes/draft/services/core/blueprint
 
 go 1.23.2
 
-// replace github.com/steady-bytes/draft/api => ../../../api
-
-// replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
-
-// replace github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
-
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/raft v1.6.0
-	github.com/steady-bytes/draft/api v0.6.1
-	github.com/steady-bytes/draft/pkg/chassis v0.3.4
+	github.com/steady-bytes/draft/api v1.0.0
+	github.com/steady-bytes/draft/pkg/chassis v0.4.0
 	github.com/steady-bytes/draft/pkg/loggers v0.2.2
 	github.com/steady-bytes/draft/pkg/repositories v0.0.3
 	google.golang.org/protobuf v1.34.2

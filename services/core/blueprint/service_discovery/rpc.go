@@ -3,6 +3,7 @@ package service_discovery
 import (
 	"context"
 	"errors"
+	"io"
 
 	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
 	sdConnect "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1/v1connect"
@@ -40,10 +41,7 @@ var (
 	ErrFailedInitialize = "failed to init the new process"
 )
 
-func (h *rpc) Initialize(
-	ctx context.Context,
-	req *connect.Request[sdv1.InitializeRequest],
-) (*connect.Response[sdv1.InitializeResponse], error) {
+func (h *rpc) Initialize(ctx context.Context, req *connect.Request[sdv1.InitializeRequest]) (*connect.Response[sdv1.InitializeResponse], error) {
 	var (
 		log   = h.logger.WithContext(ctx)
 		nonce = req.Msg.Nonce
@@ -64,36 +62,60 @@ func (h *rpc) Initialize(
 	}), nil
 }
 
-func (h *rpc) Synchronize(
-	ctx context.Context,
-	stream *connect.ClientStream[sdv1.ClientDetails],
-) (*connect.Response[sdv1.Empty], error) {
+func (h *rpc) Synchronize(ctx context.Context, stream *connect.BidiStream[sdv1.ClientDetails, sdv1.ClusterDetails]) error {
 	var (
 		log = h.logger.WithContext(ctx)
+		id  = ""
 	)
 
-	for stream.Receive() {
-		h.controller.Synchronize(ctx, log, stream.Msg())
+	for {
+		res, err := stream.Receive()
+		if err != nil && errors.Is(err, io.EOF) {
+			// remove from system journal
+			h.controller.Finalize(ctx, log, id)
+			return nil
+		} else if err != nil {
+			// TODO: determine how to handle this error
+			log.WithError(err).Error("connection error")
+			return err
+		}
+
+		id = res.Pid
+
+		if err := ctx.Err(); err != nil {
+			h.controller.Finalize(ctx, log, id)
+			return err
+		}
+
+		h.controller.Synchronize(ctx, log, res)
+
+		// when an update packet is received from the service and the connection is still live
+		// send blueprint cluster details down to the client
+		// TODO: As of right now this is returning the raft address and not the rpc address that can be used for a client to sync
+		// 		 which is the grpc service address
+		leaderRPCAddress, err := h.controller.GetClusterLeaderAddress(log)
+		if err != nil {
+			log.WithError(err).Error("failed to get cluster leader rpc address")
+			return err
+		}
+
+		details := &sdv1.ClusterDetails{
+			Nodes: []*sdv1.Node{
+				{
+					Address:          leaderRPCAddress,
+					LeadershipStatus: sdv1.LeadershipStatus_LEADERSHIP_STATUS_LEADER,
+				},
+			},
+		}
+
+		if err := stream.Send(details); err != nil {
+			log.WithError(err).Error("failed to send cluster details to the client")
+			return err
+		}
 	}
-
-	// TODO -> handle errors
-	if err := stream.Err(); err != nil {
-		return nil, connect.NewError(connect.CodeUnknown, err)
-	}
-
-	// TODO -> consider sending back an ack message so the client can determine if
-	// it would like to reconnect and continue to synchronize it's running state, or
-	// be removed from the system
-	res := connect.NewResponse(&sdv1.Empty{})
-	res.Header().Set("blueprint-version", "v1")
-
-	return res, nil
 }
 
-func (h *rpc) Finalize(
-	ctx context.Context,
-	req *connect.Request[sdv1.FinalizeRequest],
-) (*connect.Response[sdv1.FinalizeResponse], error) {
+func (h *rpc) Finalize(ctx context.Context, req *connect.Request[sdv1.FinalizeRequest]) (*connect.Response[sdv1.FinalizeResponse], error) {
 	var (
 		pid = req.Msg.Pid
 		log = h.logger.WithContext(ctx)
@@ -109,11 +131,16 @@ func (h *rpc) Finalize(
 	}), nil
 }
 
-func (h *rpc) Query(
-	ctx context.Context,
-	req *connect.Request[sdv1.QueryRequest],
-) (*connect.Response[sdv1.QueryResponse], error) {
-	return nil, errors.New("implement me")
+func (h *rpc) Query(ctx context.Context, req *connect.Request[sdv1.QueryRequest]) (*connect.Response[sdv1.QueryResponse], error) {
+	res, err := h.controller.Query(ctx, h.logger.WithContext(ctx))
+	if err != nil {
+		h.logger.WithError(err).Error(err.Error())
+		return nil, err
+	}
+
+	return connect.NewResponse[sdv1.QueryResponse](&sdv1.QueryResponse{
+		Data: res,
+	}), nil
 }
 
 func (h *rpc) ReportHealth(

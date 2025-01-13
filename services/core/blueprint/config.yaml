@@ -1,6 +1,7 @@
 service:
   name: blueprint
   domain: core
+  advertise_address: 127.0.0.1
   network:
     port: 2221
 

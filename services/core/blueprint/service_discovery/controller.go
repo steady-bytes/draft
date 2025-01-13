@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	kvv1 "github.com/steady-bytes/draft/api/core/registry/key_value/v1"
 	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
 	"github.com/steady-bytes/draft/pkg/chassis"
 	kv "github.com/steady-bytes/draft/services/core/blueprint/key_value"
@@ -29,18 +30,25 @@ type (
 		Finalize(ctx context.Context, log chassis.Logger, pid string) error
 		Initialize(ctx context.Context, log chassis.Logger, nonce, name string) (*sdv1.ProcessIdentity, error)
 		Synchronize(ctx context.Context, log chassis.Logger, details *sdv1.ClientDetails)
+
+		Query(ctx context.Context, log chassis.Logger) (map[string]*sdv1.Process, error)
+
+		GetClusterDetails() *sdv1.ClusterDetails
+		GetClusterLeaderAddress(logger chassis.Logger) (string, error)
 	}
 
 	controller struct {
-		kvController kv.Controller
-		secretStore  chassis.SecretStore
+		kvController   kv.Controller
+		raftController chassis.RaftController
+		secretStore    chassis.SecretStore
 	}
 )
 
-func NewController(kvController kv.Controller) Controller {
+func NewController(kvController kv.Controller, raftController chassis.RaftController) Controller {
 	return &controller{
-		kvController: kvController,
-		secretStore:  nil,
+		kvController:   kvController,
+		raftController: raftController,
+		secretStore:    nil,
 	}
 }
 
@@ -55,6 +63,7 @@ const (
 	ErrFailedProcessAlreadyRegistered = "process has already be initialized"
 	ErrFailedToMarshalPayload         = "failed to marshal payload"
 	ErrFailedToSaveProcessDetails     = "failed to save process details"
+	ErrFailedToGetProcessDetails      = "failed to lookup process details"
 	ErrFailedTokenForge               = "failed to forge the token"
 	ErrFailedTypeCast                 = "failed to cast type"
 )
@@ -151,6 +160,8 @@ func (c *controller) Synchronize(ctx context.Context, log chassis.Logger, detail
 	process.ProcessKind = details.ProcessKind
 	process.RunningState = details.RunningState
 	process.LastStatusTime = timestamppb.Now()
+	process.Metadata = details.Metadata
+	process.IpAddress = details.AdvertiseAddress
 
 	pAny, err = anypb.New(process)
 	if err != nil {
@@ -186,6 +197,77 @@ func (c *controller) Finalize(ctx context.Context, log chassis.Logger, pid strin
 	}
 
 	return nil
+}
+
+func (c *controller) Query(ctx context.Context, log chassis.Logger) (map[string]*sdv1.Process, error) {
+	log.Info("query things")
+
+	var (
+		err           error
+		process       = &sdv1.Process{}
+		pAny          = &anypb.Any{}
+		systemJournal = map[string]*sdv1.Process{}
+	)
+
+	pAny, err = anypb.New(process)
+	if err != nil {
+		log.Error(ErrFailedTypeCast)
+		// return nil, errors.New(ErrFailedTypeCast)
+	}
+
+	res, err := c.kvController.List(log, pAny)
+	if err != nil {
+		log.WithError(err).Error(ErrFailedToGetProcessDetails)
+		// return nil, errors.New(ErrFailedToGetProcessDetails)
+	}
+
+	// convert map from map[string]*anypb.Any to map[string]*sdv1.Process
+	for k, v := range res {
+		if v.MessageIs(process) {
+			p := &sdv1.Process{}
+			if err := anypb.UnmarshalTo(v, p, proto.UnmarshalOptions{}); err != nil {
+				log.WithError(err)
+			}
+			systemJournal[k] = p
+		}
+	}
+
+	return systemJournal, nil
+}
+
+func (c *controller) GetClusterDetails() *sdv1.ClusterDetails {
+	cluster := c.raftController.GetClusterDetails()
+
+	cd := &sdv1.ClusterDetails{
+		Nodes: []*sdv1.Node{},
+	}
+	for _, v := range cluster.Servers {
+		cd.Nodes = append(cd.Nodes, &sdv1.Node{
+			Id:               string(v.ID),
+			Address:          string(v.Address),
+			LeadershipStatus: 0,
+		})
+	}
+
+	return cd
+}
+
+func (c *controller) GetClusterLeaderAddress(logger chassis.Logger) (string, error) {
+	a, _ := anypb.New(&kvv1.Value{})
+	anyValue, err := c.kvController.Get(logger, "leader", a)
+	if err != nil {
+		logger.WithError(err).Error("failed to get leader address")
+		return "", err
+	}
+
+	v := &kvv1.Value{}
+	err = anypb.UnmarshalTo(anyValue, v, proto.UnmarshalOptions{})
+	if err != nil {
+		logger.WithError(err).Error("failed to unmarshal leader value")
+		return "", err
+	}
+
+	return v.Data, nil
 }
 
 // TODO -> Figure out how I want to generate a token for the process

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ClientDetails, Empty, FinalizeRequest, FinalizeResponse, InitializeRequest, InitializeResponse, QueryRequest, QueryResponse, ReportHealthRequest, ReportHealthResponse } from "./service_pb.js";
+import { ClientDetails, ClusterDetails, FinalizeRequest, FinalizeResponse, InitializeRequest, InitializeResponse, QueryRequest, QueryResponse, ReportHealthRequest, ReportHealthResponse } from "./service_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -45,8 +45,8 @@ export const ServiceDiscoveryService = {
     synchronize: {
       name: "Synchronize",
       I: ClientDetails,
-      O: Empty,
-      kind: MethodKind.ClientStreaming,
+      O: ClusterDetails,
+      kind: MethodKind.BiDiStreaming,
     },
     /**
      * Gracefully shutdown and `Finalize` the connection of the process to the registry

@@ -37,6 +37,8 @@ type (
 		mux                    *http.ServeMux
 		grpc                   *grpc.Server
 		reflectionServiceNames []string
+		// serviceNames are added to the `Synchronize` messages in metadata so they can be looked up by other services
+		serviceNames []string
 	}
 )
 
@@ -57,6 +59,10 @@ func (c *Runtime) withRpc(registrar RPCRegistrar) {
 	if len(server.reflectionServiceNames) > 0 {
 		c.rpcReflectionServiceNames = append(c.rpcReflectionServiceNames, server.reflectionServiceNames...)
 	}
+
+	if len(server.serviceNames) > 0 {
+		c.rpcServiceNames = append(c.rpcServiceNames, server.serviceNames...)
+	}
 }
 
 // AddHandler will register an http handler with a specific pattern to the internal mux server:
@@ -68,12 +74,15 @@ func (c *Runtime) withRpc(registrar RPCRegistrar) {
 // as the handler.
 func (r *rpcServer) AddHandler(pattern string, handler http.Handler, enableReflection bool) {
 	r.mux.Handle(pattern, handler)
+	pattern = strings.TrimPrefix(pattern, "/")
+	pattern = strings.TrimSuffix(pattern, "/")
+
 	if enableReflection {
 		// ConnectRPC adds some slashes for routing but they're not needed for the service naame
-		pattern = strings.TrimPrefix(pattern, "/")
-		pattern = strings.TrimSuffix(pattern, "/")
 		r.reflectionServiceNames = append(r.reflectionServiceNames, pattern)
 	}
+
+	r.serviceNames = append(r.serviceNames, pattern)
 }
 
 // AddGRPC

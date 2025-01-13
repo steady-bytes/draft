@@ -5,6 +5,7 @@ import { createConnectTransport } from '@connectrpc/connect-web';
 import { TransportProvider } from '@connectrpc/connect-query';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EventsProvider } from './services/consumer';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 
 import { createRegistry, IMessageTypeRegistry } from '@bufbuild/protobuf';
@@ -29,8 +30,8 @@ export const transport = createConnectTransport({
   },
 });
 
-const queryClient = new QueryClient();
 
+const queryClient = new QueryClient();
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -40,6 +41,7 @@ root.render(
     <TransportProvider transport={transport}>
       <EventsProvider>
         <QueryClientProvider client={queryClient}>
+          <ReactQueryDevtools initialIsOpen={false} />
           <Router>
             <App />
           </Router>

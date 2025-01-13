@@ -27,7 +27,7 @@ service ServiceDiscoveryService {
   // Initialize the registeration of the process to the registry
   rpc Initialize(InitializeRequest) returns (InitializeResponse) {}
   // synchronize the client state with the registry
-  rpc Synchronize(stream ClientDetails) returns (Empty) {}
+  rpc Synchronize(stream ClientDetails) returns (stream ClusterDetails) {}
   // Gracefully shutdown and `Finalize` the connection of the process to the registry
   rpc Finalize(FinalizeRequest) returns (FinalizeResponse) {}
   // Let a follower draft node report health information on the processes it's responsible for checking the health status of
@@ -51,11 +51,24 @@ message ClientDetails {
   GeoPoint location = 7;
 
   repeated Metadata metadata = 8;
+  string advertise_address = 9;
 }
 
-// Empty - The `Connect` method is intentionally uni-directional from the process. In the future it might be worth
-// sending messages from blueprint to the process.
-message Empty {}
+message ClusterDetails {
+  repeated Node nodes = 1;
+}
+
+message Node {
+  string id = 1;
+  string address = 2;
+  LeadershipStatus leadership_status = 3;
+}
+
+enum LeadershipStatus {
+  LEADERSHIP_STATUS_UNSPECIFIED = 0;
+  LEADERSHIP_STATUS_LEADER = 1;
+  LEADERSHIP_STATUS_FOLLOWER = 2;
+}
 
 // InitRequest - Begin the service registry registration flow.
 message InitializeRequest {

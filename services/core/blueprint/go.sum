@@ -196,10 +196,10 @@ github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/spf13/viper v1.18.2 h1:LUXCnvUvSM6FXAsj6nnfc8Q2tp1dIgUfY9Kc8GsSOiQ=
 github.com/spf13/viper v1.18.2/go.mod h1:EKmWIqdnk5lOcmR72yw6hS+8OPYcwD0jteitLMVB+yk=
-github.com/steady-bytes/draft/api v0.6.1 h1:rKf7KSzMGrsHTuXNUcgPfCtByrDB/QJuNquQidBP7eM=
-github.com/steady-bytes/draft/api v0.6.1/go.mod h1:mlwxjvRiqvwySGdzVmF8voFhMffWq2F7dyd+xt6kENA=
-github.com/steady-bytes/draft/pkg/chassis v0.3.4 h1:93LRY7y4Z2xBDDCCDFiaMRLTNnWLqC+fr4OJ4Qy0bxo=
-github.com/steady-bytes/draft/pkg/chassis v0.3.4/go.mod h1:g7JMbVINwUnvtOGpR/QKOlGK62/3rRIR0qg3++7hZUM=
+github.com/steady-bytes/draft/api v1.0.0 h1:QIvboAJgU0fBOV6BKChLMhHYIjBTR53+LJaR3w3g0NY=
+github.com/steady-bytes/draft/api v1.0.0/go.mod h1:mlwxjvRiqvwySGdzVmF8voFhMffWq2F7dyd+xt6kENA=
+github.com/steady-bytes/draft/pkg/chassis v0.4.0 h1:MdIlkqcL+0IY7RHIgpuoDD/Ufy/jDYm4rxT/MBKnayM=
+github.com/steady-bytes/draft/pkg/chassis v0.4.0/go.mod h1:5vZ9aOPtpVqrqeWBMtcGSOUr+MauaM8ezAN5H/HYGKM=
 github.com/steady-bytes/draft/pkg/loggers v0.2.2 h1:pVTfd/ES6XGLXg8WJ1xGe3YIdQJLJ6sJ6PHxVZcc4SU=
 github.com/steady-bytes/draft/pkg/loggers v0.2.2/go.mod h1:nXeOQ6lXhsVWHzRqVcJz0JIeSW75ORVN+0izJwwnH+Y=
 github.com/steady-bytes/draft/pkg/repositories v0.0.3 h1:6MyBkga27olqM42HriZZJgbyvrwSwyZDHtrkdSKMNPA=
