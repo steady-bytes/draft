@@ -18,6 +18,9 @@ func main() {
 	)
 
 	defer chassis.New(logger).
+		Register(chassis.RegistrationOptions{
+			Namespace: "file_host",
+		}).
 		WithClientApplication(files).
 		WithRoute(&ntv1.Route{
 			Match: &ntv1.RouteMatch{
