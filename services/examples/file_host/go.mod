@@ -1,10 +1,13 @@
 module github.com/steady-bytes/draft/services/examples/file_host
 
-go 1.21.3
+go 1.22.5
 
-// replace github.com/steady-bytes/draft/api => ../../../api
+toolchain go1.23.2
 
-// replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+replace (
+	github.com/steady-bytes/draft/api => ../../../api
+	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+)
 
 require (
 	github.com/steady-bytes/draft/api v0.3.1
