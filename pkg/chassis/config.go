@@ -42,7 +42,6 @@ type (
 		GetSizeInBytes(key string) uint
 		Unmarshal(rawVal interface{}, opts ...viper.DecoderConfigOption) error
 		UnmarshalKey(key string, rawVal interface{}, opts ...viper.DecoderConfigOption) error
-		SetDefault(key string, value any)
 	}
 	Writer interface {
 		Set(key string, value any)
@@ -61,6 +60,12 @@ var configSingleton *config
 
 // TODO -> Read config from the key/value store and not from a local static file.
 func LoadConfig() Config {
+
+	// don't overwrite a previously loaded config
+	if configSingleton != nil {
+		return configSingleton
+	}
+
 	v := viper.New()
 	setDefaults(v)
 	v.SetEnvPrefix("DRAFT")
@@ -83,11 +88,11 @@ func LoadConfig() Config {
 }
 
 func setDefaults(v *viper.Viper) {
-	viper.SetDefault("service.network.port", 8090)
-	viper.SetDefault("service.network.bind_address", "0.0.0.0")
-	viper.SetDefault("service.network.advertise_address", "127.0.0.1")
-	viper.SetDefault("service.env", "local")
-	viper.SetDefault("service.logging.level", "info")
+	v.SetDefault("service.network.port", 8090)
+	v.SetDefault("service.network.bind_address", "0.0.0.0")
+	v.SetDefault("service.network.advertise_address", "127.0.0.1")
+	v.SetDefault("service.env", "local")
+	v.SetDefault("service.logging.level", "info")
 }
 
 func (c *config) Name() string {
@@ -121,7 +126,21 @@ func GetConfig() Config {
 	return configSingleton
 }
 
+func (c *config) Set(key string, value any) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Viper.Set(key, value)
+}
+
+func (c *config) SetDefault(key string, value any) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Viper.SetDefault(key, value)
+}
+
 func (c *config) SetAndWrite(key string, value any) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.Set(key, value)
 	return c.WriteConfig()
 }

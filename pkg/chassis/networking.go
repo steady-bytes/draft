@@ -25,42 +25,43 @@ func (c *Runtime) withRoute(route *ntv1.Route) error {
 	)
 
 	route = c.setAndValidateRoute(route)
+	logger := c.logger.WithField("route_name", route.Name)
 
 	val, err := anypb.New(&kvv1.Value{})
 	if err != nil {
-		c.logger.WithError(err).Error("failed to create anypb value struct")
+		logger.WithError(err).Error("failed to create anypb value struct")
 		return err
 	}
 
 	// get fuse address from blueprint
 	response, err := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, c.config.Entrypoint()).
 		Get(ctx, connect.NewRequest(&kvv1.GetRequest{
-			Key: FuseAddressBlueprintKey,
+			Key:   FuseAddressBlueprintKey,
 			Value: val,
 		}))
 	if err != nil {
-		c.logger.WithError(err).Error("failed to get fuse address")
+		logger.WithError(err).Error("failed to get fuse address")
 		return err
 	}
 
 	// unmarshal value
 	value := &kvv1.Value{}
 	if err := anypb.UnmarshalTo(response.Msg.GetValue(), value, proto.UnmarshalOptions{}); err != nil {
-		c.logger.WithError(err).Error("failed to unmarshal fuse address")
+		logger.WithError(err).Error("failed to unmarshal fuse address")
 		return err
 	}
 
 	// add route to fuse
-	res, err := ntv1Connect.NewNetworkingServiceClient(http.DefaultClient, value.Data).
+	_, err = ntv1Connect.NewNetworkingServiceClient(http.DefaultClient, value.Data).
 		AddRoute(ctx, connect.NewRequest(&ntv1.AddRouteRequest{
 			Route: route,
 		}))
 	if err != nil {
-		c.logger.WithError(err).Error("failed to add route")
+		logger.WithError(err).Error("failed to add route")
 		return err
 	}
 
-	c.logger.WithField("response", res).Info("successfully added route")
+	logger.Info("successfully added route")
 
 	return nil
 }
@@ -68,7 +69,7 @@ func (c *Runtime) withRoute(route *ntv1.Route) error {
 // setAndValidateRoute will set defaults on the Route for anything not specified by the user and
 // validates the route is valid
 // TODO: we should do validation through protobuf annotations instead
-func (c *Runtime) setAndValidateRoute(route *ntv1.Route) (*ntv1.Route) {
+func (c *Runtime) setAndValidateRoute(route *ntv1.Route) *ntv1.Route {
 	if route.Name == "" {
 		route.Name = fmt.Sprintf("%s-%s", c.config.Domain(), c.config.Name())
 	}
