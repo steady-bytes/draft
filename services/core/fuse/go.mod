@@ -12,8 +12,8 @@ require (
 	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/google/uuid v1.6.0
 	github.com/steady-bytes/draft/api v1.0.0
-	github.com/steady-bytes/draft/pkg/chassis v0.4.0
-	github.com/steady-bytes/draft/pkg/loggers v0.2.1
+	github.com/steady-bytes/draft/pkg/chassis v0.4.1
+	github.com/steady-bytes/draft/pkg/loggers v0.2.3
 	google.golang.org/protobuf v1.34.2
 )
 

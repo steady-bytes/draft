@@ -93,7 +93,7 @@ func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRe
 		err    error
 	)
 
-	logger.WithField("msg", msg).Debug(AddingRoute)
+	logger.WithField("msg", msg).Info(AddingRoute)
 
 	// validate incoming request
 	// TODO: Add validation to the proto message
