@@ -122,8 +122,11 @@ func (cp *controlPlane) LoadCache() {
 func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 	var (
 		ctx    = context.Background()
+		logger = cp.logger.WithField("route_name", route.Name)
 		client = kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
 	)
+
+	logger.Info("updating cache with new route")
 
 	// upsert route in the blueprint key/value store
 	val, err := anypb.New(route)
@@ -139,7 +142,7 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 
 	_, err = client.Set(ctx, setReq)
 	if err != nil {
-		cp.logger.Error(err.Error())
+		logger.Error(err.Error())
 		return ErrUnableToSaveRoute
 	}
 

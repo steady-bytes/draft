@@ -3,9 +3,9 @@ module github.com/steady-bytes/draft/services/core/catalyst
 go 1.23.2
 
 require (
-	github.com/steady-bytes/draft/api v0.6.0
-	github.com/steady-bytes/draft/pkg/chassis v0.3.4
-	github.com/steady-bytes/draft/pkg/loggers v0.2.1
+	github.com/steady-bytes/draft/api v1.0.0
+	github.com/steady-bytes/draft/pkg/chassis v0.4.1
+	github.com/steady-bytes/draft/pkg/loggers v0.2.3
 )
 
 require (

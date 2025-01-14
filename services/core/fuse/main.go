@@ -17,7 +17,7 @@ func main() {
 		controlPlaneRPC = cp.NewRPC(logger, controlPlane)
 	)
 
-	defer chassis.New(zerolog.New()).
+	defer chassis.New(logger).
 		Register(chassis.RegistrationOptions{
 			Namespace: "fuse",
 		}).
