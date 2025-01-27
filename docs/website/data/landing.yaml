@@ -85,10 +85,6 @@ featureGrid:
       icon: code
       description: All Draft code is licensed under Apache License 2.0 meaning you can have full trust in the project as well as modify it for any usecase you may have.
 
-    # - title: Bootstrap v5
-    #   icon: palette
-    #   description: Built on Bootstrap 5, Lotus Docs allows for a familiar, flexible, and intuitive developer experience. Easily customise your site via SCSS variables and files.
-
 highlight1:
   enable: true
   weight: 30
