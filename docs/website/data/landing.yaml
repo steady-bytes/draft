@@ -1,0 +1,186 @@
+# Note: Template blocks require a 'weight' parameter so they're correctly ordered on the landing page
+
+hero:
+  enable: true
+  weight: 10
+  template: hero
+
+  backgroundImage:
+    path: "images/landing"
+    filename:
+      desktop: "background.png"
+      mobile: "gradient-mobile.webp"
+
+  badge:
+    text: alpha
+    color: dark # primary, secondary, success, danger, warning, info, light, dark
+    pill: false # boolean
+    soft: true # boolean
+
+  # titleLogo:
+  #   path: "images/logos"
+  #   filename: "logo.svg"
+  #   alt: "Steady Bytes Logo"
+  #   height: 80px
+
+  title: 'Draft'
+  subtitle: Draft is a framework for easily building **reliable**, **efficient**, and **scalable** distributed systems. Building good distributed systems doesn't have to be hard any more.
+
+  image:
+    path: 'images' # path to image under configured assets directory. default 'images'
+    filename: 'landing/software_engineer.svg' # filename of your hero image (including file extension)
+    alt: 'TODO' # Optional but recommended
+    boxShadow: true # default 'false' (excludes .svg images)
+    rounded: true # round the image corners? default 'false' (excludes .svg images)
+
+  ctaButton:
+    icon: rocket_launch
+    btnText: 'Get Started'
+    url: '/docs/getting-started'
+  cta2Button:
+    icon: construction
+    btnText: 'In Development'
+    url: 'https://github.com/steady-bytes/draft'
+
+  info: '**Open Source** | Apache License 2.0'
+
+featureGrid:
+  enable: true
+  weight: 20
+  template: feature grid
+
+  title: Why choose Draft?
+  subtitle: Draft contains all the necessary building blocks like a microservice chassis, service discovery, database connections, messaging and eventing systems, and much more. Building a good distributed system shouldn't be hard. Draft makes it easy by providing a set of tools that make building distributed systems easier.
+
+  items:
+    - title: Faster Development
+      icon: speed
+      description: Draft improves development speed by providing common service functionality out of the box.
+
+    - title: Scalable
+      icon: trending_up
+      description: Draft scales with your business. Draft can run as a couple binaries on a single VM up to multi-regional cloud deployments.
+
+    - title: Plugin Model
+      icon: hub
+      description: Have your own infrastructure or custom components? Draft is built around interfaces which are pluggable, meaning it natively supports external systems with ease.
+
+    - title: Fully Customizable
+      icon: settings
+      description: Draft provides a smooth developer experience out of the box and is fully customizable for advanced usecases; from logging to code generation.
+
+    - title: Operationally Agnostic
+      icon: deployed_code_update
+      description: A framework shouldn't force you to use certain tooling. Use your favorite operations pattern whether that be Kubernetes, bare metal, or something hybrid!
+
+    - title: CLI Tooling
+      icon: terminal
+      description: Draft includes a CLI controller which reduces development friction by automating everything from code generation to protobuf compilation to test automation.
+
+    - title: Everything Included
+      icon: rocket_launch
+      description: Starting from scratch? Draft provides everything you need to bootstrap your startup. Built into the framework is a database, networking, eventing, web apps, and much more.
+
+    - title: Fully Open Source
+      icon: code
+      description: All Draft code is licensed under Apache License 2.0 meaning you can have full trust in the project as well as modify it for any usecase you may have.
+
+    # - title: Bootstrap v5
+    #   icon: palette
+    #   description: Built on Bootstrap 5, Lotus Docs allows for a familiar, flexible, and intuitive developer experience. Easily customise your site via SCSS variables and files.
+
+highlight1:
+  enable: true
+  weight: 30
+  template: image text
+  title: Deliver Ideas
+  subtitle: >
+    Engineering and development is about turning ideas into real world value. Whether you're building a profitable business or creating a platforms for the global commons, Draft is designed to accelerate
+    the transformation of ideas into user experiences. Draft provides a common chassis for application services, ready-made plugins for database connections and messaging systems, and a flexible framework
+    that empowers you to focus on building your idea instead of spending time on scaffolding code.
+
+  image:
+    path: 'images' # path to image under configured assets directory. default 'images'
+    filename: 'landing/thought_process.svg' # filename of your hero image (including file extension)
+    alt: 'TODO' # Optional but recommended
+    boxShadow: true # default 'false' (excludes .svg images)
+    rounded: true # round the image corners? default 'false' (excludes .svg images)
+
+  ctaButton:
+    icon: rocket_launch
+    text: 'Get Started'
+    url: '/docs/getting-started'
+
+highlight2:
+  enable: true
+  weight: 40
+  template: image text
+  title: Simplify Operations
+  subtitle: >
+    While distributed systems help businesses and ideas scale, they often come with a high cost in terms of operational overhead and maintenance. Draft simplifies operations by standardizing inter-service
+    communications, centralizing dynamic service configuration, and decoupling systm components. All of this is done using battle testing protocols and standards so that platforms built on Draft can scale
+    in size without having to scale in complexity.
+
+
+  image:
+    path: 'images' # path to image under configured assets directory. default 'images'
+    filename: 'landing/design_components.svg' # filename of your hero image (including file extension)
+    alt: 'TODO' # Optional but recommended
+    boxShadow: true # default 'false' (excludes .svg images)
+    rounded: true # round the image corners? default 'false' (excludes .svg images)
+
+  ctaButton:
+    icon: rocket_launch
+    text: 'Get Started'
+    url: '/docs/getting-started'
+
+# Image compare
+imageCompare:
+  enable: false
+  weight: 100
+  template: image compare
+
+  title: Customise The Lotus Docs Appearance
+  subtitle: Much of Lotus Docs' appearance can be customised. Dark mode is optional (enabled by default) and you can choose a Google font that suites you via the config parameters.
+
+  items:
+    - title: Dark Mode
+      config:
+        {
+          startingPoint: 50,
+          addCircle: true,
+          addCircleBlur: false,
+          showLabels: true,
+          labelOptions: { before: 'Dark', after: 'Light', onHover: false },
+        }
+      imagePath: 'images/screenshots'
+      imageBefore: 'lotusdocs_dark_v0.8.webp'
+      imageAfter: 'lotusdocs_light_v0.8.webp'
+
+    - title: Custom Fonts
+      config:
+        {
+          controlColor: '#3C4257',
+          startingPoint: 25,
+          addCircle: true,
+          addCircleBlur: false,
+          showLabels: true,
+          labelOptions:
+            { before: 'Inter', after: 'Life Saver', onHover: false },
+        }
+      imagePath: 'images/screenshots'
+      imageBefore: 'lotusdocs_google_font_demo_inter_screenshot.webp'
+      imageAfter: 'lotusdocs_google_font_demo_lifesavers_screenshot.webp'
+
+    - title: Accent Color
+      config:
+        {
+          startingPoint: 25,
+          addCircle: true,
+          addCircleBlur: true,
+          showLabels: true,
+          labelOptions: { before: 'Blue', after: 'Cardinal', onHover: false },
+        }
+      imagePath: 'images/screenshots'
+      imageBefore: 'lotusdocs_blue_theme_colour.webp'
+      imageAfter: 'lotusdocs_cardinal_theme_colour.webp'

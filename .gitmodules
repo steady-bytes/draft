@@ -1,0 +1,3 @@
+[submodule "docs/website/themes/lotusdocs"]
+	path = docs/website/themes/lotusdocs
+	url = git@github.com:home-cloud-io/lotusdocs.git

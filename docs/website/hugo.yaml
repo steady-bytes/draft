@@ -1,0 +1,39 @@
+baseURL: https://draft.steady-bytes.com/
+languageCode: en-us
+title: Steady Bytes
+
+module:
+  replacements: github.com/home-cloud-io/lotusdocs -> lotusdocs
+  imports:
+    - path: github.com/home-cloud-io/lotusdocs
+      disable: false
+    - path: github.com/gohugoio/hugo-mod-bootstrap-scss/v5
+      disable: false
+
+params:
+  docs:
+    themeColor: orange
+    darkMode: true
+    descriptions: true
+    sidebarIcons: true
+    titleIcon: true
+    repoURL: https://github.com/steady-bytes/draft
+    editPage: true
+    lastMod: true
+    intLinkTooltip: true
+    prism: true
+    prismTheme: lotusdocs
+  social:
+    github: steady-bytes/draft
+  plausible:
+    dataDomain: draft.steady-bytes.com
+    scriptURL: https://plausible.steady-bytes.com/js/script.js
+  footer:
+    copyright: "Created by [Steady Bytes](https://steady-bytes.com) | :YEAR:"
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+
+
