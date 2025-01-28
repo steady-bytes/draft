@@ -29,7 +29,7 @@ hero:
   image:
     path: 'images' # path to image under configured assets directory. default 'images'
     filename: 'landing/software_engineer.svg' # filename of your hero image (including file extension)
-    alt: 'TODO' # Optional but recommended
+    alt: "A software engineer sits in a office chair and points at her monitor which shows an application she's developing. A flow chart expands out from the monitor off to the side demonstrating the process of building a distributed system."
     boxShadow: true # default 'false' (excludes .svg images)
     rounded: true # round the image corners? default 'false' (excludes .svg images)
 
@@ -98,7 +98,7 @@ highlight1:
   image:
     path: 'images' # path to image under configured assets directory. default 'images'
     filename: 'landing/thought_process.svg' # filename of your hero image (including file extension)
-    alt: 'TODO' # Optional but recommended
+    alt: 'A man stands next to a bunch of floating text documents and note bubbles connected with simple lines. This graphic demonstrates the process of product ideation.'
     boxShadow: true # default 'false' (excludes .svg images)
     rounded: true # round the image corners? default 'false' (excludes .svg images)
 
@@ -121,7 +121,7 @@ highlight2:
   image:
     path: 'images' # path to image under configured assets directory. default 'images'
     filename: 'landing/design_components.svg' # filename of your hero image (including file extension)
-    alt: 'TODO' # Optional but recommended
+    alt: 'A bunch of rectangles, circles, and lines are overlayed against an orange background. These emulate the complexity of distributed operations ordered by a consistant development framework.'
     boxShadow: true # default 'false' (excludes .svg images)
     rounded: true # round the image corners? default 'false' (excludes .svg images)
 
