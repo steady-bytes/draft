@@ -1,6 +1,6 @@
 baseURL: https://draft.steady-bytes.com/
 languageCode: en-us
-title: Steady Bytes
+title: Draft
 
 module:
   replacements: github.com/home-cloud-io/lotusdocs -> lotusdocs
