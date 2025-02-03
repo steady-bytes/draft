@@ -139,8 +139,6 @@ func (c *config) SetDefault(key string, value any) {
 }
 
 func (c *config) SetAndWrite(key string, value any) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.Set(key, value)
 	return c.WriteConfig()
 }
