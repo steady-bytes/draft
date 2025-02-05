@@ -39,3 +39,9 @@ When a process starts and it's configured with an entrypoint. The process will b
 ![Process Registration](process-registration.png)
 
 Once a process is registered other services can use the metadata to lookup services they might want to communicate with. For example the default behavior is to register the gRPC service definitions of a process. So if process B needs to talk to process A via gRPC then process B can establish a connection with A by looking it up in the registry.
+
+### Fuse
+The [control plane](https://en.wikipedia.org/wiki/Control_plane) for a draft cluster. When a service/process would like to expose routes to the outside world then a route can be registered with fuse, and be stored locally or in draft for high availability. Currently we only support [envy proxy](https://www.envoyproxy.io/) as the ingress proxy however this in the future could change.
+
+### Catalyst
+The event interface of the draft system. Catalyst can be run in two ways. First, as a stand alone message bus that will handle event processing for all consumers and producers. Lastly, it can also integrate with other message systems like [kafka](https://kafka.apache.org/)/[red panda](https://www.redpanda.com/), and [nats](https://nats.io/)
