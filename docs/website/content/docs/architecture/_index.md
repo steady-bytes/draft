@@ -3,6 +3,6 @@ weight: 2
 draft: false
 title: "Architecture"
 description: ""
-icon: "rocket_launch"
+icon: "hub"
 toc: true
 ---
