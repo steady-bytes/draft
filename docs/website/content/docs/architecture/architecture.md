@@ -9,7 +9,7 @@ toc: true
 
 # **Draft**
 
-Draf is an open source framework for building distributed systems. With the popularity of [service-oriented architectures (SOAs)](https://en.wikipedia.org/wiki/Service-oriented_architecture) and [microservices](https://en.wikipedia.org/wiki/Microservices) it seemed fruitful to build a framework that would establish a path to building reliable systems and simplify a complex problem space.
+Draft is an open source framework for building distributed systems. With the popularity of [service-oriented architectures (SOAs)](https://en.wikipedia.org/wiki/Service-oriented_architecture) and [microservices](https://en.wikipedia.org/wiki/Microservices) it seemed fruitful to build a framework that would establish a path to building reliable systems and simplify a complex problem space.
 
 {{< alert context="info" text="A few things to acknowledge before reading further. **SOAs** and **Microservices** are distributed systems and distributed systems should not be implemented without a real need. If you can scale vertically do that first. If your application is resource hungry then figure out why and optimize that first. Finally, if you have a large team and you want to functionally break up the system because of your team composition solve this outside of code. You've been warned, now let's go have fun building." />}}
 
