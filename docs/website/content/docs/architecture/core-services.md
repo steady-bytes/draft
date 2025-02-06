@@ -18,7 +18,7 @@ A draft cluster is made up of a few core services that are used to store your sy
 Additionally, [envoy proxy]() is used as the ingress controller to the system. Envoy is controlled by routing information given to it by Fuse.
 
 </br>
-<img src="/images/docs/draft-system.png" alt="draft system diagram overview" style="display: block;width: 40%;"/>
+<img src="/images/docs/draft-system.png" alt="draft system diagram overview" style="display:block; width:40%;"/>
 </br>
 
 ### Blueprint
@@ -39,7 +39,7 @@ When a process starts and it's configured with an entrypoint. The process will b
 5. When the process is ready to leave it will close the bi-directional stream and call finalize to be removed from the registry
 
 </br>
-<img src="/images/docs/draft-process-registration.png" alt="Blueprint process registration diagram" style="display: block; margin-left: auto; margin-right: auto; width: 25%;"/>
+<img src="/images/docs/draft-process-registration.png" alt="Blueprint process registration diagram" style="display:block; width:25%;"/>
 </br>
 
 Once a process is registered other services can use the metadata to lookup services they might want to communicate with. For example the default behavior is to register the gRPC service definitions of a process. So if process B needs to talk to process A via gRPC then process B can establish a connection with A by looking it up in the registry.
@@ -52,7 +52,7 @@ The [control plane](https://en.wikipedia.org/wiki/Control_plane) for a draft clu
 3. Optionally Fuse will store the routing information to Blueprint
 
 </br>
-<img src="/images/docs/fuse-route-registration.png" alt="Blueprint process registration diagram" style="display: block; margin-left: auto; margin-right: auto; width: 25%;"/>
+<img src="/images/docs/fuse-route-registration.png" alt="Blueprint process registration diagram" style="display:block; width:25%;"/>
 </br>
 
 ### Catalyst
