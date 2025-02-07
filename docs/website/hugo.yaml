@@ -9,6 +9,11 @@ module:
       disable: false
     - path: github.com/gohugoio/hugo-mod-bootstrap-scss/v5
       disable: false
+  mounts:
+    - source: static
+      target: static
+    - source: images
+      target: static/images
 
 params:
   docs:
