@@ -26,14 +26,14 @@ func main() {
 		WithRepository(keyValueModel).
 		WithConsensus(chassis.Raft, keyValueController)
 
+	// initialize service discovery components here since the controller requires the RaftController from the chassis
 	var (
 		serviceDiscoveryController = sd.NewController(keyValueController, c.RaftController)
 		serviceDiscoveryRPC        = sd.NewRPC(logger, serviceDiscoveryController)
 	)
 
-	c.WithRPCHandler(keyValueRPC).
+	defer c.WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
-		WithClientApplication(files)
-
-	defer c.Start()
+		WithClientApplication(files).
+		Start()
 }

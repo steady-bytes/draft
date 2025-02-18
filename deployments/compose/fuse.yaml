@@ -1,0 +1,14 @@
+service:
+  name: catalyst
+  domain: core
+  entrypoint: http://blueprint:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: 0.0.0.0
+    bind_port: 2220
+    internal:
+      host: localhost
+      port: 2220

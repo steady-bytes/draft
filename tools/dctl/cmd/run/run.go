@@ -13,6 +13,7 @@ import (
 	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -21,8 +22,8 @@ var (
 )
 
 func Run(cmd *cobra.Command, args []string) error {
-	ctx := cmd.Context()
 	dctx := config.GetContext()
+	group, ctx := errgroup.WithContext(cmd.Context())
 
 	if len(Services) > 0 && len(Domains) > 0 {
 		return fmt.Errorf("cannot specify both services and domains to run at once")
@@ -40,7 +41,9 @@ func Run(cmd *cobra.Command, args []string) error {
 			if len(paths) != 2 {
 				return fmt.Errorf("invalid service name, must take shape 'domain/service': %s", name)
 			}
-			go run(ctx, filepath.Join(dctx.Root, "services", paths[0]), paths[1])
+			group.Go(func() error {
+				return run(ctx, filepath.Join(dctx.Root, "services", paths[0]), paths[1])
+			})
 		}
 	}
 
@@ -57,24 +60,30 @@ func Run(cmd *cobra.Command, args []string) error {
 				return err
 			}
 			for _, s := range services {
+				s := s
 				if s.IsDir() {
-					go run(ctx, domainPath, s.Name())
+					group.Go(func() error {
+						return run(ctx, domainPath, s.Name())
+					})
 				}
 			}
 		}
 	}
 
-	// wait for user cancel
-	<-ctx.Done()
+	err := group.Wait()
+	if err != nil {
+		output.Error(err)
+	}
 
 	return nil
 }
 
-func run(ctx context.Context, path, name string) {
+func run(ctx context.Context, path, name string) error {
 	c := exec.Command("go", "run", "main.go")
 	c.Dir = filepath.Join(path, name)
 	err := e.ExecuteCommand(ctx, name, output.Blue, c)
 	if err != nil {
-		output.Error(err)
+		return err
 	}
+	return nil
 }

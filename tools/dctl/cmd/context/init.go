@@ -96,6 +96,7 @@ func Init(cmd *cobra.Command, args []string) error {
 
 	// initialize api go module
 	command := exec.Command("go", "mod", "init", fmt.Sprintf("%s/api", repo))
+	command.Dir = filepath.Join(Path, "api")
 	err = execute.ExecuteCommand(ctx, "go", output.Cyan, command)
 	if err != nil {
 		return err

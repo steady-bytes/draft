@@ -117,7 +117,7 @@ func (c *controller) Get(log chassis.Logger, key string, value T) (T, error) {
 func (c *controller) Set(log chassis.Logger, key string, value T, timeout time.Duration) (*SetResponse, error) {
 	// forward the set request to the leader if we are not the leader
 	if c.raft.State() != raft.Leader {
-		log.Info("forwarding set request to leader")
+		log.Debug("forwarding set request to leader")
 		// create a client to the current leader
 		a, _ := anypb.New(&kvv1.Value{})
 		anyValue, err := c.model.Get("leader", a)

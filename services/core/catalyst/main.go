@@ -16,6 +16,9 @@ func main() {
 	)
 
 	defer chassis.New(logger).
+		Register(chassis.RegistrationOptions{
+			Namespace: "core",
+		}).
 		WithRPCHandler(rpc).
 		Start()
 }

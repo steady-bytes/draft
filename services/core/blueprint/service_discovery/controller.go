@@ -200,7 +200,7 @@ func (c *controller) Finalize(ctx context.Context, log chassis.Logger, pid strin
 }
 
 func (c *controller) Query(ctx context.Context, log chassis.Logger) (map[string]*sdv1.Process, error) {
-	log.Info("query things")
+	log.Trace("query")
 
 	var (
 		err           error

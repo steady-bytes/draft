@@ -1,0 +1,13 @@
+service:
+  name: catalyst
+  domain: core
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_port: 2220
+    internal:
+      host: localhost
+      port: 2220

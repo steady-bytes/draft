@@ -3,6 +3,7 @@ package execute
 import (
 	"bufio"
 	"context"
+	"os"
 	"os/exec"
 
 	"github.com/steady-bytes/draft/tools/dctl/output"
@@ -39,7 +40,7 @@ func ExecuteCommand(ctx context.Context, name string, c output.Color, cmd *exec.
 	// watch for done signal and kill process if received
 	go func() {
 		<-ctx.Done()
-		err := cmd.Process.Kill()
+		err := cmd.Process.Signal(os.Interrupt)
 		if err != nil {
 			// only error if not closed by user
 			if err.Error() != "signal: killed" && err.Error() != "os: process already finished" {
