@@ -1,9 +1,12 @@
 service:
   name: blueprint
   domain: core
-  advertise_address: 127.0.0.1
+
+  logging:
+    level: info
+
   network:
-    port: 2221
+    bind_port: 2221
 
 badger:
   path: tmp/

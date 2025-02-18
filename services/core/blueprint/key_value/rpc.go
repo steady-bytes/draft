@@ -58,7 +58,7 @@ func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*
 		return nil, ErrFailedSet
 	}
 
-	log.WithField("key", key).Info("value saved")
+	log.WithField("key", key).Debug("value saved")
 
 	return connect.NewResponse(&kvv1.SetResponse{
 		Key: key,

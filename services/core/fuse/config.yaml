@@ -2,12 +2,18 @@ service:
   name: fuse
   domain: core
   entrypoint: http://localhost:2221
-  advertise_address: 127.0.0.1
+
+  logging:
+    level: debug
+
   network:
-    port: 18000
+    bind_port: 18000
+    internal:
+      host: localhost
+      port: 18000
 
 fuse:
   address: http://localhost:18000
   listener:
-    address: 0.0.0.0
+    address: localhost
     port: 10000
