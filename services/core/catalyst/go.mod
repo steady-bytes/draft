@@ -2,14 +2,16 @@ module github.com/steady-bytes/draft/services/core/catalyst
 
 go 1.23.2
 
+replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+
 require (
+	connectrpc.com/connect v1.16.2
 	github.com/steady-bytes/draft/api v1.0.0
 	github.com/steady-bytes/draft/pkg/chassis v0.4.1
 	github.com/steady-bytes/draft/pkg/loggers v0.2.3
 )
 
 require (
-	connectrpc.com/connect v1.16.2
 	connectrpc.com/grpcreflect v1.2.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect

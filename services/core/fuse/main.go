@@ -19,7 +19,7 @@ func main() {
 
 	defer chassis.New(logger).
 		Register(chassis.RegistrationOptions{
-			Namespace: "fuse",
+			Namespace: "core",
 		}).
 		WithRPCHandler(xdsServer).
 		WithRPCHandler(controlPlaneRPC).

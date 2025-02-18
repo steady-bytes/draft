@@ -2,10 +2,7 @@ module github.com/steady-bytes/draft/services/core/fuse
 
 go 1.23.2
 
-// replace (
-// github.com/steady-bytes/draft/api => ../../../api
-// github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
-// )
+replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 
 require (
 	connectrpc.com/connect v1.16.2
