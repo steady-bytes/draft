@@ -9,9 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	"reflect"
-	"syscall"
 	"time"
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
@@ -34,7 +32,17 @@ type (
 		RPCRegistrar
 		ConsensusRegistrar
 	}
+	blueprintConn struct {
+		stream *connect.BidiStreamForClient[sdv1.ClientDetails, sdv1.ClusterDetails]
+		closer chan struct{}
+	}
 )
+
+var closer CloseChan
+
+func Closer() CloseChan {
+	return closer
+}
 
 ////////////////////////////
 // Plugin Register Functions
@@ -134,8 +142,10 @@ func (c *Runtime) newBlueprintClient(useEntrypoint bool) {
 	} else {
 		if node := c.blueprintCluster.Pop(); node == nil {
 			// TODO: determine what to do if there are not any nodes to connect to
+			c.logger.Warn("no blueprint node within known cluster. falling back on service config")
+			entrypoint = c.config.GetString("service.entrypoint")
 		} else {
-			entrypoint = fmt.Sprintf("http://%s", node.Address)
+			entrypoint = node.Address
 		}
 	}
 
@@ -161,11 +171,11 @@ func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 		err error
 	)
 
-	for range [INTITIALIZE_LIMIT]int{} {
+	for range INTITIALIZE_LIMIT {
 		// connect with `blueprint` to get an identity
 		pid, err = c.initialize()
 		if err != nil {
-			c.logger.WithError(err).Error("failed to initialize process")
+			c.logger.WithError(err).Error("failed to initialize process (may retry)")
 			time.Sleep(SYNC_INTERVAL)
 			continue
 		}
@@ -209,11 +219,13 @@ func (c *Runtime) initialize() (*sdv1.ProcessIdentity, error) {
 //   - Add a state machine around health, and running state of the process that can be reported by the service layer
 func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, opts RegistrationOptions) {
 	var (
-		stream = c.blueprintClient.Synchronize(ctx)
-		closer = make(chan struct{})
+		conn = &blueprintConn{
+			stream: c.blueprintClient.Synchronize(ctx),
+			closer: make(chan struct{}),
+		}
 	)
 
-	go c.receiveAck(stream, closer)
+	go c.receiveAck(conn)
 
 	for {
 		meta := make([]*sdv1.Metadata, 0)
@@ -225,7 +237,8 @@ func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, op
 			})
 		}
 
-		adder := fmt.Sprintf("%s:%d", c.config.GetString("service.network.advertise_address"), c.config.GetInt("service.network.port"))
+		// TODO: should we also save external host/port?
+		adder := fmt.Sprintf("%s:%d", c.config.GetString("service.network.internal.host"), c.config.GetInt("service.network.internal.port"))
 
 		req := connect.NewRequest(&sdv1.ClientDetails{
 			Pid:              pid.GetPid(),
@@ -238,10 +251,11 @@ func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, op
 			AdvertiseAddress: adder,
 		})
 
-		if err := stream.Send(req.Msg); err != nil {
+		err := conn.stream.Send(req.Msg)
+		if err != nil {
 			// If a connection is lost with the leader. Attempt to connect to other known blueprint
 			// instances to find the new leader to send status to
-			c.logger.WithError(err).Error("failed to send process details to blueprint, starting recovery process")
+			c.logger.WithError(err).Error("failed to send process details to blueprint (will retry)")
 			c.newBlueprintClient(false)
 
 			if c.blueprintClient == nil {
@@ -249,7 +263,9 @@ func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, op
 				return
 			}
 
-			c.synchronize(context.Background(), pid, opts)
+			conn.stream = c.blueprintClient.Synchronize(ctx)
+		} else {
+			c.logger.WithField("message", req.Msg).Trace("sync successful")
 		}
 
 		time.Sleep(SYNC_INTERVAL)
@@ -259,19 +275,19 @@ func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, op
 // `receiveAck` processes all incoming messages from the synchronize stream. `ClusterDetails` are received and updated in a local store
 // wrapped with a mutex to store any changes to a connected blueprint cluster. This lends it's self to a more realtime gossip data dissemination
 // of blueprint cluster details.
-func (c *Runtime) receiveAck(stream *connect.BidiStreamForClient[sdv1.ClientDetails, sdv1.ClusterDetails], closer chan struct{}) {
+func (c *Runtime) receiveAck(conn *blueprintConn) {
 	for {
-		in, err := stream.Receive()
+		in, err := conn.stream.Receive()
 		if err == io.EOF {
-			close(closer)
+			close(conn.closer)
 			return
 		}
 		if err != nil {
 			c.logger.WithError(err).Error("stream closed")
-			close(closer)
+			close(conn.closer)
 			return
 		}
-		c.logger.WithField("nodes", in.GetNodes()).Info("got message")
+		c.logger.WithField("nodes", in.GetNodes()).Trace("got message")
 		// when an ack message is received from the connected blueprint node is received
 		// save the nodes to memory so when a failure occurs on the blueprint cluster the
 		// chassis synchronize connection can be reestablished to the blueprint leader to report
@@ -294,15 +310,13 @@ func (c *Runtime) Start() {
 	if c.mux == nil {
 		c.mux = http.NewServeMux()
 	}
-	close := make(chan os.Signal, 1)
-	signal.Notify(close, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	if c.isRPC {
-		c.runRPC(close, handler)
+		c.runRPC(handler)
 	}
 
 	if !c.noMux {
-		go c.runMux(close, handler)
+		go c.runMux(handler)
 	}
 
 	// TODO: start consumers
@@ -315,7 +329,7 @@ func (c *Runtime) Start() {
 	}
 
 	// wait for close signal
-	<-close
+	<-closer
 	c.shutdown()
 }
 
@@ -366,7 +380,7 @@ func (c *Runtime) shutdown() {
 }
 
 // TODO -> use closer
-func (c *Runtime) runRPC(_ CloseChan, _ http.Handler) {
+func (c *Runtime) runRPC(_ http.Handler) {
 	if len(c.rpcReflectionServiceNames) > 0 {
 		reflector := grpcreflect.NewStaticReflector(c.rpcReflectionServiceNames...)
 		c.mux.Handle(grpcreflect.NewHandlerV1(reflector))
@@ -375,8 +389,8 @@ func (c *Runtime) runRPC(_ CloseChan, _ http.Handler) {
 }
 
 // TODO -> use closer
-func (c *Runtime) runMux(_ CloseChan, handler http.Handler) {
-	addr := fmt.Sprintf("%s:%d", c.config.GetString("service.network.bind_address"), c.config.GetInt("service.network.port"))
+func (c *Runtime) runMux(handler http.Handler) {
+	addr := fmt.Sprintf("%s:%d", c.config.GetString("service.network.bind_address"), c.config.GetInt("service.network.bind_port"))
 	c.logger.Info(fmt.Sprintf("running server on: %s", addr))
 	if err := http.ListenAndServe(addr, h2c.NewHandler(handler, &http2.Server{})); err != nil {
 		c.logger.WithError(err).Panic("failed to start mux server")

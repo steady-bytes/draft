@@ -3,7 +3,10 @@ package chassis
 import (
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	sdv1 "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1"
 	sdv1Cnt "github.com/steady-bytes/draft/api/core/registry/service_discovery/v1/v1connect"
@@ -51,6 +54,10 @@ func (b *BlueprintCluster) Pop() *sdv1.Node {
 }
 
 func New(logger Logger) *Runtime {
+	// set up closer channel to handle graceful shutdown
+	closer = make(chan os.Signal, 1)
+	signal.Notify(closer, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
 	if logger == nil {
 		panic("logger cannot be nil")
 	}

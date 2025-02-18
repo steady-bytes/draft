@@ -81,7 +81,7 @@ func (c *Runtime) bootstrapRaft(registrar ConsensusRegistrar) {
 		for leader := range notifyCh {
 			registrar.LeadershipChange(c.logger, leader, url)
 		}
-	}(raftScheme, raftHost, c.config.GetString("service.network.port"))
+	}(raftScheme, raftHost, c.config.GetString("service.network.bind_port"))
 
 	// configuration for raft
 	if raftPort == "" || raftNodeID == "" {
