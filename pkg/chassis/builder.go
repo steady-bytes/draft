@@ -237,7 +237,8 @@ func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, op
 			})
 		}
 
-		adder := fmt.Sprintf("%s:%d", c.config.GetString("service.network.advertise_address"), c.config.GetInt("service.network.port"))
+		// TODO: should we also save external host/port?
+		adder := fmt.Sprintf("%s:%d", c.config.GetString("service.network.internal.host"), c.config.GetInt("service.network.internal.port"))
 
 		req := connect.NewRequest(&sdv1.ClientDetails{
 			Pid:              pid.GetPid(),
@@ -389,7 +390,7 @@ func (c *Runtime) runRPC(_ http.Handler) {
 
 // TODO -> use closer
 func (c *Runtime) runMux(handler http.Handler) {
-	addr := fmt.Sprintf("%s:%d", c.config.GetString("service.network.bind_address"), c.config.GetInt("service.network.port"))
+	addr := fmt.Sprintf("%s:%d", c.config.GetString("service.network.bind_address"), c.config.GetInt("service.network.bind_port"))
 	c.logger.Info(fmt.Sprintf("running server on: %s", addr))
 	if err := http.ListenAndServe(addr, h2c.NewHandler(handler, &http2.Server{})); err != nil {
 		c.logger.WithError(err).Panic("failed to start mux server")
