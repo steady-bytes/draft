@@ -2,12 +2,12 @@ module github.com/steady-bytes/draft/services/core/catalyst
 
 go 1.23.2
 
-replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+// replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/steady-bytes/draft/api v1.0.0
-	github.com/steady-bytes/draft/pkg/chassis v0.4.1
+	github.com/steady-bytes/draft/pkg/chassis v0.4.3
 	github.com/steady-bytes/draft/pkg/loggers v0.2.3
 )
 
