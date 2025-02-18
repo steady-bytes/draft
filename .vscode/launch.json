@@ -5,27 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Gateway",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "services/core/gateway/main.go",
-            "cwd": "${workspaceFolder}",
-            "debugAdapter": "dlv-dap",
-            "args": [
-                "run"
-            ]
-        },
-        {
-            "name": "Host",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "services/core/host/main.go",
-            "cwd": "${workspaceFolder}",
-            "debugAdapter": "dlv-dap",
-        },
-        {
             "name": "Blueprint CMD: Register Cluster",
             "type": "go",
             "request": "launch",
@@ -166,7 +145,7 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "DRAFT_CONFIG": "tests/catalyst/config.yaml"
+                "DRAFT_CONFIG": "services/core/catalyst/config.yaml"
             },
         },
         {
@@ -198,7 +177,7 @@
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
             "env": {
-                "DRAFT_CONFIG": "tests/fuse/config.yaml"
+                "DRAFT_CONFIG": "services/core/fuse/config.yaml"
             },
         },
         {
