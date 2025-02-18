@@ -264,7 +264,7 @@ func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, op
 
 			conn.stream = c.blueprintClient.Synchronize(ctx)
 		} else {
-			c.logger.WithField("message", req.Msg).Debug("sync successful")
+			c.logger.WithField("message", req.Msg).Trace("sync successful")
 		}
 
 		time.Sleep(SYNC_INTERVAL)
