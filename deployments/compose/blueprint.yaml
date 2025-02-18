@@ -1,0 +1,20 @@
+service:
+  name: blueprint
+  domain: core
+
+  logging:
+    level: info
+
+  network:
+    bind_address: 0.0.0.0
+    bind_port: 2221
+
+
+badger:
+  path: tmp/
+
+raft:
+  node-id: node_1
+  address: localhost
+  port: 1111
+  bootstrap: true
