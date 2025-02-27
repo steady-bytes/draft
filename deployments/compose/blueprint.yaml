@@ -11,7 +11,7 @@ service:
 
 
 badger:
-  path: tmp/
+  path: /etc/badger
 
 raft:
   node-id: node_1

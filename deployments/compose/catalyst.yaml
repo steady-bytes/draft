@@ -4,7 +4,7 @@ service:
   entrypoint: http://blueprint:2221
 
   logging:
-    level: debug
+    level: info
 
   network:
     bind_address: 0.0.0.0

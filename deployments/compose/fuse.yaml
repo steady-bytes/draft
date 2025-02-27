@@ -1,14 +1,20 @@
 service:
-  name: catalyst
+  name: fuse
   domain: core
   entrypoint: http://blueprint:2221
 
   logging:
-    level: debug
+    level: info
 
   network:
     bind_address: 0.0.0.0
-    bind_port: 2220
+    bind_port: 18000
     internal:
       host: localhost
-      port: 2220
+      port: 18000
+
+fuse:
+  address: http://localhost:18000
+  listener:
+    address: 0.0.0.0
+    port: 10000

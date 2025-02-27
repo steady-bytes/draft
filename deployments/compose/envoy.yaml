@@ -43,7 +43,7 @@
                   socket_address:
                     # address in which fuse is running on
                     address: fuse
-                    port_value: 8090
+                    port_value: 18000
         http2_protocol_options: {}
         type: STRICT_DNS
       - name: als_cluster
