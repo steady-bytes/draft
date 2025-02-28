@@ -306,11 +306,14 @@ func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) 
 //
 // `nt_route` 			:route configuration that is being added to the snapshot.
 func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
-	virtualHost := &route.VirtualHost{
-		Name:    "default",
-		Domains: []string{"*"},
-		Routes:  []*route.Route{},
-	}
+	var (
+		virtualHosts []*route.VirtualHost
+		defaultVirtualHost = &route.VirtualHost{
+			Name:    "default",
+			Domains: []string{"*"},
+			Routes:  []*route.Route{},
+		}
+	)
 
 	for _, rt := range routes {
 		r := &ntv1.Route{}
@@ -319,28 +322,57 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 			return nil
 		}
 
-		virtualHost.Routes = append(virtualHost.Routes, &route.Route{
-			Match: &route.RouteMatch{
-				PathSpecifier: &route.RouteMatch_Prefix{
-					Prefix: r.Match.Prefix,
-				},
-			},
-			Action: &route.Route_Route{
-				Route: &route.RouteAction{
-					ClusterSpecifier: &route.RouteAction_Cluster{
-						Cluster: clusterName(r),
+		// if no host is requested, add to default host
+		if r.Match.Host == "" {
+			defaultVirtualHost.Routes = append(defaultVirtualHost.Routes, &route.Route{
+				Match: &route.RouteMatch{
+					PathSpecifier: &route.RouteMatch_Prefix{
+						Prefix: r.Match.Prefix,
 					},
-					// disable with 0 value
-					Timeout: &durationpb.Duration{},
 				},
-			},
-			TypedPerFilterConfig: map[string]*anypb.Any{},
-		})
+				Action: &route.Route_Route{
+					Route: &route.RouteAction{
+						ClusterSpecifier: &route.RouteAction_Cluster{
+							Cluster: clusterName(r),
+						},
+						// disable with 0 value
+						Timeout: &durationpb.Duration{},
+					},
+				},
+				TypedPerFilterConfig: map[string]*anypb.Any{},
+			})
+		} else {
+			virtualHosts = append(virtualHosts, &route.VirtualHost{
+				Name:    r.Name,
+				Domains: []string{r.Match.Host},
+				Routes: []*route.Route{{
+					Match: &route.RouteMatch{
+						PathSpecifier: &route.RouteMatch_Prefix{
+							Prefix: r.Match.Prefix,
+						},
+					},
+					Action: &route.Route_Route{
+						Route: &route.RouteAction{
+							ClusterSpecifier: &route.RouteAction_Cluster{
+								Cluster: clusterName(r),
+							},
+							// disable with 0 value
+							Timeout: &durationpb.Duration{},
+						},
+					},
+					TypedPerFilterConfig: map[string]*anypb.Any{},
+				}}})
+		}
+	}
+
+	// only include the default virtual host if it's being used
+	if len(defaultVirtualHost.Routes) > 0 {
+		virtualHosts = append(virtualHosts, defaultVirtualHost)
 	}
 
 	return &route.RouteConfiguration{
 		Name:         routeConfigName(),
-		VirtualHosts: []*route.VirtualHost{ virtualHost },
+		VirtualHosts: virtualHosts,
 	}
 }
 
