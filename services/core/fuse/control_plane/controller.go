@@ -319,23 +319,12 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 			return nil
 		}
 
-		var match *route.RouteMatch
-		if r.Match.Exact != "" {
-			match = &route.RouteMatch{
-				PathSpecifier: &route.RouteMatch_Path{
-					Path: r.Match.Exact,
-				},
-			}
-		} else if r.Match.Prefix != "" {
-			match = &route.RouteMatch{
+		virtualHost.Routes = append(virtualHost.Routes, &route.Route{
+			Match: &route.RouteMatch{
 				PathSpecifier: &route.RouteMatch_Prefix{
 					Prefix: r.Match.Prefix,
 				},
-			}
-		}
-
-		virtualHost.Routes = append(virtualHost.Routes, &route.Route{
-			Match: match,
+			},
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
 					ClusterSpecifier: &route.RouteAction_Cluster{
@@ -351,7 +340,7 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 
 	return &route.RouteConfiguration{
 		Name:         routeConfigName(),
-		VirtualHosts: []*route.VirtualHost{virtualHost},
+		VirtualHosts: []*route.VirtualHost{ virtualHost },
 	}
 }
 
