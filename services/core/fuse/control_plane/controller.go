@@ -3,7 +3,6 @@ package control_plane
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -307,7 +306,11 @@ func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) 
 //
 // `nt_route` 			:route configuration that is being added to the snapshot.
 func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
-	var virtualHosts []*route.VirtualHost
+	virtualHost := &route.VirtualHost{
+		Name:    "default",
+		Domains: []string{"*"},
+		Routes:  []*route.Route{},
+	}
 
 	for _, rt := range routes {
 		r := &ntv1.Route{}
@@ -316,34 +319,39 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 			return nil
 		}
 
-		http := fmt.Sprintf("%s:80", r.Match.Host)
-		https := fmt.Sprintf("%s:443", r.Match.Host)
+		var match *route.RouteMatch
+		if r.Match.Exact != "" {
+			match = &route.RouteMatch{
+				PathSpecifier: &route.RouteMatch_Path{
+					Path: r.Match.Exact,
+				},
+			}
+		} else if r.Match.Prefix != "" {
+			match = &route.RouteMatch{
+				PathSpecifier: &route.RouteMatch_Prefix{
+					Prefix: r.Match.Prefix,
+				},
+			}
+		}
 
-		virtualHosts = append(virtualHosts, &route.VirtualHost{
-			Name:    r.Name,
-			Domains: []string{r.Match.Host, http, https},
-			Routes: []*route.Route{{
-				Match: &route.RouteMatch{
-					PathSpecifier: &route.RouteMatch_Prefix{
-						Prefix: r.Match.Prefix,
+		virtualHost.Routes = append(virtualHost.Routes, &route.Route{
+			Match: match,
+			Action: &route.Route_Route{
+				Route: &route.RouteAction{
+					ClusterSpecifier: &route.RouteAction_Cluster{
+						Cluster: clusterName(r),
 					},
+					// disable with 0 value
+					Timeout: &durationpb.Duration{},
 				},
-				Action: &route.Route_Route{
-					Route: &route.RouteAction{
-						ClusterSpecifier: &route.RouteAction_Cluster{
-							Cluster: clusterName(r),
-						},
-						// disable with 0 value
-						Timeout: &durationpb.Duration{},
-					},
-				},
-				TypedPerFilterConfig: map[string]*anypb.Any{},
-			}}})
+			},
+			TypedPerFilterConfig: map[string]*anypb.Any{},
+		})
 	}
 
 	return &route.RouteConfiguration{
 		Name:         routeConfigName(),
-		VirtualHosts: virtualHosts,
+		VirtualHosts: []*route.VirtualHost{virtualHost},
 	}
 }
 
