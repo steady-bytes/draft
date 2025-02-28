@@ -1,3 +1,4 @@
+name: draft-core
 services:
   blueprint:
     image: ghcr.io/steady-bytes/draft-core-blueprint:latest
