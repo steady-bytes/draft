@@ -1,9 +1,11 @@
 package control_plane
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"time"
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
@@ -307,7 +309,7 @@ func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) 
 // `nt_route` 			:route configuration that is being added to the snapshot.
 func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 	var (
-		virtualHosts []*route.VirtualHost
+		virtualHosts       []*route.VirtualHost
 		defaultVirtualHost = &route.VirtualHost{
 			Name:    "default",
 			Domains: []string{"*"},
@@ -368,6 +370,16 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 	// only include the default virtual host if it's being used
 	if len(defaultVirtualHost.Routes) > 0 {
 		virtualHosts = append(virtualHosts, defaultVirtualHost)
+	}
+
+	// TODO: This is a bit of a hack to force simple prefixes like "/" to be pushed to the last place in the routes slice.
+	//		Doing this is important since you might have multiple services (routes) attached to a single host with
+	// 		one hosting a web-client with a prefix of "/" and others hosting APIs with prefixes like "/examples.crud.v1.CrudService/".
+	// 		This needs to be revisited with a proper pattern defined for enabling developers to define RouteMatch ordering.
+	for _, vh := range virtualHosts {
+		slices.SortFunc(vh.Routes, func(a, b *route.Route) int {
+			return cmp.Compare(b.Match.GetPrefix(), a.Match.GetPrefix())
+		})
 	}
 
 	return &route.RouteConfiguration{
