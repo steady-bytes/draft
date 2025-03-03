@@ -171,6 +171,7 @@ func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 		err error
 	)
 
+	// TODO: this can get stuck and won't listen to sigint events if it can't initialize
 	for range INTITIALIZE_LIMIT {
 		// connect with `blueprint` to get an identity
 		pid, err = c.initialize()
