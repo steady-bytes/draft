@@ -3,7 +3,7 @@ service:
   domain: core
 
   logging:
-    level: info
+    level: debug
 
   network:
     bind_port: 2221
