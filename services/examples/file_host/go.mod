@@ -4,14 +4,9 @@ go 1.22.5
 
 toolchain go1.23.2
 
-// replace (
-// 	github.com/steady-bytes/draft/api => ../../../api
-// 	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
-// )
-
 require (
 	github.com/steady-bytes/draft/api v1.0.0
-	github.com/steady-bytes/draft/pkg/chassis v0.4.0
+	github.com/steady-bytes/draft/pkg/chassis v0.4.4
 	github.com/steady-bytes/draft/pkg/loggers v0.2.1
 )
 

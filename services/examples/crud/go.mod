@@ -1,21 +1,16 @@
 module github.com/steady-bytes/draft/services/examples/crud
 
-go 1.21.3
+go 1.22.5
 
-// replace (
-// 	github.com/steady-bytes/draft/api => ../../../api
-// 	github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
-// 	github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
-// 	github.com/steady-bytes/draft/pkg/repositories => ../../../pkg/repositories
-// )
+toolchain go1.22.7
 
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/google/uuid v1.6.0
-	github.com/steady-bytes/draft/api v0.0.2
-	github.com/steady-bytes/draft/pkg/chassis v0.2.1
+	github.com/steady-bytes/draft/api v1.0.0
+	github.com/steady-bytes/draft/pkg/chassis v0.4.4
 	github.com/steady-bytes/draft/pkg/loggers v0.2.1
-	github.com/steady-bytes/draft/pkg/repositories v0.0.2
+	github.com/steady-bytes/draft/pkg/repositories v0.0.3
 )
 
 require (
