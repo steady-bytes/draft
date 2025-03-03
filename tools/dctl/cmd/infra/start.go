@@ -2,7 +2,6 @@ package infra
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/steady-bytes/draft/tools/dctl/docker"
@@ -25,9 +24,10 @@ func Start(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	for _, name := range Services {
-		config, ok := infraConfigs[name]
-		if !ok {
-			output.Error(fmt.Errorf("invalid infra service name: %s", name))
+		config, err := getInfraConfig(name)
+		if err != nil {
+			output.Error(err)
+			return err
 		}
 
 		// new context so it doesn't get canceled by the user on ctrl+c if Follow is true
