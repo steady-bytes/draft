@@ -76,12 +76,6 @@ func (c *Runtime) setAndValidateRoute(route *ntv1.Route) *ntv1.Route {
 	if route.Match == nil {
 		c.logger.Panic("route requested but no match provided")
 	}
-	if route.Match.Host == "" {
-		route.Match.Host = c.config.GetString("service.network.external.host")
-	}
-	if route.Match.Host == "" {
-		c.logger.Panic("route requested but no host provided in the match")
-	}
 	if route.Endpoint == nil {
 		route.Endpoint = &ntv1.Endpoint{
 			Host: c.getConfigInternalHost(),
