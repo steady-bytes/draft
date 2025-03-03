@@ -44,7 +44,7 @@ func (r *repository) Open(ctx context.Context, config chassis.Config) error {
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(url)))
 	client := bun.NewDB(sqldb, pgdialect.New())
 	r.client = client
-	return nil
+	return r.Ping(ctx)
 }
 
 func (r *repository) Close(ctx context.Context) error {
