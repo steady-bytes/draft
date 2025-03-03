@@ -1,8 +1,6 @@
 module github.com/steady-bytes/draft/services/examples/health
 
-go 1.22.5
-
-toolchain go1.22.7
+go 1.23.2
 
 require (
 	connectrpc.com/connect v1.16.2
