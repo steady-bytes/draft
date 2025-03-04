@@ -1,10 +1,11 @@
 package control_plane
 
 import (
+	"cmp"
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
@@ -307,7 +308,14 @@ func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) 
 //
 // `nt_route` 			:route configuration that is being added to the snapshot.
 func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
-	var virtualHosts []*route.VirtualHost
+	var (
+		virtualHosts       []*route.VirtualHost
+		defaultVirtualHost = &route.VirtualHost{
+			Name:    "default",
+			Domains: []string{"*"},
+			Routes:  []*route.Route{},
+		}
+	)
 
 	for _, rt := range routes {
 		r := &ntv1.Route{}
@@ -316,13 +324,9 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 			return nil
 		}
 
-		http := fmt.Sprintf("%s:80", r.Match.Host)
-		https := fmt.Sprintf("%s:443", r.Match.Host)
-
-		virtualHosts = append(virtualHosts, &route.VirtualHost{
-			Name:    r.Name,
-			Domains: []string{r.Match.Host, http, https},
-			Routes: []*route.Route{{
+		// if no host is requested, add to default host
+		if r.Match.Host == "" {
+			defaultVirtualHost.Routes = append(defaultVirtualHost.Routes, &route.Route{
 				Match: &route.RouteMatch{
 					PathSpecifier: &route.RouteMatch_Prefix{
 						Prefix: r.Match.Prefix,
@@ -338,7 +342,44 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 					},
 				},
 				TypedPerFilterConfig: map[string]*anypb.Any{},
-			}}})
+			})
+		} else {
+			virtualHosts = append(virtualHosts, &route.VirtualHost{
+				Name:    r.Name,
+				Domains: []string{r.Match.Host},
+				Routes: []*route.Route{{
+					Match: &route.RouteMatch{
+						PathSpecifier: &route.RouteMatch_Prefix{
+							Prefix: r.Match.Prefix,
+						},
+					},
+					Action: &route.Route_Route{
+						Route: &route.RouteAction{
+							ClusterSpecifier: &route.RouteAction_Cluster{
+								Cluster: clusterName(r),
+							},
+							// disable with 0 value
+							Timeout: &durationpb.Duration{},
+						},
+					},
+					TypedPerFilterConfig: map[string]*anypb.Any{},
+				}}})
+		}
+	}
+
+	// only include the default virtual host if it's being used
+	if len(defaultVirtualHost.Routes) > 0 {
+		virtualHosts = append(virtualHosts, defaultVirtualHost)
+	}
+
+	// TODO: This is a bit of a hack to force simple prefixes like "/" to be pushed to the last place in the routes slice.
+	//		Doing this is important since you might have multiple services (routes) attached to a single host with
+	// 		one hosting a web-client with a prefix of "/" and others hosting APIs with prefixes like "/examples.crud.v1.CrudService/".
+	// 		This needs to be revisited with a proper pattern defined for enabling developers to define RouteMatch ordering.
+	for _, vh := range virtualHosts {
+		slices.SortFunc(vh.Routes, func(a, b *route.Route) int {
+			return cmp.Compare(b.Match.GetPrefix(), a.Match.GetPrefix())
+		})
 	}
 
 	return &route.RouteConfiguration{
