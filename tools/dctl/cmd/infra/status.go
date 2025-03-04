@@ -17,7 +17,7 @@ func Status(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	for name := range infraConfigs {
+	for _, name := range Services {
 		err = checkStatus(ctx, dockerCtl, name, containerName(name))
 		if err != nil {
 			return err
