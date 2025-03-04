@@ -50,7 +50,7 @@ func GetContext() Context {
 		output.Error(err)
 		os.Exit(1)
 	}
-	contextFile := findWorkspaceFile(cwd)
+	contextFile := FindWorkspaceFile(cwd)
 	if contextFile != "" {
 		return LoadWorkspaceContext(contextFile)
 	}
@@ -94,7 +94,7 @@ func LoadWorkspaceContext(path string) Context {
 }
 
 // modified from the go source code: src/cmd/go/internal/modload/init.go
-func findWorkspaceFile(dir string) (root string) {
+func FindWorkspaceFile(dir string) (root string) {
 	if dir == "" {
 		output.Error(fmt.Errorf("dir not set"))
 		return ""
