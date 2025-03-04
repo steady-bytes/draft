@@ -46,14 +46,14 @@ func Init(cmd *cobra.Command, args []string) error {
 			}
 
 			dirName := filepath.Join(home, ".config", "dctl", "infra")
-			err = os.Mkdir(dirName, 0777)
+			err = os.Mkdir(dirName, 0666)
 			if err != nil && !os.IsExist(err) {
 				output.Error(err)
 				os.Exit(1)
 			}
 
 			fileName := filepath.Join(dirName, fmt.Sprintf("%s.yaml", name))
-			err = os.WriteFile(fileName, []byte(config.configFile.contents), 0777)
+			err = os.WriteFile(fileName, []byte(config.configFile.contents), 0666)
 			if err != nil {
 				output.Error(err)
 				os.Exit(1)
@@ -69,7 +69,7 @@ func Init(cmd *cobra.Command, args []string) error {
 			}
 
 			dirName := filepath.Join(home, ".config", "dctl", "infra", name)
-			err = os.MkdirAll(dirName, 0777)
+			err = os.MkdirAll(dirName, 0666)
 			if err != nil && !os.IsExist(err) {
 				output.Error(err)
 				os.Exit(1)
