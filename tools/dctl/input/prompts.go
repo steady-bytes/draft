@@ -40,7 +40,7 @@ func ConfirmDefaultDeny() bool {
 // before calling this method. For example
 //
 //		output.Println("Are you sure you want to do this? (YES/no)")
-//	    if input.ConfirmDefaultAllow() {
+//	    if !input.ConfirmDefaultAllow() {
 //	        return
 //	    }
 //		output.Println("Doing the thing...")

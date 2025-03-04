@@ -1,10 +1,13 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 
 	"github.com/steady-bytes/draft/tools/dctl/config"
+	"github.com/steady-bytes/draft/tools/dctl/input"
+	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -22,7 +25,16 @@ func Import(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	dctx := config.LoadWorkspaceContext(filepath.Join(path, "draft.yaml"))
+	f := config.FindWorkspaceFile(path)
+	if f == "" {
+		return errors.New("no draft context found at the given path or in any parent directory")
+	}
+
+	output.Print("Import context from %s? (YES/no)", f)
+	if !input.ConfirmDefaultAllow() {
+		return nil
+	}
+	dctx := config.LoadWorkspaceContext(f)
 
 	// check if a default is set and if not set the new context to the default
 	d := viper.GetString("default")

@@ -65,8 +65,6 @@ type (
 		CreateNetwork(ctx context.Context, name string) error
 		// RemoveNetwork removes the network with the given name
 		RemoveNetwork(ctx context.Context, name string) error
-		// GetNetworkByName gets a network by the given name
-		// GetNetworkByName(ctx context.Context, name string) (*types.NetworkResource, error)
 	}
 )
 
