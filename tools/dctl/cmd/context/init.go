@@ -2,6 +2,7 @@ package context
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,7 +17,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-const templateDir = "template"
+const (
+	templateDir = "template"
+
+	errNoInput = "no input provided"
+)
 
 var (
 	Path string
@@ -36,10 +41,16 @@ func Init(cmd *cobra.Command, args []string) error {
 	// get name
 	output.Print("What is the name of this context?")
 	name := input.Get()
+	if name == "" {
+		return errors.New(errNoInput)
+	}
 
 	// get repo
 	output.Print("What is the git repository for this context? (e.g. github.com/steady-bytes/draft)")
 	repo := input.Get()
+	if repo == "" {
+		return errors.New(errNoInput)
+	}
 	viper.Set(fmt.Sprintf("contexts.%s.repo", name), repo)
 
 	// confirm path
