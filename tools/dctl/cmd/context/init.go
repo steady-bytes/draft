@@ -9,14 +9,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/steady-bytes/draft/tools/dctl/config"
 	"github.com/steady-bytes/draft/tools/dctl/execute"
 	"github.com/steady-bytes/draft/tools/dctl/input"
 	"github.com/steady-bytes/draft/tools/dctl/output"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
-
 const (
 	templateDir = "template"
 
@@ -51,7 +52,6 @@ func Init(cmd *cobra.Command, args []string) error {
 	if repo == "" {
 		return errors.New(errNoInput)
 	}
-	viper.Set(fmt.Sprintf("contexts.%s.repo", name), repo)
 
 	// confirm path
 	output.Print("This will initialize a new Draft context in the directory: %s", Path)
@@ -105,6 +105,26 @@ func Init(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// write context file
+	dc := config.Context{
+		Name: name,
+		Repo: repo,
+		TrunkBranch: defaultTrunkBranch,
+		API: config.API{
+			ImageName: defaultAPIImageName,
+		},
+	}
+	out, err := yaml.Marshal(dc)
+	if err != nil {
+		output.Error(err)
+		return errors.New("failed to marshal context file")
+	}
+	err = os.WriteFile(filepath.Join(Path, "draft.yaml"), out, 0666)
+	if err != nil {
+		output.Error(err)
+		return errors.New("failed to write context file")
+	}
+
 	// initialize api go module
 	command := exec.Command("go", "mod", "init", fmt.Sprintf("%s/api", repo))
 	command.Dir = filepath.Join(Path, "api")
@@ -113,8 +133,6 @@ func Init(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// write context to config
-	setDefaults(name)
 	err = viper.WriteConfig()
 	if err != nil {
 		return err
@@ -150,9 +168,4 @@ func writeFiles(dir string) error {
 	}
 
 	return nil
-}
-
-func setDefaults(name string) {
-	viper.Set(fmt.Sprintf("contexts.%s.api.image_name", name), defaultAPIImageName)
-	viper.Set(fmt.Sprintf("contexts.%s.trunk_branch", name), defaultTrunkBranch)
 }
