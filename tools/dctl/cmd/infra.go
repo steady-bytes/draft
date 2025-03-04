@@ -6,6 +6,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	defaultServices = []string{"blueprint", "catalyst", "fuse", "envoy"}
+)
+
 var infraCmd = &cobra.Command{
 	Use:     "infra",
 	Aliases: []string{"infrastructure"},
@@ -28,7 +32,7 @@ var infraCleanCmd = &cobra.Command{
 
 var infraInitCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Pull Docker images required for draft infra",
+	Short: "Pull Docker images required for draft infra and initialize configuration",
 	RunE:  infra.Init,
 }
 
@@ -55,14 +59,14 @@ func init() {
 	rootCmd.AddCommand(infraCmd)
 	// add children
 	infraCmd.AddCommand(infraCleanCmd)
-	infraCleanCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
+	infraCleanCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", defaultServices, "infra services to act on")
 	infraCmd.AddCommand(infraInitCmd)
-	infraInitCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
+	infraInitCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", defaultServices, "infra services to act on")
 	infraCmd.AddCommand(infraStartCmd)
 	infraStartCmd.Flags().BoolVarP(&infra.Follow, "follow", "f", false, "whether or not to follow the output of the infra docker containers (true/FALSE)")
-	infraStartCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
+	infraStartCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", defaultServices, "infra services to act on")
 	infraCmd.AddCommand(infraStopCmd)
-	infraStopCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
+	infraStopCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", defaultServices, "infra services to act on")
 	infraCmd.AddCommand(infraStatusCmd)
-	infraStatusCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", []string{"nats", "postgres"}, "infra services to act on")
+	infraStatusCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", defaultServices, "infra services to act on")
 }

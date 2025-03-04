@@ -26,32 +26,47 @@ const (
 	errContainerNotFound = "container not found"
 )
 
-type DockerController interface {
-	// BuildImage takes a file path and an image name and builds a Docker image using the Dockerfile in the given directory
-	BuildImage(ctx context.Context, path, image string) error
-	// PullImage pulls the given image down from the Docker registry
-	PullImage(ctx context.Context, image string) error
-	// TagImage tags an existing image with a new tag
-	TagImage(ctx context.Context, image string, source, target string) error
-	// PushImage pushes the given image up to the Docker registry
-	PushImage(ctx context.Context, image string) error
-	// RunContainer creates a container, starts it, waits for it to complete, and removes it if requested
-	RunContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) error
-	// StartContainer runs an existing container or creates a new one if none already exist with the given name. It exists without waiting for the container to exit
-	StartContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) (string, error)
-	// StopContainer stops a container by the given id
-	StopContainer(ctx context.Context, id string) error
-	// StopContainerByName stops a container by the given name
-	StopContainerByName(ctx context.Context, containerName string) error
-	// RemoveContainer removes a container by the given id
-	RemoveContainer(ctx context.Context, id string) error
-	// RemoveContainerByName removes a container by the given name
-	RemoveContainerByName(ctx context.Context, containerName string) error
-	// GetContainerByName gets a container by the given name
-	GetContainerByName(ctx context.Context, containerName string) (*types.Container, error)
-	// GenerateContainerName generates a random container name in the format of: dctl-UUID
-	GenerateContainerName() (name string)
-}
+type (
+	DockerController interface {
+		ImageController
+		ContainerController
+		NetworkController
+	}
+	ImageController interface {
+		// BuildImage takes a file path and an image name and builds a Docker image using the Dockerfile in the given directory
+		BuildImage(ctx context.Context, path, image string) error
+		// PullImage pulls the given image down from the Docker registry
+		PullImage(ctx context.Context, image string) error
+		// TagImage tags an existing image with a new tag
+		TagImage(ctx context.Context, image string, source, target string) error
+		// PushImage pushes the given image up to the Docker registry
+		PushImage(ctx context.Context, image string) error
+	}
+	ContainerController interface {
+		// RunContainer creates a container, starts it, waits for it to complete, and removes it if requested
+		RunContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) error
+		// StartContainer runs an existing container or creates a new one if none already exist with the given name. It exists without waiting for the container to exit
+		StartContainer(ctx context.Context, containerName string, config *container.Config, host *container.HostConfig, showOutput bool) (string, error)
+		// StopContainer stops a container by the given id
+		StopContainer(ctx context.Context, id string) error
+		// StopContainerByName stops a container by the given name
+		StopContainerByName(ctx context.Context, containerName string) error
+		// RemoveContainer removes a container by the given id
+		RemoveContainer(ctx context.Context, id string) error
+		// RemoveContainerByName removes a container by the given name
+		RemoveContainerByName(ctx context.Context, containerName string) error
+		// GetContainerByName gets a container by the given name
+		GetContainerByName(ctx context.Context, containerName string) (*types.Container, error)
+		// GenerateContainerName generates a random container name in the format of: dctl-UUID
+		GenerateContainerName() (name string)
+	}
+	NetworkController interface {
+		// CreateNetwork creates a network with the given name
+		CreateNetwork(ctx context.Context, name string) error
+		// RemoveNetwork removes the network with the given name
+		RemoveNetwork(ctx context.Context, name string) error
+	}
+)
 
 type dockerController struct {
 	cli *client.Client
@@ -183,6 +198,17 @@ func (d *dockerController) StartContainer(ctx context.Context, containerName str
 			return "", err
 		}
 		id = resp.ID
+
+		// connect container to draft network network
+		network, err := d.getNetworkByName(ctx, "draft")
+		if err != nil {
+			return "", err
+		}
+
+		err = d.cli.NetworkConnect(ctx, network.ID, id, nil)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	// start container
@@ -246,6 +272,19 @@ func (d *dockerController) GenerateContainerName() (name string) {
 	return fmt.Sprintf("dctl-%s", uuid.New().String())
 }
 
+func (d *dockerController) CreateNetwork(ctx context.Context, name string) error {
+	_, err := d.cli.NetworkCreate(ctx, name, types.NetworkCreate{})
+	return err
+}
+
+func (d *dockerController) RemoveNetwork(ctx context.Context, name string) error {
+	network, err := d.getNetworkByName(ctx, name)
+	if err != nil {
+		return err
+	}
+	return d.cli.NetworkRemove(ctx, network.ID)
+}
+
 // HELPER FUNCTIONS
 
 func (d *dockerController) getDockerContext(filePath string) (io.Reader, error) {
@@ -271,6 +310,7 @@ func (d *dockerController) printContainerLogs(ctx context.Context, containerName
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     true,
+		Since:      "1s",
 	})
 	if err != nil {
 		return err
@@ -331,6 +371,28 @@ func (d *dockerController) getContainerByName(ctx context.Context, containerName
 		return nil, fmt.Errorf(errContainerNotFound)
 	}
 	return con, nil
+}
+
+func (d *dockerController) getNetworkByName(ctx context.Context, name string) (*types.NetworkResource, error) {
+	var net *types.NetworkResource
+
+	list, err := d.cli.NetworkList(ctx, types.NetworkListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, network := range list {
+		if network.Name == name {
+			net = &network
+			break
+		}
+	}
+
+	if net == nil {
+		return nil, fmt.Errorf("network not found")
+	}
+
+	return net, nil
 }
 
 func auth() string {
