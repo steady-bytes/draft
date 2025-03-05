@@ -13,11 +13,12 @@ import (
 var (
 	Follow   bool
 	Services []string
+	Full     bool
 )
 
 func Start(cmd *cobra.Command, args []string) (err error) {
+	defineServices()
 	ctx := cmd.Context()
-
 	dockerCtl, err := docker.NewDockerController()
 	if err != nil {
 		return nil

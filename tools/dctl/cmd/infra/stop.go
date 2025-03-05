@@ -8,6 +8,7 @@ import (
 )
 
 func Stop(cmd *cobra.Command, args []string) (err error) {
+	defineServices()
 	ctx := cmd.Context()
 	dockerCtl, err := docker.NewDockerController()
 	if err != nil {
