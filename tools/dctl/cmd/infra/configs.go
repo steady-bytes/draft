@@ -9,6 +9,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+	"github.com/steady-bytes/draft/tools/dctl/config"
 )
 
 type (
@@ -28,7 +29,8 @@ type (
 )
 
 var (
-	infraConfigs = map[string]infraConfig{
+	defaultServices = []string{"blueprint", "catalyst", "fuse", "envoy"}
+	infraConfigs    = map[string]infraConfig{
 		"blueprint": {
 			containerConfig: &container.Config{
 				Image: "ghcr.io/steady-bytes/draft-core-blueprint:latest",
@@ -448,9 +450,18 @@ func containerName(infra string) string {
 }
 
 func getInfraConfig(name string) (infraConfig, error) {
+	dctx := config.GetContext()
 	config, ok := infraConfigs[name]
 	if !ok {
 		return config, fmt.Errorf("invalid infra service name: %s", name)
+	}
+
+	// apply context config overrides
+	ctxConfig, ok := dctx.Infra[name]
+	if ok {
+		if ctxConfig.ImageName != "" {
+			config.containerConfig.Image = ctxConfig.ImageName
+		}
 	}
 
 	if config.configFile != nil {
@@ -470,7 +481,7 @@ func getInfraConfig(name string) (infraConfig, error) {
 		}
 		config.hostConfig.Mounts = []mount.Mount{
 			{
-				Type: mount.TypeBind,
+				Type:   mount.TypeBind,
 				Source: filepath.Join(path, name),
 				Target: config.mountPoint.mountPath,
 			},

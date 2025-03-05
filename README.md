@@ -43,7 +43,7 @@ Here are some simple descriptions of what you'll find in each directory:
 
 * [Go](https://golang.org/doc/install) v1.21 (we suggest using [gvm](https://github.com/moovweb/gvm) for easier version management)
 * [Docker](https://docs.docker.com/get-docker/)
-* [Kubernetes](https://kubernetes.io/docs/tasks/tools/) (this is for running testing suites locally: if on Mac or Windows you can use the Kubernetes engine built into Docker Desktop)
+* [Kubernetes](https://kubernetes.io/docs/tasks/tools/) (this is for running testing suites locally; if on Mac or Windows you can use the Kubernetes engine built into Docker Desktop)
 
 You'll need the `dctl` CLI tool to work with everything in Draft. Let's install it now:
 
@@ -51,7 +51,7 @@ You'll need the `dctl` CLI tool to work with everything in Draft. Let's install 
 go install github.com/steady-bytes/draft/tools/dctl@latest
 ```
 
-We'll need to import this project as a usable context into `dctl` so it can manage things for us. After cloning the repo run the below command from the root of the repo:
+We'll need to import this project as a usable context into `dctl` so it can manage things for us. After cloning the repo run the below command from inside the repo:
 
 ```shell
 dctl context import
@@ -64,12 +64,12 @@ Now you can set up your local environment:
 dctl infra init
 dctl infra start
 
+# test run some domains
+dctl run --domains examples
+
 # initialize and do a first generation of the API
 dctl api init
 dctl api build
-
-# test run some domains
-dctl run --domains core,examples
 ```
 
 ## Future Components

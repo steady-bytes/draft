@@ -3,13 +3,15 @@ service:
   domain: core
 
   logging:
-    level: debug
+    level: info
 
   network:
+    bind_address: 0.0.0.0
     bind_port: 2221
 
+
 badger:
-  path: tmp/
+  path: /etc/badger
 
 raft:
   node-id: node_1

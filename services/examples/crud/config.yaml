@@ -1,6 +1,19 @@
 service:
   name: crud
   domain: examples
+  env: local
+  entrypoint: http://localhost:2221
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9090
+    internal:
+      host: host.docker.internal
+      port: 9090
+    external:
+      host: localhost:10000
 
 repositories:
   postgres:

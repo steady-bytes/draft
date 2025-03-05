@@ -19,8 +19,12 @@ type (
 		TrunkBranch string `mapstructure:"trunk_branch" yaml:"trunk_branch"`
 		API         API    `mapstructure:"api"  yaml:"api"`
 		IsWorkspace bool
+		Infra       map[string]InfraService
 	}
 	API struct {
+		ImageName string `mapstructure:"image_name" yaml:"image_name"`
+	}
+	InfraService struct {
 		ImageName string `mapstructure:"image_name" yaml:"image_name"`
 	}
 )
@@ -30,6 +34,17 @@ var (
 	currentContext  *Context
 )
 
+// GetContext will return the current context or exit if none is found. You can call this function multiple times
+// in a single command execution and it will only process context lookup logic once and then return the found
+// context every subsequent call. The current context is found using the following precedence:
+//
+// 1. Currently set in-memory context (singleton)
+//
+// 2. The context override set by the user using the --context flag
+//
+// 3. The context of the current (or any parent) directory
+//
+// 4. The default context as set in the dctl config
 func GetContext() Context {
 	// if the current context is already set just use that
 	if currentContext != nil {
@@ -75,7 +90,6 @@ func SetDefaultContext(new string) error {
 }
 
 func LoadWorkspaceContext(path string) Context {
-	output.Print("Using context from workspace file: %s", path)
 	f, err := os.ReadFile(path)
 	if err != nil {
 		output.Error(err)
@@ -89,7 +103,6 @@ func LoadWorkspaceContext(path string) Context {
 	}
 	dctx.IsWorkspace = true
 	dctx.Root = filepath.Dir(path)
-	output.Print("Loaded context: %s", dctx.Name)
 	return dctx
 }
 
@@ -130,7 +143,6 @@ func loadConfigContext(dconfig Config, contextName string) Context {
 	}
 
 	// fallback on the context from the config
-	output.Print("Loaded context: %s", dctx.Name)
 	return dctx
 }
 

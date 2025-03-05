@@ -1,6 +1,4 @@
-# Admin Dashboard
-
-This is the front-end client for Home Cloud Server.
+# Blueprint Web Dashboard
 
 ## Getting Started
 

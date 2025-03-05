@@ -1,0 +1,46 @@
+name: draft-core
+services:
+  blueprint:
+    image: ghcr.io/steady-bytes/draft-core-blueprint:latest
+    restart: unless-stopped
+    ports:
+      - 2221:2221
+      - 1111:1111
+    volumes:
+      - ./blueprint.yaml:/etc/config.yaml
+      - blueprint:/etc/badger
+  catalyst:
+    image: ghcr.io/steady-bytes/draft-core-catalyst:latest
+    restart: unless-stopped
+    ports:
+      - 2220:2220
+    volumes:
+      - ./catalyst.yaml:/etc/config.yaml
+    depends_on:
+      blueprint:
+        condition: service_started
+  fuse:
+    image: ghcr.io/steady-bytes/draft-core-fuse:latest
+    restart: unless-stopped
+    ports:
+      - 18000:18000
+    volumes:
+      - ./fuse.yaml:/etc/config.yaml
+    depends_on:
+      blueprint:
+        condition: service_started
+  envoy:
+    image: envoyproxy/envoy:v1.31.2
+    restart: unless-stopped
+    ports:
+      - 10000:10000
+      - 19000:19000
+      - 18090:18090
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml
+    depends_on:
+      fuse:
+        condition: service_started
+
+volumes:
+  blueprint:

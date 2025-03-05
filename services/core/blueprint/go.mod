@@ -8,10 +8,9 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/raft v1.6.0
 	github.com/steady-bytes/draft/api v1.0.0
-	github.com/steady-bytes/draft/pkg/chassis v0.4.1
+	github.com/steady-bytes/draft/pkg/chassis v0.4.3
 	github.com/steady-bytes/draft/pkg/loggers v0.2.3
 	github.com/steady-bytes/draft/pkg/repositories v0.0.3
-	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -60,6 +59,7 @@ require (
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
+	google.golang.org/grpc v1.65.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

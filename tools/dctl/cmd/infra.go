@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	defaultServices = []string{"blueprint", "catalyst", "fuse", "envoy"}
+	defaultServices = []string{}
 )
 
 var infraCmd = &cobra.Command{
@@ -59,6 +59,7 @@ func init() {
 	rootCmd.AddCommand(infraCmd)
 	// add children
 	infraCmd.AddCommand(infraCleanCmd)
+	infraCleanCmd.Flags().BoolVarP(&infra.Full, "full", "f", false, "whether or not to delete data volumes associated with services (true/FALSE)")
 	infraCleanCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", defaultServices, "infra services to act on")
 	infraCmd.AddCommand(infraInitCmd)
 	infraInitCmd.Flags().StringSliceVarP(&infra.Services, "services", "s", defaultServices, "infra services to act on")
