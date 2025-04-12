@@ -192,6 +192,8 @@ func parseLevel(lvl chassis.LogLevel) zerolog.Level {
 		return zerolog.InfoLevel
 	case chassis.DebugLevel:
 		return zerolog.DebugLevel
+	case chassis.TraceLevel:
+		return zerolog.TraceLevel
 	default:
 		return zerolog.PanicLevel
 	}
