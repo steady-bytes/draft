@@ -88,7 +88,7 @@ func LoadConfig() Config {
 }
 
 func setDefaults(v *viper.Viper) {
-	v.SetDefault("service.network.bind_address", "localhost")
+	v.SetDefault("service.network.bind_address", "0.0.0.0")
 	v.SetDefault("service.network.bind_port", 8090)
 	v.SetDefault("service.env", "local")
 	v.SetDefault("service.logging.level", "info")
