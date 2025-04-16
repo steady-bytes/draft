@@ -1,6 +1,8 @@
 package main
 
 import (
+	"embed"
+
 	kv "github.com/steady-bytes/draft/services/core/blueprint/key_value"
 	sd "github.com/steady-bytes/draft/services/core/blueprint/service_discovery"
 
@@ -8,8 +10,8 @@ import (
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 )
 
-// //go:embed web-client/dist/*
-// var files embed.FS
+//go:embed web-client/target/dx/blueprint-pwa/release/web
+var files embed.FS
 
 func main() {
 
@@ -31,8 +33,8 @@ func main() {
 	)
 
 	c.WithRPCHandler(keyValueRPC).
-		WithRPCHandler(serviceDiscoveryRPC)
-		// WithClientApplication(files)
+		WithRPCHandler(serviceDiscoveryRPC).
+		WithClientApplication(files)
 
 	defer c.Start()
 }
