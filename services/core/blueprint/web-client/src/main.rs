@@ -1,10 +1,12 @@
 use dioxus::prelude::*;
+use dioxus::logger::tracing::{Level, info};
+use std::env;
 
 mod views;
 mod components;
 
 use components::{NavbarMenuButton, NavbarIcon, NavbarSecondaryMenuButton};
-use views::{Home, KeyValue, ServiceRegistry, Metrics, PageNotFound};
+use views::{Home, KeyValueView, ServiceRegistry, Metrics, PageNotFound};
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
@@ -13,7 +15,7 @@ enum Route {
         #[route("/")]
         Home {},
         #[route("/key-val")]
-        KeyValue {},
+        KeyValueView {},
         #[route("/service-registry")]
         ServiceRegistry{},
         #[route("/metrics")]
@@ -28,15 +30,17 @@ enum Route {
     },
 }
 
+pub const API_DOMAIN: &str = env!("API_DOMAIN");
+
 fn main() {
+    dioxus::logger::init(Level::INFO).expect("logger failed to init");
+
     dioxus::launch(|| {
         rsx!{
             Router::<Route> {}
         }
     });
 }
-
-static BLUEPRINT_NAME: GlobalSignal<String> = Signal::global(|| "{blueprint}".to_string());
 
 fn DashboardLayout() -> Element {
     rsx! {
@@ -72,7 +76,8 @@ fn DashboardLayout() -> Element {
                     NavbarIcon {}
                     div {class: "divider", "style":  "margin: 0px 0px 0px 0px;"}
                     li {
-                        Link { to: Route::KeyValue {}, "Key/Value" }
+                        Link { class: "bg-base-300",
+                            to: Route::KeyValueView {}, "Key/Value" }
                     }
                     li {
                         Link { to: Route::ServiceRegistry {}, "Service Registry" }

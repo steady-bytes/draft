@@ -2,7 +2,7 @@ mod home;
 pub use home::Home;
 
 mod key_value;
-pub use key_value::KeyValue;
+pub use key_value::KeyValueView;
 
 mod service_registry;
 pub use service_registry::ServiceRegistry;
