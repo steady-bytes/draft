@@ -286,8 +286,10 @@ dependencies = [
  "dioxus",
  "dioxus-logger",
  "dotenv",
+ "once_cell",
  "reqwest",
  "serde",
+ "web-sys",
 ]
 
 [[package]]

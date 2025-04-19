@@ -1,5 +1,7 @@
 use dioxus::prelude::*;
 use dioxus::logger::tracing::{Level, info};
+use once_cell::sync::Lazy;
+use web_sys::window;
 use std::env;
 
 mod views;
@@ -30,7 +32,26 @@ enum Route {
     },
 }
 
-pub const API_DOMAIN: &str = env!("API_DOMAIN");
+fn get_domain() -> String {
+    let window = window().expect("no global `window` exists");
+    let location = window.location();
+    let host = location.origin().expect("failed to get origin");
+    host
+}
+
+pub static API_DOMAIN: Lazy<String> = Lazy::new(|| {
+    // Check if the API_DOMAIN environment variable is set
+    if let Some(api_domain) = option_env!("API_DOMAIN") {
+        info!("API_DOMAIN: {}", api_domain);
+        if api_domain.is_empty() {
+            return get_domain().to_string()
+        }
+
+        api_domain.to_string()
+    } else {
+        get_domain().to_string()
+    }
+});
 
 fn main() {
     dioxus::logger::init(Level::INFO).expect("logger failed to init");

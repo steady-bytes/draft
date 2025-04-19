@@ -1,13 +1,16 @@
 use std::fmt;
 use std::collections::HashMap;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use dioxus::prelude::*;
-use dioxus_logger::tracing::{Level, info};
+use dioxus_logger::tracing::{Level, debug, error};
 
 use crate::Route;
 use crate::API_DOMAIN;
 
-const PATH: &str = "/core.registry.key_value.v1.KeyValueService/List";
+pub static PATH: Lazy<String> = Lazy::new(|| {
+    "/core.registry.key_value.v1.KeyValueService/List".to_string()
+});
 
 #[component]
 pub fn KeyValueView() -> Element {
@@ -18,8 +21,10 @@ pub fn KeyValueView() -> Element {
     });
 
     let mut key_value = use_resource(move || async move {
+        let url = format!("{}{}", *API_DOMAIN, *PATH);
+        debug!("URL: {}", url);
         let response = reqwest::Client::new()
-            .post([API_DOMAIN, PATH].join(""))
+            .post(url)
             .json(&KeyValueListRequest {
                 value: QueryValue {
                     type_url: "type.googleapis.com/core.registry.key_value.v1.Value".to_string(),
@@ -28,6 +33,7 @@ pub fn KeyValueView() -> Element {
             .send()
             .await;
 
+            // TODO: Error handling
             match response {
                 Ok(resp) => {
                     let json = resp.json::<KeyValueListResponse>().await;
@@ -41,6 +47,7 @@ pub fn KeyValueView() -> Element {
                                 if let Some(pos) = new_key.find("type.googleapis.com/core.registry.key_value.v1.Value-") {
                                     new_key.replace_range(..pos + "type.googleapis.com/core.registry.key_value.v1.Value-".len(), "");
                                 }
+                                // info!("Key: {}", new_key);
                                 d.insert(new_key, val.clone());
                             });
 
@@ -115,6 +122,8 @@ struct KeyValueListResponse {
     values: HashMap<String, Value>,
 }
 
+// Implementing Display trait for KeyValueListResponse
+// so it can be printed in a readable format
 impl fmt::Display for KeyValueListResponse {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (key, value) in &self.values {
