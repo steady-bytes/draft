@@ -9,10 +9,6 @@ import (
 	"strings"
 )
 
-const (
-	webClientRoot = "web-client/dist"
-)
-
 // NOTE: the logic for serving a SPA is modified from the example here: https://github.com/gorilla/mux#serving-single-page-applications
 
 // spaHandler implements the http.Handler interface, so we can use it
@@ -65,7 +61,7 @@ func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.ServeFileFS(w, r, h.fileSystem, path)
 }
 
-func (c *Runtime) withClientApplication(e embed.FS) {
+func (c *Runtime) withClientApplication(e embed.FS, rootDir string) {
 	// Init and store the http multiplexer
 	if c.mux == nil {
 		c.mux = http.NewServeMux()
@@ -73,13 +69,13 @@ func (c *Runtime) withClientApplication(e embed.FS) {
 
 	spa := spaHandler{
 		indexPath:  "index.html",
-		fileSystem: c.getFileSystem(e),
+		fileSystem: c.getFileSystem(e, rootDir),
 	}
 	c.mux.Handle("/", spa)
 }
 
-func (c *Runtime) getFileSystem(e embed.FS) fs.FS {
-	fsys, err := fs.Sub(e, webClientRoot)
+func (c *Runtime) getFileSystem(e embed.FS, rootDir string) fs.FS {
+	fsys, err := fs.Sub(e, rootDir)
 	if err != nil {
 		panic(err)
 	}
