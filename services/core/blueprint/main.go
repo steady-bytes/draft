@@ -10,7 +10,7 @@ import (
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 )
 
-//go:embed web-client/dist/*
+//go:embed web-client/target/dx/blueprint-pwa/release/web/public
 var files embed.FS
 
 func main() {
@@ -32,8 +32,9 @@ func main() {
 		serviceDiscoveryRPC        = sd.NewRPC(logger, serviceDiscoveryController)
 	)
 
-	defer c.WithRPCHandler(keyValueRPC).
+	c.WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
-		WithClientApplication(files).
-		Start()
+		WithClientApplication(files, "web-client/target/dx/blueprint-pwa/release/web/public")
+
+	defer c.Start()
 }

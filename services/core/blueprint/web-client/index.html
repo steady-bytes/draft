@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html data-theme="black">
+  <head>
+    <title>{app_title}</title>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/{base_path}/public/sw.js");
+      }
+    </script>
+
+    <link rel="manifest" href="/{base_path}/public/manifest.json" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <div id="main"></div>
+  </body>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</html>

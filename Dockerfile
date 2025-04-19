@@ -2,23 +2,23 @@ ARG GO_VERSION=1.23
 ARG ALPINE_VERSION=3.18
 
 # Build web client (if needed)
-FROM node:18 AS web-client-builder
-WORKDIR /web
+# FROM node:18 AS web-client-builder
+# WORKDIR /web
 
-ARG DOMAIN
-ARG SERVICE
+# ARG DOMAIN
+# ARG SERVICE
 
 # Install node modules
-COPY ./services/${DOMAIN}/${SERVICE}/web-client/package*.json .
-RUN npm install
+# COPY ./services/${DOMAIN}/${SERVICE}/web-client/package*.json .
+# RUN npm install
 
 # Build dist
-COPY ./services/${DOMAIN}/${SERVICE}/web-client .
-ENV NODE_ENV=production
-RUN npm run build
+# COPY ./services/${DOMAIN}/${SERVICE}/web-client .
+# ENV NODE_ENV=production
+# RUN npm run build
 
 # Make sure dist directory exists even if there's no client to build
-RUN mkdir -p ./dist
+# RUN mkdir -p ./dist
 
 # Build final binary
 FROM golang:${GO_VERSION}-alpine AS go-builder
@@ -40,7 +40,7 @@ go mod verify
 
 # Copy over code
 COPY ./services/${DOMAIN}/${SERVICE} .
-COPY --from=web-client-builder /web/dist ./web-client/dist
+# COPY --from=web-client-builder /web/dist ./web-client/dist
 
 # Run tests
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \

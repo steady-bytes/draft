@@ -2,7 +2,8 @@ service:
   name: blueprint_1
   domain: core
   network:
-    port: 2221
+    bind_address: 0.0.0.0
+    bind_port: 2221
 
 raft:
   node-id: node_1
