@@ -81,8 +81,8 @@ func (c *Runtime) WithSecretStore(plugin SecretStore) *Runtime {
 	return c
 }
 
-func (c *Runtime) WithClientApplication(files embed.FS) *Runtime {
-	c.withClientApplication(files)
+func (c *Runtime) WithClientApplication(files embed.FS, rootDir string) *Runtime {
+	c.withClientApplication(files, rootDir)
 	return c
 }
 
