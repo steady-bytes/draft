@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html data-theme="black">
+  <head>
+    <title>{blueprint}</title>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/./public/sw.js");
+      }
+    </script>
+
+    <link rel="manifest" href="/./public/manifest.json" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+  <link rel="preload" as="script" href="/./assets/blueprint-pwa-26b188856e373044.js" crossorigin><link rel="preload" as="fetch" type="application/wasm" href="/./assets/blueprint-pwa_bg-626613b38704f6fd.wasm" crossorigin></head>
+  <body>
+    <div id="main"></div>
+  <script>
+            // We can't use a module script here because we need to start the script immediately when streaming
+            import("/./assets/blueprint-pwa-26b188856e373044.js").then(
+                ({ default: init }) => {
+                init("/./assets/blueprint-pwa_bg-626613b38704f6fd.wasm").then((wasm) => {
+                    if (wasm.__wbindgen_start == undefined) {
+                    wasm.main();
+                    }
+                });
+                }
+            );
+            </script>
+            
+            </body>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</html>
