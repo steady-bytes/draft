@@ -2,18 +2,17 @@ use dioxus::prelude::*;
 use dioxus::logger::tracing::{Level, info};
 use once_cell::sync::Lazy;
 use web_sys::window;
-use std::env;
 
 mod views;
 mod components;
 
-use components::{NavbarMenuButton, NavbarIcon, NavbarSecondaryMenuButton};
+use components::{navbar_menu_button, navbar_icon, navbar_secondary_menu_button};
 use views::{Home, KeyValueView, ServiceRegistry, Metrics, PageNotFound};
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
-    #[layout(DashboardLayout)]
+    #[layout(dashboard_layout)]
         #[route("/")]
         Home {},
         #[route("/key-val")]
@@ -63,7 +62,7 @@ fn main() {
     });
 }
 
-fn DashboardLayout() -> Element {
+fn dashboard_layout() -> Element {
     rsx! {
         div { class: "drawer lg:drawer-open",
             input { class: "drawer-toggle", id: "my-drawer", type: "checkbox" }
@@ -72,14 +71,14 @@ fn DashboardLayout() -> Element {
                 // navbar
                 div { class: "navbar bg-base-300 shadow-sm w-full",
                     div { class: "flex-none lg:hidden",
-                        NavbarMenuButton{}
+                        navbar_menu_button{}
                     }
                     div { class: "flex-1 lg:hidden",
-                        NavbarIcon {}
+                        navbar_icon{}
                     }
                     div{ class: "hidden flex-1 lg:block"}
                     div { class: "flex-none",
-                        NavbarSecondaryMenuButton {}
+                        navbar_secondary_menu_button {}
                     }
                 }
 
@@ -94,7 +93,7 @@ fn DashboardLayout() -> Element {
                 }
 
                 ul { class: "menu bg-base-200 min-h-full w-80 p-4",
-                    NavbarIcon {}
+                    navbar_icon{}
                     div {class: "divider", "style":  "margin: 0px 0px 0px 0px;"}
                     li {
                         Link { class: "bg-base-300",

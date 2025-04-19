@@ -1,9 +1,5 @@
 use dioxus::prelude::*;
 
-use crate::Route;
-
-use crate::components::Hero;
-
 #[component]
 pub fn PageNotFound(route: Vec<String>) -> Element {
     rsx! {

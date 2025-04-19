@@ -2,7 +2,7 @@
 
 It is also very much usable as a template for your projects, if you're aiming to create a PWA.
 
-## Try the example
+## Run Locally
 
 Make sure you have Dioxus CLI installed (if you're unsure, run `cargo install dioxus-cli --locked`).
 

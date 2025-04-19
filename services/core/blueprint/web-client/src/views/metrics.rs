@@ -1,4 +1,3 @@
-use crate::Route;
 use dioxus::prelude::*;
 
 // const METRICS_CSS: Asset = asset!("/assets/styling/metrics.css");

@@ -5,7 +5,7 @@ use crate::Route;
 
 static BLUEPRINT_NAME: GlobalSignal<String> = Signal::global(|| "{blueprint}".to_string());
 
-pub fn NavbarIcon() -> Element {
+pub fn navbar_icon() -> Element {
     rsx! {
         a { class: "btn btn-ghost text-xl",
             Link { to: Route::Home {}, "{BLUEPRINT_NAME}"},
@@ -13,7 +13,7 @@ pub fn NavbarIcon() -> Element {
     }
 }
 
-pub fn NavbarMenuButton() -> Element {
+pub fn navbar_menu_button() -> Element {
     rsx! {
         label {
             class: "btn btn-square btn-ghost drawer-button",
@@ -35,7 +35,7 @@ pub fn NavbarMenuButton() -> Element {
     }
 }
 
-pub fn NavbarSecondaryMenuButton() -> Element {
+pub fn navbar_secondary_menu_button() -> Element {
     rsx! {
         button { class: "btn btn-square btn-ghost",
             svg {

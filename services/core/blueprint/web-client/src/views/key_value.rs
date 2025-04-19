@@ -3,9 +3,8 @@ use std::collections::HashMap;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use dioxus::prelude::*;
-use dioxus_logger::tracing::{Level, debug, error};
+use dioxus_logger::tracing::debug;
 
-use crate::Route;
 use crate::API_DOMAIN;
 
 pub static PATH: Lazy<String> = Lazy::new(|| {
@@ -20,7 +19,9 @@ pub fn KeyValueView() -> Element {
         }
     });
 
-    let mut key_value = use_resource(move || async move {
+    // TODO: When adding a spinner, use the output from `use_resource` to show the spinner, display data, and handle the error
+    //       currently using the `use_signal` hook to show the data which is not the most efficient way
+    let _key_value = use_resource(move || async move {
         let url = format!("{}{}", *API_DOMAIN, *PATH);
         debug!("URL: {}", url);
         let response = reqwest::Client::new()
