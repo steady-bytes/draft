@@ -1,25 +1,34 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "name": "Blueprint",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "logo192.png",
+      "src": "logo_192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
+      "src": "logo_512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "logo_512.png",
+      "type": "image/png",
+      "sizes": "any",
+      "purpose": "any"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["window-control-overlay", "standalone"],
+  "scope": "/",
   "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "background_color": "#ffffff",
+  "short_name": "Blueprint",
+  "description": "Blueprint is a key-value store, and service registry for your distributed systems.",
+  "dir": "ltr",
+  "lang": "en",
+  "orientation": "portrait"
 }
