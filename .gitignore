@@ -10,7 +10,8 @@ tmp
 __debug_*
 
 node_modules
-target
+/services/core/blueprint/web-client/target/release/*
+/services/core/blueprint/web-client/target/wasm32-unknown-unknown/*
 main
 dist
 
