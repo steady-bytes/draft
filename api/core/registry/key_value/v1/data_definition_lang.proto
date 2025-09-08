@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package core.registry.key_value.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/registry/key_value/v1";
+
+import "google/protobuf/any.proto";
+import "validate/validate.proto";
+
+// Standard ID to be used in the whole system
+message ID {
+    // generated system uuid
+    string uuid = 1 [(validate.rules).string.uuid = true];
+}
+
+// Statement is the root node of the query. It's the entry point to the query system.
+message Statement {
+    // select * from `kind`
+    google.protobuf.Any kind = 1;
+    // The operation to perform on the `kind` object
+    Operation operation = 2;
+    // The `where` clause is used to filter the results of the query.
+    oneof Where {
+        // return all `kinds` - `select * from `courses`
+        bool is_all = 3;
+        // return a `kind` that matches the `ID` - `select * from courses where id = "123"
+        ID id = 4;
+        // return all `kind`'s that equal the key/value pairs fields
+        // `select * from courses where name = "Payne Stewart"`
+        Equal key_val = 5;
+    }
+}
+
+enum Operation {
+    // No operation is specified, this is the default value.
+    None = 0;
+    // Select is a query that can be used to search for specific objects in `blueprint`.
+    // A kind is supplied to the query and it can be used to return all objects of that kind.
+    // A singular `Where` clause is used to filter the results.
+    SELECT = 1; // `select * from `kind` where id = "123"`
+    DELETE = 2; // `delete from `kind` where id = "123"`
+    UPDATE = 3; // `update `kind` set name = "new name" where id = "123"`
+    INSERT = 4; // `insert into `kind` (name, description) values ("new name", "new description")`
+}
+
+message Equal {
+    // of the `Kind` being queried return the values that match the key/value pairs below
+    map<string, string> match = 1;
+}
