@@ -20,7 +20,7 @@ message Statement {
     // The operation to perform on the `kind` object
     Operation operation = 2;
     // The `where` clause is used to filter the results of the query.
-    oneof Where {
+    oneof where {
         // return all `kinds` - `select * from `courses`
         bool is_all = 3;
         // return a `kind` that matches the `ID` - `select * from courses where id = "123"
@@ -33,7 +33,7 @@ message Statement {
 
 enum Operation {
     // No operation is specified, this is the default value.
-    None = 0;
+    NONE = 0;
     // Select is a query that can be used to search for specific objects in `blueprint`.
     // A kind is supplied to the query and it can be used to return all objects of that kind.
     // A singular `Where` clause is used to filter the results.
