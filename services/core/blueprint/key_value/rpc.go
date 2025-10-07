@@ -55,7 +55,7 @@ func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*
 	_, err := h.controller.Set(log, key, value, 500*time.Millisecond)
 	if err != nil {
 		log.WithError(err).Error(ErrFailedSet.Error())
-		return nil, ErrFailedSet
+		return nil, connect.NewError(connect.CodeInternal, ErrFailedSet)
 	}
 
 	log.WithField("key", key).Debug("value saved")
@@ -75,7 +75,7 @@ func (h *rpc) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*
 	value, err := h.controller.Get(log, key, value)
 	if err != nil {
 		log.WithError(err).Error(ErrFailedGet.Error())
-		return nil, ErrFailedGet
+		return nil, connect.NewError(connect.CodeNotFound, ErrFailedGet)
 	}
 
 	return connect.NewResponse(&kvv1.GetResponse{
@@ -93,7 +93,7 @@ func (h *rpc) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteReques
 	err := h.controller.Delete(log, key, value)
 	if err != nil {
 		h.logger.WithError(err).Error(ErrFailedDelete.Error())
-		return nil, ErrFailedDelete
+		return nil, connect.NewError(connect.CodeInternal, ErrFailedDelete)
 	}
 
 	return connect.NewResponse(&kvv1.DeleteResponse{
@@ -110,7 +110,7 @@ func (h *rpc) List(ctx context.Context, req *connect.Request[kvv1.ListRequest]) 
 	valuesMap, err := h.controller.List(log, kind)
 	if err != nil {
 		log.WithError(err).Error(ErrFailedList.Error())
-		return nil, ErrFailedList
+		return nil, connect.NewError(connect.CodeNotFound, ErrFailedList)
 	}
 
 	return connect.NewResponse(&kvv1.ListResponse{
