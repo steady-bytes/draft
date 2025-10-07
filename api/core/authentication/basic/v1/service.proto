@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package core.authentication.basic.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/authentication/basic/v1";
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+// Entity the basic representation of a user or actor operating in the system with fields for
+// ID, username, password, email, and timestamps for creation and updates of the Entity values.
+// A combination of these fields uniquely identifies an entity within the system and allows for authentication.
+message Entity {
+    string id = 1;
+    string username = 2;
+    string password = 3;
+    string email = 4;
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
+}
+
+// Valid keys for looking up an entity
+enum LookupEntityKeys {
+    LOOKUP_ENTITY_KEY_UNSPECIFIED = 0;
+    LOOKUP_ENTITY_KEY_ID = 1;
+    LOOKUP_ENTITY_KEY_USERNAME = 2;
+    LOOKUP_ENTITY_KEY_EMAIL = 3;
+}
+
+// Session is time bound authentication token that is issued to a user upon successful login. It contains
+// the user ID, a unique token, and timestamps for when the session was created and when it expires.
+// The token is used to authenticate the user in subsequent requests, allowing them to access protected resources
+// without needing to re-enter their credentials.
+message Session {
+    string id = 1;
+    string user_id = 2;
+    string token = 3;
+    string refresh_token = 4;
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp expires_at = 6;
+}
