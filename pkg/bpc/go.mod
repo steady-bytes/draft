@@ -1,4 +1,4 @@
-module github.com/steady-bytes/bpc/pkg/blueprint_client
+module github.com/steady-bytes/draft/pkg/bpc
 
 go 1.24.0
 
