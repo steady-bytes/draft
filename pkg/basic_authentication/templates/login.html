@@ -1,0 +1,32 @@
+{{ define "title" }}Login{{ end }}
+
+{{ define "content" }}
+<div class="hero bg-base-200 min-h-screen">
+    <div class="hero-content text-center">
+        <div class="max-w-md">
+        <h1 class="text-5xl font-bold">Login</h1><br>
+
+        <form method="POST" action="/login">
+            <fieldset class="fieldset">
+                <input type="text" class="input" id="username" name="username" placeholder="hello@gmail.com">
+            </fieldset>
+
+            <fieldset class="fieldset">
+                <input type="password" class="input" id="password" name="password" placeholder="Password">
+            </fieldset>
+
+            <fieldset class="fieldset">
+                <label class="cursor-pointer label">
+                    <input type="checkbox" class="checkbox" id="remember-me" name="remember-me">
+                    <span class="label-text">Remember me</span>
+                </label>
+            </fieldset>
+
+            <br>
+
+            <button class="btn" type="submit">Login</button>
+        </form>
+        </div>
+    </div>
+</div>
+{{ end }}

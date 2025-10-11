@@ -1,0 +1,36 @@
+{{ define "title" }}Login{{ end }}
+
+{{ define "content" }}
+{{ if .IsAlreadyRegistered }}
+<div class="alert alert-error shadow-lg">
+    <div>
+        <span>User already exists. Please choose a different username.</span>
+    </div>
+</div>
+{{ end }}
+<div class="hero bg-base-200 min-h-screen">
+    <div class="hero-content text-center">
+        <div class="max-w-md">
+        <h1 class="text-5xl font-bold">Register</h1><br>
+
+        <form method="POST" action="/register">
+            <fieldset class="fieldset">
+                <input type="text" class="input" id="username" name="username" placeholder="hello@gmail.com">
+            </fieldset>
+
+            <fieldset class="fieldset">
+                <input type="password" class="input" id="password" name="password" placeholder="Password">
+            </fieldset>
+
+            <fieldset class="fieldset">
+                <input type="password" class="input" id="password-confirmation" name="password-confirmation" placeholder="Confirm Password">
+            </fieldset>
+
+            <br>
+
+            <button class="btn btn-success" type="submit">Register</button>
+        </form>
+        </div>
+    </div>
+</div>
+{{ end }}
