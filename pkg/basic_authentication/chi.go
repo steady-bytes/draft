@@ -13,11 +13,23 @@ import (
 )
 
 // RegisterDefaultAuthRoutes registers login/logout routes on the given router.
-func RegisterDefaultAuthRoutes(r chi.Router, handler BasicAuthenticationHandler) {
-	r.Get("/login", handler.RenderLoginPage)
-	r.Post("/login", handler.HandleLoginPost)
-	// r.Get("/logout", handler.HandleLogout)
-	// Add more routes as needed (register, forgot password, etc.)
+func RegisterDefaultAuthRoutes(r *chi.Mux, h BasicAuthenticationHandler) chi.Router {
+	// Public server side pages for registration and login
+	r.Get("/register", h.RenderRegistrationPage) // Register the registration handler
+	r.Get("/login", h.RenderLoginPage)           // Register the login handler
+
+	// Form submission handlers
+	r.Post("/register", h.HandleRegistrationPost) // Handle registration form submission
+	r.Post("/login", h.HandleLoginPost)           // Handle login form submission
+
+	// protected routes for logout and token refresh
+	r.Group(func(protected chi.Router) {
+		protected.Use(h.BasicAuthenticationMiddleware)       // Middleware to protect routes that require authentication
+		protected.Post("/logout", h.HandleLogoutPost)        // Handle logout requests
+		protected.Post("/refresh-token", h.RefreshAuthToken) // Handle token refresh requests
+	})
+
+	return r
 }
 
 func NewChiBasicAuthenticationHandler(logger chassis.Logger, controller BasicAuthentication) BasicAuthenticationHandler {

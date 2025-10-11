@@ -10,6 +10,11 @@ require (
 )
 
 require (
+	github.com/rogpeppe/go-internal v1.13.1 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
+)
+
+require (
 	connectrpc.com/connect v1.18.1
 	connectrpc.com/grpcreflect v1.2.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
