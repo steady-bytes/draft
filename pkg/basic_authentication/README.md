@@ -37,6 +37,14 @@ func NewHTTPHandler(logger chassis.Logger, controller CourseCreatorController, r
 		authHandler: authHandler,
 	}
 }
+
+// Implement the chassis.HTTPRegistrar interface for the HTTP handler
+func (h *httpHandler) RegisterHTTPHandlers(httpMux *http.ServeMux) {
+	httpMux.Handle(
+		"/",
+		ba.RegisterDefaultAuthRoutes(chi.NewRouter(), h.authHandler),
+	)
+}
 ```
 
 3. Call middleware in your routes
