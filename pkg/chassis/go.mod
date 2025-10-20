@@ -8,7 +8,6 @@ require (
 	connectrpc.com/connect v1.16.2
 	connectrpc.com/grpcreflect v1.2.0
 	github.com/cloudevents/sdk-go/binding/format/protobuf/v2 v2.15.0
-	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/hashicorp/raft v1.6.0
 	github.com/hashicorp/raft-boltdb/v2 v2.3.0
 	github.com/rs/cors v1.10.1
