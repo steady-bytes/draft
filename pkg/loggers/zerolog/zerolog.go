@@ -23,12 +23,14 @@ type (
 		logger zerolog.Logger
 		fields chassis.Fields
 		level  chassis.LogLevel
+		depth  int
 	}
 )
 
 func New() chassis.Logger {
 	return &logger{
 		fields: make(chassis.Fields),
+		depth: 2,
 	}
 }
 
@@ -70,6 +72,7 @@ func (l *logger) WithError(err error) chassis.Logger {
 		logger: (l.logger.With().Str("error", err.Error()).Logger()),
 		fields: l.fields,
 		level:  l.level,
+		depth: l.depth,
 	}
 }
 
@@ -92,6 +95,8 @@ func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
 	new := &logger{
 		logger: l.logger.With().Logger(),
 		fields: newFields,
+		level:  l.level,
+		depth: l.depth,
 	}
 	// append new fields
 	for key, value := range fields {
@@ -101,6 +106,11 @@ func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
 	}
 
 	return new
+}
+
+func (l *logger) WithCallDepth(depth int) chassis.Logger {
+	l.depth = depth
+	return l
 }
 
 // Implement `log.Logger` for `envoyproxy/go-control-plane/pkg/cache/v3`
@@ -148,6 +158,8 @@ func (l *logger) WrappedError(err error, msg string) {
 	n := &logger{
 		logger: l.logger,
 		fields: e.Fields(),
+		level:  l.level,
+		depth: l.depth,
 	}
 	for key, value := range e.Fields() {
 		n.logger = n.logger.With().Str(key, fmt.Sprintf("%v", value)).Logger()
@@ -165,7 +177,7 @@ func (l *logger) Panic(msg string) {
 }
 
 func (l *logger) correctFunctionName() *logger {
-	pc, _, _, ok := runtime.Caller(2)
+	pc, _, _, ok := runtime.Caller(l.depth)
 	if !ok {
 		return nil
 	}
@@ -173,6 +185,9 @@ func (l *logger) correctFunctionName() *logger {
 	functionName := fn[strings.LastIndex(fn, ".")+1:]
 	return &logger{
 		logger: l.logger.With().Str("function", functionName).Logger(),
+		fields: l.fields,
+		level:  l.level,
+		depth: l.depth,
 	}
 }
 
