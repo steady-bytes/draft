@@ -16,6 +16,7 @@ type (
 		NodeID() string
 		Title() string
 		Env() string
+		LogLevel() LogLevel
 		Reader
 		Writer
 		Entrypoint() string
@@ -116,6 +117,10 @@ func (c *config) Entrypoint() string {
 
 func (c *config) Env() string {
 	return c.GetString("service.env")
+}
+
+func (c *config) LogLevel() LogLevel {
+	return ParseLogLevel(c.GetString("service.logging.level"))
 }
 
 func GetConfig() Config {
