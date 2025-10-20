@@ -21,11 +21,14 @@ type (
 
 	logger struct {
 		entry *logrus.Entry
+		depth int
 	}
 )
 
 func New() chassis.Logger {
-	return &logger{}
+	return &logger{
+		depth: 2,
+	}
 }
 
 // TODO: need to rethink this. maybe add the hook to the interface: GetHook()?
@@ -56,8 +59,11 @@ func (l *logger) Start(config chassis.Config) {
 	l.entry.Logger.SetLevel(logrus.Level(chassis.ParseLogLevel(levelString)))
 }
 
-func newLogger(e *logrus.Entry) chassis.Logger {
-	return &logger{entry: e}
+func (l *logger) newLogger(e *logrus.Entry) chassis.Logger {
+	return &logger{
+		entry: e,
+		depth: l.depth,
+	}
 }
 
 func (l *logger) SetLevel(level chassis.LogLevel) {
@@ -73,15 +79,15 @@ func (l *logger) Wrap(err error) error {
 }
 
 func (l *logger) WithError(err error) chassis.Logger {
-	return newLogger(l.entry.WithError(err))
+	return l.newLogger(l.entry.WithError(err))
 }
 
 func (l *logger) WithContext(ctx context.Context) chassis.Logger {
-	return newLogger(l.entry.WithContext(ctx))
+	return l.newLogger(l.entry.WithContext(ctx))
 }
 
 func (l *logger) WithField(key string, value interface{}) chassis.Logger {
-	return newLogger(l.entry.WithField(key, value))
+	return l.newLogger(l.entry.WithField(key, value))
 }
 
 func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
@@ -89,35 +95,32 @@ func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
 	for index, element := range fields {
 		logrusFields[index] = element
 	}
-	return newLogger(l.entry.WithFields(logrusFields))
+	return l.newLogger(l.entry.WithFields(logrusFields))
 }
 
-// Implement `log.Logger` for `envoyproxy/go-control-plane/pkg/cache/v3`
-// go-control-plane has it's own logger interface that needs to be implemented for logging
-// to work correctly
+func (l *logger) WithCallDepth(depth int) chassis.Logger {
+	l.depth = depth
+	return l
+}
 
-// dropping the args parameter for now, as it is not used
 func (l *logger) Debugf(msg string, args ...any) {
-	l.correctFunctionName().entry.Debug(msg)
+	l.correctFunctionName().entry.Debugf(msg, args...)
 }
 
-// dropping the args parameter for now, as it is not used
 func (l *logger) Infof(msg string, args ...any) {
-	l.correctFunctionName().entry.Info(msg)
+	l.correctFunctionName().entry.Infof(msg, args...)
 }
 
-// dropping the args parameter for now, as it is not used
 func (l *logger) Warnf(msg string, args ...any) {
-	l.correctFunctionName().entry.Warn(msg)
+	l.correctFunctionName().entry.Warnf(msg, args...)
 }
 
-// dropping the args parameter for now, as it is not used
 func (l *logger) Errorf(msg string, args ...any) {
-	l.correctFunctionName().entry.Error(msg)
+	l.correctFunctionName().entry.Errorf(msg, args...)
 }
 
 func (l *logger) WithTime(t time.Time) chassis.Logger {
-	return newLogger(l.entry.WithTime(t))
+	return l.newLogger(l.entry.WithTime(t))
 }
 
 func (l *logger) Trace(msg string) {
@@ -154,7 +157,7 @@ func (l *logger) Panic(msg string) {
 }
 
 func (l *logger) correctFunctionName() *logger {
-	pc, _, _, ok := runtime.Caller(2)
+	pc, _, _, ok := runtime.Caller(l.depth)
 	if !ok {
 		return nil
 	}

@@ -1,16 +1,13 @@
 module github.com/steady-bytes/draft/pkg/loggers
 
-go 1.21.3
+go 1.25.3
 
-// replace (
-// 	github.com/steady-bytes/draft/api => ../../api
-// 	github.com/steady-bytes/draft/pkg/chassis => ../chassis
-// )
+// replace github.com/steady-bytes/draft/pkg/chassis => ../chassis
 
 require (
 	github.com/rs/zerolog v1.32.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/steady-bytes/draft/pkg/chassis v0.2.0
+	github.com/steady-bytes/draft/pkg/chassis v0.6.1
 )
 
 require (
@@ -19,7 +16,6 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/cloudevents/sdk-go/binding/format/protobuf/v2 v2.15.0 // indirect
-	github.com/envoyproxy/go-control-plane v0.12.0 // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
@@ -42,7 +38,7 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/steady-bytes/draft/api v0.0.2 // indirect
+	github.com/steady-bytes/draft/api v1.0.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
