@@ -52,6 +52,9 @@ type Logger interface {
 	WithField(key string, value any) Logger
 	// WithFields - Add a map of fields to the logger.
 	WithFields(fields Fields) Logger
+	// WithCallDepth - Configures the number of frames to skip on the stack when determining the function name of the caller.
+	// Useful when wrapping the Logger interface for compatability with other logging interfaces.
+	WithCallDepth(depth int) Logger
 	// Trace - Definition:
 	// "Seriously, WTF is going on here?!?!
 	// I need to log every single statement I execute to find this @#$@ing memory corruption bug before I go insane"
