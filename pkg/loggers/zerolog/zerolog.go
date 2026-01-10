@@ -3,6 +3,7 @@ package zerolog
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"runtime"
 	"strings"
@@ -88,9 +89,7 @@ func (l *logger) WithField(key string, value any) chassis.Logger {
 func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
 	newFields := make(chassis.Fields, len(l.fields)+len(fields))
 	// copy old fields
-	for k, v := range l.fields {
-		newFields[k] = v
-	}
+	maps.Copy(newFields, l.fields)
 	// copy old logger
 	new := &logger{
 		logger: l.logger.With().Logger(),
@@ -102,7 +101,6 @@ func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
 	for key, value := range fields {
 		str := fmt.Sprintf("%v", value)
 		new.fields[key] = str
-		new.logger = new.logger.With().Str(key, str).Logger()
 	}
 
 	return new
@@ -117,40 +115,40 @@ func (l *logger) WithCallDepth(depth int) chassis.Logger {
 // go-control-plane has it's own logger interface that needs to be implemented for logging
 // to work correctly
 func (l *logger) Debugf(format string, args ...any) {
-	l.correctFunctionName().logger.Debug().Msgf(format, args...)
+	l.correctFunctionName().logger.Debug().Fields(l.fields).Msgf(format, args...)
 }
 
 func (l *logger) Infof(format string, args ...any) {
-	l.correctFunctionName().logger.Info().Msgf(format, args...)
+	l.correctFunctionName().logger.Info().Fields(l.fields).Msgf(format, args...)
 }
 
 func (l *logger) Warnf(format string, args ...any) {
-	l.correctFunctionName().logger.Warn().Msgf(format, args...)
+	l.correctFunctionName().logger.Warn().Fields(l.fields).Msgf(format, args...)
 }
 
 func (l *logger) Errorf(format string, args ...any) {
-	l.correctFunctionName().logger.Error().Msgf(format, args...)
+	l.correctFunctionName().logger.Error().Fields(l.fields).Msgf(format, args...)
 }
 
 // Default `draft.Logger` interface implementations
 func (l *logger) Trace(msg string) {
-	l.correctFunctionName().logger.Trace().Msg(msg)
+	l.correctFunctionName().logger.Trace().Fields(l.fields).Msg(msg)
 }
 
 func (l *logger) Debug(msg string) {
-	l.correctFunctionName().logger.Debug().Msg(msg)
+	l.correctFunctionName().logger.Debug().Fields(l.fields).Msg(msg)
 }
 
 func (l *logger) Info(msg string) {
-	l.correctFunctionName().logger.Info().Msg(msg)
+	l.correctFunctionName().logger.Info().Fields(l.fields).Msg(msg)
 }
 
 func (l *logger) Warn(msg string) {
-	l.correctFunctionName().logger.Warn().Msg(msg)
+	l.correctFunctionName().logger.Warn().Fields(l.fields).Msg(msg)
 }
 
 func (l *logger) Error(msg string) {
-	l.correctFunctionName().logger.Error().Msg(msg)
+	l.correctFunctionName().logger.Error().Fields(l.fields).Msg(msg)
 }
 
 func (l *logger) WrappedError(err error, msg string) {
@@ -165,15 +163,15 @@ func (l *logger) WrappedError(err error, msg string) {
 		n.logger = n.logger.With().Str(key, fmt.Sprintf("%v", value)).Logger()
 	}
 	n.logger = n.logger.With().Str("error", e.Error()).Logger()
-	n.correctFunctionName().logger.Error().Msg(msg)
+	n.correctFunctionName().logger.Error().Fields(l.fields).Msg(msg)
 }
 
 func (l *logger) Fatal(msg string) {
-	l.correctFunctionName().logger.Fatal().Msg(msg)
+	l.correctFunctionName().logger.Fatal().Fields(l.fields).Msg(msg)
 }
 
 func (l *logger) Panic(msg string) {
-	l.correctFunctionName().logger.Panic().Msg(msg)
+	l.correctFunctionName().logger.Panic().Fields(l.fields).Msg(msg)
 }
 
 func (l *logger) correctFunctionName() *logger {
