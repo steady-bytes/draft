@@ -89,14 +89,19 @@ func (l *logger) WithField(key string, value any) chassis.Logger {
 }
 
 func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
-	new := &logger{
+	// deep copy old fields so we don't modify parent
+	fCopy := chassis.Fields{}
+	maps.Copy(fCopy, l.fields)
+	// add new fields to copy
+	maps.Copy(fCopy, fields)
+	// deep copy old logger with new fields
+	lCopy := &logger{
 		logger: l.logger.With().Logger(),
-		fields: l.fields,
+		fields: fCopy,
 		level:  l.level,
 		depth:  l.depth,
 	}
-	maps.Copy(new.fields, fields)
-	return new
+	return lCopy
 }
 
 func (l *logger) WithCallDepth(depth int) chassis.Logger {
