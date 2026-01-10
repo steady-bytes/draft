@@ -22,7 +22,9 @@ type (
 
 	logger struct {
 		logger zerolog.Logger
-		fields chassis.Fields
+		// this is really chassis.Fields but we can't use the alias because
+		// zerolog field mapping will get confused as it does a strict type check
+		fields map[string]any
 		level  chassis.LogLevel
 		depth  int
 	}
@@ -31,7 +33,7 @@ type (
 func New() chassis.Logger {
 	return &logger{
 		fields: make(chassis.Fields),
-		depth: 2,
+		depth:  2,
 	}
 }
 
@@ -73,7 +75,7 @@ func (l *logger) WithError(err error) chassis.Logger {
 		logger: (l.logger.With().Str("error", err.Error()).Logger()),
 		fields: l.fields,
 		level:  l.level,
-		depth: l.depth,
+		depth:  l.depth,
 	}
 }
 
@@ -87,22 +89,13 @@ func (l *logger) WithField(key string, value any) chassis.Logger {
 }
 
 func (l *logger) WithFields(fields chassis.Fields) chassis.Logger {
-	newFields := make(chassis.Fields, len(l.fields)+len(fields))
-	// copy old fields
-	maps.Copy(newFields, l.fields)
-	// copy old logger
 	new := &logger{
 		logger: l.logger.With().Logger(),
-		fields: newFields,
+		fields: l.fields,
 		level:  l.level,
-		depth: l.depth,
+		depth:  l.depth,
 	}
-	// append new fields
-	for key, value := range fields {
-		str := fmt.Sprintf("%v", value)
-		new.fields[key] = str
-	}
-
+	maps.Copy(new.fields, fields)
 	return new
 }
 
@@ -157,7 +150,7 @@ func (l *logger) WrappedError(err error, msg string) {
 		logger: l.logger,
 		fields: e.Fields(),
 		level:  l.level,
-		depth: l.depth,
+		depth:  l.depth,
 	}
 	for key, value := range e.Fields() {
 		n.logger = n.logger.With().Str(key, fmt.Sprintf("%v", value)).Logger()
@@ -185,7 +178,7 @@ func (l *logger) correctFunctionName() *logger {
 		logger: l.logger.With().Str("function", functionName).Logger(),
 		fields: l.fields,
 		level:  l.level,
-		depth: l.depth,
+		depth:  l.depth,
 	}
 }
 
