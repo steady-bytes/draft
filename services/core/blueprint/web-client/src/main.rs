@@ -5,9 +5,10 @@ use web_sys::window;
 
 mod views;
 mod components;
+mod grpc_client;
 
 use components::{navbar_menu_button, navbar_icon, navbar_secondary_menu_button};
-use views::{Home, KeyValueView, ServiceRegistry, Metrics, PageNotFound};
+use views::{Home, KeyValueView, ServiceRegistry, CronJobs, LLM, InnerLoop, OuterLoop, Memory, Workflows, Agents, Skills, Specs, KnowledgeResources, Gateway, Webhooks, Logs, Metrics, PageNotFound};
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
@@ -19,6 +20,32 @@ enum Route {
         KeyValueView {},
         #[route("/service-registry")]
         ServiceRegistry{},
+        #[route("/cron-jobs")]
+        CronJobs{},
+        #[route("/llm")]
+        LLM{},
+        #[route("/inner-loop")]
+        InnerLoop{},
+        #[route("/outer-loop")]
+        OuterLoop{},
+        #[route("/memory")]
+        Memory{},
+        #[route("/workflows")]
+        Workflows{},
+        #[route("/agents")]
+        Agents{},
+        #[route("/skills")]
+        Skills{},
+        #[route("/specs")]
+        Specs{},
+        #[route("/knowledge-resources")]
+        KnowledgeResources{},
+        #[route("/gateway")]
+        Gateway{},
+        #[route("/webhooks")]
+        Webhooks{},
+        #[route("/logs")]
+        Logs{},
         #[route("/metrics")]
         Metrics{},
         // end dashboard layout, all routes above will be wrapped in this layout
@@ -63,6 +90,12 @@ fn main() {
 }
 
 fn dashboard_layout() -> Element {
+    let mut control_open = use_signal(|| false);
+    let mut automata_open = use_signal(|| false);
+    let mut projects_open = use_signal(|| false);
+    let mut settings_open = use_signal(|| false);
+    let mut brain_open = use_signal(|| false);
+
     rsx! {
         div { class: "drawer lg:drawer-open",
             input { class: "drawer-toggle", id: "my-drawer", type: "checkbox" }
@@ -96,14 +129,105 @@ fn dashboard_layout() -> Element {
                     navbar_icon{}
                     div {class: "divider", "style":  "margin: 0px 0px 0px 0px;"}
                     li {
-                        Link { class: "bg-base-300",
-                            to: Route::KeyValueView {}, "Key/Value" }
+                        button {
+                            class: "font-bold",
+                            onclick: move |_| control_open.toggle(),
+                            "Control"
+                        }
+                        if control_open() {
+                            ul {
+                                li {
+                                    Link { to: Route::ServiceRegistry {}, "Service Registry" }
+                                }
+
+                                li {
+                                    Link { to: Route::CronJobs {}, "Jobs" }
+                                }
+
+                                li {
+                                    button {
+                                        class: "w-full text-left",
+                                        onclick: move |_| brain_open.toggle(),
+                                        "Brain"
+                                    }
+                                    if brain_open() {
+                                        ul {
+                                            li {
+                                                Link { to: Route::InnerLoop {}, "Inner Loop (subconscious)" }
+                                            }
+                                            li {
+                                                Link { to: Route::OuterLoop {}, "Outer Loop (conscious)" }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                li {
+                                    Link { to: Route::Memory {}, "Memory" }
+                                }
+
+                                li {
+                                    Link { to: Route::KnowledgeResources {}, "Knowledge" }
+                                }
+                            }
+                        }
                     }
                     li {
-                        Link { to: Route::ServiceRegistry {}, "Service Registry" }
+                        button {
+                            class: "font-bold",
+                            onclick: move |_| automata_open.toggle(),
+                            "Automata"
+                        }
+                        if automata_open() {
+                            ul {
+                                li {
+                                    Link { to: Route::Agents {}, "Agents" }
+                                }
+                                li {
+                                    Link { to: Route::Workflows {}, "Workflows" }
+                                }
+                                li {
+                                    Link { to: Route::Skills {}, "Skills" }
+                                }
+                            }
+                        }
                     }
                     li {
-                        Link { to: Route::Metrics {}, "Metrics" }
+                        button {
+                            class: "font-bold",
+                            onclick: move |_| projects_open.toggle(),
+                            "Projects"
+                        }
+                        if projects_open() {
+                            ul {
+                                li {
+                                    Link { to: Route::Specs {}, "Specs" }
+                                }
+                            }
+                        }
+                    }
+                    li {
+                        button {
+                            class: "font-bold",
+                            onclick: move |_| settings_open.toggle(),
+                            "Settings"
+                        }
+                        if settings_open() {
+                            ul {
+                                li {
+                                    Link { to: Route::KeyValueView { }, "Key/Value View" }
+                                }
+                                li {
+                                    Link { to: Route::Gateway {}, "Gateway" }
+                                }
+                                li {
+                                    Link { to: Route::Webhooks {}, "Webhooks" }
+                                }
+                                li {
+                                    Link { to: Route::Logs {}, "Logs" }
+                                }
+                            }
+                        }
                     }
                 }
             }

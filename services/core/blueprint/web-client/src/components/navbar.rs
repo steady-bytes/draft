@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 
 use crate::Route;
 
-
 static BLUEPRINT_NAME: GlobalSignal<String> = Signal::global(|| "{blueprint}".to_string());
 
 pub fn navbar_icon() -> Element {

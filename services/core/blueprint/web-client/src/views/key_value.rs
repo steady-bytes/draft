@@ -1,11 +1,11 @@
-use std::fmt;
 use std::collections::HashMap;
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
 
-use crate::API_DOMAIN;
+// Import gRPC hook and types
+use crate::grpc_client::KeyValueServiceHook;
+use draft_api::ListRequest;
+use draft_api::prost_types::Any;
 
 pub static PATH: Lazy<String> = Lazy::new(|| {
     "/core.registry.key_value.v1.KeyValueService/List".to_string()
@@ -13,59 +13,21 @@ pub static PATH: Lazy<String> = Lazy::new(|| {
 
 #[component]
 pub fn KeyValueView() -> Element {
-    let mut list = use_signal(|| {
-        KeyValueListResponse {
-            values: HashMap::new(),
+    // Create the gRPC list request with empty value filter
+    let mut list_request = use_signal(|| {
+        ListRequest {
+            value: Some(Any {
+                type_url: "type.googleapis.com/core.registry.key_value.v1.Value".to_string(),
+                value: vec![],
+            }),
         }
     });
 
-    // TODO: When adding a spinner, use the output from `use_resource` to show the spinner, display data, and handle the error
-    //       currently using the `use_signal` hook to show the data which is not the most efficient way
-    let _key_value = use_resource(move || async move {
-        let url = format!("{}{}", *API_DOMAIN, *PATH);
-        debug!("URL: {}", url);
-        let response = reqwest::Client::new()
-            .post(url)
-            .json(&KeyValueListRequest {
-                value: QueryValue {
-                    type_url: "type.googleapis.com/core.registry.key_value.v1.Value".to_string(),
-                },
-            })
-            .send()
-            .await;
+    // Initialize the gRPC service hook
+    let service = KeyValueServiceHook::new();
 
-            // TODO: Error handling
-            match response {
-                Ok(resp) => {
-                    let json = resp.json::<KeyValueListResponse>().await;
-                    match json {
-                        Ok(data) => {
-                            let mut d = HashMap::new();
-                            // iterate over the values and remove the key type prefix
-                            // (type.googleapis.com/core.registry.key_value.v1.Value-)
-                            data.values.iter().for_each(|(key, val)| {
-                                let mut new_key = key.clone();
-                                if let Some(pos) = new_key.find("type.googleapis.com/core.registry.key_value.v1.Value-") {
-                                    new_key.replace_range(..pos + "type.googleapis.com/core.registry.key_value.v1.Value-".len(), "");
-                                }
-                                // info!("Key: {}", new_key);
-                                d.insert(new_key, val.clone());
-                            });
-
-                            list.set(KeyValueListResponse {
-                                values: d,
-                            });
-
-                            Ok(())
-                        },
-                        // Error so we need to render something on the screen (Maybe some popup)
-                        Err(err) => Err(format!("Failed to parse JSON: {}", err)),
-                    }
-                }
-                // Error so we need to render something on the screen (Maybe some popup)
-                Err(err) => Err(format!("Failed to fetch data: {}", err)),
-            }
-    });
+    // Use the hook to make the gRPC call
+    let list_result = service.list(list_request);
 
     rsx! {
         div {
@@ -80,12 +42,51 @@ pub fn KeyValueView() -> Element {
                         }
                     }
                     tbody {
-                        for (key, val) in list().values.iter() {
-                            tr { class: "hover:bg-base-300",
-                                td { "{key}" }
-                                td { "{val.data}" }
-                                td { "{val.type_url}" }
-                            }
+                        match &*list_result.read() {
+                            Some(Ok(response)) => {
+                                let values = response
+                                    .get("values")
+                                    .and_then(|v| v.as_object())
+                                    .map(|m| m.clone())
+                                    .unwrap_or_default();
+                                rsx! {
+                                    {
+                                        values.iter().map(|(key, val)| {
+                                            let type_url = val
+                                                .get("typeUrl")
+                                                .and_then(|v| v.as_str())
+                                                .unwrap_or("")
+                                                .to_string();
+                                            let data = val
+                                                .get("value")
+                                                .and_then(|v| v.as_str())
+                                                .unwrap_or("")
+                                                .to_string();
+                                            rsx! {
+                                                tr { class: "hover:bg-base-300",
+                                                    td { "{key}" }
+                                                    td { "{data}" }
+                                                    td { "{type_url}" }
+                                                }
+                                            }
+                                        })
+                                    }
+                                }
+                            },
+                            Some(Err(err)) => rsx! {
+                                tr {
+                                    td { colspan: "3", class: "text-center text-red-500",
+                                        "Error: {err}"
+                                    }
+                                }
+                            },
+                            None => rsx! {
+                                tr {
+                                    td { colspan: "3", class: "text-center",
+                                        "Loading..."
+                                    }
+                                }
+                            },
                         }
                     }
                     tfoot {
@@ -99,44 +100,4 @@ pub fn KeyValueView() -> Element {
             }
         }
     }
-}
-
-/// curl:
-/// curl --header "Content-Type: application/json" \
-/// --data '{"value": {"type_url": "type.googleapis.com/core.registry.key_value.v1.Value"}}' \
-/// http://localhost:2221/core.registry.key_value.v1.KeyValueService/List
-///
-/// RES: {"value": {"type_url": "type.googleapis.com/core.registry.key_value.v1.Value"}}
-#[derive(Serialize, Deserialize)]
-struct KeyValueListRequest {
-    value: QueryValue,
-}
-
-#[derive(Serialize, Deserialize )]
-struct QueryValue {
-    type_url: String
-}
-
-/// Response from the server
-#[derive(Serialize, Deserialize, Clone)]
-struct KeyValueListResponse {
-    values: HashMap<String, Value>,
-}
-
-// Implementing Display trait for KeyValueListResponse
-// so it can be printed in a readable format
-impl fmt::Display for KeyValueListResponse {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (key, value) in &self.values {
-            writeln!(f, "Key: {}\nType URL: {}\nData: {}\n", key, value.type_url, value.data)?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct Value {
-    #[serde(rename = "@type")]
-    type_url: String,
-    data: String,
 }

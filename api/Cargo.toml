@@ -1,0 +1,20 @@
+[package]
+name = "draft-api"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+prost = "0.12"
+prost-types = "0.12"
+tonic = { version = "0.11", optional = true }
+tonic-web = { version = "0.11", optional = true }
+
+[features]
+default = []
+server = ["tonic", "tonic-web"]
+
+[build-dependencies]
+tonic-build = "0.11"
+prost-build = "0.12"
+dioxus-grpc = "0.0.4"
