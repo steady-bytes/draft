@@ -1,15 +1,16 @@
 use std::collections::HashMap;
 use once_cell::sync::Lazy;
 use dioxus::prelude::*;
+use dioxus::logger::tracing::info;
 
 // Import gRPC hook and types
 use crate::grpc_client::KeyValueServiceHook;
 use draft_api::ListRequest;
 use draft_api::prost_types::Any;
 
-pub static PATH: Lazy<String> = Lazy::new(|| {
-    "/core.registry.key_value.v1.KeyValueService/List".to_string()
-});
+// pub static PATH: Lazy<String> = Lazy::new(|| {
+//     "/core.registry.key_value.v1.KeyValueService/List".to_string()
+// });
 
 #[component]
 pub fn KeyValueView() -> Element {
@@ -17,7 +18,7 @@ pub fn KeyValueView() -> Element {
     let mut list_request = use_signal(|| {
         ListRequest {
             value: Some(Any {
-                type_url: "type.googleapis.com/core.registry.key_value.v1.Value".to_string(),
+                type_url: "".to_string(),
                 value: vec![],
             }),
         }
@@ -44,33 +45,38 @@ pub fn KeyValueView() -> Element {
                     tbody {
                         match &*list_result.read() {
                             Some(Ok(response)) => {
+                                // Log the complete response
+                                info!("List endpoint response: {}", serde_json::to_string_pretty(&response).unwrap_or_default());
+
                                 let values = response
                                     .get("values")
                                     .and_then(|v| v.as_object())
                                     .map(|m| m.clone())
                                     .unwrap_or_default();
                                 rsx! {
-                                    {
-                                        values.iter().map(|(key, val)| {
-                                            let type_url = val
-                                                .get("typeUrl")
-                                                .and_then(|v| v.as_str())
-                                                .unwrap_or("")
-                                                .to_string();
-                                            let data = val
-                                                .get("value")
-                                                .and_then(|v| v.as_str())
-                                                .unwrap_or("")
-                                                .to_string();
-                                            rsx! {
-                                                tr { class: "hover:bg-base-300",
-                                                    td { "{key}" }
-                                                    td { "{data}" }
-                                                    td { "{type_url}" }
+                                        {
+                                            values.iter().map(|(key, val)| {
+                                                let type_url = val
+                                                    .get("typeUrl")
+                                                    .and_then(|v| v.as_str())
+                                                    .unwrap_or("")
+                                                    .to_string();
+
+                                                let data = val
+                                                    .get("value")
+                                                    .and_then(|v| v.as_str())
+                                                    .unwrap_or("")
+                                                    .to_string();
+
+                                                rsx! {
+                                                    tr { class: "hover:bg-base-300",
+                                                        td { "{key}" }
+                                                        td { "{data}" }
+                                                        td { "{type_url}" }
+                                                    }
                                                 }
-                                            }
-                                        })
-                                    }
+                                            })
+                                        }
                                 }
                             },
                             Some(Err(err)) => rsx! {

@@ -50,7 +50,7 @@ fn main() {
             &[proto_root],
             &Some(&out_path),
             None,
-            "http://localhost:3000",
+            "http://localhost:50051",
         )
         .unwrap();
     }
