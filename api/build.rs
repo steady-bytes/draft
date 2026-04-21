@@ -1,58 +1,68 @@
-use std::path::PathBuf;
+use std::io::Result;
 
-fn main() {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    let proto_root = PathBuf::from(&manifest_dir);
-    let out_dir = PathBuf::from(&manifest_dir).join("src/pb");
+fn main() -> Result<()> {
+    let current_dir = std::env::current_dir()?.to_str().expect("build.rs").to_string();
+    let proto_out_dir = format!("{current_dir}/src/proto");
+    let hook_out_dir = format!("{current_dir}/src/hook");
 
-    // Create pb directory if it doesn't exist
-    std::fs::create_dir_all(&out_dir).unwrap();
+    let protos_to_compile: Vec<_> = std::fs::read_dir("./core/registry/key_value/v1/")?
+        .flatten()
+        .filter(|entry| {
+            entry.path().extension().map(|ext| ext == "proto").unwrap_or(false)
+        })
+        .filter(|entry| entry.path().is_file())
+        .map(|entry| entry.path())
+        .collect();
 
-    let proto_files = vec![
-        proto_root.join("core/registry/key_value/v1/service.proto"),
-        proto_root.join("core/registry/key_value/v1/models.proto"),
-    ];
+    tonic_prost_build::configure()
+        .out_dir(&proto_out_dir)
+        .build_server(false)
+        .build_client(true)
+        .build_transport(false)
+        .compile_protos(&protos_to_compile, &["./core/".into()])?;
 
-    let mut prost_build = prost_build::Config::new();
-    prost_build.out_dir(&out_dir);
+    // Generate proto/mod.rs by discovering tonic-build's actual output files.
+    // tonic-build names outputs by proto package (e.g. core.registry.key_value.v1.rs), not by
+    // source filename, so we discover what was generated rather than deriving from source names.
+    // Module names replace dots with underscores since dots are invalid in Rust identifiers.
+    let proto_mod_content = std::fs::read_dir(&proto_out_dir)?
+        .flatten()
+        .filter(|e| {
+            let name = e.file_name().into_string().unwrap_or_default();
+            name.ends_with(".rs") && name != "mod.rs"
+        })
+        .fold(String::new(), |acc, entry| {
+            let name = entry.file_name().into_string().unwrap_or_default();
+            let module_name = name.replace(".rs", "").replace('.', "_");
+            acc + &format!("#[path = \"./{name}\"]\npub mod {module_name};\n")
+        });
+    std::fs::write(format!("{proto_out_dir}/mod.rs"), proto_mod_content)?;
 
-    // Only compile with tonic for server feature (not WASM)
-    #[cfg(feature = "server")]
-    {
-        tonic_build::configure()
-            .compile_with_config(
-                prost_build,
-                &proto_files,
-                &[proto_root.to_string_lossy().to_string()],
-            )
-            .unwrap();
+    // Remove stale hook files before regenerating so deleted services don't linger.
+    for entry in std::fs::read_dir(&hook_out_dir)?.flatten() {
+        if entry.file_name().to_str().map(|n| n.ends_with(".dx.rs")).unwrap_or(false) {
+            std::fs::remove_file(entry.path())?;
+        }
     }
 
-    // For WASM or when not using server feature, generate messages only
-    #[cfg(not(feature = "server"))]
-    {
-        prost_build
-            .compile_protos(
-                &proto_files,
-                &[proto_root.to_string_lossy().to_string()],
-            )
-            .unwrap();
-    }
+    dioxus_grpc::generate_hooks(
+        &protos_to_compile,
+        &["./core/"],
+        &Some(hook_out_dir.as_str()),
+        Some("crate::proto"),
+        "http://127.0.0.1:2221",
+    )?;
 
-    // Generate dioxus-grpc hooks for web in OUT_DIR
-    #[cfg(feature = "server")]
-    {
-        let out_dir_str = std::env::var("OUT_DIR").expect("OUT_DIR not set");
-        let out_path = PathBuf::from(&out_dir_str);
+    // Generate hook/mod.rs from the .dx.rs files written above.
+    let hook_mod_content = std::fs::read_dir(&hook_out_dir)?
+        .flatten()
+        .filter(|e| e.file_name().to_str().map(|n| n.ends_with(".dx.rs")).unwrap_or(false))
+        .fold(String::new(), |acc, entry| {
+            let name = entry.file_name().into_string().unwrap_or_default();
+            let module_name = name.replace(".dx.rs", "").replace('.', "_");
+            acc + &format!("#[path = \"./{name}\"]\npub mod {module_name};\n")
+        });
+    std::fs::write(format!("{hook_out_dir}/mod.rs"), hook_mod_content)?;
 
-        dioxus_grpc::generate_hooks(
-            &proto_files,
-            &[proto_root],
-            &Some(&out_path),
-            None,
-            "http://localhost:50051",
-        )
-        .unwrap();
-    }
+    Ok(())
 }
-
