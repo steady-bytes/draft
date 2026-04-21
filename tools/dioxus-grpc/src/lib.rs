@@ -29,23 +29,12 @@ pub fn generate_hooks<P: AsRef<Path>, P2: AsRef<Path>, P3: AsRef<Path>>(
         let rust_pkg_name = pkg_name.replace('.', "_");
 
         let mut str = format!(
-            "
-            {mod_prost}
-            pub use proto::*;
-            use ::dioxus::prelude::*;
-            ",
+            "{mod_prost}\npub use proto::*;\nuse ::dioxus::prelude::*;\n",
             mod_prost = if let Some(mod_path) = prost_mod {
-                format!(
-                    "mod proto {{
-                        pub use {mod_path}::{rust_pkg_name}::*;
-                    }}"
-                )
+                format!("mod proto {{\n    pub use {mod_path}::{rust_pkg_name}::*;\n}}")
             } else {
                 format!(
-                    r#"
-                    #[path = "{out_dir}/{pkg_name}.rs"]
-                    mod proto;
-                    "#,
+                    "#[path = \"{out_dir}/{pkg_name}.rs\"]\nmod proto;",
                     out_dir = std::env::var("OUT_DIR").expect("build.rs"),
                 )
             },
@@ -61,15 +50,7 @@ pub fn generate_hooks<P: AsRef<Path>, P2: AsRef<Path>, P3: AsRef<Path>>(
 
             write!(
                 str,
-                "
-                pub struct {service_name}ServiceHook{tonic_client_ty};
-
-                pub fn use_{service_name_lowercase}_service() -> {service_name}ServiceHook {{
-                    {service_name}ServiceHook{new_tonic_client}
-                }}
-
-                impl {service_name}ServiceHook {{
-                ",
+                "\npub struct {service_name}ServiceHook{tonic_client_ty};\n\npub fn use_{service_name_lowercase}_service() -> {service_name}ServiceHook {{\n    {service_name}ServiceHook{new_tonic_client}\n}}\n\nimpl {service_name}ServiceHook {{\n",
                 service_name = service.name().to_case(Case::Pascal),
                 service_name_lowercase = service.name().to_case(Case::Snake),
                 tonic_client_ty = {
@@ -85,23 +66,11 @@ pub fn generate_hooks<P: AsRef<Path>, P2: AsRef<Path>, P3: AsRef<Path>>(
                 new_tonic_client = {
                     #[cfg(feature = "web")]
                     {
-                        format!(
-                            "
-                            ({tonic_client}::new(::tonic_web_wasm_client::Client::new(
-                                {uri:?}.to_string()
-                            )))
-                            "
-                        )
+                        format!("({tonic_client}::new(::tonic_web_wasm_client::Client::new({uri:?}.to_string())))")
                     }
                     #[cfg(not(feature = "web"))]
                     {
-                        format!(
-                            "
-                            ({tonic_client}::new(
-                                ::tonic::transport::Endpoint::new({uri:?}).unwrap().connect_lazy()
-                            ))
-                            "
-                        )
+                        format!("({tonic_client}::new(::tonic::transport::Endpoint::new({uri:?}).unwrap().connect_lazy()))")
                     }
                 }
             )
@@ -110,15 +79,7 @@ pub fn generate_hooks<P: AsRef<Path>, P2: AsRef<Path>, P3: AsRef<Path>>(
             for rpc in &service.method {
                 write!(
                     str,
-                    r"
-                    pub fn {rpc_name}(&self, req: Signal<{rpc_input}>) -> Resource<Result<{rpc_ouptut}, tonic::Status>> {{
-                        let client = self.0.to_owned();
-                        use_resource(move || {{
-                            let mut client = client.clone();
-                            async move {{ client.{rpc_name}(req()).await.map(|resp| resp.into_inner()) }}
-                        }})
-                    }}
-                    ",
+                    "    pub fn {rpc_name}(&self, req: Signal<{rpc_input}>) -> Resource<Result<{rpc_ouptut}, tonic::Status>> {{\n        let client = self.0.to_owned();\n        use_resource(move || {{\n            let mut client = client.clone();\n            async move {{ client.{rpc_name}(req()).await.map(|resp| resp.into_inner()) }}\n        }})\n    }}\n",
                     rpc_name = rpc.name().to_case(Case::Snake),
                     rpc_input = {
                         let mut full_path = rpc.input_type().split('.');
