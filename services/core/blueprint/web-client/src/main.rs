@@ -5,7 +5,6 @@ use web_sys::window;
 
 mod views;
 mod components;
-mod grpc_client;
 
 use components::{navbar_menu_button, navbar_icon, navbar_secondary_menu_button};
 use views::{Home, KeyValueView, ServiceRegistry, CronJobs, LLM, InnerLoop, OuterLoop, Memory, Workflows, Agents, Skills, Specs, KnowledgeResources, Gateway, Webhooks, Logs, Metrics, PageNotFound};
