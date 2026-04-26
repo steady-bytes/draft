@@ -34,7 +34,6 @@ fn main() -> Result<()> {
         &["./proto/"],
         &Some("./src/hook"),
         Some("crate::proto"),
-        "http://127.0.0.1:50051",
     )?;
 
     // Move files to the correct place

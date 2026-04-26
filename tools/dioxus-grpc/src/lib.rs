@@ -1,17 +1,23 @@
+#[cfg(feature = "codegen")]
 use {
     convert_case::{Case, Casing},
     std::{fmt::Write, path::Path},
     tonic_build::Config,
 };
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct GrpcConfig {
+    pub host: String,
+}
+
 /// - to_path: Is the directory in which files should be written to. When [`None`], defaults to `OUT_DIR`
 /// - prost_mod: If you moved the codegen of proto in a module
+#[cfg(feature = "codegen")]
 pub fn generate_hooks<P: AsRef<Path>, P2: AsRef<Path>, P3: AsRef<Path>>(
     protos: &[P],
     includes: &[P2],
     to_path: &Option<P3>,
     prost_mod: Option<&str>,
-    uri: &str,
 ) -> Result<(), std::io::Error> {
     let mut config = Config::new();
     let file_descriptor_set = config.load_fds(protos, includes)?;
@@ -66,17 +72,20 @@ pub fn generate_hooks<P: AsRef<Path>, P2: AsRef<Path>, P3: AsRef<Path>>(
                 new_tonic_client = {
                     #[cfg(feature = "web")]
                     {
-                        format!("({tonic_client}::new(::tonic_web_wasm_client::Client::new({uri:?}.to_string())))")
+                        format!("({{ let config = use_context::<::dioxus_grpc::GrpcConfig>(); {tonic_client}::new(::tonic_web_wasm_client::Client::new(config.host.clone())) }})")
                     }
                     #[cfg(not(feature = "web"))]
                     {
-                        format!("({tonic_client}::new(::tonic::transport::Endpoint::new({uri:?}).unwrap().connect_lazy()))")
+                        format!("({{ let config = use_context::<::dioxus_grpc::GrpcConfig>(); {tonic_client}::new(::tonic::transport::Endpoint::new(config.host.clone()).unwrap().connect_lazy()) }})")
                     }
                 }
             )
             .expect("write error");
 
             for rpc in &service.method {
+                if rpc.client_streaming() || rpc.server_streaming() {
+                    continue;
+                }
                 write!(
                     str,
                     "    pub fn {rpc_name}(&self, req: Signal<{rpc_input}>) -> Resource<Result<{rpc_ouptut}, tonic::Status>> {{\n        let client = self.0.to_owned();\n        use_resource(move || {{\n            let mut client = client.clone();\n            async move {{ client.{rpc_name}(req()).await.map(|resp| resp.into_inner()) }}\n        }})\n    }}\n",

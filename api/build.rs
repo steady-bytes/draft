@@ -5,13 +5,25 @@ fn main() -> Result<()> {
     let proto_out_dir = format!("{current_dir}/src/proto");
     let hook_out_dir = format!("{current_dir}/src/hook");
 
-    let protos_to_compile: Vec<_> = std::fs::read_dir("./core/registry/key_value/v1/")?
-        .flatten()
-        .filter(|entry| {
-            entry.path().extension().map(|ext| ext == "proto").unwrap_or(false)
+    let proto_dirs = [
+        "./core/registry/key_value/v1/",
+        "./core/registry/service_discovery/v1/",
+        "./core/control_plane/networking/v1/",
+    ];
+
+    let protos_to_compile: Vec<_> = proto_dirs
+        .iter()
+        .flat_map(|dir| {
+            std::fs::read_dir(dir)
+                .unwrap_or_else(|_| panic!("could not read {dir}"))
+                .flatten()
+                .filter(|entry| {
+                    entry.path().extension().map(|ext| ext == "proto").unwrap_or(false)
+                })
+                .filter(|entry| entry.path().is_file())
+                .map(|entry| entry.path())
+                .collect::<Vec<_>>()
         })
-        .filter(|entry| entry.path().is_file())
-        .map(|entry| entry.path())
         .collect();
 
     tonic_prost_build::configure()
@@ -19,7 +31,7 @@ fn main() -> Result<()> {
         .build_server(false)
         .build_client(true)
         .build_transport(false)
-        .compile_protos(&protos_to_compile, &["./core/".into()])?;
+        .compile_protos(&protos_to_compile, &[".".into()])?;
 
     // Generate proto/mod.rs by discovering tonic-build's actual output files.
     // tonic-build names outputs by proto package (e.g. core.registry.key_value.v1.rs), not by
@@ -47,10 +59,9 @@ fn main() -> Result<()> {
 
     dioxus_grpc::generate_hooks(
         &protos_to_compile,
-        &["./core/"],
+        &["."],
         &Some(hook_out_dir.as_str()),
         Some("crate::proto"),
-        "http://127.0.0.1:2221",
     )?;
 
     // Generate hook/mod.rs from the .dx.rs files written above.

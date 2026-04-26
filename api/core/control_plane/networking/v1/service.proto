@@ -8,7 +8,7 @@ option go_package = "github.com/steady-bytes/draft/api/core/control_plane/networ
 // make endpoints available outside of the system (public, or private). To efficiently route traffic to the correct process, the 
 // networking configuration is used to configure the `Envoy` proxy. The `Envoy` proxy is used to route traffic to the correct process
 // based on the provided `Route` configuration when the process registers to the system in this case `fuse`.
-// 
+//
 // 1. The `NetworkingService` is a `core` service implemented in `fuse`
 // 2. Alot of the networking configuration is specific for `Envoy`. The `Route` proto is an example of this. It's basically a one to one mapping
 //    of all fields that can't already be inferred by the `draft` framework.

@@ -7,7 +7,7 @@ use ::dioxus::prelude::*;
 pub struct KeyValueServiceServiceHook(proto::key_value_service_client::KeyValueServiceClient<::tonic_web_wasm_client::Client>);
 
 pub fn use_key_value_service_service() -> KeyValueServiceServiceHook {
-    KeyValueServiceServiceHook(proto::key_value_service_client::KeyValueServiceClient::new(::tonic_web_wasm_client::Client::new("http://127.0.0.1:2221".to_string())))
+    KeyValueServiceServiceHook({ let config = use_context::<::dioxus_grpc::GrpcConfig>(); proto::key_value_service_client::KeyValueServiceClient::new(::tonic_web_wasm_client::Client::new(config.host.clone())) })
 }
 
 impl KeyValueServiceServiceHook {

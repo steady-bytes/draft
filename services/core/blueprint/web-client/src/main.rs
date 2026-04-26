@@ -82,6 +82,9 @@ fn main() {
     dioxus::logger::init(Level::INFO).expect("logger failed to init");
 
     dioxus::launch(|| {
+        use_context_provider(|| dioxus_grpc::GrpcConfig {
+            host: API_DOMAIN.clone(),
+        });
         rsx!{
             Router::<Route> {}
         }

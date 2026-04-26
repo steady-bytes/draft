@@ -14,6 +14,10 @@ fn main() {
 fn app() -> Element {
     use hook::{helloworld::use_greeter_service, messages::HelloRequest};
 
+    use_context_provider(|| dioxus_grpc::GrpcConfig {
+        host: "http://127.0.0.1:50051".to_string(),
+    });
+
     let mut req = use_signal(|| {
         HelloRequest {
             name: String::new(),

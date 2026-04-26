@@ -29,4 +29,10 @@ watch_path = ["src", "public"]
 [web.resource.dev]
 
 [[web.proxy]]
-backend = "http://localhost:2221/draft"
+backend = "http://localhost:2221/core.registry.key_value.v1.KeyValueService/"
+
+[[web.proxy]]
+backend = "http://localhost:2221/core.registry.service_discovery.v1.ServiceDiscoveryService/"
+
+[[web.proxy]]
+backend = "http://localhost:18000/core.control_plane.networking.v1.NetworkingService/"
