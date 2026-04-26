@@ -7,7 +7,7 @@ static BLUEPRINT_NAME: GlobalSignal<String> = Signal::global(|| "{blueprint}".to
 pub fn navbar_icon() -> Element {
     rsx! {
         a { class: "btn btn-ghost text-xl",
-            Link { to: Route::Home {}, "{BLUEPRINT_NAME}"},
+            Link { to: Route::KeyValueView {}, "{BLUEPRINT_NAME}"},
         }
     }
 }

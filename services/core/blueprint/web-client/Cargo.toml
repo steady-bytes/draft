@@ -20,6 +20,7 @@ tonic-web-wasm-client = "0.9.1"
 prost = "0.14"
 prost-types = "0.14"
 chrono = "0.4.44"
+gloo-timers = { version = "0.3", features = ["futures"] }
 
 [features]
 default = ["web"]
