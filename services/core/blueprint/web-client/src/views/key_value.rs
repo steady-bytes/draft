@@ -155,14 +155,6 @@ pub fn KeyValueView() -> Element {
                             },
                         }
                     }
-                    tfoot {
-                        tr {
-                            th { "Key" }
-                            th { "Value" }
-                            th { "Type Url" }
-                            th { "" }
-                        }
-                    }
                 }
             }
 
