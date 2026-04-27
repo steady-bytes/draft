@@ -74,3 +74,7 @@ func New(logger Logger) *Runtime {
 	rt.logger = logger
 	return rt
 }
+
+func (c *Runtime) Logger() Logger {
+	return c.logger
+}
