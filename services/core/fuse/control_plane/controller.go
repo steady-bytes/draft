@@ -39,6 +39,7 @@ type (
 
 		LoadCache()
 		UpdateCacheWithNewRoute(route *ntv1.Route) error
+		ListRoutes(ctx context.Context) ([]*ntv1.Route, error)
 		Increment() string
 	}
 
@@ -148,6 +149,30 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 	}
 
 	return cp.apply(ctx, client)
+}
+
+func (cp *controlPlane) ListRoutes(ctx context.Context) ([]*ntv1.Route, error) {
+	client := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
+
+	routeModel, err := anypb.New(&ntv1.Route{})
+	if err != nil {
+		return nil, ErrFailedRouteMarshal
+	}
+
+	resp, err := client.List(ctx, connect.NewRequest(&kvv1.ListRequest{Value: routeModel}))
+	if err != nil {
+		return nil, ErrUnableToSaveRoute
+	}
+
+	routes := make([]*ntv1.Route, 0, len(resp.Msg.GetValues()))
+	for _, v := range resp.Msg.GetValues() {
+		r := &ntv1.Route{}
+		if err := v.UnmarshalTo(r); err != nil {
+			return nil, ErrFailedRouteMarshal
+		}
+		routes = append(routes, r)
+	}
+	return routes, nil
 }
 
 func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueServiceClient) error {

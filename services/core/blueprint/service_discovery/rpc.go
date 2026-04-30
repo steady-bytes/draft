@@ -77,6 +77,7 @@ func (h *rpc) Synchronize(ctx context.Context, stream *connect.BidiStream[sdv1.C
 		} else if err != nil {
 			// TODO: determine how to handle this error
 			log.WithError(err).Error("connection error")
+			h.controller.Finalize(ctx, log, id)
 			return err
 		}
 

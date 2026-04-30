@@ -19,6 +19,13 @@ import (
 const (
 	// TODO: this was removed from the chassis and I'm not sure where it should go tbh
 	GlobalNonceKey = "GLOBAL_NONCE"
+
+	// staleThreshold is how long without a heartbeat before a process is considered dead.
+	// Set to 3x the chassis sync interval to allow for a couple of missed heartbeats.
+	staleThreshold = 3 * chassis.SYNC_INTERVAL
+
+	// ReapInterval is how often the reaper loop runs. Exported so main.go can drive the ticker.
+	ReapInterval = 30 * time.Second
 )
 
 type (
@@ -32,6 +39,7 @@ type (
 		Synchronize(ctx context.Context, log chassis.Logger, details *sdv1.ClientDetails)
 
 		Query(ctx context.Context, log chassis.Logger) (map[string]*sdv1.Process, error)
+		Reap(ctx context.Context, log chassis.Logger)
 
 		GetClusterDetails() *sdv1.ClusterDetails
 		GetClusterLeaderAddress(logger chassis.Logger) (string, error)
@@ -197,6 +205,40 @@ func (c *controller) Finalize(ctx context.Context, log chassis.Logger, pid strin
 	}
 
 	return nil
+}
+
+func (c *controller) Reap(ctx context.Context, log chassis.Logger) {
+	if c.raftController.Stats(ctx)["state"] != "Leader" {
+		return
+	}
+
+	processes, err := c.Query(ctx, log)
+	if err != nil {
+		log.WithError(err).Error("reaper: failed to query processes")
+		return
+	}
+
+	for _, process := range processes {
+		if process.LastStatusTime == nil {
+			continue
+		}
+		if time.Since(process.LastStatusTime.AsTime()) > staleThreshold {
+			log.WithField("pid", process.Pid).WithField("name", process.Name).Warn("reaper: marking stale process as disconnected")
+
+			process.RunningState = sdv1.ProcessRunningState_PROCESS_DICONNECTED
+			process.HealthState = sdv1.ProcessHealthState_PROCESS_UNHEALTHY
+
+			pAny, err := anypb.New(process)
+			if err != nil {
+				log.WithError(err).WithField("pid", process.Pid).Error("reaper: failed to marshal process")
+				continue
+			}
+
+			if _, err := c.kvController.Set(log, process.Pid, pAny, 500*time.Millisecond); err != nil {
+				log.WithError(err).WithField("pid", process.Pid).Error("reaper: failed to update stale process")
+			}
+		}
+	}
 }
 
 func (c *controller) Query(ctx context.Context, log chassis.Logger) (map[string]*sdv1.Process, error) {

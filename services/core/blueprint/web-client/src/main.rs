@@ -7,24 +7,20 @@ mod views;
 mod components;
 
 use components::{navbar_menu_button, navbar_icon, navbar_secondary_menu_button};
-use views::{Home, KeyValueView, ServiceRegistry, Metrics, PageNotFound};
+use views::{KeyValueView, ServiceRegistry, Gateway, PageNotFound};
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
     #[layout(dashboard_layout)]
         #[route("/")]
-        Home {},
-        #[route("/key-val")]
         KeyValueView {},
         #[route("/service-registry")]
         ServiceRegistry{},
-        #[route("/metrics")]
-        Metrics{},
-        // end dashboard layout, all routes above will be wrapped in this layout
+        #[route("/gateway")]
+        Gateway{},
     #[end_layout]
 
-    // PageNotFound is a catch all route that will match any route and placing the matched segments in the route field
     #[route("/:..route")]
     PageNotFound {
         route: Vec<String>,
@@ -39,7 +35,6 @@ fn get_domain() -> String {
 }
 
 pub static API_DOMAIN: Lazy<String> = Lazy::new(|| {
-    // Check if the API_DOMAIN environment variable is set
     if let Some(api_domain) = option_env!("API_DOMAIN") {
         info!("API_DOMAIN: {}", api_domain);
         if api_domain.is_empty() {
@@ -56,6 +51,9 @@ fn main() {
     dioxus::logger::init(Level::INFO).expect("logger failed to init");
 
     dioxus::launch(|| {
+        use_context_provider(|| dioxus_grpc::GrpcConfig {
+            host: API_DOMAIN.clone(),
+        });
         rsx!{
             Router::<Route> {}
         }
@@ -63,6 +61,8 @@ fn main() {
 }
 
 fn dashboard_layout() -> Element {
+    let mut control_plane_open = use_signal(|| false);
+
     rsx! {
         div { class: "drawer lg:drawer-open",
             input { class: "drawer-toggle", id: "my-drawer", type: "checkbox" }
@@ -94,16 +94,26 @@ fn dashboard_layout() -> Element {
 
                 ul { class: "menu bg-base-200 min-h-full w-80 p-4",
                     navbar_icon{}
-                    div {class: "divider", "style":  "margin: 0px 0px 0px 0px;"}
+                    div {class: "divider", "style": "margin: 0px 0px 0px 0px;"}
                     li {
-                        Link { class: "bg-base-300",
-                            to: Route::KeyValueView {}, "Key/Value" }
-                    }
-                    li {
-                        Link { to: Route::ServiceRegistry {}, "Service Registry" }
-                    }
-                    li {
-                        Link { to: Route::Metrics {}, "Metrics" }
+                        button {
+                            class: "font-bold",
+                            onclick: move |_| control_plane_open.toggle(),
+                            "Control Plane"
+                        }
+                        if control_plane_open() {
+                            ul {
+                                li {
+                                    Link { to: Route::KeyValueView {}, "Key/Value" }
+                                }
+                                li {
+                                    Link { to: Route::ServiceRegistry {}, "Service Registry" }
+                                }
+                                li {
+                                    Link { to: Route::Gateway {}, "Gateway" }
+                                }
+                            }
+                        }
                     }
                 }
             }
