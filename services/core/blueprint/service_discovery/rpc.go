@@ -77,6 +77,7 @@ func (h *rpc) Synchronize(ctx context.Context, stream *connect.BidiStream[sdv1.C
 		} else if err != nil {
 			// TODO: determine how to handle this error
 			log.WithError(err).Error("connection error")
+			h.controller.Finalize(ctx, log, id)
 			return err
 		}
 
@@ -148,4 +149,23 @@ func (h *rpc) ReportHealth(
 	req *connect.Request[sdv1.ReportHealthRequest],
 ) (*connect.Response[sdv1.ReportHealthResponse], error) {
 	return nil, errors.New("implement me")
+}
+
+func (h *rpc) Watch(ctx context.Context, req *connect.Request[sdv1.WatchRequest], stream *connect.ServerStream[sdv1.WatchResponse]) error {
+	id, ch := h.controller.Subscribe()
+	defer h.controller.Unsubscribe(id)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case event, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			if err := stream.Send(&sdv1.WatchResponse{Process: event.Process, Removed: event.Removed}); err != nil {
+				return err
+			}
+		}
+	}
 }

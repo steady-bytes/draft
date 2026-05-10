@@ -8,12 +8,30 @@ import (
 )
 
 func main() {
-	var (
-		logger = zerolog.New()
+	logger := zerolog.New()
 
-		cnt = broker.NewController(logger)
-		rpc = broker.NewRPC(logger, cnt)
-	)
+	cfg := chassis.GetConfig()
+
+	var chCfg broker.ClickHouseConfig
+	if err := cfg.UnmarshalKey("clickhouse", &chCfg); err != nil {
+		logger.WithField("error", err.Error()).Error("failed to read clickhouse config")
+	}
+
+	var storer broker.Storer
+	if chCfg.Enabled {
+		s, err := broker.NewClickHouseStore(chCfg)
+		if err != nil {
+			logger.WithField("error", err.Error()).Error("failed to connect to clickhouse — falling back to noop store")
+			storer = broker.NewNoopStore()
+		} else {
+			storer = s
+		}
+	} else {
+		storer = broker.NewNoopStore()
+	}
+
+	cnt := broker.NewController(logger, storer)
+	rpc := broker.NewRPC(logger, cnt)
 
 	defer chassis.New(logger).
 		Register(chassis.RegistrationOptions{

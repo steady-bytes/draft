@@ -5,12 +5,11 @@ package core.registry.key_value.v1;
 option go_package = "github.com/steady-bytes/draft/api/core/registry/key_value/v1";
 
 import "google/protobuf/any.proto";
-import "validate/validate.proto";
 
 // Standard ID to be used in the whole system
 message ID {
     // generated system uuid
-    string uuid = 1 [(validate.rules).string.uuid = true];
+    string uuid = 1;
 }
 
 // Statement is the root node of the query. It's the entry point to the query system.

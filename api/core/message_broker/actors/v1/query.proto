@@ -1,0 +1,216 @@
+syntax = "proto3";
+
+package core.message_broker.actors.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/message_broker/actors/v1";
+
+import "core/message_broker/actors/v1/models.proto";
+
+// ─── Query Service ────────────────────────────────────────────────────────────
+
+service Query {
+    // Query executes a CESQL expression against stored events and returns all
+    // matching results in a single response.
+    rpc Query(QueryRequest) returns (QueryResponse) {}
+
+    // QueryStream opens a persistent server-sent stream. The server first
+    // replays any stored events that match the expression (subject to `limit`
+    // and `after`), then continues streaming live events as they flow through
+    // catalyst in real time. The stream stays open until the client closes it.
+    rpc QueryStream(QueryRequest) returns (stream QueryStreamResponse) {}
+}
+
+message QueryRequest {
+    Expression expression = 1;
+    int32      limit      = 2;  // 0 = server default; caps historical replay for QueryStream
+    string     after      = 3;  // ISO 8601 timestamp — replay events after this point before going live
+}
+
+message QueryResponse {
+    repeated CloudEvent events = 1;
+}
+
+// One event per stream message so the web-client can render each event as it
+// arrives rather than waiting for a batch.
+message QueryStreamResponse {
+    CloudEvent event = 1;
+}
+
+// ─── CESQL Expression Tree ────────────────────────────────────────────────────
+//
+// Typed representation of the CloudEvents SQL (CESQL) expression grammar.
+// Ref: https://github.com/cloudevents/spec/blob/main/cesql/spec.md
+
+message Expression {
+    oneof expr {
+        Literal      literal       = 1;
+        AttributeRef attribute     = 2;
+        UnaryExpr    unary         = 3;
+        BinaryExpr   binary        = 4;
+        LikeExpr     like          = 5;
+        ExistsExpr   exists        = 6;
+        InExpr       in            = 7;
+        FunctionCall function_call = 8;
+    }
+}
+
+// ─── Literals ─────────────────────────────────────────────────────────────────
+
+// The three primitive types defined by the CESQL type system.
+// URI, URI-Reference, and Timestamp are represented as string_value.
+message Literal {
+    oneof value {
+        int32  integer_value = 1;
+        bool   bool_value    = 2;
+        string string_value  = 3;
+    }
+}
+
+// ─── Attribute Reference ──────────────────────────────────────────────────────
+
+// References a CloudEvent context attribute or extension by name.
+//
+// Required attributes (always present): id, source, specversion, type
+// Optional attributes: datacontenttype, dataschema, subject, time
+// Extensions: any custom attribute added by the event producer
+//
+// A missing optional or extension attribute evaluates to the zero value of the
+// subexpression return type and raises MissingAttributeError per the spec.
+message AttributeRef {
+    string name = 1;
+}
+
+// ─── Unary Expressions ────────────────────────────────────────────────────────
+
+message UnaryExpr {
+    UnaryOp    op      = 1;
+    Expression operand = 2;
+}
+
+enum UnaryOp {
+    UNARY_OP_UNSPECIFIED = 0;
+    UNARY_OP_NOT         = 1;  // Boolean → Boolean
+    UNARY_OP_NEGATE      = 2;  // Integer → Integer  (unary minus)
+}
+
+// ─── Binary Expressions ───────────────────────────────────────────────────────
+
+message BinaryExpr {
+    Expression left  = 1;
+    BinaryOp   op    = 2;
+    Expression right = 3;
+}
+
+enum BinaryOp {
+    BINARY_OP_UNSPECIFIED = 0;
+
+    // Logical — Boolean × Boolean → Boolean
+    // AND and OR short-circuit per the spec.
+    BINARY_OP_AND = 1;
+    BINARY_OP_OR  = 2;
+    BINARY_OP_XOR = 3;
+
+    // Equality — Boolean | Integer | String × same → Boolean
+    BINARY_OP_EQ  = 4;  // =
+    BINARY_OP_NEQ = 5;  // != or <> (both map to this variant)
+
+    // Ordered comparison — Integer × Integer → Boolean
+    BINARY_OP_LT  = 6;  // <
+    BINARY_OP_LTE = 7;  // <=
+    BINARY_OP_GT  = 8;  // >
+    BINARY_OP_GTE = 9;  // >=
+
+    // Arithmetic — Integer × Integer → Integer
+    // Division and modulo by zero return 0 and raise MathError per the spec.
+    BINARY_OP_ADD = 10;  // +
+    BINARY_OP_SUB = 11;  // -
+    BINARY_OP_MUL = 12;  // *
+    BINARY_OP_DIV = 13;  // /
+    BINARY_OP_MOD = 14;  // %
+}
+
+// ─── LIKE ─────────────────────────────────────────────────────────────────────
+
+// String × String → Boolean
+// Pattern syntax: % matches any sequence of characters,
+//                 _ matches exactly one character,
+//                 \ escapes a literal % or _.
+message LikeExpr {
+    Expression operand  = 1;
+    string     pattern  = 2;  // string literal containing the LIKE pattern
+    bool       negated  = 3;  // true → NOT LIKE
+}
+
+// ─── EXISTS ───────────────────────────────────────────────────────────────────
+
+// Returns true if the named attribute is present on the CloudEvent.
+// Always evaluates true for the four required attributes.
+message ExistsExpr {
+    string attribute = 1;
+}
+
+// ─── IN ───────────────────────────────────────────────────────────────────────
+
+// expression IN (e1, e2, ...) → Boolean
+// The values set must contain at least one element.
+message InExpr {
+    Expression         operand  = 1;
+    repeated Expression values  = 2;
+    bool               negated  = 3;  // true → NOT IN
+}
+
+// ─── Function Calls ───────────────────────────────────────────────────────────
+
+// All built-in CESQL functions are enumerated here. The argument count and
+// types for each function are documented below and enforced at evaluation time.
+message FunctionCall {
+    BuiltinFunction    function = 1;
+    repeated Expression args    = 2;
+}
+
+enum BuiltinFunction {
+    FUNCTION_UNSPECIFIED = 0;
+
+    // LENGTH(x: String) → Integer
+    // Returns the number of characters in x.
+    FUNCTION_LENGTH = 1;
+
+    // CONCAT(x1, x2, ...: String) → String
+    // Returns the concatenation of all arguments. Zero args returns "".
+    FUNCTION_CONCAT = 2;
+
+    // CONCAT_WS(delimiter: String, x1, x2, ...: String) → String
+    // Returns arguments joined by delimiter. Zero value args returns "".
+    FUNCTION_CONCAT_WS = 3;
+
+    // LOWER(x: String) → String
+    FUNCTION_LOWER = 4;
+
+    // UPPER(x: String) → String
+    FUNCTION_UPPER = 5;
+
+    // TRIM(x: String) → String
+    // Removes leading and trailing Unicode whitespace.
+    FUNCTION_TRIM = 6;
+
+    // LEFT(x: String, n: Integer) → String
+    // Returns the first n characters. Returns x when LENGTH(x) <= n.
+    // Returns x + FunctionEvaluationError when n < 0.
+    FUNCTION_LEFT = 7;
+
+    // RIGHT(x: String, n: Integer) → String
+    // Returns the last n characters. Returns x when LENGTH(x) <= n.
+    // Returns x + FunctionEvaluationError when n < 0.
+    FUNCTION_RIGHT = 8;
+
+    // SUBSTRING(x: String, pos: Integer) → String
+    // SUBSTRING(x: String, pos: Integer, len: Integer) → String
+    // 1-indexed. Negative pos counts from the end. pos=0 returns "".
+    // Returns "" + FunctionEvaluationError when |pos| > LENGTH(x) or len < 0.
+    FUNCTION_SUBSTRING = 9;
+
+    // ABS(x: Integer) → Integer
+    // Returns the absolute value of x.
+    // ABS(-2147483648) returns 2147483647 + MathError per the spec.
+    FUNCTION_ABS = 10;
+}

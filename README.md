@@ -23,6 +23,67 @@ The Draft Chassis provides all the necessary pieces to create Draft processes (s
 
 `dctl` is a command line tool that provides a set of commands to simplify working with a Draft system. It performs tasks like building protobufs, running services locally, and managing local infrastructure.
 
+### Core Service RPC Interactions
+
+The diagram below shows the RPC interfaces exposed by each core service and how they call one another at runtime. All services embed the Chassis, which handles registration and route advertisement on their behalf.
+
+```mermaid
+graph TD
+    subgraph Blueprint["Blueprint — Registry & Consensus"]
+        SD["ServiceDiscoveryService
+        ──────────────────────
+        Initialize()
+        Synchronize() ⟵ bidi stream
+        Finalize()
+        ReportHealth()
+        Query()"]
+
+        KV["KeyValueService
+        ──────────────────────
+        Set()
+        Get()
+        Delete()
+        List()"]
+    end
+
+    subgraph Fuse["Fuse — Router & Ingress"]
+        NET["NetworkingService
+        ──────────────────────
+        AddRoute()
+        ListRoutes()
+        DeleteRoute()"]
+
+        XDS["xDS Services (Envoy control plane)
+        ──────────────────────
+        AggregatedDiscoveryService
+        EndpointDiscoveryService
+        ClusterDiscoveryService
+        RouteDiscoveryService
+        ListenerDiscoveryService"]
+    end
+
+    subgraph Catalyst["Catalyst — Message Broker"]
+        PROD["ProducerService
+        ──────────────────────
+        Produce() ⟵ bidi stream"]
+
+        CONS["ConsumerService
+        ──────────────────────
+        Consume() ⟵ server stream"]
+    end
+
+    Chassis["Chassis
+    (embedded by all services)"]
+
+    Chassis -->|"Initialize()\nSynchronize()"| SD
+    Chassis -->|"Get() — resolve Fuse address"| KV
+    Chassis -->|"AddRoute() — register service route"| NET
+
+    Fuse -->|"Set() — persist routes & fuse address\nList() — sync route cache"| KV
+```
+
+**Startup order**: Blueprint → Catalyst → Fuse → application services. All services depend on Blueprint being available first, and all services register their routes with Fuse before accepting traffic.
+
 
 ## Project Structure
 

@@ -1,0 +1,59 @@
+[package]
+    edition = "2024"
+    name = "dioxus-grpc-examples"
+    version = "0.0.1"
+
+[dependencies]
+    dioxus = { version = "0.6" }
+    dioxus-grpc = { path = "../", default-features = false }
+    prost = "0.14.3"
+    tokio = { version = "1", optional = true, features = ["full"] }
+    tonic = { version = "0.13", default-features = false, features = ["codegen", "prost"] }
+    tonic-web = { version = "0.13" }
+    tonic-web-wasm-client = { version = "0.7", optional = true }
+    tower-http = { version = "0.6", features = ["cors", "trace"], optional = true }
+
+[build-dependencies]
+    dioxus-grpc = { path = "../", features = ["web"] }
+    tonic-build = { version = "0.13", default-features = false, features = ["prost"] }
+
+[features]
+    default = []
+    # Client /server
+    clnt = []
+    srv = [
+        "dep:tokio",
+        "dep:tower-http",
+        "tonic-build/transport",
+        "tonic/router",
+        "tonic/server",
+        "tonic/transport",
+    ]
+    # Platforms
+    mobile = [
+        "dep:tokio",
+        "dioxus/mobile",
+        "tonic-build/transport",
+        "tonic/router",
+        "tonic/server",
+        "tonic/transport",
+    ]
+    web = ["dep:tonic-web-wasm-client", "dioxus-grpc/web", "dioxus/web"]
+
+
+[[bin]]
+    name = "helloworld"
+    path = "src/basic.rs"
+
+
+[profile]
+
+    [profile.wasm-dev]
+        inherits = "dev"
+        opt-level = 1
+
+    [profile.server-dev]
+        inherits = "dev"
+
+    [profile.android-dev]
+        inherits = "dev"

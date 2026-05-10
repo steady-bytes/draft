@@ -1,6 +1,9 @@
 package broker
 
 import (
+	"context"
+	"sync"
+
 	"connectrpc.com/connect"
 	acv1 "github.com/steady-bytes/draft/api/core/message_broker/actors/v1"
 	"github.com/steady-bytes/draft/pkg/chassis"
@@ -10,43 +13,85 @@ type (
 	Controller interface {
 		Consumer
 		Producer
+		Query(ctx context.Context, req *acv1.QueryRequest) ([]*acv1.CloudEvent, error)
+		QueryStream(ctx context.Context, req *acv1.QueryRequest, stream *connect.ServerStream[acv1.QueryStreamResponse]) error
 	}
 
 	controller struct {
 		Producer
 		Consumer
 
-		logger chassis.Logger
-
-		state *atomicMap
+		logger    chassis.Logger
+		state     *atomicMap
+		storer    Storer
+		observers *observerRegistry
 	}
 
 	register struct {
 		*acv1.CloudEvent
 		*connect.ServerStream[acv1.ConsumeResponse]
 	}
+
+	// observerRegistry manages live-event channels for QueryStream subscribers.
+	observerRegistry struct {
+		mu      sync.RWMutex
+		subs    map[uint64]chan *acv1.CloudEvent
+		counter uint64
+	}
 )
 
-func NewController(logger chassis.Logger) Controller {
+func NewController(logger chassis.Logger, storer Storer) Controller {
 	var (
 		producerMsgChan          = make(chan *acv1.CloudEvent)
 		consumerRegistrationChan = make(chan register)
 	)
 
 	ctr := &controller{
-		NewProducer(producerMsgChan),
-		NewConsumer(consumerRegistrationChan),
-		logger,
-		newAtomicMap(),
+		Producer:  NewProducer(producerMsgChan),
+		Consumer:  NewConsumer(consumerRegistrationChan),
+		logger:    logger,
+		state:     newAtomicMap(),
+		storer:    storer,
+		observers: newObserverRegistry(),
 	}
-
-	// TODO: This could contain more configuration. Like maybe reading the number
-	// 		 of cpu cores to spread the works over?
 
 	go ctr.produce(producerMsgChan)
 	go ctr.consume(consumerRegistrationChan)
 
 	return ctr
+}
+
+func newObserverRegistry() *observerRegistry {
+	return &observerRegistry{subs: make(map[uint64]chan *acv1.CloudEvent)}
+}
+
+func (r *observerRegistry) subscribe() (uint64, chan *acv1.CloudEvent) {
+	ch := make(chan *acv1.CloudEvent, 64)
+	r.mu.Lock()
+	id := r.counter
+	r.counter++
+	r.subs[id] = ch
+	r.mu.Unlock()
+	return id, ch
+}
+
+func (r *observerRegistry) unsubscribe(id uint64) {
+	r.mu.Lock()
+	delete(r.subs, id)
+	r.mu.Unlock()
+}
+
+// broadcast sends event to every active QueryStream subscriber. Slow consumers
+// are skipped rather than blocking the producer goroutine.
+func (r *observerRegistry) broadcast(event *acv1.CloudEvent) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, ch := range r.subs {
+		select {
+		case ch <- event:
+		default:
+		}
+	}
 }
 
 const (
@@ -56,53 +101,80 @@ const (
 func (c *controller) produce(producerMsgChan chan *acv1.CloudEvent) {
 	for {
 		msg := <-producerMsgChan
-		c.logger.WithField("msg: ", msg).Info("produce massage received")
+		c.logger.WithField("msg", msg).Info("produce message received")
 
-		// make hash of <domain><msg.Type.String>
+		if err := c.storer.Save(context.Background(), msg); err != nil {
+			c.logger.WithField("error", err.Error()).Error("failed to persist event")
+		}
+
 		key := c.state.hash(string(msg.ProtoReflect().Descriptor().FullName()))
-
-		// do I save to blueprint?
-		// - default config is to be durable
-		// - the producer can also add configuration to say not to store
-
-		// send the received `Message` to all `Consumers` for the same key
 		c.logger.WithField("key", key).Info(LOG_KEY_TO_CH)
 		c.state.Broadcast(key, msg)
+		c.observers.broadcast(msg)
 	}
 }
 
-// consume - Will create a hash of the message domain, and typeUrl then save the msg.ServerStream to `atomicMap.m`
-// that can be used to `Broadcast` messages to when a message is produced. Con's to this approach are a `RWMutex`
-// has to be used to `Broadcast` the message so the connected stream.
-// func (c *controller) consume(reg chan register) {
-// 	for {
-// 		msg := <-reg
-// 		fmt.Print("Receive a request to setup a consumer", msg)
-
-// 		// make hash of <domain><msg.Type.String>
-// 		key := c.hash(msg.GetDomain(), msg.GetKind().GetTypeUrl())
-
-// 		// use hash as key if the hash does not exist, then create a slice of connections
-// 		// and append the connection to the slice
-// 		c.state.Insert(key, msg.ServerStream)
-// 	}
-// }
-
-// consume - Will create a hash of the message domain, and typeUrl to use as a key to a tx, and rx sides of a channel
-// the `tx` or transmitter will be used when a producer produces an event to send the event to each client that is consuming
-// events of the domain, and typeUrl.
 func (c *controller) consume(registerChan chan register) {
 	for {
-		// create a shared channel that will receive any kind of message of that domain, and typeUrl
-		// add the receiver to a go routine that will keep the `ServerStream` open and send any messages
-		// received up to the client connect.
 		msg := <-registerChan
 		c.logger.WithField("msg", msg).Info("consume channel registration")
 
 		key := c.state.hash(string(msg.ProtoReflect().Descriptor().FullName()))
-
-		// key := c.state.hash(msg.GetDomain(), msg.GetKind().GetTypeUrl())
 		c.logger.WithField("key", key).Info(LOG_KEY_TO_CH)
 		c.state.Broker(key, msg.ServerStream)
+	}
+}
+
+func (c *controller) Query(ctx context.Context, req *acv1.QueryRequest) ([]*acv1.CloudEvent, error) {
+	candidates, err := c.storer.Query(ctx, req.GetLimit(), req.GetAfter())
+	if err != nil {
+		return nil, err
+	}
+
+	expr := req.GetExpression()
+	if expr == nil {
+		return candidates, nil
+	}
+
+	matched := make([]*acv1.CloudEvent, 0, len(candidates))
+	for _, event := range candidates {
+		if ok, _ := matchesExpression(expr, event); ok {
+			matched = append(matched, event)
+		}
+	}
+	return matched, nil
+}
+
+func (c *controller) QueryStream(ctx context.Context, req *acv1.QueryRequest, stream *connect.ServerStream[acv1.QueryStreamResponse]) error {
+	expr := req.GetExpression()
+
+	// Phase 1: replay historical events from ClickHouse.
+	historical, err := c.storer.Query(ctx, req.GetLimit(), req.GetAfter())
+	if err != nil {
+		return err
+	}
+	for _, event := range historical {
+		if ok, _ := matchesExpression(expr, event); ok {
+			if err := stream.Send(&acv1.QueryStreamResponse{Event: event}); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Phase 2: stream live events as they arrive.
+	id, ch := c.observers.subscribe()
+	defer c.observers.unsubscribe(id)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case event := <-ch:
+			if ok, _ := matchesExpression(expr, event); ok {
+				if err := stream.Send(&acv1.QueryStreamResponse{Event: event}); err != nil {
+					return err
+				}
+			}
+		}
 	}
 }
