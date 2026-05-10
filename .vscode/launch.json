@@ -149,6 +149,30 @@
             },
         },
         {
+            "name": "Producer",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/examples/producer/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "DRAFT_CONFIG": "services/examples/producer/config.yaml"
+            },
+        },
+        {
+            "name": "Consumer",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/examples/consumer/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "env": {
+                "DRAFT_CONFIG": "services/examples/consumer/config.yaml"
+            },
+        },
+        {
             "name": "dctl - Produce",
             "type": "go",
             "request": "launch",

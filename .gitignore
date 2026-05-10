@@ -19,3 +19,4 @@ go.work.sum
 
 # ignore user specific vscode settings
 .vscode/settings.json
+assets/*

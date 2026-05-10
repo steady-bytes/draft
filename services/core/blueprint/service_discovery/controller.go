@@ -41,6 +41,9 @@ type (
 		Query(ctx context.Context, log chassis.Logger) (map[string]*sdv1.Process, error)
 		Reap(ctx context.Context, log chassis.Logger)
 
+		Subscribe() (string, <-chan *ProcessEvent)
+		Unsubscribe(id string)
+
 		GetClusterDetails() *sdv1.ClusterDetails
 		GetClusterLeaderAddress(logger chassis.Logger) (string, error)
 	}
@@ -49,6 +52,7 @@ type (
 		kvController   kv.Controller
 		raftController chassis.RaftController
 		secretStore    chassis.SecretStore
+		broadcaster    *Broadcaster
 	}
 )
 
@@ -57,7 +61,16 @@ func NewController(kvController kv.Controller, raftController chassis.RaftContro
 		kvController:   kvController,
 		raftController: raftController,
 		secretStore:    nil,
+		broadcaster:    NewBroadcaster(),
 	}
+}
+
+func (c *controller) Subscribe() (string, <-chan *ProcessEvent) {
+	return c.broadcaster.Subscribe()
+}
+
+func (c *controller) Unsubscribe(id string) {
+	c.broadcaster.Unsubscribe(id)
 }
 
 // Accepts a `SecretStore` interface and adds it to the controller
@@ -81,17 +94,8 @@ const (
 func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, name string) (*sdv1.ProcessIdentity, error) {
 	var (
 		err     error
-		pid     = uuid.NewString()
-		process = &sdv1.Process{
-			Pid:          pid,
-			Name:         name,
-			ProcessKind:  sdv1.ProcessKind_SERVER_PROCESS,
-			Metadata:     []*sdv1.Metadata{},
-			JoinedTime:   timestamppb.Now(),
-			RunningState: sdv1.ProcessRunningState_PROCESS_STARTING,
-			HealthState:  sdv1.ProcessHealthState_PROCESS_HEALTHY,
-		}
-		pAny = &anypb.Any{}
+		process *sdv1.Process
+		pAny    = &anypb.Any{}
 	)
 
 	// validate the nonce (this will also require that a nonce is read in by the chassis).
@@ -103,7 +107,31 @@ func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, 
 	// 	return nil, errors.New(ErrFailedNonce)
 	// }
 
-	// generate the process identity as a signed token token
+	// reuse the PID of a disconnected process with the same name if one exists
+	existing, err := c.Query(ctx, log)
+	if err == nil {
+		for _, p := range existing {
+			if p.Name == name && p.RunningState == sdv1.ProcessRunningState_PROCESS_DICONNECTED {
+				process = p
+				break
+			}
+		}
+	}
+
+	if process == nil {
+		process = &sdv1.Process{
+			Pid:         uuid.NewString(),
+			Name:        name,
+			ProcessKind: sdv1.ProcessKind_SERVER_PROCESS,
+			Metadata:    []*sdv1.Metadata{},
+			JoinedTime:  timestamppb.Now(),
+		}
+	}
+
+	process.RunningState = sdv1.ProcessRunningState_PROCESS_STARTING
+	process.HealthState = sdv1.ProcessHealthState_PROCESS_HEALTHY
+
+	// generate a fresh token for this connection
 	process.Token, err = c.forgeIdentityToken()
 	if err != nil {
 		return nil, errors.New(ErrFailedTokenForge)
@@ -114,16 +142,17 @@ func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, 
 		return nil, errors.New(ErrFailedTypeCast)
 	}
 
-	// save details to the systemJournal on the file system
-	_, err = c.kvController.Set(log, pid, pAny, 500*time.Millisecond)
+	_, err = c.kvController.Set(log, process.Pid, pAny, 500*time.Millisecond)
 	if err != nil {
 		return nil, errors.New(ErrFailedToSaveProcessDetails)
 	}
 
+	c.broadcaster.Publish(process)
+
 	// TODO (@andrewsc208): Get the leaders registry address to send synchronize packets to
 
 	return &sdv1.ProcessIdentity{
-		Pid:             pid,
+		Pid:             process.Pid,
 		RegistryAddress: "localhost:2221",
 		Token:           process.Token,
 	}, nil
@@ -182,10 +211,11 @@ func (c *controller) Synchronize(ctx context.Context, log chassis.Logger, detail
 		log.Error(ErrFailedToSaveProcessDetails)
 		return
 	}
+
+	c.broadcaster.Publish(process)
 }
 
-// Finalize - Gracefully remove the process from the registry. Close the connection if one is still
-// open and change the process state to `Finalized`
+// Finalize - Mark the process as disconnected and unhealthy in the registry.
 func (c *controller) Finalize(ctx context.Context, log chassis.Logger, pid string) error {
 	var (
 		err     error
@@ -199,10 +229,32 @@ func (c *controller) Finalize(ctx context.Context, log chassis.Logger, pid strin
 		return errors.New(ErrFailedTypeCast)
 	}
 
-	if err = c.kvController.Delete(log, pid, pAny); err != nil {
+	pAny, err = c.kvController.Get(log, pid, pAny)
+	if err != nil {
 		log.WithError(err)
 		return err
 	}
+
+	if err = anypb.UnmarshalTo(pAny, process, proto.UnmarshalOptions{}); err != nil {
+		log.WithError(err)
+		return err
+	}
+
+	process.RunningState = sdv1.ProcessRunningState_PROCESS_DICONNECTED
+	process.HealthState = sdv1.ProcessHealthState_PROCESS_UNHEALTHY
+
+	pAny, err = anypb.New(process)
+	if err != nil {
+		log.WithError(err)
+		return errors.New(ErrFailedTypeCast)
+	}
+
+	if _, err = c.kvController.Set(log, pid, pAny, 500*time.Millisecond); err != nil {
+		log.WithError(err)
+		return err
+	}
+
+	c.broadcaster.Publish(process)
 
 	return nil
 }
@@ -236,7 +288,10 @@ func (c *controller) Reap(ctx context.Context, log chassis.Logger) {
 
 			if _, err := c.kvController.Set(log, process.Pid, pAny, 500*time.Millisecond); err != nil {
 				log.WithError(err).WithField("pid", process.Pid).Error("reaper: failed to update stale process")
+				continue
 			}
+
+			c.broadcaster.Publish(process)
 		}
 	}
 }
@@ -264,13 +319,13 @@ func (c *controller) Query(ctx context.Context, log chassis.Logger) (map[string]
 	}
 
 	// convert map from map[string]*anypb.Any to map[string]*sdv1.Process
-	for k, v := range res {
+	for _, v := range res {
 		if v.MessageIs(process) {
 			p := &sdv1.Process{}
 			if err := anypb.UnmarshalTo(v, p, proto.UnmarshalOptions{}); err != nil {
 				log.WithError(err)
 			}
-			systemJournal[k] = p
+			systemJournal[p.Pid] = p
 		}
 	}
 

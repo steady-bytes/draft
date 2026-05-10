@@ -7,7 +7,7 @@ mod views;
 mod components;
 
 use components::{navbar_menu_button, navbar_icon, navbar_secondary_menu_button};
-use views::{KeyValueView, ServiceRegistry, Gateway, PageNotFound};
+use views::{KeyValueView, ServiceRegistry, Gateway, Agents, Mcp, Tools, Store, Producers, Consumers, Cluster, PageNotFound};
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
@@ -19,6 +19,20 @@ enum Route {
         ServiceRegistry{},
         #[route("/gateway")]
         Gateway{},
+        #[route("/agents")]
+        Agents{},
+        #[route("/mcp")]
+        Mcp{},
+        #[route("/tools")]
+        Tools{},
+        #[route("/store")]
+        Store{},
+        #[route("/producers")]
+        Producers{},
+        #[route("/consumers")]
+        Consumers{},
+        #[route("/cluster")]
+        Cluster{},
     #[end_layout]
 
     #[route("/:..route")]
@@ -47,6 +61,16 @@ pub static API_DOMAIN: Lazy<String> = Lazy::new(|| {
     }
 });
 
+pub static CATALYST_DOMAIN: Lazy<String> = Lazy::new(|| {
+    if let Some(d) = option_env!("CATALYST_DOMAIN") {
+        if !d.is_empty() {
+            info!("CATALYST_DOMAIN: {}", d);
+            return d.to_string();
+        }
+    }
+    "http://localhost:2220".to_string()
+});
+
 fn main() {
     dioxus::logger::init(Level::INFO).expect("logger failed to init");
 
@@ -62,6 +86,8 @@ fn main() {
 
 fn dashboard_layout() -> Element {
     let mut control_plane_open = use_signal(|| false);
+    let mut automations_open = use_signal(|| false);
+    let mut events_open = use_signal(|| false);
 
     rsx! {
         div { class: "drawer lg:drawer-open",
@@ -111,6 +137,49 @@ fn dashboard_layout() -> Element {
                                 }
                                 li {
                                     Link { to: Route::Gateway {}, "Gateway" }
+                                }
+                            }
+                        }
+                    }
+                    li {
+                        button {
+                            class: "font-bold",
+                            onclick: move |_| automations_open.toggle(),
+                            "Automations"
+                        }
+                        if automations_open() {
+                            ul {
+                                li {
+                                    Link { to: Route::Agents {}, "Agents" }
+                                }
+                                li {
+                                    Link { to: Route::Mcp {}, "MCP" }
+                                }
+                                li {
+                                    Link { to: Route::Tools {}, "Tools" }
+                                }
+                            }
+                        }
+                    }
+                    li {
+                        button {
+                            class: "font-bold",
+                            onclick: move |_| events_open.toggle(),
+                            "Events"
+                        }
+                        if events_open() {
+                            ul {
+                                li {
+                                    Link { to: Route::Store {}, "Store" }
+                                }
+                                li {
+                                    Link { to: Route::Producers {}, "Producers" }
+                                }
+                                li {
+                                    Link { to: Route::Consumers {}, "Consumers" }
+                                }
+                                li {
+                                    Link { to: Route::Cluster {}, "Cluster" }
                                 }
                             }
                         }

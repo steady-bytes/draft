@@ -9,6 +9,7 @@ fn main() -> Result<()> {
         "./core/registry/key_value/v1/",
         "./core/registry/service_discovery/v1/",
         "./core/control_plane/networking/v1/",
+        "./core/message_broker/actors/v1/",
     ];
 
     let protos_to_compile: Vec<_> = proto_dirs

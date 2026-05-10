@@ -290,6 +290,15 @@ pub struct FinalizeResponse {
 pub struct ReportHealthRequest {}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReportHealthResponse {}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchResponse {
+    #[prost(message, optional, tag = "1")]
+    pub process: ::core::option::Option<Process>,
+    #[prost(bool, tag = "2")]
+    pub removed: bool,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum LeadershipStatus {
@@ -561,6 +570,36 @@ pub mod service_discovery_service_client {
                     ),
                 );
             self.inner.unary(req, path, codec).await
+        }
+        /// Watch the registry for process state changes
+        pub async fn watch(
+            &mut self,
+            request: impl tonic::IntoRequest<super::WatchRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::WatchResponse>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.registry.service_discovery.v1.ServiceDiscoveryService/Watch",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.registry.service_discovery.v1.ServiceDiscoveryService",
+                        "Watch",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
         }
     }
 }

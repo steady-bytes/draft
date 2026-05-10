@@ -11,3 +11,10 @@ service:
     internal:
       host: localhost
       port: 2220
+
+clickhouse:
+  enabled: true
+  address: "localhost:9000"
+  database: "catalyst"
+  username: "default"
+  password: ""

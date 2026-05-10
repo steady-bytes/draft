@@ -48,6 +48,9 @@ const (
 	// ServiceDiscoveryServiceQueryProcedure is the fully-qualified name of the
 	// ServiceDiscoveryService's Query RPC.
 	ServiceDiscoveryServiceQueryProcedure = "/core.registry.service_discovery.v1.ServiceDiscoveryService/Query"
+	// ServiceDiscoveryServiceWatchProcedure is the fully-qualified name of the
+	// ServiceDiscoveryService's Watch RPC.
+	ServiceDiscoveryServiceWatchProcedure = "/core.registry.service_discovery.v1.ServiceDiscoveryService/Watch"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -58,6 +61,7 @@ var (
 	serviceDiscoveryServiceFinalizeMethodDescriptor     = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Finalize")
 	serviceDiscoveryServiceReportHealthMethodDescriptor = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("ReportHealth")
 	serviceDiscoveryServiceQueryMethodDescriptor        = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Query")
+	serviceDiscoveryServiceWatchMethodDescriptor        = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Watch")
 )
 
 // ServiceDiscoveryServiceClient is a client for the
@@ -73,6 +77,8 @@ type ServiceDiscoveryServiceClient interface {
 	ReportHealth(context.Context, *connect.Request[v1.ReportHealthRequest]) (*connect.Response[v1.ReportHealthResponse], error)
 	// Query the registry
 	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
+	// Watch the registry for process state changes
+	Watch(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error)
 }
 
 // NewServiceDiscoveryServiceClient constructs a client for the
@@ -116,6 +122,12 @@ func NewServiceDiscoveryServiceClient(httpClient connect.HTTPClient, baseURL str
 			connect.WithSchema(serviceDiscoveryServiceQueryMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		watch: connect.NewClient[v1.WatchRequest, v1.WatchResponse](
+			httpClient,
+			baseURL+ServiceDiscoveryServiceWatchProcedure,
+			connect.WithSchema(serviceDiscoveryServiceWatchMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -126,6 +138,7 @@ type serviceDiscoveryServiceClient struct {
 	finalize     *connect.Client[v1.FinalizeRequest, v1.FinalizeResponse]
 	reportHealth *connect.Client[v1.ReportHealthRequest, v1.ReportHealthResponse]
 	query        *connect.Client[v1.QueryRequest, v1.QueryResponse]
+	watch        *connect.Client[v1.WatchRequest, v1.WatchResponse]
 }
 
 // Initialize calls core.registry.service_discovery.v1.ServiceDiscoveryService.Initialize.
@@ -153,6 +166,11 @@ func (c *serviceDiscoveryServiceClient) Query(ctx context.Context, req *connect.
 	return c.query.CallUnary(ctx, req)
 }
 
+// Watch calls core.registry.service_discovery.v1.ServiceDiscoveryService.Watch.
+func (c *serviceDiscoveryServiceClient) Watch(ctx context.Context, req *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error) {
+	return c.watch.CallServerStream(ctx, req)
+}
+
 // ServiceDiscoveryServiceHandler is an implementation of the
 // core.registry.service_discovery.v1.ServiceDiscoveryService service.
 type ServiceDiscoveryServiceHandler interface {
@@ -166,6 +184,8 @@ type ServiceDiscoveryServiceHandler interface {
 	ReportHealth(context.Context, *connect.Request[v1.ReportHealthRequest]) (*connect.Response[v1.ReportHealthResponse], error)
 	// Query the registry
 	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
+	// Watch the registry for process state changes
+	Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error
 }
 
 // NewServiceDiscoveryServiceHandler builds an HTTP handler from the service implementation. It
@@ -204,6 +224,12 @@ func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts 
 		connect.WithSchema(serviceDiscoveryServiceQueryMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceDiscoveryServiceWatchHandler := connect.NewServerStreamHandler(
+		ServiceDiscoveryServiceWatchProcedure,
+		svc.Watch,
+		connect.WithSchema(serviceDiscoveryServiceWatchMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/core.registry.service_discovery.v1.ServiceDiscoveryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ServiceDiscoveryServiceInitializeProcedure:
@@ -216,6 +242,8 @@ func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts 
 			serviceDiscoveryServiceReportHealthHandler.ServeHTTP(w, r)
 		case ServiceDiscoveryServiceQueryProcedure:
 			serviceDiscoveryServiceQueryHandler.ServeHTTP(w, r)
+		case ServiceDiscoveryServiceWatchProcedure:
+			serviceDiscoveryServiceWatchHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -243,4 +271,8 @@ func (UnimplementedServiceDiscoveryServiceHandler) ReportHealth(context.Context,
 
 func (UnimplementedServiceDiscoveryServiceHandler) Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.service_discovery.v1.ServiceDiscoveryService.Query is not implemented"))
+}
+
+func (UnimplementedServiceDiscoveryServiceHandler) Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.service_discovery.v1.ServiceDiscoveryService.Watch is not implemented"))
 }
