@@ -3,14 +3,13 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	acv1 "github.com/steady-bytes/draft/api/core/message_broker/actors/v1"
 	acConnect "github.com/steady-bytes/draft/api/core/message_broker/actors/v1/v1connect"
-	crudv1 "github.com/steady-bytes/draft/api/examples/crud/v1"
 	"github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 	"github.com/steady-bytes/draft/services/examples/producer/events"
@@ -42,7 +41,6 @@ func run(logger chassis.Logger) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// cancel when the chassis signals shutdown
 	go func() {
 		<-chassis.Closer()
 		cancel()
@@ -51,37 +49,51 @@ func run(logger chassis.Logger) {
 	client := acConnect.NewProducerClient(h2cClient(), catalystAddr, connect.WithGRPC())
 	stream := client.Produce(ctx)
 
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-
-	// fixed IDs so repeated ticks are easy to follow in the store view
-	modelID := uuid.NewString()
-	userID := uuid.NewString()
-
-	ops := []crudv1.Operation{
-		crudv1.Operation_OPERATION_CREATE,
-		crudv1.Operation_OPERATION_UPDATE,
-		crudv1.Operation_OPERATION_DELETE,
-	}
-	opIdx := 0
-
 	for {
+		delay, count := nextBurst()
+
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
-			op := ops[opIdx%len(ops)]
-			opIdx++
-			emit(logger, stream, func() (*acv1.CloudEvent, error) {
-				return events.NewDatabaseModelSaved(modelID, "User", op)
-			})
-			emit(logger, stream, func() (*acv1.CloudEvent, error) {
-				return events.NewUserCreated(userID, "alice@example.com", "Alice")
-			})
-			emit(logger, stream, func() (*acv1.CloudEvent, error) {
-				return events.NewUserLoggedIn(userID, "alice@example.com")
-			})
+		case <-time.After(delay):
+			for range count {
+				emit(logger, stream, events.Random)
+			}
 		}
+	}
+}
+
+// nextBurst returns a randomised (delay, eventCount) pair that models three
+// traffic modes observed in real applications:
+//
+//   - Normal  (80 %): 100 ms – 1 s delay,   50 – 150 events    — steady background activity
+//   - Quiet   (15 %): 2 s – 8 s delay,       2 – 10 events     — idle gaps between actions
+//   - Burst    (5 %): 10 ms – 150 ms delay, 800 – 1 200 events — spikes from batch jobs / fan-out
+func nextBurst() (time.Duration, int) {
+	n := rand.IntN(20)
+	switch {
+	case n < 1: // 5 %: burst
+		return randDuration(10, 150), rand.IntN(1500) + 800
+	case n < 4: // 15 %: quiet
+		return randDuration(2000, 8000), rand.IntN(100) + 2
+	default: // 80 %: normal
+		return randDuration(100, 1000), rand.IntN(1000) + 50
+	}
+}
+
+func randDuration(minMs, maxMs int) time.Duration {
+	return time.Duration(rand.IntN(maxMs-minMs)+minMs) * time.Millisecond
+}
+
+func emit(logger chassis.Logger, stream *connect.BidiStreamForClient[acv1.ProduceRequest, acv1.ProduceResponse], build func() (*acv1.CloudEvent, error)) {
+	event, err := build()
+	if err != nil {
+		logger.WithField("error", err.Error()).Error("failed to build event")
+		return
+	}
+	if err := stream.Send(&acv1.ProduceRequest{Message: event}); err != nil {
+		logger.WithField("error", err.Error()).Error("failed to send event")
+		return
 	}
 }
 
@@ -96,17 +108,4 @@ func h2cClient() *http.Client {
 			},
 		},
 	}
-}
-
-func emit(logger chassis.Logger, stream *connect.BidiStreamForClient[acv1.ProduceRequest, acv1.ProduceResponse], build func() (*acv1.CloudEvent, error)) {
-	event, err := build()
-	if err != nil {
-		logger.WithField("error", err.Error()).Error("failed to build event")
-		return
-	}
-	if err := stream.Send(&acv1.ProduceRequest{Message: event}); err != nil {
-		logger.WithField("error", err.Error()).Error("failed to send event")
-		return
-	}
-	logger.WithField("type", event.Type).WithField("id", event.Id).Info("event produced")
 }

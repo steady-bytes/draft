@@ -27,7 +27,8 @@ func NewConsumer(consumerRegistrationChan chan register) Consumer {
 func (c *consumer) Consume(ctx context.Context, msg *acv1.CloudEvent, stream *connect.ServerStream[acv1.ConsumeResponse]) error {
 	// fling the consumer stream into the controller
 	c.consumerRegistrationChan <- register{
-		CloudEvent:      msg,
+		ctx:          ctx,
+		CloudEvent:   msg,
 		ServerStream: stream,
 	}
 

@@ -20,10 +20,17 @@ service Query {
     rpc QueryStream(QueryRequest) returns (stream QueryStreamResponse) {}
 }
 
+enum OrderDirection {
+    ORDER_DIRECTION_UNSPECIFIED = 0;  // treated as ASC
+    ORDER_DIRECTION_ASC         = 1;
+    ORDER_DIRECTION_DESC        = 2;
+}
+
 message QueryRequest {
-    Expression expression = 1;
-    int32      limit      = 2;  // 0 = server default; caps historical replay for QueryStream
-    string     after      = 3;  // ISO 8601 timestamp — replay events after this point before going live
+    Expression     expression = 1;
+    int32          limit      = 2;  // 0 = server default; caps historical replay for QueryStream
+    string         after      = 3;  // ISO 8601 timestamp — replay events after this point before going live
+    OrderDirection order_by   = 4;
 }
 
 message QueryResponse {

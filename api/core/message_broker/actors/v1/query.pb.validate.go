@@ -90,6 +90,8 @@ func (m *QueryRequest) validate(all bool) error {
 
 	// no validation rules for After
 
+	// no validation rules for OrderBy
+
 	if len(errors) > 0 {
 		return QueryRequestMultiError(errors)
 	}

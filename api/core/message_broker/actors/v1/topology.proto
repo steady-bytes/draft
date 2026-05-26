@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package core.message_broker.actors.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/message_broker/actors/v1";
+
+service Topology {
+    // GetTopology returns a snapshot of the current event topology: producers
+    // derived from ClickHouse distinct sources, consumers and edges derived from
+    // live ConsumeRequest registrations tracked in the broker's atomicMap.
+    rpc GetTopology(GetTopologyRequest) returns (GetTopologyResponse) {}
+
+    // WatchTopology streams incremental topology deltas as consumers connect or
+    // disconnect and as new producer sources appear in the event store.
+    rpc WatchTopology(WatchTopologyRequest) returns (stream WatchTopologyResponse) {}
+}
+
+message GetTopologyRequest {}
+
+message GetTopologyResponse {
+    repeated TopologyNode producers = 1;
+    repeated TopologyNode consumers = 2;
+    repeated TopologyEdge edges     = 3;
+}
+
+message TopologyNode {
+    string id   = 1;
+    string name = 2;
+}
+
+message TopologyEdge {
+    string producer_source = 1;
+    string consumer_source = 2;
+    string event_type      = 3;
+    uint32 vol             = 4;
+}
+
+message WatchTopologyRequest {}
+
+message WatchTopologyResponse {
+    oneof event {
+        TopologyNode consumer_connected    = 1;
+        TopologyNode consumer_disconnected = 2;
+        TopologyNode producer_appeared     = 3;
+    }
+}

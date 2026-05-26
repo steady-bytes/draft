@@ -51,17 +51,21 @@ func (r Error) Fields() Fields {
 	// add first call to stack
 	calls = append(calls, fmt.Sprintf("%s:%d", r.file, r.line))
 	// start with fields of first error in wrapping chain
-	fields := r.fields
+	src := r.fields
 	// add all other calls to stack (ignoring standard Go errors)
 	for e := errors.Unwrap(r); e != nil; e = errors.Unwrap(e) {
 		if e, ok := e.(Error); ok {
 			calls = append(calls, fmt.Sprintf("%s:%d", e.file, e.line))
-			fields = e.fields
+			src = e.fields
 		}
 	}
-	// add calls to fields
-	fields["call_stack"] = calls
-	return fields
+	// return a copy so callers cannot mutate the error's internal fields map
+	out := make(Fields, len(src)+1)
+	for k, v := range src {
+		out[k] = v
+	}
+	out["call_stack"] = calls
+	return out
 }
 
 // Wrap creates a customError from a given standard Go error and logger fields. It pulls out the

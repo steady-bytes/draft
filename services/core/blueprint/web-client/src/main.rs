@@ -7,7 +7,7 @@ mod views;
 mod components;
 
 use components::{navbar_menu_button, navbar_icon, navbar_secondary_menu_button};
-use views::{KeyValueView, ServiceRegistry, Gateway, Agents, Mcp, Tools, Store, Producers, Consumers, Cluster, PageNotFound};
+use views::{KeyValueView, ServiceRegistry, Gateway, Agents, Mcp, Tools, Store, Topology, Cluster, Metrics, PageNotFound};
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
@@ -27,12 +27,12 @@ enum Route {
         Tools{},
         #[route("/store")]
         Store{},
-        #[route("/producers")]
-        Producers{},
-        #[route("/consumers")]
-        Consumers{},
+        #[route("/topology")]
+        Topology{},
         #[route("/cluster")]
         Cluster{},
+        #[route("/metrics")]
+        Metrics{},
     #[end_layout]
 
     #[route("/:..route")]
@@ -173,13 +173,13 @@ fn dashboard_layout() -> Element {
                                     Link { to: Route::Store {}, "Store" }
                                 }
                                 li {
-                                    Link { to: Route::Producers {}, "Producers" }
-                                }
-                                li {
-                                    Link { to: Route::Consumers {}, "Consumers" }
+                                    Link { to: Route::Topology {}, "Topology" }
                                 }
                                 li {
                                     Link { to: Route::Cluster {}, "Cluster" }
+                                }
+                                li {
+                                    Link { to: Route::Metrics {}, "Metrics" }
                                 }
                             }
                         }

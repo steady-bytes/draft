@@ -79,6 +79,391 @@ pub struct CloudEventBatch {
     #[prost(message, repeated, tag = "1")]
     pub events: ::prost::alloc::vec::Vec<CloudEvent>,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetTopologyRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetTopologyResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub producers: ::prost::alloc::vec::Vec<TopologyNode>,
+    #[prost(message, repeated, tag = "2")]
+    pub consumers: ::prost::alloc::vec::Vec<TopologyNode>,
+    #[prost(message, repeated, tag = "3")]
+    pub edges: ::prost::alloc::vec::Vec<TopologyEdge>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TopologyNode {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TopologyEdge {
+    #[prost(string, tag = "1")]
+    pub producer_source: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub consumer_source: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub event_type: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "4")]
+    pub vol: u32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchTopologyRequest {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchTopologyResponse {
+    #[prost(oneof = "watch_topology_response::Event", tags = "1, 2, 3")]
+    pub event: ::core::option::Option<watch_topology_response::Event>,
+}
+/// Nested message and enum types in `WatchTopologyResponse`.
+pub mod watch_topology_response {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Event {
+        #[prost(message, tag = "1")]
+        ConsumerConnected(super::TopologyNode),
+        #[prost(message, tag = "2")]
+        ConsumerDisconnected(super::TopologyNode),
+        #[prost(message, tag = "3")]
+        ProducerAppeared(super::TopologyNode),
+    }
+}
+/// Generated client implementations.
+pub mod topology_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct TopologyClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl<T> TopologyClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> TopologyClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            TopologyClient::new(InterceptedService::new(inner, interceptor))
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        /// GetTopology returns a snapshot of the current event topology: producers
+        /// derived from ClickHouse distinct sources, consumers and edges derived from
+        /// live ConsumeRequest registrations tracked in the broker's atomicMap.
+        pub async fn get_topology(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetTopologyRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetTopologyResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.message_broker.actors.v1.Topology/GetTopology",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.message_broker.actors.v1.Topology",
+                        "GetTopology",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// WatchTopology streams incremental topology deltas as consumers connect or
+        /// disconnect and as new producer sources appear in the event store.
+        pub async fn watch_topology(
+            &mut self,
+            request: impl tonic::IntoRequest<super::WatchTopologyRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::WatchTopologyResponse>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.message_broker.actors.v1.Topology/WatchTopology",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.message_broker.actors.v1.Topology",
+                        "WatchTopology",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetTopicSeriesRequest {
+    #[prost(string, tag = "1")]
+    pub event_type: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub window_seconds: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SeriesPoint {
+    #[prost(int64, tag = "1")]
+    pub timestamp_ms: i64,
+    #[prost(uint32, tag = "2")]
+    pub count: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetTopicSeriesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub points: ::prost::alloc::vec::Vec<SeriesPoint>,
+    #[prost(int32, tag = "2")]
+    pub bucket_secs: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetMetricsRequest {
+    /// window_seconds is the lookback window for all metrics. 0 defaults to 300 (5 min).
+    #[prost(int32, tag = "1")]
+    pub window_seconds: i32,
+}
+/// EdgeVolume reports the event count for one (source, event_type) pair.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EdgeVolume {
+    #[prost(string, tag = "1")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub event_type: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "3")]
+    pub count: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetMetricsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub edge_volumes: ::prost::alloc::vec::Vec<EdgeVolume>,
+    #[prost(double, tag = "2")]
+    pub median_latency_ms: f64,
+    #[prost(double, tag = "3")]
+    pub p95_latency_ms: f64,
+    #[prost(uint32, tag = "4")]
+    pub total_messages_per_min: u32,
+}
+/// Generated client implementations.
+pub mod metrics_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct MetricsClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl<T> MetricsClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> MetricsClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            MetricsClient::new(InterceptedService::new(inner, interceptor))
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        /// GetMetrics returns pre-computed throughput and latency metrics derived from
+        /// ClickHouse aggregates over the requested time window.
+        pub async fn get_metrics(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetMetricsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetMetricsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.message_broker.actors.v1.Metrics/GetMetrics",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.message_broker.actors.v1.Metrics",
+                        "GetMetrics",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// GetTopicSeries returns a time-bucketed message count for one event_type,
+        /// suitable for rendering a line chart over the requested window.
+        pub async fn get_topic_series(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetTopicSeriesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetTopicSeriesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.message_broker.actors.v1.Metrics/GetTopicSeries",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.message_broker.actors.v1.Metrics",
+                        "GetTopicSeries",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueryRequest {
     #[prost(message, optional, tag = "1")]
@@ -89,6 +474,8 @@ pub struct QueryRequest {
     /// ISO 8601 timestamp — replay events after this point before going live
     #[prost(string, tag = "3")]
     pub after: ::prost::alloc::string::String,
+    #[prost(enumeration = "OrderDirection", tag = "4")]
+    pub order_by: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueryResponse {
@@ -219,6 +606,36 @@ pub struct FunctionCall {
     pub function: i32,
     #[prost(message, repeated, tag = "2")]
     pub args: ::prost::alloc::vec::Vec<Expression>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum OrderDirection {
+    /// treated as ASC
+    Unspecified = 0,
+    Asc = 1,
+    Desc = 2,
+}
+impl OrderDirection {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ORDER_DIRECTION_UNSPECIFIED",
+            Self::Asc => "ORDER_DIRECTION_ASC",
+            Self::Desc => "ORDER_DIRECTION_DESC",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ORDER_DIRECTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "ORDER_DIRECTION_ASC" => Some(Self::Asc),
+            "ORDER_DIRECTION_DESC" => Some(Self::Desc),
+            _ => None,
+        }
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -665,6 +1082,142 @@ pub mod consumer_client {
                     GrpcMethod::new("core.message_broker.actors.v1.Consumer", "Consume"),
                 );
             self.inner.server_streaming(req, path, codec).await
+        }
+    }
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetResourceMetricsRequest {}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct GetResourceMetricsResponse {
+    /// Throughput counters — cumulative since process start.
+    #[prost(uint64, tag = "1")]
+    pub messages_published_total: u64,
+    #[prost(uint64, tag = "2")]
+    pub messages_dropped_total: u64,
+    /// Ingest buffer — current depth vs max capacity of the store channel.
+    #[prost(uint32, tag = "3")]
+    pub queue_depth: u32,
+    #[prost(uint32, tag = "4")]
+    pub queue_capacity: u32,
+    /// Live connection counts.
+    #[prost(uint32, tag = "5")]
+    pub active_consumers: u32,
+    #[prost(uint32, tag = "6")]
+    pub active_producers: u32,
+    /// Store flush performance.
+    #[prost(double, tag = "7")]
+    pub store_flush_p95_ms: f64,
+    #[prost(uint32, tag = "8")]
+    pub store_flush_count: u32,
+}
+/// Generated client implementations.
+pub mod resource_metrics_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct ResourceMetricsClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl<T> ResourceMetricsClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> ResourceMetricsClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            ResourceMetricsClient::new(InterceptedService::new(inner, interceptor))
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        pub async fn get_resource_metrics(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetResourceMetricsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetResourceMetricsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.message_broker.actors.v1.ResourceMetrics/GetResourceMetrics",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.message_broker.actors.v1.ResourceMetrics",
+                        "GetResourceMetrics",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }

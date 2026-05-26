@@ -18,6 +18,19 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+const serviceName = "examples-consumer"
+
+// eventTypes is the exhaustive list of event types this service processes.
+// One Consume stream is opened per type so that each (consumer, event_type) pair
+// appears as a distinct edge in the topology view once Phase 4 registration
+// tracking is deployed. The broker broadcasts all events to all streams; each
+// goroutine filters to its declared type so events are never double-processed.
+var eventTypes = []string{
+	"examples.crud.v1.DatabaseModelSaved",
+	"examples.user.v1.UserCreated",
+	"examples.user.v1.UserLoggedIn",
+}
+
 func main() {
 	logger := zerolog.New()
 
@@ -48,30 +61,46 @@ func run(logger chassis.Logger) {
 
 	client := acConnect.NewConsumerClient(h2cClient(), catalystAddr, connect.WithGRPC())
 
-	// An empty CloudEvent subscription key matches all events — catalyst routes
-	// by protobuf descriptor name, so all CloudEvents share the same channel.
+	done := make(chan struct{}, len(eventTypes))
+	for _, et := range eventTypes {
+		et := et
+		go func() {
+			defer func() { done <- struct{}{} }()
+			consumeType(ctx, logger, client, et)
+		}()
+	}
+
+	for range eventTypes {
+		<-done
+	}
+}
+
+func consumeType(ctx context.Context, logger chassis.Logger, client acConnect.ConsumerClient, eventType string) {
 	req := connect.NewRequest(&acv1.ConsumeRequest{
-		Message: &acv1.CloudEvent{},
+		Message: &acv1.CloudEvent{
+			Source: serviceName,
+			Type:   eventType,
+		},
 	})
 
 	stream, err := client.Consume(ctx, req)
 	if err != nil {
-		logger.WithField("error", err.Error()).Error("failed to open consume stream")
+		logger.WithField("error", err.Error()).WithField("type", eventType).Error("failed to open consume stream")
 		return
 	}
 
-	logger.Info("consumer connected, waiting for events")
+	logger.WithField("type", eventType).Info("consumer stream open")
 
 	for stream.Receive() {
 		event := stream.Msg().GetMessage()
-		if event == nil {
+		if event == nil || event.Type != eventType {
 			continue
 		}
 		handle(logger, event)
 	}
 
 	if err := stream.Err(); err != nil && ctx.Err() == nil {
-		logger.WithField("error", err.Error()).Error("consume stream ended with error")
+		logger.WithField("error", err.Error()).WithField("type", eventType).Error("consume stream ended with error")
 	}
 }
 
@@ -85,11 +114,11 @@ func handle(logger chassis.Logger, event *acv1.CloudEvent) {
 			logger.WithField("error", err.Error()).Error("failed to unmarshal DatabaseModelSaved")
 			return
 		}
-		logger.
-			WithField("model_id", payload.ModelId).
-			WithField("model_name", payload.ModelName).
-			WithField("operation", payload.Operation.String()).
-			Info("DatabaseModelSaved received")
+		// logger.
+		// 	WithField("model_id", payload.ModelId).
+		// 	WithField("model_name", payload.ModelName).
+		// 	WithField("operation", payload.Operation.String()).
+		// 	Info("DatabaseModelSaved received")
 
 	case "examples.user.v1.UserCreated":
 		var payload userv1.UserCreated
@@ -97,11 +126,11 @@ func handle(logger chassis.Logger, event *acv1.CloudEvent) {
 			logger.WithField("error", err.Error()).Error("failed to unmarshal UserCreated")
 			return
 		}
-		logger.
-			WithField("user_id", payload.UserId).
-			WithField("email", payload.Email).
-			WithField("name", payload.Name).
-			Info("UserCreated received")
+		// logger.
+		// 	WithField("user_id", payload.UserId).
+		// 	WithField("email", payload.Email).
+		// 	WithField("name", payload.Name).
+		// 	Info("UserCreated received")
 
 	case "examples.user.v1.UserLoggedIn":
 		var payload userv1.UserLoggedIn
@@ -109,18 +138,12 @@ func handle(logger chassis.Logger, event *acv1.CloudEvent) {
 			logger.WithField("error", err.Error()).Error("failed to unmarshal UserLoggedIn")
 			return
 		}
-		logger.
-			WithField("user_id", payload.UserId).
-			WithField("email", payload.Email).
-			WithField("login_at", payload.LoginAt.AsTime().String()).
-			Info("UserLoggedIn received")
+		// logger.
+		// 	WithField("user_id", payload.UserId).
+		// 	WithField("email", payload.Email).
+		// 	WithField("login_at", payload.LoginAt.AsTime().String()).
+		// 	Info("UserLoggedIn received")
 
-	default:
-		logger.
-			WithField("type", event.Type).
-			WithField("source", event.Source).
-			WithField("id", event.Id).
-			Info("unrecognised event received")
 	}
 }
 

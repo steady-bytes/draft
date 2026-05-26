@@ -19,14 +19,14 @@ pub use tools::Tools;
 mod store;
 pub use store::Store;
 
-mod producers;
-pub use producers::Producers;
-
-mod consumers;
-pub use consumers::Consumers;
+mod topology;
+pub use topology::Topology;
 
 mod cluster;
 pub use cluster::Cluster;
+
+mod metrics;
+pub use metrics::Metrics;
 
 mod page_not_found;
 pub use page_not_found::PageNotFound;

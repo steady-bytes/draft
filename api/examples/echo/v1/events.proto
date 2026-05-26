@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package examples.echo.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/examples/echo/v1";
+
+message HelloWorld {
+    string message = 1;
+    string sender  = 2;
+}
+
+message Ping {
+    string id     = 1;
+    string sender = 2;
+}
+
+message Pong {
+    string ping_id   = 1;
+    string responder = 2;
+}
