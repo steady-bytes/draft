@@ -8,7 +8,7 @@ use draft_api::proto::core_message_broker_actors_v1::{
     CloudEvent, OrderDirection, QueryRequest,
 };
 
-use crate::components::{CesqlBar, QueryBuilder, SortDir, TypeBadge};
+use crate::components::{CesqlBar, QueryBuilder, SortDir, TypeBadge, WaveLoader};
 
 // Cap stored events so the table doesn't grow without bound.
 const MAX_EVENTS: usize = 1_000;
@@ -28,6 +28,7 @@ pub fn Store() -> Element {
     let mut query_results: Signal<Vec<CloudEvent>> = use_signal(Vec::new);
     let mut sort_dir: Signal<SortDir> = use_signal(|| SortDir::Desc);
     let mut status: Signal<StreamStatus> = use_signal(|| StreamStatus::Disconnected);
+    let mut querying = use_signal(|| true);
     // Holds the active stream task so it can be cancelled when the toggle turns off.
     let mut stream_task: Signal<Option<Task>> = use_signal(|| None);
 
@@ -77,6 +78,7 @@ pub fn Store() -> Element {
     });
 
     let run_query = use_callback(move |_: ()| {
+        querying.set(true);
         let host = crate::CATALYST_DOMAIN.clone();
         // peek() reads the current value without creating a reactive subscription,
         // preventing use_effect from re-firing whenever sort_dir changes.
@@ -97,6 +99,7 @@ pub fn Store() -> Element {
             {
                 query_results.set(resp.into_inner().events);
             }
+            querying.set(false);
         });
     });
 
@@ -197,6 +200,11 @@ pub fn Store() -> Element {
             }
 
             div { class: "flex-1 overflow-auto min-h-0",
+                if all_events.is_empty() && (!streaming() && querying() || streaming() && status() == StreamStatus::Connecting) {
+                    div { style: "position:fixed;top:50%;left:0;right:0;width:fit-content;margin-inline:auto;",
+                        WaveLoader { width: 80, height: 28 }
+                    }
+                } else {
                 table { class: "table table-xs",
                     thead {
                         tr {
@@ -247,6 +255,7 @@ pub fn Store() -> Element {
                             }
                         }
                     }
+                }
                 }
             }
         }

@@ -27,3 +27,6 @@ pub use arc_spine::ArcSpine;
 
 mod full_circle;
 pub use full_circle::FullCircle;
+
+mod wave_loader;
+pub use wave_loader::WaveLoader;

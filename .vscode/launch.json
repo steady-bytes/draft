@@ -286,6 +286,16 @@
                 "run"
             ]
         },
+        {
+            "name": "Docs: Website",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "hugo",
+            "runtimeArgs": ["server"],
+            "cwd": "${workspaceFolder}/docs/website",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
     ],
     "compounds": [
         {

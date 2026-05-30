@@ -6,7 +6,7 @@ use draft_api::proto::core_message_broker_actors_v1::{
     CloudEvent, GetTopologyResponse, GetTopologyRequest,
     OrderDirection, QueryRequest, WatchTopologyRequest,
 };
-use crate::components::{FullCircle, TopologyData, TopologyNode, TopologyEdge};
+use crate::components::{FullCircle, TopologyData, TopologyNode, TopologyEdge, WaveLoader};
 
 fn topology_from_response(resp: GetTopologyResponse) -> TopologyData {
     let producers = resp.producers.into_iter()
@@ -47,6 +47,7 @@ fn topology_from_events(events: &[CloudEvent]) -> TopologyData {
 #[component]
 pub fn Topology() -> Element {
     let mut data: Signal<TopologyData> = use_signal(TopologyData::default);
+    let mut loading = use_signal(|| true);
 
     use_effect(move || {
         // Task 1: GetTopology snapshot — producers + consumers + edges with server-computed vol.
@@ -68,6 +69,7 @@ pub fn Topology() -> Element {
                     }
                 }
             }
+            loading.set(false);
         });
 
         // Task 2: WatchTopology — re-fetch the full snapshot on any topology change.
@@ -93,7 +95,13 @@ pub fn Topology() -> Element {
     rsx! {
         div {
             style: "width:100%;height:calc(100dvh - 4rem);overflow:hidden;background:#080808;",
-            FullCircle { data: data() }
+            if loading() {
+                div { style: "position:fixed;top:50%;left:0;right:0;width:fit-content;margin-inline:auto;",
+                    WaveLoader { width: 80, height: 28 }
+                }
+            } else {
+                FullCircle { data: data() }
+            }
         }
     }
 }

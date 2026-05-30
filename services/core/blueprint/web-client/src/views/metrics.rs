@@ -12,7 +12,7 @@ use draft_api::proto::core_message_broker_actors_v1::{
 };
 
 use gloo_timers::callback::Interval;
-use crate::components::{MetricCard, MetricIcon, event_color};
+use crate::components::{MetricCard, MetricIcon, WaveLoader, event_color};
 
 
 #[derive(Clone, PartialEq, Copy)]
@@ -221,6 +221,12 @@ pub fn Metrics() -> Element {
                 }
             }
 
+            if !m.loaded {
+                div { style: "position:fixed;top:50%;left:0;right:0;width:fit-content;margin-inline:auto;",
+                    WaveLoader { width: 80, height: 28 }
+                }
+            } else {
+            div { class: "flex flex-col gap-6",
             div { class: "flex flex-col gap-3",
                 h2 { class: "text-xs font-semibold tracking-wide text-base-content/40 uppercase", "Event Metrics" }
                 div { class: "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4",
@@ -451,6 +457,8 @@ pub fn Metrics() -> Element {
                         }
                     }
                 }
+            }
+            }
             }
         }
 
