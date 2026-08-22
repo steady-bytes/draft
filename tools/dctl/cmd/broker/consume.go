@@ -54,9 +54,9 @@ func Consume(cmd *cobra.Command, args []string) error {
 
 	msg := &acv1.CloudEvent{
 		Id:          uuid.NewString(),
-		Source:      string(value.ProtoReflect().Descriptor().FullName()),
+		Source:      "dctl",
 		SpecVersion: "v1",
-		Type:        string(value.ProtoReflect().Descriptor().Name()),
+		Type:        "",
 		Attributes:  attrs,
 		Data: &acv1.CloudEvent_ProtoData{
 			ProtoData: a,

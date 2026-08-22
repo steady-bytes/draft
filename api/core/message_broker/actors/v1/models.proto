@@ -64,5 +64,5 @@ message CloudEvent {
  *
  */
 message CloudEventBatch {
-  repeated CloudEvent events = 1; 
+  repeated CloudEvent events = 1;
 }

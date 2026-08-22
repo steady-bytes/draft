@@ -43,15 +43,6 @@ const (
 	CrudServiceDeleteProcedure = "/examples.crud.v1.CrudService/Delete"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	crudServiceServiceDescriptor      = v1.File_examples_crud_v1_service_proto.Services().ByName("CrudService")
-	crudServiceCreateMethodDescriptor = crudServiceServiceDescriptor.Methods().ByName("Create")
-	crudServiceReadMethodDescriptor   = crudServiceServiceDescriptor.Methods().ByName("Read")
-	crudServiceUpdateMethodDescriptor = crudServiceServiceDescriptor.Methods().ByName("Update")
-	crudServiceDeleteMethodDescriptor = crudServiceServiceDescriptor.Methods().ByName("Delete")
-)
-
 // CrudServiceClient is a client for the examples.crud.v1.CrudService service.
 type CrudServiceClient interface {
 	Create(context.Context, *connect.Request[v1.CreateRequest]) (*connect.Response[v1.CreateResponse], error)
@@ -69,29 +60,30 @@ type CrudServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewCrudServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) CrudServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	crudServiceMethods := v1.File_examples_crud_v1_service_proto.Services().ByName("CrudService").Methods()
 	return &crudServiceClient{
 		create: connect.NewClient[v1.CreateRequest, v1.CreateResponse](
 			httpClient,
 			baseURL+CrudServiceCreateProcedure,
-			connect.WithSchema(crudServiceCreateMethodDescriptor),
+			connect.WithSchema(crudServiceMethods.ByName("Create")),
 			connect.WithClientOptions(opts...),
 		),
 		read: connect.NewClient[v1.ReadRequest, v1.ReadResponse](
 			httpClient,
 			baseURL+CrudServiceReadProcedure,
-			connect.WithSchema(crudServiceReadMethodDescriptor),
+			connect.WithSchema(crudServiceMethods.ByName("Read")),
 			connect.WithClientOptions(opts...),
 		),
 		update: connect.NewClient[v1.UpdateRequest, v1.UpdateResponse](
 			httpClient,
 			baseURL+CrudServiceUpdateProcedure,
-			connect.WithSchema(crudServiceUpdateMethodDescriptor),
+			connect.WithSchema(crudServiceMethods.ByName("Update")),
 			connect.WithClientOptions(opts...),
 		),
 		delete: connect.NewClient[v1.DeleteRequest, v1.DeleteResponse](
 			httpClient,
 			baseURL+CrudServiceDeleteProcedure,
-			connect.WithSchema(crudServiceDeleteMethodDescriptor),
+			connect.WithSchema(crudServiceMethods.ByName("Delete")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -139,28 +131,29 @@ type CrudServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewCrudServiceHandler(svc CrudServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	crudServiceMethods := v1.File_examples_crud_v1_service_proto.Services().ByName("CrudService").Methods()
 	crudServiceCreateHandler := connect.NewUnaryHandler(
 		CrudServiceCreateProcedure,
 		svc.Create,
-		connect.WithSchema(crudServiceCreateMethodDescriptor),
+		connect.WithSchema(crudServiceMethods.ByName("Create")),
 		connect.WithHandlerOptions(opts...),
 	)
 	crudServiceReadHandler := connect.NewUnaryHandler(
 		CrudServiceReadProcedure,
 		svc.Read,
-		connect.WithSchema(crudServiceReadMethodDescriptor),
+		connect.WithSchema(crudServiceMethods.ByName("Read")),
 		connect.WithHandlerOptions(opts...),
 	)
 	crudServiceUpdateHandler := connect.NewUnaryHandler(
 		CrudServiceUpdateProcedure,
 		svc.Update,
-		connect.WithSchema(crudServiceUpdateMethodDescriptor),
+		connect.WithSchema(crudServiceMethods.ByName("Update")),
 		connect.WithHandlerOptions(opts...),
 	)
 	crudServiceDeleteHandler := connect.NewUnaryHandler(
 		CrudServiceDeleteProcedure,
 		svc.Delete,
-		connect.WithSchema(crudServiceDeleteMethodDescriptor),
+		connect.WithSchema(crudServiceMethods.ByName("Delete")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/examples.crud.v1.CrudService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

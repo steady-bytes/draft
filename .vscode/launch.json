@@ -12,6 +12,7 @@
             "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "CMD": "make_cluster"
             }
@@ -24,6 +25,7 @@
             "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "CMD": "cluster_stats"
             }
@@ -36,6 +38,7 @@
             "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "CMD": "set_value"
             }
@@ -48,6 +51,7 @@
             "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "CMD": "get_value"
             }
@@ -60,6 +64,7 @@
             "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "CMD": "load_test_key_value"
             }
@@ -72,6 +77,7 @@
             "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "CMD": "list_all"
             }
@@ -84,6 +90,7 @@
             "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "CMD": "init_process"
             }
@@ -96,6 +103,7 @@
             "program": "tools/blueprint-client/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "CMD": "synchronize"
             }
@@ -108,6 +116,7 @@
             "program": "services/core/blueprint/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "DRAFT_CONFIG": "tests/blueprint/node_1.yaml"
             },
@@ -120,6 +129,7 @@
             "program": "services/core/blueprint/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "DRAFT_CONFIG": "tests/blueprint/node_2.yaml"
             },
@@ -132,6 +142,7 @@
             "program": "services/core/blueprint/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "DRAFT_CONFIG": "tests/blueprint/node_3.yaml"
             },
@@ -144,8 +155,61 @@
             "program": "services/core/catalyst/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "DRAFT_CONFIG": "services/core/catalyst/config.yaml"
+            },
+        },
+        {
+            "name": "Producer",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/examples/producer/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
+            "env": {
+                "DRAFT_CONFIG": "services/examples/producer/config.yaml"
+            },
+        },
+        {
+            "name": "Consumer",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/examples/consumer/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
+            "env": {
+                "DRAFT_CONFIG": "services/examples/consumer/config.yaml"
+            },
+        },
+        {
+            "name": "Producer 2 (echo)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/examples/producer2/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
+            "env": {
+                "DRAFT_CONFIG": "services/examples/producer2/config.yaml"
+            },
+        },
+        {
+            "name": "Consumer 2 (echo)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/examples/consumer2/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
+            "env": {
+                "DRAFT_CONFIG": "services/examples/consumer2/config.yaml"
             },
         },
         {
@@ -156,6 +220,7 @@
             "program": "tools/dctl/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "args": ["broker", "produce"],
         },
         {
@@ -166,6 +231,7 @@
             "program": "tools/dctl/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "args": ["broker", "consume"],
         },
         {
@@ -176,6 +242,7 @@
             "program": "services/core/fuse/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "DRAFT_CONFIG": "services/core/fuse/config.yaml"
             },
@@ -188,6 +255,7 @@
             "program": "services/examples/file_host/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "DRAFT_CONFIG": "services/examples/file_host/config.yaml"
             },
@@ -200,8 +268,35 @@
             "program": "services/examples/echo/main.go",
             "cwd": "${workspaceFolder}",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "env": {
                 "DRAFT_CONFIG": "services/examples/echo/config.yaml"
+            },
+        },
+        {
+            "name": "Auth",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/auth/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
+            "env": {
+                "DRAFT_CONFIG": "services/core/auth/config.yaml"
+            },
+        },
+        {
+            "name": "Auth Example",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/examples/auth/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
+            "env": {
+                "DRAFT_CONFIG": "services/examples/auth/config.yaml"
             },
         },
         {
@@ -212,9 +307,20 @@
             "program": "tests/plugins/main.go",
             "cwd": "${workspaceFolder}/tests/plugins",
             "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
             "args": [
                 "run"
             ]
+        },
+        {
+            "name": "Docs: Website",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "hugo",
+            "runtimeArgs": ["server"],
+            "cwd": "${workspaceFolder}/docs/website",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
         },
     ],
     "compounds": [
@@ -224,6 +330,22 @@
                 "Blueprint_1",
                 "Blueprint_2",
                 "Blueprint_3"
+            ],
+            "stopAll": true,
+        },
+        {
+            "name": "Echo Services",
+            "configurations": [
+                "Producer 2 (echo)",
+                "Consumer 2 (echo)"
+            ],
+            "stopAll": true,
+        },
+        {
+            "name": "Auth (core + example)",
+            "configurations": [
+                "Auth",
+                "Auth Example"
             ],
             "stopAll": true,
         }

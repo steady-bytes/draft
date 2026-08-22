@@ -69,7 +69,7 @@ type ZoneMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ZoneMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -202,7 +202,7 @@ type ProcessIdentityMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ProcessIdentityMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -304,7 +304,7 @@ type StartupConfigurationMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StartupConfigurationMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -599,7 +599,7 @@ type ProcessMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ProcessMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -704,7 +704,7 @@ type MetadataMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m MetadataMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -807,7 +807,7 @@ type GeoPointMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GeoPointMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -909,7 +909,7 @@ type TokenMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m TokenMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

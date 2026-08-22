@@ -1,0 +1,19 @@
+service:
+  name: auth
+  domain: core
+  entrypoint: http://blueprint:2221
+
+  logging:
+    level: info
+
+  network:
+    bind_address: 0.0.0.0
+    bind_port: 9095
+    internal:
+      host: auth
+      port: 9095
+
+auth:
+  mode: authentik
+  authentik:
+    url: http://authentik-server:9000

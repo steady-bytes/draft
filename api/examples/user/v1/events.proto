@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package examples.user.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/examples/user/v1";
+
+import "google/protobuf/timestamp.proto";
+
+message UserCreated {
+  string user_id = 1;
+  string email   = 2;
+  string name    = 3;
+}
+
+message UserLoggedIn {
+  string                    user_id  = 1;
+  string                    email    = 2;
+  google.protobuf.Timestamp login_at = 3;
+}

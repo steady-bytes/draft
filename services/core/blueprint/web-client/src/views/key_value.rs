@@ -1,75 +1,81 @@
-use std::fmt;
-use std::collections::HashMap;
-use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
 use dioxus::prelude::*;
-use dioxus_logger::tracing::debug;
+use gloo_timers::future::TimeoutFuture;
+use draft_api::hook::core_registry_key_value_v1::{
+    key_value_service_client::KeyValueServiceClient,
+    DeleteRequest, ListRequest, SetRequest, Value,
+};
+use prost::Message as _;
+use prost_types::Any;
+use tonic_web_wasm_client::Client as WasmClient;
 
-use crate::API_DOMAIN;
-
-pub static PATH: Lazy<String> = Lazy::new(|| {
-    "/core.registry.key_value.v1.KeyValueService/List".to_string()
-});
+const VALUE_TYPE_URL: &str = "type.googleapis.com/core.registry.key_value.v1.Value";
 
 #[component]
 pub fn KeyValueView() -> Element {
-    let mut list = use_signal(|| {
-        KeyValueListResponse {
-            values: HashMap::new(),
-        }
+    let mut list_result = use_resource(|| async {
+        let mut client = KeyValueServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()));
+        client.list(ListRequest {
+            value: Some(Any {
+                type_url: VALUE_TYPE_URL.to_string(),
+                value: vec![],
+            }),
+        }).await.map(|r| r.into_inner())
     });
 
-    // TODO: When adding a spinner, use the output from `use_resource` to show the spinner, display data, and handle the error
-    //       currently using the `use_signal` hook to show the data which is not the most efficient way
-    let _key_value = use_resource(move || async move {
-        let url = format!("{}{}", *API_DOMAIN, *PATH);
-        debug!("URL: {}", url);
-        let response = reqwest::Client::new()
-            .post(url)
-            .json(&KeyValueListRequest {
-                value: QueryValue {
-                    type_url: "type.googleapis.com/core.registry.key_value.v1.Value".to_string(),
-                },
-            })
-            .send()
-            .await;
+    let mut show_modal = use_signal(|| false);
+    let mut form_key = use_signal(String::new);
+    let mut form_value = use_signal(String::new);
+    let mut status: Signal<Option<String>> = use_signal(|| None);
 
-            // TODO: Error handling
-            match response {
-                Ok(resp) => {
-                    let json = resp.json::<KeyValueListResponse>().await;
-                    match json {
-                        Ok(data) => {
-                            let mut d = HashMap::new();
-                            // iterate over the values and remove the key type prefix
-                            // (type.googleapis.com/core.registry.key_value.v1.Value-)
-                            data.values.iter().for_each(|(key, val)| {
-                                let mut new_key = key.clone();
-                                if let Some(pos) = new_key.find("type.googleapis.com/core.registry.key_value.v1.Value-") {
-                                    new_key.replace_range(..pos + "type.googleapis.com/core.registry.key_value.v1.Value-".len(), "");
-                                }
-                                // info!("Key: {}", new_key);
-                                d.insert(new_key, val.clone());
-                            });
-
-                            list.set(KeyValueListResponse {
-                                values: d,
-                            });
-
-                            Ok(())
-                        },
-                        // Error so we need to render something on the screen (Maybe some popup)
-                        Err(err) => Err(format!("Failed to parse JSON: {}", err)),
-                    }
+    let submit = move |_| {
+        let key = form_key();
+        let value = form_value();
+        spawn(async move {
+            let mut client = KeyValueServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()));
+            let any = Any {
+                type_url: VALUE_TYPE_URL.to_string(),
+                value: Value { data: value }.encode_to_vec(),
+            };
+            match client.set(SetRequest { key, value: Some(any) }).await {
+                Ok(_) => {
+                    show_modal.set(false);
+                    form_key.set(String::new());
+                    form_value.set(String::new());
+                    list_result.restart();
+                    status.set(Some("Key/value saved.".to_string()));
+                    spawn(async move {
+                        TimeoutFuture::new(3_000).await;
+                        status.set(None);
+                    });
                 }
-                // Error so we need to render something on the screen (Maybe some popup)
-                Err(err) => Err(format!("Failed to fetch data: {}", err)),
+                Err(e) => status.set(Some(format!("Error: {e}"))),
             }
-    });
+        });
+    };
 
     rsx! {
-        div {
-            // TODO: Add a loading spinner
+        div { class: "p-4",
+            div { class: "flex items-center justify-between mb-4",
+                h1 { class: "text-2xl font-bold", "Key / Value" }
+                button {
+                    class: "btn btn-primary btn-sm",
+                    onclick: move |_| {
+                        form_key.set(String::new());
+                        form_value.set(String::new());
+                        show_modal.set(true);
+                    },
+                    "+ Add Entry"
+                }
+            }
+
+            if let Some(msg) = status() {
+                div { class: "toast toast-end toast-bottom z-50",
+                    div { class: "alert alert-success",
+                        span { "{msg}" }
+                    }
+                }
+            }
+
             div { class: "overflow-x-auto",
                 table { class: "table table-xs",
                     thead {
@@ -77,66 +83,116 @@ pub fn KeyValueView() -> Element {
                             th { "Key" }
                             th { "Value" }
                             th { "Type Url" }
+                            th { "" }
                         }
                     }
                     tbody {
-                        for (key, val) in list().values.iter() {
-                            tr { class: "hover:bg-base-300",
-                                td { "{key}" }
-                                td { "{val.data}" }
-                                td { "{val.type_url}" }
-                            }
+                        match &*list_result.read() {
+                            Some(Ok(response)) => {
+                                let key_prefix = format!("{}-", VALUE_TYPE_URL);
+                                let mut rows: Vec<(String, String, String)> = response.values
+                                    .iter()
+                                    .map(|(key, any)| {
+                                        let type_url = any.type_url.clone();
+                                        let data = Value::decode(any.value.as_slice())
+                                            .map(|v| v.data)
+                                            .unwrap_or_else(|_| "(binary)".to_string());
+                                        let display_key = key.strip_prefix(key_prefix.as_str()).unwrap_or(key).to_string();
+                                        (display_key, data, type_url)
+                                    })
+                                    .collect();
+                                rows.sort_by(|a, b| a.0.cmp(&b.0));
+                                rsx! {
+                                    for (key, data, type_url) in rows {
+                                        {
+                                            let delete_key = key.clone();
+                                            rsx! {
+                                                tr { class: "hover:bg-base-300",
+                                                    td { "{key}" }
+                                                    td { "{data}" }
+                                                    td { "{type_url}" }
+                                                    td {
+                                                        button {
+                                                            class: "btn btn-xs btn-error",
+                                                            onclick: move |_| {
+                                                                let key = delete_key.clone();
+                                                                spawn(async move {
+                                                                    let mut client = KeyValueServiceClient::new(
+                                                                        WasmClient::new(crate::API_DOMAIN.clone())
+                                                                    );
+                                                                    let _ = client.delete(DeleteRequest {
+                                                                        key,
+                                                                        value: Some(Any {
+                                                                            type_url: VALUE_TYPE_URL.to_string(),
+                                                                            value: vec![],
+                                                                        }),
+                                                                    }).await;
+                                                                    list_result.restart();
+                                                                });
+                                                            },
+                                                            "Delete"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            Some(Err(err)) => rsx! {
+                                tr {
+                                    td { colspan: "4", class: "text-center text-red-500",
+                                        "Error: {err}"
+                                    }
+                                }
+                            },
+                            None => rsx! {
+                                tr {
+                                    td { colspan: "4", class: "text-center",
+                                        "Loading..."
+                                    }
+                                }
+                            },
                         }
                     }
-                    tfoot {
-                        tr {
-                            th { "Key" }
-                            th { "Value" }
-                            th { "Type Url" }
+                }
+            }
+
+            if show_modal() {
+                div { class: "modal modal-open",
+                    div { class: "modal-box",
+                        h3 { class: "font-bold text-lg mb-4", "Add Key / Value" }
+                        div { class: "form-control mb-2",
+                            label { class: "label", span { class: "label-text", "Key" } }
+                            input {
+                                class: "input input-bordered input-sm w-full",
+                                value: "{form_key}",
+                                oninput: move |e| form_key.set(e.value()),
+                            }
+                        }
+                        div { class: "form-control mb-4",
+                            label { class: "label", span { class: "label-text", "Value" } }
+                            input {
+                                class: "input input-bordered input-sm w-full",
+                                value: "{form_value}",
+                                oninput: move |e| form_value.set(e.value()),
+                            }
+                        }
+                        div { class: "modal-action",
+                            button {
+                                class: "btn btn-ghost btn-sm",
+                                onclick: move |_| show_modal.set(false),
+                                "Cancel"
+                            }
+                            button {
+                                class: "btn btn-primary btn-sm",
+                                onclick: submit,
+                                "Save"
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
-
-/// curl:
-/// curl --header "Content-Type: application/json" \
-/// --data '{"value": {"type_url": "type.googleapis.com/core.registry.key_value.v1.Value"}}' \
-/// http://localhost:2221/core.registry.key_value.v1.KeyValueService/List
-///
-/// RES: {"value": {"type_url": "type.googleapis.com/core.registry.key_value.v1.Value"}}
-#[derive(Serialize, Deserialize)]
-struct KeyValueListRequest {
-    value: QueryValue,
-}
-
-#[derive(Serialize, Deserialize )]
-struct QueryValue {
-    type_url: String
-}
-
-/// Response from the server
-#[derive(Serialize, Deserialize, Clone)]
-struct KeyValueListResponse {
-    values: HashMap<String, Value>,
-}
-
-// Implementing Display trait for KeyValueListResponse
-// so it can be printed in a readable format
-impl fmt::Display for KeyValueListResponse {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (key, value) in &self.values {
-            writeln!(f, "Key: {}\nType URL: {}\nData: {}\n", key, value.type_url, value.data)?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct Value {
-    #[serde(rename = "@type")]
-    type_url: String,
-    data: String,
 }

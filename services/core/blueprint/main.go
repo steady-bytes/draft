@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"embed"
+	"time"
 
 	kv "github.com/steady-bytes/draft/services/core/blueprint/key_value"
 	sd "github.com/steady-bytes/draft/services/core/blueprint/service_discovery"
@@ -34,7 +36,14 @@ func main() {
 
 	c.WithRPCHandler(keyValueRPC).
 		WithRPCHandler(serviceDiscoveryRPC).
-		WithClientApplication(files, "web-client/target/dx/blueprint-pwa/release/web/public")
+		WithClientApplication(files, "web-client/target/dx/blueprint-pwa/release/web/public").
+		WithRunner(func() {
+			ticker := time.NewTicker(sd.ReapInterval)
+			defer ticker.Stop()
+			for range ticker.C {
+				serviceDiscoveryController.Reap(context.Background(), logger)
+			}
+		})
 
 	defer c.Start()
 }

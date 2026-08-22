@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package core.registry.key_value.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/registry/key_value/v1";
+
+message NodePosition {
+    float x = 1;
+    float y = 2;
+}
+
+message ClusterLayout {
+    // Node label → canvas position. Keyed by label so layout is resilient
+    // to nodes being added or removed from the graph.
+    map<string, NodePosition> positions = 1;
+}

@@ -1,0 +1,45 @@
+version: 1
+metadata:
+  name: draft-framework
+  labels:
+    blueprints.goauthentik.io/description: "Draft framework forward auth — proxy provider, application, and embedded outpost assignment"
+
+entries:
+  # Proxy Provider: forward auth mode — Authentik validates the session and injects
+  # X-Authentik-* headers. ext_authz in Envoy calls the outpost check endpoint;
+  # unauthenticated browser users are redirected to the Authentik login flow.
+  - model: authentik_providers_proxy.proxyprovider
+    state: present
+    identifiers:
+      name: draft-forward-auth
+    attrs:
+      name: draft-forward-auth
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      mode: forward_single
+      # external_host is where Authentik redirects browsers after login — the public Envoy URL.
+      # Change this for non-local environments.
+      external_host: http://localhost:10000
+
+  # Application: the logical unit users/groups are granted access to.
+  - model: authentik_core.application
+    state: present
+    identifiers:
+      slug: draft
+    attrs:
+      name: Draft
+      slug: draft
+      provider: !KeyOf draft-forward-auth
+
+  # Assign the proxy provider to the embedded outpost so it handles auth checks.
+  - model: authentik_outposts.outpost
+    state: present
+    identifiers:
+      name: authentik Embedded Outpost
+    attrs:
+      name: authentik Embedded Outpost
+      type: proxy
+      providers:
+        - !KeyOf draft-forward-auth
+      config:
+        authentik_host: http://authentik-server:9000
+        authentik_host_insecure: true

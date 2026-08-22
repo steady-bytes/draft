@@ -100,7 +100,7 @@ type AddRouteRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m AddRouteRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -202,7 +202,7 @@ type AddRouteResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m AddRouteResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -302,7 +302,7 @@ type ListRoutesRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListRoutesRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -438,7 +438,7 @@ type ListRoutesResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListRoutesResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -542,7 +542,7 @@ type DeleteRouteRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DeleteRouteRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -646,7 +646,7 @@ type DeleteRouteResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DeleteRouteResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -711,6 +711,109 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = DeleteRouteResponseValidationError{}
+
+// Validate checks the field values on RouteAuth with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *RouteAuth) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on RouteAuth with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in RouteAuthMultiError, or nil
+// if none found.
+func (m *RouteAuth) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *RouteAuth) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Enabled
+
+	// no validation rules for Policy
+
+	if len(errors) > 0 {
+		return RouteAuthMultiError(errors)
+	}
+
+	return nil
+}
+
+// RouteAuthMultiError is an error wrapping multiple validation errors returned
+// by RouteAuth.ValidateAll() if the designated constraints aren't met.
+type RouteAuthMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RouteAuthMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RouteAuthMultiError) AllErrors() []error { return m }
+
+// RouteAuthValidationError is the validation error returned by
+// RouteAuth.Validate if the designated constraints aren't met.
+type RouteAuthValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RouteAuthValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RouteAuthValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RouteAuthValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RouteAuthValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RouteAuthValidationError) ErrorName() string { return "RouteAuthValidationError" }
+
+// Error satisfies the builtin error interface
+func (e RouteAuthValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRouteAuth.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RouteAuthValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RouteAuthValidationError{}
 
 // Validate checks the field values on Route with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
@@ -795,6 +898,35 @@ func (m *Route) validate(all bool) error {
 
 	// no validation rules for EnableHttp2
 
+	if all {
+		switch v := interface{}(m.GetAuth()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, RouteValidationError{
+					field:  "Auth",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, RouteValidationError{
+					field:  "Auth",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetAuth()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return RouteValidationError{
+				field:  "Auth",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
 		return RouteMultiError(errors)
 	}
@@ -808,7 +940,7 @@ type RouteMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RouteMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -911,7 +1043,7 @@ type EndpointMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m EndpointMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1113,7 +1245,7 @@ type RouteMatchMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RouteMatchMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1217,7 +1349,7 @@ type HeaderMatchOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HeaderMatchOptionsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1319,7 +1451,7 @@ type GrpcMatchOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrpcMatchOptionsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1419,7 +1551,7 @@ type DynamicMetadataMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DynamicMetadataMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

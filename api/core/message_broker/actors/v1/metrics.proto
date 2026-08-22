@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package core.message_broker.actors.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/message_broker/actors/v1";
+
+service Metrics {
+    // GetMetrics returns pre-computed throughput and latency metrics derived from
+    // ClickHouse aggregates over the requested time window.
+    rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse) {}
+    // GetTopicSeries returns a time-bucketed message count for one event_type,
+    // suitable for rendering a line chart over the requested window.
+    rpc GetTopicSeries(GetTopicSeriesRequest) returns (GetTopicSeriesResponse) {}
+}
+
+message GetTopicSeriesRequest {
+    string event_type     = 1;
+    int32  window_seconds = 2;
+}
+
+message SeriesPoint {
+    int64  timestamp_ms = 1;
+    uint32 count        = 2;
+}
+
+message GetTopicSeriesResponse {
+    repeated SeriesPoint points      = 1;
+    int32                bucket_secs = 2;
+}
+
+message GetMetricsRequest {
+    // window_seconds is the lookback window for all metrics. 0 defaults to 300 (5 min).
+    int32 window_seconds = 1;
+}
+
+// EdgeVolume reports the event count for one (source, event_type) pair.
+message EdgeVolume {
+    string source     = 1;
+    string event_type = 2;
+    uint32 count      = 3;
+}
+
+message GetMetricsResponse {
+    repeated EdgeVolume edge_volumes    = 1;
+    double median_latency_ms            = 2;
+    double p95_latency_ms               = 3;
+    uint32 total_messages_per_min       = 4;
+}

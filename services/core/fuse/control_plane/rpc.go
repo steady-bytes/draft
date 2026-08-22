@@ -130,8 +130,12 @@ func (h *rpc) DeleteRoute(context.Context, *connect.Request[ntv1.DeleteRouteRequ
 }
 
 // ListRoutes implements Rpc.
-func (h *rpc) ListRoutes(context.Context, *connect.Request[ntv1.ListRoutesRequest]) (*connect.Response[ntv1.ListRoutesResponse], error) {
-	return nil, ErrNotImplemented
+func (h *rpc) ListRoutes(ctx context.Context, req *connect.Request[ntv1.ListRoutesRequest]) (*connect.Response[ntv1.ListRoutesResponse], error) {
+	routes, err := h.controlPlane.ListRoutes(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&ntv1.ListRoutesResponse{Routes: routes}), nil
 }
 
 ///////////////////////

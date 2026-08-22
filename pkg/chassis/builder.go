@@ -418,6 +418,7 @@ func (c *Runtime) buildCors() *cors.Cors {
 			"X-User-Agent",             // Used for gRPC-web
 		},
 		ExposedHeaders: []string{
+			"Content-Type",             // Required for gRPC-web: application/grpc-web+proto is not a CORS-safelisted MIME type
 			"Content-Encoding",         // Unused in web browsers, but added for future-proofing
 			"Connect-Content-Encoding", // Unused in web browsers, but added for future-proofing
 			"Grpc-Status",              // Required for gRPC-web

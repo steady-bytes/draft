@@ -8,7 +8,7 @@ option go_package = "github.com/steady-bytes/draft/api/core/control_plane/networ
 // make endpoints available outside of the system (public, or private). To efficiently route traffic to the correct process, the 
 // networking configuration is used to configure the `Envoy` proxy. The `Envoy` proxy is used to route traffic to the correct process
 // based on the provided `Route` configuration when the process registers to the system in this case `fuse`.
-// 
+//
 // 1. The `NetworkingService` is a `core` service implemented in `fuse`
 // 2. Alot of the networking configuration is specific for `Envoy`. The `Route` proto is an example of this. It's basically a one to one mapping
 //    of all fields that can't already be inferred by the `draft` framework.
@@ -69,9 +69,32 @@ message DeleteRouteResponse {
 
 // Primary Networking Primitives
 
+// AuthPolicy controls how Fuse configures the Envoy ext_authz filter for a route.
+enum AuthPolicy {
+    // No auth check — route is public.
+    AUTH_POLICY_BYPASS        = 0;
+    // Any valid token is accepted.
+    AUTH_POLICY_AUTHENTICATED = 1;
+    // Token must belong to one of the required_groups.
+    AUTH_POLICY_GROUPS        = 2;
+    // Token must carry all of the required_scopes.
+    AUTH_POLICY_SCOPES        = 3;
+}
+
+// RouteAuth declares the authentication policy for a single route. When absent or
+// enabled=false the route is public and no ext_authz check is performed.
+message RouteAuth {
+    bool        enabled         = 1;
+    AuthPolicy  policy          = 2;
+    // Groups the caller must belong to (AUTH_POLICY_GROUPS).
+    repeated string required_groups = 3;
+    // OAuth2 scopes required on the token (AUTH_POLICY_SCOPES).
+    repeated string required_scopes = 4;
+}
+
 // Route - Close match to the `Route` proto in envoy. Anything that can't be inferred by the draft
 // framework needs to be added by the `process` adding the route configuration.
-// 
+//
 // The process will register individual routes, while cluster and virtual host configuration will be handled by the framework.
 // current integration is `process` -> `fuse` -> `envoy`
 message Route {
@@ -83,6 +106,8 @@ message Route {
     Endpoint endpoint = 3;
     // EnableHTTP2 enables HTTP2 support
     bool enable_http2 = 4;
+    // Auth declares the authentication policy for this route. Optional; defaults to bypass.
+    RouteAuth auth = 5;
 }
 
 // parameters for the endpoint a route will map to

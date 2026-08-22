@@ -35,6 +35,8 @@ service ServiceDiscoveryService {
 
   // Query the registry
   rpc Query(QueryRequest) returns (QueryResponse) {}
+  // Watch the registry for process state changes
+  rpc Watch(WatchRequest) returns (stream WatchResponse) {}
 }
 
 // ProcessDetails - Messages that are sent from the `Process` to the registry.
@@ -116,3 +118,10 @@ message FinalizeResponse {
 message ReportHealthRequest {}
 
 message ReportHealthResponse {}
+
+message WatchRequest {}
+
+message WatchResponse {
+  Process process = 1;
+  bool removed = 2;
+}

@@ -1,0 +1,24 @@
+name: catalyst-dev
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # native protocol (used by the Go driver)
+      - "8123:8123"   # HTTP interface (useful for the web UI / curl queries)
+    environment:
+      CLICKHOUSE_DB: catalyst
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      CLICKHOUSE_PASSWORD: ""
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  clickhouse_data:

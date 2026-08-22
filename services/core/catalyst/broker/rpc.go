@@ -2,8 +2,6 @@ package broker
 
 import (
 	"context"
-	"errors"
-	"sync"
 
 	acv1 "github.com/steady-bytes/draft/api/core/message_broker/actors/v1"
 	acConnect "github.com/steady-bytes/draft/api/core/message_broker/actors/v1/v1connect"
@@ -20,6 +18,10 @@ type (
 		chassis.RPCRegistrar
 		acConnect.ConsumerHandler
 		acConnect.ProducerHandler
+		acConnect.QueryHandler
+		acConnect.TopologyHandler
+		acConnect.MetricsHandler
+		acConnect.ResourceMetricsHandler
 	}
 
 	rpc struct {
@@ -36,13 +38,23 @@ func NewRPC(logger chassis.Logger, controller Controller) Rpc {
 }
 
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
-	// regiser the handler for the consumer service
 	producerPattern, producerHandler := acConnect.NewProducerHandler(h)
 	server.AddHandler(producerPattern, producerHandler, true)
 
-	// // regiser the handler for the producer service
 	consumerPattern, consumerHandler := acConnect.NewConsumerHandler(h)
 	server.AddHandler(consumerPattern, consumerHandler, true)
+
+	queryPattern, queryHandler := acConnect.NewQueryHandler(h)
+	server.AddHandler(queryPattern, queryHandler, true)
+
+	topologyPattern, topologyHandler := acConnect.NewTopologyHandler(h)
+	server.AddHandler(topologyPattern, topologyHandler, true)
+
+	metricsPattern, metricsHandler := acConnect.NewMetricsHandler(h)
+	server.AddHandler(metricsPattern, metricsHandler, true)
+
+	resourceMetricsPattern, resourceMetricsHandler := acConnect.NewResourceMetricsHandler(h)
+	server.AddHandler(resourceMetricsPattern, resourceMetricsHandler, true)
 }
 
 // Consume accepts a request containing a `Message` type to subscribe to
@@ -52,26 +64,55 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 // the `wg.Done()` method is called after the error is logged closing the
 // server connection with the client
 func (h *rpc) Consume(ctx context.Context, req *connect.Request[acv1.ConsumeRequest], stream *connect.ServerStream[acv1.ConsumeResponse]) error {
-	h.logger.Info("consume request")
+	msg := req.Msg.GetMessage()
 
-	var (
-		msg = req.Msg.GetMessage()
-		wg  sync.WaitGroup
-	)
-
-	wg.Add(1)
 	if err := h.controller.Consume(ctx, msg, stream); err != nil {
 		h.logger.Error(err.Error())
-		wg.Done()
 		return err
 	}
 
-	wg.Wait()
+	<-ctx.Done()
 
-	return errors.New("closed")
+	return ctx.Err()
 }
 
 func (h *rpc) Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceResponse]) error {
-	h.logger.Info("produce request")
 	return h.controller.Produce(ctx, inputStream)
 }
+
+func (h *rpc) GetTopology(ctx context.Context, _ *connect.Request[acv1.GetTopologyRequest]) (*connect.Response[acv1.GetTopologyResponse], error) {
+	resp, err := h.controller.GetTopology(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (h *rpc) WatchTopology(ctx context.Context, _ *connect.Request[acv1.WatchTopologyRequest], stream *connect.ServerStream[acv1.WatchTopologyResponse]) error {
+	return h.controller.WatchTopology(ctx, stream)
+}
+
+func (h *rpc) GetMetrics(ctx context.Context, req *connect.Request[acv1.GetMetricsRequest]) (*connect.Response[acv1.GetMetricsResponse], error) {
+	resp, err := h.controller.GetMetrics(ctx, req.Msg.GetWindowSeconds())
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (h *rpc) GetResourceMetrics(ctx context.Context, _ *connect.Request[acv1.GetResourceMetricsRequest]) (*connect.Response[acv1.GetResourceMetricsResponse], error) {
+	resp, err := h.controller.GetResourceMetrics(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (h *rpc) GetTopicSeries(ctx context.Context, req *connect.Request[acv1.GetTopicSeriesRequest]) (*connect.Response[acv1.GetTopicSeriesResponse], error) {
+	resp, err := h.controller.GetTopicSeries(ctx, req.Msg.GetEventType(), req.Msg.GetWindowSeconds())
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
+}
+

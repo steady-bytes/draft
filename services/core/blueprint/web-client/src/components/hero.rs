@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-static BLUEPRINT_NAME: GlobalSignal<String> = Signal::global(|| "{blueprint}".to_string());
+static BLUEPRINT_NAME: GlobalSignal<String> = Signal::global(|| "{draft}".to_string());
 
 #[component]
 pub fn Hero() -> Element {

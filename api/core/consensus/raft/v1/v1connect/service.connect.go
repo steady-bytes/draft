@@ -41,14 +41,6 @@ const (
 	RaftServiceStatsProcedure = "/core.consensus.raft.v1.RaftService/Stats"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	raftServiceServiceDescriptor      = v1.File_core_consensus_raft_v1_service_proto.Services().ByName("RaftService")
-	raftServiceJoinMethodDescriptor   = raftServiceServiceDescriptor.Methods().ByName("Join")
-	raftServiceRemoveMethodDescriptor = raftServiceServiceDescriptor.Methods().ByName("Remove")
-	raftServiceStatsMethodDescriptor  = raftServiceServiceDescriptor.Methods().ByName("Stats")
-)
-
 // RaftServiceClient is a client for the core.consensus.raft.v1.RaftService service.
 type RaftServiceClient interface {
 	// Join the raft cluster
@@ -68,23 +60,24 @@ type RaftServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewRaftServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RaftServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	raftServiceMethods := v1.File_core_consensus_raft_v1_service_proto.Services().ByName("RaftService").Methods()
 	return &raftServiceClient{
 		join: connect.NewClient[v1.JoinRequest, v1.JoinResponse](
 			httpClient,
 			baseURL+RaftServiceJoinProcedure,
-			connect.WithSchema(raftServiceJoinMethodDescriptor),
+			connect.WithSchema(raftServiceMethods.ByName("Join")),
 			connect.WithClientOptions(opts...),
 		),
 		remove: connect.NewClient[v1.RemoveRequest, v1.RemoveResponse](
 			httpClient,
 			baseURL+RaftServiceRemoveProcedure,
-			connect.WithSchema(raftServiceRemoveMethodDescriptor),
+			connect.WithSchema(raftServiceMethods.ByName("Remove")),
 			connect.WithClientOptions(opts...),
 		),
 		stats: connect.NewClient[v1.StatsRequest, v1.StatsResponse](
 			httpClient,
 			baseURL+RaftServiceStatsProcedure,
-			connect.WithSchema(raftServiceStatsMethodDescriptor),
+			connect.WithSchema(raftServiceMethods.ByName("Stats")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -128,22 +121,23 @@ type RaftServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewRaftServiceHandler(svc RaftServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	raftServiceMethods := v1.File_core_consensus_raft_v1_service_proto.Services().ByName("RaftService").Methods()
 	raftServiceJoinHandler := connect.NewUnaryHandler(
 		RaftServiceJoinProcedure,
 		svc.Join,
-		connect.WithSchema(raftServiceJoinMethodDescriptor),
+		connect.WithSchema(raftServiceMethods.ByName("Join")),
 		connect.WithHandlerOptions(opts...),
 	)
 	raftServiceRemoveHandler := connect.NewUnaryHandler(
 		RaftServiceRemoveProcedure,
 		svc.Remove,
-		connect.WithSchema(raftServiceRemoveMethodDescriptor),
+		connect.WithSchema(raftServiceMethods.ByName("Remove")),
 		connect.WithHandlerOptions(opts...),
 	)
 	raftServiceStatsHandler := connect.NewUnaryHandler(
 		RaftServiceStatsProcedure,
 		svc.Stats,
-		connect.WithSchema(raftServiceStatsMethodDescriptor),
+		connect.WithSchema(raftServiceMethods.ByName("Stats")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.consensus.raft.v1.RaftService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

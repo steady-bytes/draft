@@ -43,15 +43,6 @@ const (
 	KeyValueServiceListProcedure = "/core.registry.key_value.v1.KeyValueService/List"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	keyValueServiceServiceDescriptor      = v1.File_core_registry_key_value_v1_service_proto.Services().ByName("KeyValueService")
-	keyValueServiceSetMethodDescriptor    = keyValueServiceServiceDescriptor.Methods().ByName("Set")
-	keyValueServiceGetMethodDescriptor    = keyValueServiceServiceDescriptor.Methods().ByName("Get")
-	keyValueServiceDeleteMethodDescriptor = keyValueServiceServiceDescriptor.Methods().ByName("Delete")
-	keyValueServiceListMethodDescriptor   = keyValueServiceServiceDescriptor.Methods().ByName("List")
-)
-
 // KeyValueServiceClient is a client for the core.registry.key_value.v1.KeyValueService service.
 type KeyValueServiceClient interface {
 	// SET - A key/val pair
@@ -75,29 +66,30 @@ type KeyValueServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewKeyValueServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) KeyValueServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	keyValueServiceMethods := v1.File_core_registry_key_value_v1_service_proto.Services().ByName("KeyValueService").Methods()
 	return &keyValueServiceClient{
 		set: connect.NewClient[v1.SetRequest, v1.SetResponse](
 			httpClient,
 			baseURL+KeyValueServiceSetProcedure,
-			connect.WithSchema(keyValueServiceSetMethodDescriptor),
+			connect.WithSchema(keyValueServiceMethods.ByName("Set")),
 			connect.WithClientOptions(opts...),
 		),
 		get: connect.NewClient[v1.GetRequest, v1.GetResponse](
 			httpClient,
 			baseURL+KeyValueServiceGetProcedure,
-			connect.WithSchema(keyValueServiceGetMethodDescriptor),
+			connect.WithSchema(keyValueServiceMethods.ByName("Get")),
 			connect.WithClientOptions(opts...),
 		),
 		delete: connect.NewClient[v1.DeleteRequest, v1.DeleteResponse](
 			httpClient,
 			baseURL+KeyValueServiceDeleteProcedure,
-			connect.WithSchema(keyValueServiceDeleteMethodDescriptor),
+			connect.WithSchema(keyValueServiceMethods.ByName("Delete")),
 			connect.WithClientOptions(opts...),
 		),
 		list: connect.NewClient[v1.ListRequest, v1.ListResponse](
 			httpClient,
 			baseURL+KeyValueServiceListProcedure,
-			connect.WithSchema(keyValueServiceListMethodDescriptor),
+			connect.WithSchema(keyValueServiceMethods.ByName("List")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -152,28 +144,29 @@ type KeyValueServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewKeyValueServiceHandler(svc KeyValueServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	keyValueServiceMethods := v1.File_core_registry_key_value_v1_service_proto.Services().ByName("KeyValueService").Methods()
 	keyValueServiceSetHandler := connect.NewUnaryHandler(
 		KeyValueServiceSetProcedure,
 		svc.Set,
-		connect.WithSchema(keyValueServiceSetMethodDescriptor),
+		connect.WithSchema(keyValueServiceMethods.ByName("Set")),
 		connect.WithHandlerOptions(opts...),
 	)
 	keyValueServiceGetHandler := connect.NewUnaryHandler(
 		KeyValueServiceGetProcedure,
 		svc.Get,
-		connect.WithSchema(keyValueServiceGetMethodDescriptor),
+		connect.WithSchema(keyValueServiceMethods.ByName("Get")),
 		connect.WithHandlerOptions(opts...),
 	)
 	keyValueServiceDeleteHandler := connect.NewUnaryHandler(
 		KeyValueServiceDeleteProcedure,
 		svc.Delete,
-		connect.WithSchema(keyValueServiceDeleteMethodDescriptor),
+		connect.WithSchema(keyValueServiceMethods.ByName("Delete")),
 		connect.WithHandlerOptions(opts...),
 	)
 	keyValueServiceListHandler := connect.NewUnaryHandler(
 		KeyValueServiceListProcedure,
 		svc.List,
-		connect.WithSchema(keyValueServiceListMethodDescriptor),
+		connect.WithSchema(keyValueServiceMethods.ByName("List")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.registry.key_value.v1.KeyValueService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

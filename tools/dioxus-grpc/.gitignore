@@ -1,0 +1,5 @@
+**/target
+examples/src/hook/*
+examples/src/proto/*
+!examples/src/hook/mod.rs
+

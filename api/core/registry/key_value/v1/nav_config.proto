@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package core.registry.key_value.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/registry/key_value/v1";
+
+message NavigationItem {
+    string label = 1;
+    string path  = 2;
+}
+
+message NavigationSection {
+    string label = 1;
+    repeated NavigationItem items = 2;
+}
+
+message NavigationConfig {
+    repeated NavigationSection sections = 1;
+}

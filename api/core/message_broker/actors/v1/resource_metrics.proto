@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package core.message_broker.actors.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/message_broker/actors/v1";
+
+service ResourceMetrics {
+    rpc GetResourceMetrics(GetResourceMetricsRequest) returns (GetResourceMetricsResponse) {}
+}
+
+message GetResourceMetricsRequest {}
+
+message GetResourceMetricsResponse {
+    // Throughput counters — cumulative since process start.
+    uint64 messages_published_total = 1;
+    uint64 messages_dropped_total   = 2;
+
+    // Ingest buffer — current depth vs max capacity of the store channel.
+    uint32 queue_depth              = 3;
+    uint32 queue_capacity           = 4;
+
+    // Live connection counts.
+    uint32 active_consumers         = 5;
+    uint32 active_producers         = 6;
+
+    // Store flush performance.
+    double store_flush_p95_ms       = 7;
+    uint32 store_flush_count        = 8;
+}

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package examples.crud.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/examples/crud/v1";
+
+enum Operation {
+  OPERATION_UNSPECIFIED = 0;
+  OPERATION_CREATE = 1;
+  OPERATION_UPDATE = 2;
+  OPERATION_DELETE = 3;
+}
+
+message DatabaseModelSaved {
+  string    model_id   = 1;
+  string    model_name = 2;
+  Operation operation  = 3;
+}

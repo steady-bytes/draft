@@ -1,0 +1,21 @@
+service:
+  name: auth
+  domain: core
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9095
+    internal:
+      host: host.docker.internal
+      port: 9095
+
+# auth.mode controls whether the service validates tokens (authentik) or allows
+# all requests through (bypass). Use bypass for local development without Authentik.
+auth:
+  mode: bypass
+  authentik:
+    url: http://localhost:9050
