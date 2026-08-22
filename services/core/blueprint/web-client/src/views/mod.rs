@@ -28,5 +28,8 @@ pub use cluster::Cluster;
 mod metrics;
 pub use metrics::Metrics;
 
+mod settings;
+pub use settings::Settings;
+
 mod page_not_found;
 pub use page_not_found::PageNotFound;

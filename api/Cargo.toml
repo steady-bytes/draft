@@ -8,6 +8,7 @@ publish = false
     dioxus = { version = "0.7" }
     dioxus-grpc = { path = "../tools/dioxus-grpc", default-features = false }
     prost = "0.14.3"
+    serde = { version = "1", features = ["derive"] }
     tokio = { version = "1", optional = true, features = ["full"] }
     tonic = { version = "0.14", default-features = false, features = ["codegen"] }
     tonic-prost = { version = "0.14" }

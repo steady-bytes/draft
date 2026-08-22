@@ -35,6 +35,21 @@ pub struct DeleteRouteResponse {
     #[prost(enumeration = "DeleteRouteCode", tag = "1")]
     pub code: i32,
 }
+/// RouteAuth declares the authentication policy for a single route. When absent or
+/// enabled=false the route is public and no ext_authz check is performed.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RouteAuth {
+    #[prost(bool, tag = "1")]
+    pub enabled: bool,
+    #[prost(enumeration = "AuthPolicy", tag = "2")]
+    pub policy: i32,
+    /// Groups the caller must belong to (AUTH_POLICY_GROUPS).
+    #[prost(string, repeated, tag = "3")]
+    pub required_groups: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// OAuth2 scopes required on the token (AUTH_POLICY_SCOPES).
+    #[prost(string, repeated, tag = "4")]
+    pub required_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
 /// Route - Close match to the `Route` proto in envoy. Anything that can't be inferred by the draft
 /// framework needs to be added by the `process` adding the route configuration.
 ///
@@ -54,6 +69,9 @@ pub struct Route {
     /// EnableHTTP2 enables HTTP2 support
     #[prost(bool, tag = "4")]
     pub enable_http2: bool,
+    /// Auth declares the authentication policy for this route. Optional; defaults to bypass.
+    #[prost(message, optional, tag = "5")]
+    pub auth: ::core::option::Option<RouteAuth>,
 }
 /// parameters for the endpoint a route will map to
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -171,6 +189,43 @@ impl DeleteRouteCode {
             }
             "DELETE_ROUTE_OK" => Some(Self::DeleteRouteOk),
             "DELETE_ROUTE_ERROR" => Some(Self::DeleteRouteError),
+            _ => None,
+        }
+    }
+}
+/// AuthPolicy controls how Fuse configures the Envoy ext_authz filter for a route.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AuthPolicy {
+    /// No auth check — route is public.
+    Bypass = 0,
+    /// Any valid token is accepted.
+    Authenticated = 1,
+    /// Token must belong to one of the required_groups.
+    Groups = 2,
+    /// Token must carry all of the required_scopes.
+    Scopes = 3,
+}
+impl AuthPolicy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Bypass => "AUTH_POLICY_BYPASS",
+            Self::Authenticated => "AUTH_POLICY_AUTHENTICATED",
+            Self::Groups => "AUTH_POLICY_GROUPS",
+            Self::Scopes => "AUTH_POLICY_SCOPES",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AUTH_POLICY_BYPASS" => Some(Self::Bypass),
+            "AUTH_POLICY_AUTHENTICATED" => Some(Self::Authenticated),
+            "AUTH_POLICY_GROUPS" => Some(Self::Groups),
+            "AUTH_POLICY_SCOPES" => Some(Self::Scopes),
             _ => None,
         }
     }

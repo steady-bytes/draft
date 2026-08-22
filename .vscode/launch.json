@@ -274,6 +274,32 @@
             },
         },
         {
+            "name": "Auth",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/core/auth/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
+            "env": {
+                "DRAFT_CONFIG": "services/core/auth/config.yaml"
+            },
+        },
+        {
+            "name": "Auth Example",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "services/examples/auth/main.go",
+            "cwd": "${workspaceFolder}",
+            "debugAdapter": "dlv-dap",
+            "gcflags": "all=-N -l",
+            "env": {
+                "DRAFT_CONFIG": "services/examples/auth/config.yaml"
+            },
+        },
+        {
             "name": "Plugins (test)",
             "type": "go",
             "request": "launch",
@@ -312,6 +338,14 @@
             "configurations": [
                 "Producer 2 (echo)",
                 "Consumer 2 (echo)"
+            ],
+            "stopAll": true,
+        },
+        {
+            "name": "Auth (core + example)",
+            "configurations": [
+                "Auth",
+                "Auth Example"
             ],
             "stopAll": true,
         }

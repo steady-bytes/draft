@@ -5,7 +5,10 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
@@ -17,6 +20,7 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	extauthzv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	upstreams "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
@@ -63,6 +67,11 @@ const (
 	LISTENER_PORT_CONFIG_KEY    = "fuse.listener.port"
 
 	DEFAULT_ROUTE_CONFIG_NAME = "route_config"
+
+	// auth service discovery
+	AuthServiceBlueprintKey = "auth_service_address"
+	AUTH_CLUSTER_NAME       = "auth-service"
+	AUTH_FILTER_NAME        = "envoy.filters.http.ext_authz"
 )
 
 var (
@@ -193,6 +202,11 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 		return ErrUnableToSaveRoute
 	}
 
+	// Discover the auth service address. Empty string means auth is not deployed;
+	// routes are treated as public and no ext_authz filter is added.
+	authAddr := cp.getAuthServiceAddress(ctx, client)
+	authEnabled := authAddr != ""
+
 	var snapshot *cache.Snapshot
 	var clusters []types.Resource
 	var systemRoutes []types.Resource
@@ -211,7 +225,18 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 		clusters = append(clusters, makeCluster(newRoute, clusterLoadAssignment))
 	}
 
-	systemRoutes = append(systemRoutes, makeRouterConfig(routes.Msg.GetValues()))
+	// Add the auth service cluster when auth is enabled so Envoy can reach it.
+	if authEnabled {
+		authCluster, err := makeAuthCluster(authAddr)
+		if err != nil {
+			cp.logger.WithError(err).Warn("invalid auth_service_address — running without auth")
+			authEnabled = false
+		} else {
+			clusters = append(clusters, authCluster)
+		}
+	}
+
+	systemRoutes = append(systemRoutes, makeRouterConfig(routes.Msg.GetValues(), authEnabled))
 
 	newRouter := &router.Router{}
 
@@ -220,6 +245,21 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 		cp.logger.Error(err.Error())
 		return err
 	}
+
+	// Build the ordered HttpFilter chain. ext_authz must come before the router.
+	httpFilters := []*hcm.HttpFilter{}
+	if authEnabled {
+		extAuthzFilter, err := makeExtAuthzFilter(authAddr)
+		if err != nil {
+			cp.logger.WithError(err).Error("failed to build ext_authz filter")
+			return err
+		}
+		httpFilters = append(httpFilters, extAuthzFilter)
+	}
+	httpFilters = append(httpFilters, &hcm.HttpFilter{
+		Name:       "fuse-http-router",
+		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: routerConfig},
+	})
 
 	// HTTP filter configuration
 	manager := &hcm.HttpConnectionManager{
@@ -231,10 +271,7 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 				RouteConfigName: routeConfigName(),
 			},
 		},
-		HttpFilters: []*hcm.HttpFilter{{
-			Name:       "fuse-http-router",
-			ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: routerConfig},
-		}},
+		HttpFilters: httpFilters,
 		UpgradeConfigs: []*hcm.HttpConnectionManager_UpgradeConfig{
 			{
 				UpgradeType: "websocket",
@@ -291,6 +328,27 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 	return nil
 }
 
+// getAuthServiceAddress reads the auth service address from Blueprint KV.
+// Returns an empty string if the auth service is not registered.
+func (cp *controlPlane) getAuthServiceAddress(ctx context.Context, client kvv1Connect.KeyValueServiceClient) string {
+	val, err := anypb.New(&kvv1.Value{})
+	if err != nil {
+		return ""
+	}
+	resp, err := client.Get(ctx, connect.NewRequest(&kvv1.GetRequest{
+		Key:   AuthServiceBlueprintKey,
+		Value: val,
+	}))
+	if err != nil {
+		return ""
+	}
+	value := &kvv1.Value{}
+	if err := resp.Msg.GetValue().UnmarshalTo(value); err != nil {
+		return ""
+	}
+	return value.Data
+}
+
 // Increase the version of the snapshot. At this point we are just generating a random UUID.
 //
 // TODO: Keep track of the version in `blueprint` to load historical routing configurations.
@@ -329,10 +387,118 @@ func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) 
 	return c
 }
 
+// makeAuthCluster builds an Envoy cluster that points to the auth service.
+func makeAuthCluster(rawURL string) (*cluster.Cluster, error) {
+	host, port, err := parseAuthServiceURL(rawURL)
+	if err != nil {
+		return nil, err
+	}
+	la := &endpoint.ClusterLoadAssignment{
+		ClusterName: AUTH_CLUSTER_NAME,
+		Endpoints: []*endpoint.LocalityLbEndpoints{{
+			LbEndpoints: []*endpoint.LbEndpoint{{
+				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+					Endpoint: &endpoint.Endpoint{
+						Address: &core.Address{
+							Address: &core.Address_SocketAddress{
+								SocketAddress: &core.SocketAddress{
+									Protocol:      core.SocketAddress_TCP,
+									Address:       host,
+									PortSpecifier: &core.SocketAddress_PortValue{PortValue: port},
+								},
+							},
+						},
+					},
+				},
+			}},
+		}},
+	}
+	return &cluster.Cluster{
+		Name:                 AUTH_CLUSTER_NAME,
+		ConnectTimeout:       durationpb.New(5 * time.Second),
+		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_LOGICAL_DNS},
+		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
+		LoadAssignment:       la,
+		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
+	}, nil
+}
+
+// makeExtAuthzFilter builds the ext_authz HttpFilter that points to the auth service cluster.
+func makeExtAuthzFilter(rawURL string) (*hcm.HttpFilter, error) {
+	extAuthzConfig := &extauthzv3.ExtAuthz{
+		Services: &extauthzv3.ExtAuthz_HttpService{
+			HttpService: &extauthzv3.HttpService{
+				ServerUri: &core.HttpUri{
+					Uri: rawURL,
+					HttpUpstreamType: &core.HttpUri_Cluster{
+						Cluster: AUTH_CLUSTER_NAME,
+					},
+					Timeout: durationpb.New(250 * time.Millisecond),
+				},
+			},
+		},
+		TransportApiVersion: resource.DefaultAPIVersion,
+		// deny the request if the auth service is unavailable
+		FailureModeAllow: false,
+	}
+	extAuthzAny, err := anypb.New(extAuthzConfig)
+	if err != nil {
+		return nil, err
+	}
+	return &hcm.HttpFilter{
+		Name:       AUTH_FILTER_NAME,
+		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: extAuthzAny},
+	}, nil
+}
+
+// makePerRouteAuthConfig returns the typed_per_filter_config for the ext_authz filter on
+// a single route. When authEnabled is false (no auth service registered) nil is returned.
+func makePerRouteAuthConfig(r *ntv1.Route, authEnabled bool) *anypb.Any {
+	if !authEnabled {
+		return nil
+	}
+
+	auth := r.GetAuth()
+
+	// No auth field, disabled auth, or explicit bypass → disable the check for this route.
+	if auth == nil || !auth.Enabled || auth.Policy == ntv1.AuthPolicy_AUTH_POLICY_BYPASS {
+		perRoute := &extauthzv3.ExtAuthzPerRoute{
+			Override: &extauthzv3.ExtAuthzPerRoute_Disabled{Disabled: true},
+		}
+		a, _ := anypb.New(perRoute)
+		return a
+	}
+
+	// Build context extensions carrying the policy requirements so the auth service
+	// can enforce them without needing its own route table.
+	contextExtensions := map[string]string{}
+	switch auth.Policy {
+	case ntv1.AuthPolicy_AUTH_POLICY_GROUPS:
+		if len(auth.RequiredGroups) > 0 {
+			contextExtensions["required_groups"] = strings.Join(auth.RequiredGroups, ",")
+		}
+	case ntv1.AuthPolicy_AUTH_POLICY_SCOPES:
+		if len(auth.RequiredScopes) > 0 {
+			contextExtensions["required_scopes"] = strings.Join(auth.RequiredScopes, " ")
+		}
+	}
+
+	perRoute := &extauthzv3.ExtAuthzPerRoute{
+		Override: &extauthzv3.ExtAuthzPerRoute_CheckSettings{
+			CheckSettings: &extauthzv3.CheckSettings{
+				ContextExtensions: contextExtensions,
+			},
+		},
+	}
+	a, _ := anypb.New(perRoute)
+	return a
+}
+
 // `makeRoute` creates a route for the given cluster, and a virtual host for the process that is attempting to add the route.
 //
 // `nt_route` 			:route configuration that is being added to the snapshot.
-func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
+// `authEnabled` 		:whether the auth service is registered; controls per-route ext_authz config generation.
+func makeRouterConfig(routes map[string]*anypb.Any, authEnabled bool) *route.RouteConfiguration {
 	var (
 		virtualHosts       []*route.VirtualHost
 		defaultVirtualHost = &route.VirtualHost{
@@ -349,46 +515,38 @@ func makeRouterConfig(routes map[string]*anypb.Any) *route.RouteConfiguration {
 			return nil
 		}
 
+		perRouteConfig := map[string]*anypb.Any{}
+		if authCfg := makePerRouteAuthConfig(r, authEnabled); authCfg != nil {
+			perRouteConfig[AUTH_FILTER_NAME] = authCfg
+		}
+
+		envoyRoute := &route.Route{
+			Match: &route.RouteMatch{
+				PathSpecifier: &route.RouteMatch_Prefix{
+					Prefix: r.Match.Prefix,
+				},
+			},
+			Action: &route.Route_Route{
+				Route: &route.RouteAction{
+					ClusterSpecifier: &route.RouteAction_Cluster{
+						Cluster: clusterName(r),
+					},
+					// disable with 0 value
+					Timeout: &durationpb.Duration{},
+				},
+			},
+			TypedPerFilterConfig: perRouteConfig,
+		}
+
 		// if no host is requested, add to default host
 		if r.Match.Host == "" {
-			defaultVirtualHost.Routes = append(defaultVirtualHost.Routes, &route.Route{
-				Match: &route.RouteMatch{
-					PathSpecifier: &route.RouteMatch_Prefix{
-						Prefix: r.Match.Prefix,
-					},
-				},
-				Action: &route.Route_Route{
-					Route: &route.RouteAction{
-						ClusterSpecifier: &route.RouteAction_Cluster{
-							Cluster: clusterName(r),
-						},
-						// disable with 0 value
-						Timeout: &durationpb.Duration{},
-					},
-				},
-				TypedPerFilterConfig: map[string]*anypb.Any{},
-			})
+			defaultVirtualHost.Routes = append(defaultVirtualHost.Routes, envoyRoute)
 		} else {
 			virtualHosts = append(virtualHosts, &route.VirtualHost{
 				Name:    r.Name,
 				Domains: []string{r.Match.Host},
-				Routes: []*route.Route{{
-					Match: &route.RouteMatch{
-						PathSpecifier: &route.RouteMatch_Prefix{
-							Prefix: r.Match.Prefix,
-						},
-					},
-					Action: &route.Route_Route{
-						Route: &route.RouteAction{
-							ClusterSpecifier: &route.RouteAction_Cluster{
-								Cluster: clusterName(r),
-							},
-							// disable with 0 value
-							Timeout: &durationpb.Duration{},
-						},
-					},
-					TypedPerFilterConfig: map[string]*anypb.Any{},
-				}}})
+				Routes:  []*route.Route{envoyRoute},
+			})
 		}
 	}
 
@@ -474,4 +632,21 @@ func routeConfigName() string {
 
 func clusterName(r *ntv1.Route) string {
 	return r.Name
+}
+
+func parseAuthServiceURL(rawURL string) (host string, port uint32, err error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", 0, err
+	}
+	host = u.Hostname()
+	portStr := u.Port()
+	if portStr == "" {
+		portStr = "80"
+	}
+	p, err := strconv.ParseUint(portStr, 10, 32)
+	if err != nil {
+		return "", 0, err
+	}
+	return host, uint32(p), nil
 }

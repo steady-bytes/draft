@@ -55,6 +55,7 @@ pub fn Gateway() -> Element {
                 }),
                 endpoint: Some(Endpoint { host: ep_host, port }),
                 enable_http2: http2,
+                auth: None,
             };
 
             match client.add_route(AddRouteRequest { route: Some(route) }).await {

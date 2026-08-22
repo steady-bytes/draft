@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package examples.auth.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/examples/auth/v1";
+
+// AuthExampleService demonstrates per-method auth policies.
+// Greet is public; Secret requires a valid token.
+service AuthExampleService {
+    // Greet is publicly accessible — no auth check.
+    rpc Greet(GreetRequest) returns (GreetResponse) {}
+    // Secret requires a valid bearer token (AUTH_POLICY_AUTHENTICATED).
+    rpc Secret(SecretRequest) returns (SecretResponse) {}
+}
+
+message GreetRequest {
+    string name = 1;
+}
+
+message GreetResponse {
+    string message = 1;
+}
+
+message SecretRequest {}
+
+message SecretResponse {
+    // The caller's identity as read from the X-Authentik-Username header set by
+    // the auth service on a successful check. In bypass mode this will be empty.
+    string caller   = 1;
+    string secret   = 2;
+}

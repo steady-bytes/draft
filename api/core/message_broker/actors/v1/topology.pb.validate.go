@@ -71,7 +71,7 @@ type GetTopologyRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GetTopologyRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -275,7 +275,7 @@ type GetTopologyResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GetTopologyResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -380,7 +380,7 @@ type TopologyNodeMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m TopologyNodeMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -487,7 +487,7 @@ type TopologyEdgeMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m TopologyEdgeMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -587,7 +587,7 @@ type WatchTopologyRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m WatchTopologyRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -817,7 +817,7 @@ type WatchTopologyResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m WatchTopologyResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

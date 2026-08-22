@@ -37,12 +37,6 @@ const (
 	ProducerProduceProcedure = "/core.message_broker.actors.v1.Producer/Produce"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	producerServiceDescriptor       = v1.File_core_message_broker_actors_v1_producer_proto.Services().ByName("Producer")
-	producerProduceMethodDescriptor = producerServiceDescriptor.Methods().ByName("Produce")
-)
-
 // ProducerClient is a client for the core.message_broker.actors.v1.Producer service.
 type ProducerClient interface {
 	Produce(context.Context) *connect.BidiStreamForClient[v1.ProduceRequest, v1.ProduceResponse]
@@ -57,11 +51,12 @@ type ProducerClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewProducerClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ProducerClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	producerMethods := v1.File_core_message_broker_actors_v1_producer_proto.Services().ByName("Producer").Methods()
 	return &producerClient{
 		produce: connect.NewClient[v1.ProduceRequest, v1.ProduceResponse](
 			httpClient,
 			baseURL+ProducerProduceProcedure,
-			connect.WithSchema(producerProduceMethodDescriptor),
+			connect.WithSchema(producerMethods.ByName("Produce")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -88,10 +83,11 @@ type ProducerHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewProducerHandler(svc ProducerHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	producerMethods := v1.File_core_message_broker_actors_v1_producer_proto.Services().ByName("Producer").Methods()
 	producerProduceHandler := connect.NewBidiStreamHandler(
 		ProducerProduceProcedure,
 		svc.Produce,
-		connect.WithSchema(producerProduceMethodDescriptor),
+		connect.WithSchema(producerMethods.ByName("Produce")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.message_broker.actors.v1.Producer/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

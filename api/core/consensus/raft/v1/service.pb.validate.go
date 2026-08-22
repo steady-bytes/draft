@@ -74,7 +74,7 @@ type JoinRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m JoinRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -177,7 +177,7 @@ type JoinResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m JoinResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -279,7 +279,7 @@ type RemoveRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RemoveRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -381,7 +381,7 @@ type RemoveResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RemoveResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -482,7 +482,7 @@ type StatsRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StatsRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -613,7 +613,7 @@ type StatsResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StatsResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -713,7 +713,7 @@ type StatsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StatsMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

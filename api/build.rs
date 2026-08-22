@@ -32,6 +32,26 @@ fn main() -> Result<()> {
         .build_server(false)
         .build_client(true)
         .build_transport(false)
+        .type_attribute(
+            "core.registry.key_value.v1.NodePosition",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "core.registry.key_value.v1.ClusterLayout",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "core.registry.key_value.v1.NavigationItem",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "core.registry.key_value.v1.NavigationSection",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
+        .type_attribute(
+            "core.registry.key_value.v1.NavigationConfig",
+            "#[derive(serde::Serialize, serde::Deserialize)]",
+        )
         .compile_protos(&protos_to_compile, &[".".into()])?;
 
     // Generate proto/mod.rs by discovering tonic-build's actual output files.
