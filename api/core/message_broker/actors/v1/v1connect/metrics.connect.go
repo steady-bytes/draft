@@ -39,6 +39,13 @@ const (
 	MetricsGetTopicSeriesProcedure = "/core.message_broker.actors.v1.Metrics/GetTopicSeries"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	metricsServiceDescriptor              = v1.File_core_message_broker_actors_v1_metrics_proto.Services().ByName("Metrics")
+	metricsGetMetricsMethodDescriptor     = metricsServiceDescriptor.Methods().ByName("GetMetrics")
+	metricsGetTopicSeriesMethodDescriptor = metricsServiceDescriptor.Methods().ByName("GetTopicSeries")
+)
+
 // MetricsClient is a client for the core.message_broker.actors.v1.Metrics service.
 type MetricsClient interface {
 	// GetMetrics returns pre-computed throughput and latency metrics derived from
@@ -58,18 +65,17 @@ type MetricsClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewMetricsClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MetricsClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	metricsMethods := v1.File_core_message_broker_actors_v1_metrics_proto.Services().ByName("Metrics").Methods()
 	return &metricsClient{
 		getMetrics: connect.NewClient[v1.GetMetricsRequest, v1.GetMetricsResponse](
 			httpClient,
 			baseURL+MetricsGetMetricsProcedure,
-			connect.WithSchema(metricsMethods.ByName("GetMetrics")),
+			connect.WithSchema(metricsGetMetricsMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		getTopicSeries: connect.NewClient[v1.GetTopicSeriesRequest, v1.GetTopicSeriesResponse](
 			httpClient,
 			baseURL+MetricsGetTopicSeriesProcedure,
-			connect.WithSchema(metricsMethods.ByName("GetTopicSeries")),
+			connect.WithSchema(metricsGetTopicSeriesMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -107,17 +113,16 @@ type MetricsHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewMetricsHandler(svc MetricsHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	metricsMethods := v1.File_core_message_broker_actors_v1_metrics_proto.Services().ByName("Metrics").Methods()
 	metricsGetMetricsHandler := connect.NewUnaryHandler(
 		MetricsGetMetricsProcedure,
 		svc.GetMetrics,
-		connect.WithSchema(metricsMethods.ByName("GetMetrics")),
+		connect.WithSchema(metricsGetMetricsMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	metricsGetTopicSeriesHandler := connect.NewUnaryHandler(
 		MetricsGetTopicSeriesProcedure,
 		svc.GetTopicSeries,
-		connect.WithSchema(metricsMethods.ByName("GetTopicSeries")),
+		connect.WithSchema(metricsGetTopicSeriesMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.message_broker.actors.v1.Metrics/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

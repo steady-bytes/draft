@@ -100,7 +100,7 @@ type AddRouteRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m AddRouteRequestMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -202,7 +202,7 @@ type AddRouteResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m AddRouteResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -302,7 +302,7 @@ type ListRoutesRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListRoutesRequestMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -438,7 +438,7 @@ type ListRoutesResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListRoutesResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -542,7 +542,7 @@ type DeleteRouteRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DeleteRouteRequestMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -646,7 +646,7 @@ type DeleteRouteResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DeleteRouteResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -751,7 +751,7 @@ type RouteAuthMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RouteAuthMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -940,7 +940,7 @@ type RouteMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RouteMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1043,7 +1043,7 @@ type EndpointMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m EndpointMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1245,7 +1245,7 @@ type RouteMatchMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RouteMatchMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1349,7 +1349,7 @@ type HeaderMatchOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HeaderMatchOptionsMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1451,7 +1451,7 @@ type GrpcMatchOptionsMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrpcMatchOptionsMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1551,7 +1551,7 @@ type DynamicMetadataMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DynamicMetadataMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

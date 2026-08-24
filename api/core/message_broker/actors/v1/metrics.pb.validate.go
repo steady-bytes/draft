@@ -75,7 +75,7 @@ type GetTopicSeriesRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GetTopicSeriesRequestMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -180,7 +180,7 @@ type SeriesPointMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m SeriesPointMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -316,7 +316,7 @@ type GetTopicSeriesResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GetTopicSeriesResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -420,7 +420,7 @@ type GetMetricsRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GetMetricsRequestMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -527,7 +527,7 @@ type EdgeVolumeMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m EdgeVolumeMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -667,7 +667,7 @@ type GetMetricsResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GetMetricsResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

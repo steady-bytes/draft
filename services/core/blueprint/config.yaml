@@ -1,12 +1,17 @@
 service:
   name: blueprint
   domain: core
+  entrypoint: http://localhost:2221
 
   logging:
     level: debug
 
   network:
     bind_port: 2221
+
+telemetry:
+  enabled: true
+  level: debug
 
 badger:
   path: tmp/

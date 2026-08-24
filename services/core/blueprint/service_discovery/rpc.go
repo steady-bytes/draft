@@ -33,7 +33,7 @@ func NewRPC(logger chassis.Logger, controller Controller) Rpc {
 
 // Implement the `RPCRegistrar` interface of draft so the `grpc` handlers are enabled
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := sdConnect.NewServiceDiscoveryServiceHandler(h)
+	pattern, handler := sdConnect.NewServiceDiscoveryServiceHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

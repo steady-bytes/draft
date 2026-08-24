@@ -194,7 +194,7 @@ type CloudEventMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CloudEventMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -328,7 +328,7 @@ type CloudEventBatchMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CloudEventBatchMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -548,7 +548,7 @@ type CloudEvent_CloudEventAttributeValueMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CloudEvent_CloudEventAttributeValueMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

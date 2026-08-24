@@ -41,6 +41,13 @@ const (
 	AuthExampleServiceSecretProcedure = "/examples.auth.v1.AuthExampleService/Secret"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	authExampleServiceServiceDescriptor      = v1.File_examples_auth_v1_service_proto.Services().ByName("AuthExampleService")
+	authExampleServiceGreetMethodDescriptor  = authExampleServiceServiceDescriptor.Methods().ByName("Greet")
+	authExampleServiceSecretMethodDescriptor = authExampleServiceServiceDescriptor.Methods().ByName("Secret")
+)
+
 // AuthExampleServiceClient is a client for the examples.auth.v1.AuthExampleService service.
 type AuthExampleServiceClient interface {
 	// Greet is publicly accessible — no auth check.
@@ -58,18 +65,17 @@ type AuthExampleServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewAuthExampleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) AuthExampleServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	authExampleServiceMethods := v1.File_examples_auth_v1_service_proto.Services().ByName("AuthExampleService").Methods()
 	return &authExampleServiceClient{
 		greet: connect.NewClient[v1.GreetRequest, v1.GreetResponse](
 			httpClient,
 			baseURL+AuthExampleServiceGreetProcedure,
-			connect.WithSchema(authExampleServiceMethods.ByName("Greet")),
+			connect.WithSchema(authExampleServiceGreetMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		secret: connect.NewClient[v1.SecretRequest, v1.SecretResponse](
 			httpClient,
 			baseURL+AuthExampleServiceSecretProcedure,
-			connect.WithSchema(authExampleServiceMethods.ByName("Secret")),
+			connect.WithSchema(authExampleServiceSecretMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -106,17 +112,16 @@ type AuthExampleServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewAuthExampleServiceHandler(svc AuthExampleServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	authExampleServiceMethods := v1.File_examples_auth_v1_service_proto.Services().ByName("AuthExampleService").Methods()
 	authExampleServiceGreetHandler := connect.NewUnaryHandler(
 		AuthExampleServiceGreetProcedure,
 		svc.Greet,
-		connect.WithSchema(authExampleServiceMethods.ByName("Greet")),
+		connect.WithSchema(authExampleServiceGreetMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	authExampleServiceSecretHandler := connect.NewUnaryHandler(
 		AuthExampleServiceSecretProcedure,
 		svc.Secret,
-		connect.WithSchema(authExampleServiceMethods.ByName("Secret")),
+		connect.WithSchema(authExampleServiceSecretMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/examples.auth.v1.AuthExampleService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

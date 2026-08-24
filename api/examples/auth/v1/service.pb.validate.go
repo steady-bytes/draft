@@ -72,7 +72,7 @@ type GreetRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GreetRequestMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -174,7 +174,7 @@ type GreetResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GreetResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -274,7 +274,7 @@ type SecretRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m SecretRequestMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -378,7 +378,7 @@ type SecretResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m SecretResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

@@ -41,7 +41,7 @@ var (
 )
 
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := kvConnect.NewKeyValueServiceHandler(h)
+	pattern, handler := kvConnect.NewKeyValueServiceHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

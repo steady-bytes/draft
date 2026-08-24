@@ -777,14 +777,22 @@ func (l *OTelLogger) WithError(err error) Logger {
 	return l.WithFields(Fields{"error": err.Error()})
 }
 
-// WithContext is a deliberate no-op, same posture as
-// pkg/loggers/zerolog/zerolog.go's WithContext ("TODO: is this really just
-// for tracing?") — v1 has no context-propagated trace correlation. A caller
-// that wants a log record correlated with a trace can already do so
-// explicitly via WithField("trace_id", ...)/WithField("span_id", ...) (hex
-// strings), which emit does look for — see emit's doc comment.
-func (l *OTelLogger) WithContext(_ context.Context) Logger {
-	return l
+// WithContext correlates subsequent log records with the current RPC trace,
+// if any. chassis.NewTraceInterceptor() (otel_trace.go) attaches the
+// request's trace_id/span_id to ctx before calling the handler; this reads
+// them back out and sets them the same way an explicit
+// WithField("trace_id", ...)/WithField("span_id", ...) call would (see
+// encodeRecord) — so every existing `logger.WithContext(ctx)` call site in a
+// handler wrapped by the interceptor starts correlating automatically, no
+// caller changes needed. A no-op (returns l unchanged) if ctx carries no span
+// context — outside an RPC handler, or a service that hasn't wired the
+// interceptor into RegisterRPC yet.
+func (l *OTelLogger) WithContext(ctx context.Context) Logger {
+	traceIDHex, spanIDHex, ok := spanFromContext(ctx)
+	if !ok {
+		return l
+	}
+	return l.WithFields(Fields{"trace_id": traceIDHex, "span_id": spanIDHex})
 }
 
 func (l *OTelLogger) WithField(key string, value any) Logger {

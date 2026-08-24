@@ -105,7 +105,7 @@ type QueryRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m QueryRequestMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -239,7 +239,7 @@ type QueryResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m QueryResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -368,7 +368,7 @@ type QueryStreamResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m QueryStreamResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -802,7 +802,7 @@ type ExpressionMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ExpressionMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -941,7 +941,7 @@ type LiteralMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m LiteralMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1042,7 +1042,7 @@ type AttributeRefMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m AttributeRefMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1172,7 +1172,7 @@ type UnaryExprMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m UnaryExprMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1331,7 +1331,7 @@ type BinaryExprMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m BinaryExprMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1463,7 +1463,7 @@ type LikeExprMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m LikeExprMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1564,7 +1564,7 @@ type ExistsExprMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ExistsExprMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1727,7 +1727,7 @@ type InExprMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m InExprMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1862,7 +1862,7 @@ type FunctionCallMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m FunctionCallMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

@@ -15,7 +15,8 @@ import "google/protobuf/timestamp.proto";
 // web client (and any other Beacon consumer) queries against.
 service LogsService {
     // QueryLogs returns a bounded set of log rows matching an optional BeaconQL
-    // filter expression, most recent first.
+    // filter expression, most recent first by default. `after`/`before` bound
+    // either or both ends of the timestamp range; `ascending` controls sort order.
     rpc QueryLogs(QueryLogsRequest) returns (QueryLogsResponse) {}
 
     // StreamLogs opens a persistent server-streaming RPC. The server first replays
@@ -53,6 +54,15 @@ message QueryLogsRequest {
     // RFC3339 timestamp cursor — only rows strictly after this timestamp are returned.
     // Empty string means no lower bound.
     string after  = 3;
+    // RFC3339 timestamp cursor — only rows strictly before this timestamp are returned.
+    // Empty string means no upper bound. Combined with `after`, bounds both ends of a
+    // custom time range; used alone (with `ascending = false`, the default) it returns
+    // the rows immediately preceding a cursor — e.g. a log detail view's "context before".
+    string before = 4;
+    // Sort order. false (default) = most-recent-first (descending), matching QueryLogs'
+    // existing behavior. true = oldest-first (ascending) — needed to correctly return the
+    // rows immediately *after* a cursor (with `after` set) rather than the current tail.
+    bool   ascending = 5;
 }
 
 message QueryLogsResponse {

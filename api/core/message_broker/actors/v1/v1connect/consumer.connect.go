@@ -37,6 +37,12 @@ const (
 	ConsumerConsumeProcedure = "/core.message_broker.actors.v1.Consumer/Consume"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	consumerServiceDescriptor       = v1.File_core_message_broker_actors_v1_consumer_proto.Services().ByName("Consumer")
+	consumerConsumeMethodDescriptor = consumerServiceDescriptor.Methods().ByName("Consume")
+)
+
 // ConsumerClient is a client for the core.message_broker.actors.v1.Consumer service.
 type ConsumerClient interface {
 	Consume(context.Context, *connect.Request[v1.ConsumeRequest]) (*connect.ServerStreamForClient[v1.ConsumeResponse], error)
@@ -51,12 +57,11 @@ type ConsumerClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewConsumerClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ConsumerClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	consumerMethods := v1.File_core_message_broker_actors_v1_consumer_proto.Services().ByName("Consumer").Methods()
 	return &consumerClient{
 		consume: connect.NewClient[v1.ConsumeRequest, v1.ConsumeResponse](
 			httpClient,
 			baseURL+ConsumerConsumeProcedure,
-			connect.WithSchema(consumerMethods.ByName("Consume")),
+			connect.WithSchema(consumerConsumeMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -83,11 +88,10 @@ type ConsumerHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewConsumerHandler(svc ConsumerHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	consumerMethods := v1.File_core_message_broker_actors_v1_consumer_proto.Services().ByName("Consumer").Methods()
 	consumerConsumeHandler := connect.NewServerStreamHandler(
 		ConsumerConsumeProcedure,
 		svc.Consume,
-		connect.WithSchema(consumerMethods.ByName("Consume")),
+		connect.WithSchema(consumerConsumeMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.message_broker.actors.v1.Consumer/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

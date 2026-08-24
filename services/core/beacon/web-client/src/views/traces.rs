@@ -33,6 +33,30 @@ pub fn Traces() -> Element {
     let mut spans: Signal<Vec<Span>> = use_signal(Vec::new);
     let mut get_error: Signal<Option<String>> = use_signal(|| None);
 
+    // Consume a pending Trace-pill hand-off from the Logs view (Phase 14): if
+    // set, immediately filter the search list AND fetch+select that trace's
+    // flame graph — one click gets you the rendered flame graph, not just a
+    // filtered list needing a second click. Clearing the signal afterward
+    // means this only fires once per hand-off, not on every subsequent visit
+    // to /traces (including a plain nav-link click, which leaves it None).
+    use_effect(move || {
+        let Some(trace_id) = crate::PENDING_TRACE_ID.read().clone() else {
+            return;
+        };
+        *crate::PENDING_TRACE_ID.write() = None;
+
+        let filter = format!("trace_id = \"{trace_id}\"");
+        expression.set(filter.clone());
+        search_req.set(SearchTracesRequest {
+            filter,
+            limit: 0,
+            before: String::new(),
+        });
+        selected_span.set(None);
+        selected_trace_id.set(Some(trace_id.clone()));
+        get_req.set(GetTraceRequest { trace_id });
+    });
+
     // Seed `traces` from the latest SearchTraces result. A new `search_req`
     // (run/clear) re-triggers the hook's underlying use_resource, which lands
     // here again.

@@ -86,11 +86,14 @@ type (
 		// QueryLogs runs a bounded, parameterized query against the `logs` table.
 		// whereSQL is a fragment produced exclusively by query.Compile (never raw
 		// user text) using `?` placeholders bound by args — see query/beaconql.go.
-		// An empty whereSQL means "no filter". If after is non-empty it must be an
-		// RFC3339 timestamp; only rows strictly after it are returned. ascending
-		// controls sort order — StreamLogs replays ascending (oldest-first
-		// continuity), QueryLogs returns descending (most-recent-first).
-		QueryLogs(ctx context.Context, whereSQL string, args []any, limit int32, after string, ascending bool) ([]LogRow, error)
+		// An empty whereSQL means "no filter". If after/before is non-empty it must
+		// be an RFC3339 timestamp; only rows strictly after/before it (respectively)
+		// are returned — either, both, or neither may be set, bounding one or both
+		// ends of the timestamp range. ascending controls sort order — StreamLogs
+		// replays ascending (oldest-first continuity), QueryLogs defaults to
+		// descending (most-recent-first) but the caller may request ascending too
+		// (e.g. the rows immediately after a cursor, for a log detail "context" view).
+		QueryLogs(ctx context.Context, whereSQL string, args []any, limit int32, after, before string, ascending bool) ([]LogRow, error)
 
 		// InsertSpans writes a batch of rows. Called by ingest.SpanWriter's flusher.
 		InsertSpans(ctx context.Context, rows []SpanRow) error
@@ -134,7 +137,7 @@ func NewNoopStore() Storer { return &noopStore{} }
 
 func (n *noopStore) InsertLogs(_ context.Context, _ []LogRow) error { return nil }
 
-func (n *noopStore) QueryLogs(_ context.Context, _ string, _ []any, _ int32, _ string, _ bool) ([]LogRow, error) {
+func (n *noopStore) QueryLogs(_ context.Context, _ string, _ []any, _ int32, _, _ string, _ bool) ([]LogRow, error) {
 	return nil, nil
 }
 
@@ -334,7 +337,32 @@ func (s *clickhouseStore) InsertLogs(ctx context.Context, rows []LogRow) error {
 	return batch.Send()
 }
 
-func (s *clickhouseStore) QueryLogs(ctx context.Context, whereSQL string, args []any, limit int32, after string, ascending bool) ([]LogRow, error) {
+// parseCursorTimestamp validates an RFC3339 cursor string (the after/before
+// query params) and re-formats it at full nanosecond precision as a string,
+// for binding to a ClickHouse query via parseDateTime64BestEffort(?, 9) rather
+// than as a Go time.Time positional parameter directly.
+//
+// This indirection exists because of a clickhouse-go v2 driver quirk: a bare
+// `?` placeholder gives the driver no way to know the destination column is
+// DateTime64(9), so it defaults an unadorned time.Time argument to ClickHouse's
+// DateTime type — second precision, no fractional component — silently
+// truncating everything after the decimal point. `logs`/`spans` routinely have
+// many rows within the same second (see e.g. the reaper's per-tick burst), so
+// that truncation doesn't just lose sub-second ordering — it can make a
+// `timestamp < cursor` condition match a wildly wrong row count (observed
+// firsthand while building Phase 12: 500 real matches collapsed to 1 once
+// enough same-second rows existed on either side of the truncation boundary).
+// Binding the value as a string and letting ClickHouse's own parser handle it
+// at full precision sidesteps the driver's default entirely.
+func parseCursorTimestamp(label, s string) (string, error) {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return "", fmt.Errorf("parse %s timestamp: %w", label, err)
+	}
+	return t.UTC().Format(time.RFC3339Nano), nil
+}
+
+func (s *clickhouseStore) QueryLogs(ctx context.Context, whereSQL string, args []any, limit int32, after, before string, ascending bool) ([]LogRow, error) {
 	if limit <= 0 {
 		limit = defaultLimit
 	}
@@ -351,12 +379,20 @@ func (s *clickhouseStore) QueryLogs(ctx context.Context, whereSQL string, args [
 		queryArgs = append(queryArgs, args...)
 	}
 	if after != "" {
-		t, err := time.Parse(time.RFC3339, after)
+		v, err := parseCursorTimestamp("after", after)
 		if err != nil {
-			return nil, fmt.Errorf("parse after timestamp: %w", err)
+			return nil, err
 		}
-		conditions = append(conditions, "timestamp > ?")
-		queryArgs = append(queryArgs, t)
+		conditions = append(conditions, "timestamp > parseDateTime64BestEffort(?, 9)")
+		queryArgs = append(queryArgs, v)
+	}
+	if before != "" {
+		v, err := parseCursorTimestamp("before", before)
+		if err != nil {
+			return nil, err
+		}
+		conditions = append(conditions, "timestamp < parseDateTime64BestEffort(?, 9)")
+		queryArgs = append(queryArgs, v)
 	}
 
 	order := "DESC"
@@ -444,12 +480,12 @@ func (s *clickhouseStore) QueryTraceRoots(ctx context.Context, whereSQL string, 
 		queryArgs = append(queryArgs, args...)
 	}
 	if before != "" {
-		t, err := time.Parse(time.RFC3339, before)
+		v, err := parseCursorTimestamp("before", before)
 		if err != nil {
-			return nil, fmt.Errorf("parse before timestamp: %w", err)
+			return nil, err
 		}
-		conditions = append(conditions, "start_time < ?")
-		queryArgs = append(queryArgs, t)
+		conditions = append(conditions, "start_time < parseDateTime64BestEffort(?, 9)")
+		queryArgs = append(queryArgs, v)
 	}
 
 	// FINAL forces ReplacingMergeTree dedup at query time so trace_roots
@@ -510,8 +546,11 @@ func (s *clickhouseStore) InsertMetrics(ctx context.Context, rows []MetricPointR
 }
 
 func (s *clickhouseStore) QueryMetricPoints(ctx context.Context, metricName string, labelWhereSQL string, args []any, start, end time.Time) ([]MetricPointRow, error) {
-	conditions := []string{"metric_name = ?", "timestamp >= ?", "timestamp <= ?"}
-	queryArgs := []any{metricName, start, end}
+	// Bound as strings via parseDateTime64BestEffort, not as time.Time directly —
+	// see parseCursorTimestamp's doc comment for why a bare positional time.Time
+	// silently truncates to second precision.
+	conditions := []string{"metric_name = ?", "timestamp >= parseDateTime64BestEffort(?, 9)", "timestamp <= parseDateTime64BestEffort(?, 9)"}
+	queryArgs := []any{metricName, start.UTC().Format(time.RFC3339Nano), end.UTC().Format(time.RFC3339Nano)}
 	if labelWhereSQL != "" {
 		conditions = append(conditions, "("+labelWhereSQL+")")
 		queryArgs = append(queryArgs, args...)

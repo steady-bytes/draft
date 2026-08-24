@@ -207,6 +207,10 @@ func (m *QueryLogsRequest) validate(all bool) error {
 
 	// no validation rules for After
 
+	// no validation rules for Before
+
+	// no validation rules for Ascending
+
 	if len(errors) > 0 {
 		return QueryLogsRequestMultiError(errors)
 	}

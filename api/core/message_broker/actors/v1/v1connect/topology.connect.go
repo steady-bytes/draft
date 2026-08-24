@@ -39,6 +39,13 @@ const (
 	TopologyWatchTopologyProcedure = "/core.message_broker.actors.v1.Topology/WatchTopology"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	topologyServiceDescriptor             = v1.File_core_message_broker_actors_v1_topology_proto.Services().ByName("Topology")
+	topologyGetTopologyMethodDescriptor   = topologyServiceDescriptor.Methods().ByName("GetTopology")
+	topologyWatchTopologyMethodDescriptor = topologyServiceDescriptor.Methods().ByName("WatchTopology")
+)
+
 // TopologyClient is a client for the core.message_broker.actors.v1.Topology service.
 type TopologyClient interface {
 	// GetTopology returns a snapshot of the current event topology: producers
@@ -59,18 +66,17 @@ type TopologyClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewTopologyClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TopologyClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	topologyMethods := v1.File_core_message_broker_actors_v1_topology_proto.Services().ByName("Topology").Methods()
 	return &topologyClient{
 		getTopology: connect.NewClient[v1.GetTopologyRequest, v1.GetTopologyResponse](
 			httpClient,
 			baseURL+TopologyGetTopologyProcedure,
-			connect.WithSchema(topologyMethods.ByName("GetTopology")),
+			connect.WithSchema(topologyGetTopologyMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		watchTopology: connect.NewClient[v1.WatchTopologyRequest, v1.WatchTopologyResponse](
 			httpClient,
 			baseURL+TopologyWatchTopologyProcedure,
-			connect.WithSchema(topologyMethods.ByName("WatchTopology")),
+			connect.WithSchema(topologyWatchTopologyMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -109,17 +115,16 @@ type TopologyHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewTopologyHandler(svc TopologyHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	topologyMethods := v1.File_core_message_broker_actors_v1_topology_proto.Services().ByName("Topology").Methods()
 	topologyGetTopologyHandler := connect.NewUnaryHandler(
 		TopologyGetTopologyProcedure,
 		svc.GetTopology,
-		connect.WithSchema(topologyMethods.ByName("GetTopology")),
+		connect.WithSchema(topologyGetTopologyMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	topologyWatchTopologyHandler := connect.NewServerStreamHandler(
 		TopologyWatchTopologyProcedure,
 		svc.WatchTopology,
-		connect.WithSchema(topologyMethods.ByName("WatchTopology")),
+		connect.WithSchema(topologyWatchTopologyMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.message_broker.actors.v1.Topology/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -48,6 +48,16 @@ pub static API_DOMAIN: Lazy<String> = Lazy::new(|| {
     }
 });
 
+/// PENDING_TRACE_ID is the Logs → Traces hand-off channel (Phase 14): clicking
+/// a log row's Trace pill sets this before navigating to the Traces view,
+/// which reads and clears it on mount to pre-select that trace's flame graph
+/// immediately rather than just filtering the search list. A GlobalSignal
+/// rather than a route query param — this codebase has no existing precedent
+/// for Dioxus Router query segments, and a global is simpler for exactly this
+/// kind of one-shot cross-view state (mirrors the pattern API_DOMAIN already
+/// uses above, via Blueprint's `BLUEPRINT_NAME: GlobalSignal<String>`).
+pub static PENDING_TRACE_ID: GlobalSignal<Option<String>> = Signal::global(|| None);
+
 fn main() {
     dioxus::logger::init(Level::INFO).expect("logger failed to init");
 
@@ -66,24 +76,23 @@ fn dashboard_layout() -> Element {
         div { class: "flex flex-col h-screen bg-base-100",
             div { class: "navbar bg-base-300 shadow-sm w-full shrink-0",
                 div { class: "flex-1 px-2 flex items-center",
-                    span { class: "text-lg font-bold tracking-tight", "BEACON" }
-                    span { class: "ml-2 text-xs text-base-content/40", "observability" }
-                    div { class: "ml-6 flex gap-1",
-                        Link {
-                            to: Route::Stream {},
-                            class: "btn btn-sm btn-ghost",
-                            "Stream"
-                        }
-                        Link {
-                            to: Route::Traces {},
-                            class: "btn btn-sm btn-ghost",
-                            "Traces"
-                        }
-                        Link {
-                            to: Route::Metrics {},
-                            class: "btn btn-sm btn-ghost",
-                            "Metrics"
-                        }
+                    span { class: "text-lg font-bold tracking-tight", "{{beacon}}" }
+                }
+                div { class: "px-2 flex gap-1",
+                    Link {
+                        to: Route::Stream {},
+                        class: "btn btn-sm btn-ghost",
+                        "Logs"
+                    }
+                    Link {
+                        to: Route::Traces {},
+                        class: "btn btn-sm btn-ghost",
+                        "Traces"
+                    }
+                    Link {
+                        to: Route::Metrics {},
+                        class: "btn btn-sm btn-ghost",
+                        "Metrics"
                     }
                 }
             }

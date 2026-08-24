@@ -75,7 +75,7 @@ type NavigationItemMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m NavigationItemMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -211,7 +211,7 @@ type NavigationSectionMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m NavigationSectionMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -347,7 +347,7 @@ type NavigationConfigMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m NavigationConfigMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

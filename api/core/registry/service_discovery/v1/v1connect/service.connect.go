@@ -53,6 +53,17 @@ const (
 	ServiceDiscoveryServiceWatchProcedure = "/core.registry.service_discovery.v1.ServiceDiscoveryService/Watch"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	serviceDiscoveryServiceServiceDescriptor            = v1.File_core_registry_service_discovery_v1_service_proto.Services().ByName("ServiceDiscoveryService")
+	serviceDiscoveryServiceInitializeMethodDescriptor   = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Initialize")
+	serviceDiscoveryServiceSynchronizeMethodDescriptor  = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Synchronize")
+	serviceDiscoveryServiceFinalizeMethodDescriptor     = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Finalize")
+	serviceDiscoveryServiceReportHealthMethodDescriptor = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("ReportHealth")
+	serviceDiscoveryServiceQueryMethodDescriptor        = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Query")
+	serviceDiscoveryServiceWatchMethodDescriptor        = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Watch")
+)
+
 // ServiceDiscoveryServiceClient is a client for the
 // core.registry.service_discovery.v1.ServiceDiscoveryService service.
 type ServiceDiscoveryServiceClient interface {
@@ -80,42 +91,41 @@ type ServiceDiscoveryServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewServiceDiscoveryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ServiceDiscoveryServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	serviceDiscoveryServiceMethods := v1.File_core_registry_service_discovery_v1_service_proto.Services().ByName("ServiceDiscoveryService").Methods()
 	return &serviceDiscoveryServiceClient{
 		initialize: connect.NewClient[v1.InitializeRequest, v1.InitializeResponse](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceInitializeProcedure,
-			connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Initialize")),
+			connect.WithSchema(serviceDiscoveryServiceInitializeMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		synchronize: connect.NewClient[v1.ClientDetails, v1.ClusterDetails](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceSynchronizeProcedure,
-			connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Synchronize")),
+			connect.WithSchema(serviceDiscoveryServiceSynchronizeMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		finalize: connect.NewClient[v1.FinalizeRequest, v1.FinalizeResponse](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceFinalizeProcedure,
-			connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Finalize")),
+			connect.WithSchema(serviceDiscoveryServiceFinalizeMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		reportHealth: connect.NewClient[v1.ReportHealthRequest, v1.ReportHealthResponse](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceReportHealthProcedure,
-			connect.WithSchema(serviceDiscoveryServiceMethods.ByName("ReportHealth")),
+			connect.WithSchema(serviceDiscoveryServiceReportHealthMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		query: connect.NewClient[v1.QueryRequest, v1.QueryResponse](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceQueryProcedure,
-			connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Query")),
+			connect.WithSchema(serviceDiscoveryServiceQueryMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		watch: connect.NewClient[v1.WatchRequest, v1.WatchResponse](
 			httpClient,
 			baseURL+ServiceDiscoveryServiceWatchProcedure,
-			connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Watch")),
+			connect.WithSchema(serviceDiscoveryServiceWatchMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -184,41 +194,40 @@ type ServiceDiscoveryServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	serviceDiscoveryServiceMethods := v1.File_core_registry_service_discovery_v1_service_proto.Services().ByName("ServiceDiscoveryService").Methods()
 	serviceDiscoveryServiceInitializeHandler := connect.NewUnaryHandler(
 		ServiceDiscoveryServiceInitializeProcedure,
 		svc.Initialize,
-		connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Initialize")),
+		connect.WithSchema(serviceDiscoveryServiceInitializeMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	serviceDiscoveryServiceSynchronizeHandler := connect.NewBidiStreamHandler(
 		ServiceDiscoveryServiceSynchronizeProcedure,
 		svc.Synchronize,
-		connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Synchronize")),
+		connect.WithSchema(serviceDiscoveryServiceSynchronizeMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	serviceDiscoveryServiceFinalizeHandler := connect.NewUnaryHandler(
 		ServiceDiscoveryServiceFinalizeProcedure,
 		svc.Finalize,
-		connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Finalize")),
+		connect.WithSchema(serviceDiscoveryServiceFinalizeMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	serviceDiscoveryServiceReportHealthHandler := connect.NewUnaryHandler(
 		ServiceDiscoveryServiceReportHealthProcedure,
 		svc.ReportHealth,
-		connect.WithSchema(serviceDiscoveryServiceMethods.ByName("ReportHealth")),
+		connect.WithSchema(serviceDiscoveryServiceReportHealthMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	serviceDiscoveryServiceQueryHandler := connect.NewUnaryHandler(
 		ServiceDiscoveryServiceQueryProcedure,
 		svc.Query,
-		connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Query")),
+		connect.WithSchema(serviceDiscoveryServiceQueryMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	serviceDiscoveryServiceWatchHandler := connect.NewServerStreamHandler(
 		ServiceDiscoveryServiceWatchProcedure,
 		svc.Watch,
-		connect.WithSchema(serviceDiscoveryServiceMethods.ByName("Watch")),
+		connect.WithSchema(serviceDiscoveryServiceWatchMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.registry.service_discovery.v1.ServiceDiscoveryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

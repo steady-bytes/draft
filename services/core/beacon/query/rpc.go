@@ -47,7 +47,7 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 }
 
 func (h *rpc) QueryLogs(ctx context.Context, req *connect.Request[logsv1.QueryLogsRequest]) (*connect.Response[logsv1.QueryLogsResponse], error) {
-	rows, err := h.controller.QueryLogs(ctx, req.Msg.GetFilter(), req.Msg.GetLimit(), req.Msg.GetAfter())
+	rows, err := h.controller.QueryLogs(ctx, req.Msg.GetFilter(), req.Msg.GetLimit(), req.Msg.GetAfter(), req.Msg.GetBefore(), req.Msg.GetAscending())
 	if err != nil {
 		return nil, toConnectError(err)
 	}
@@ -59,6 +59,23 @@ func (h *rpc) QueryLogs(ctx context.Context, req *connect.Request[logsv1.QueryLo
 }
 
 func (h *rpc) StreamLogs(ctx context.Context, req *connect.Request[logsv1.StreamLogsRequest], stream *connect.ServerStream[logsv1.StreamLogsResponse]) error {
+	// connect-go's ServerStream doesn't flush response headers to the client
+	// until the first Send call. Without this, a filter matching zero
+	// historical rows — with no live traffic arriving to trigger a later
+	// Send either — leaves the client's initial stream_logs().await call
+	// hanging indefinitely (observed firsthand: a click-to-filter selection
+	// narrow enough to match nothing left the UI stuck on "connecting…"
+	// forever, even though the RPC itself was healthy end to end). Sending
+	// an empty heartbeat immediately forces that flush regardless of what
+	// follows — including a malformed-filter error, which previously could
+	// hang the same way instead of surfacing promptly. StreamLogsResponse's
+	// `record` field is optional; the web client's stream loop already
+	// no-ops on `record: None` (see stream.rs's `if let Some(record) = ...`),
+	// so this is invisible in the UI.
+	if err := stream.Send(&logsv1.StreamLogsResponse{}); err != nil {
+		return toConnectError(err)
+	}
+
 	err := h.controller.StreamLogs(ctx, req.Msg.GetFilter(), req.Msg.GetLimit(), req.Msg.GetAfter(), func(row store.LogRow) error {
 		return stream.Send(&logsv1.StreamLogsResponse{Record: rowToProto(row)})
 	})

@@ -29,6 +29,7 @@ package chassis
 import (
 	"context"
 	"crypto/rand"
+	"encoding/hex"
 	"time"
 
 	"connectrpc.com/connect"
@@ -70,6 +71,46 @@ func newSpanID() []byte {
 	b := make([]byte, 8)
 	_, _ = rand.Read(b)
 	return b
+}
+
+// ─── Context propagation ─────────────────────────────────────────────────────
+//
+// Closes the gap OTelLogger.WithContext's doc comment used to describe as a
+// deliberate v1 no-op ("no context-propagated trace correlation... a caller
+// that wants a log record correlated with a trace can already do so
+// explicitly via WithField"): withSpanContext attaches the span this
+// interceptor just generated to ctx, so WithContext(ctx) can read it back and
+// call WithField itself — every existing `logger.WithContext(ctx)` call site
+// in a handler wrapped by NewTraceInterceptor starts correlating
+// automatically, no caller changes needed.
+
+type spanContextKey struct{}
+
+type spanContext struct {
+	traceIDHex string
+	spanIDHex  string
+}
+
+// withSpanContext returns a copy of ctx carrying traceID/spanID (raw OTel
+// bytes, hex-encoded here to match the "hex strings" convention
+// OTelLogger.encodeRecord already expects under the "trace_id"/"span_id"
+// field keys).
+func withSpanContext(ctx context.Context, traceID, spanID []byte) context.Context {
+	return context.WithValue(ctx, spanContextKey{}, spanContext{
+		traceIDHex: hex.EncodeToString(traceID),
+		spanIDHex:  hex.EncodeToString(spanID),
+	})
+}
+
+// spanFromContext returns the trace/span ids withSpanContext attached, if
+// any — false if ctx was never wrapped (no NewTraceInterceptor in the call
+// path, or a context that didn't descend from the wrapped handler's).
+func spanFromContext(ctx context.Context) (traceIDHex, spanIDHex string, ok bool) {
+	sc, ok := ctx.Value(spanContextKey{}).(spanContext)
+	if !ok {
+		return "", "", false
+	}
+	return sc.traceIDHex, sc.spanIDHex, true
 }
 
 // encodeStatus encodes a Status message. Field numbers (trace.pb.go):
@@ -153,7 +194,7 @@ func (i *otelInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		}
 		start := time.Now()
 		traceID, spanID := newTraceID(), newSpanID()
-		res, err := next(ctx, req)
+		res, err := next(withSpanContext(ctx, traceID, spanID), req)
 		i.reportSpan(traceID, spanID, req.Spec().Procedure, start, time.Now(), err)
 		return res, err
 	}
@@ -173,7 +214,7 @@ func (i *otelInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc
 		}
 		start := time.Now()
 		traceID, spanID := newTraceID(), newSpanID()
-		err := next(ctx, conn)
+		err := next(withSpanContext(ctx, traceID, spanID), conn)
 		i.reportSpan(traceID, spanID, conn.Spec().Procedure, start, time.Now(), err)
 		return err
 	}

@@ -38,6 +38,12 @@ const (
 	ResourceMetricsGetResourceMetricsProcedure = "/core.message_broker.actors.v1.ResourceMetrics/GetResourceMetrics"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	resourceMetricsServiceDescriptor                  = v1.File_core_message_broker_actors_v1_resource_metrics_proto.Services().ByName("ResourceMetrics")
+	resourceMetricsGetResourceMetricsMethodDescriptor = resourceMetricsServiceDescriptor.Methods().ByName("GetResourceMetrics")
+)
+
 // ResourceMetricsClient is a client for the core.message_broker.actors.v1.ResourceMetrics service.
 type ResourceMetricsClient interface {
 	GetResourceMetrics(context.Context, *connect.Request[v1.GetResourceMetricsRequest]) (*connect.Response[v1.GetResourceMetricsResponse], error)
@@ -53,12 +59,11 @@ type ResourceMetricsClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewResourceMetricsClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ResourceMetricsClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	resourceMetricsMethods := v1.File_core_message_broker_actors_v1_resource_metrics_proto.Services().ByName("ResourceMetrics").Methods()
 	return &resourceMetricsClient{
 		getResourceMetrics: connect.NewClient[v1.GetResourceMetricsRequest, v1.GetResourceMetricsResponse](
 			httpClient,
 			baseURL+ResourceMetricsGetResourceMetricsProcedure,
-			connect.WithSchema(resourceMetricsMethods.ByName("GetResourceMetrics")),
+			connect.WithSchema(resourceMetricsGetResourceMetricsMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -86,11 +91,10 @@ type ResourceMetricsHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewResourceMetricsHandler(svc ResourceMetricsHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	resourceMetricsMethods := v1.File_core_message_broker_actors_v1_resource_metrics_proto.Services().ByName("ResourceMetrics").Methods()
 	resourceMetricsGetResourceMetricsHandler := connect.NewUnaryHandler(
 		ResourceMetricsGetResourceMetricsProcedure,
 		svc.GetResourceMetrics,
-		connect.WithSchema(resourceMetricsMethods.ByName("GetResourceMetrics")),
+		connect.WithSchema(resourceMetricsGetResourceMetricsMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.message_broker.actors.v1.ResourceMetrics/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -74,7 +74,7 @@ type HelloWorldMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m HelloWorldMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -176,7 +176,7 @@ type PingMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m PingMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -278,7 +278,7 @@ type PongMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m PongMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

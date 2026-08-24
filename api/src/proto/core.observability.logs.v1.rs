@@ -43,6 +43,17 @@ pub struct QueryLogsRequest {
     /// Empty string means no lower bound.
     #[prost(string, tag = "3")]
     pub after: ::prost::alloc::string::String,
+    /// RFC3339 timestamp cursor — only rows strictly before this timestamp are returned.
+    /// Empty string means no upper bound. Combined with `after`, bounds both ends of a
+    /// custom time range; used alone (with `ascending = false`, the default) it returns
+    /// the rows immediately preceding a cursor — e.g. a log detail view's "context before".
+    #[prost(string, tag = "4")]
+    pub before: ::prost::alloc::string::String,
+    /// Sort order. false (default) = most-recent-first (descending), matching QueryLogs'
+    /// existing behavior. true = oldest-first (ascending) — needed to correctly return the
+    /// rows immediately *after* a cursor (with `after` set) rather than the current tail.
+    #[prost(bool, tag = "5")]
+    pub ascending: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueryLogsResponse {
@@ -158,7 +169,8 @@ pub mod logs_service_client {
             self
         }
         /// QueryLogs returns a bounded set of log rows matching an optional BeaconQL
-        /// filter expression, most recent first.
+        /// filter expression, most recent first by default. `after`/`before` bound
+        /// either or both ends of the timestamp range; `ascending` controls sort order.
         pub async fn query_logs(
             &mut self,
             request: impl tonic::IntoRequest<super::QueryLogsRequest>,

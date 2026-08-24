@@ -39,6 +39,13 @@ const (
 	QueryQueryStreamProcedure = "/core.message_broker.actors.v1.Query/QueryStream"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	queryServiceDescriptor           = v1.File_core_message_broker_actors_v1_query_proto.Services().ByName("Query")
+	queryQueryMethodDescriptor       = queryServiceDescriptor.Methods().ByName("Query")
+	queryQueryStreamMethodDescriptor = queryServiceDescriptor.Methods().ByName("QueryStream")
+)
+
 // QueryClient is a client for the core.message_broker.actors.v1.Query service.
 type QueryClient interface {
 	// Query executes a CESQL expression against stored events and returns all
@@ -60,18 +67,17 @@ type QueryClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewQueryClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) QueryClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	queryMethods := v1.File_core_message_broker_actors_v1_query_proto.Services().ByName("Query").Methods()
 	return &queryClient{
 		query: connect.NewClient[v1.QueryRequest, v1.QueryResponse](
 			httpClient,
 			baseURL+QueryQueryProcedure,
-			connect.WithSchema(queryMethods.ByName("Query")),
+			connect.WithSchema(queryQueryMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		queryStream: connect.NewClient[v1.QueryRequest, v1.QueryStreamResponse](
 			httpClient,
 			baseURL+QueryQueryStreamProcedure,
-			connect.WithSchema(queryMethods.ByName("QueryStream")),
+			connect.WithSchema(queryQueryStreamMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -111,17 +117,16 @@ type QueryHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewQueryHandler(svc QueryHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	queryMethods := v1.File_core_message_broker_actors_v1_query_proto.Services().ByName("Query").Methods()
 	queryQueryHandler := connect.NewUnaryHandler(
 		QueryQueryProcedure,
 		svc.Query,
-		connect.WithSchema(queryMethods.ByName("Query")),
+		connect.WithSchema(queryQueryMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	queryQueryStreamHandler := connect.NewServerStreamHandler(
 		QueryQueryStreamProcedure,
 		svc.QueryStream,
-		connect.WithSchema(queryMethods.ByName("QueryStream")),
+		connect.WithSchema(queryQueryStreamMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.message_broker.actors.v1.Query/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

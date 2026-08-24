@@ -250,6 +250,14 @@ Phases are ordered so each is independently shippable and the earliest phases de
 | 9 | Web client **Metrics** view: `MetricCard` stat tiles + time-series drill-down | Third visible product surface |
 | 10 | chassis `Logger` → OTLP exporter plugin + tracing/metrics helpers | Every Draft service can ship telemetry to Beacon with a config change |
 | 11 | Fuse routing + retention/TTL tuning + `docker-otel-lgtm` interop pass | Beacon is a drop-in for or alongside the existing local stack |
+| 12 | `before` cursor on `QueryLogs` (shared backend for 13 & 15) | Logs are queryable over a bounded time window, not just "recent N rows" |
+| 13 | Web client **Logs** view: time range picker (relative presets + custom range) | Historical windows are queryable from the UI, not just live tail |
+| 14 | Web client **Logs** view: Trace column + cross-view link into **Traces** | `trace_id` (already captured since Phase 1) is finally reachable from a log row |
+| 15 | Web client **Logs** view: log detail panel (Overview / JSON / Context tabs) | Full row detail, `resource_attributes`, and chronological context are visible without leaving the row |
+| 16 | Web client **Logs** view: click-to-filter on attribute values | Turning a value into a filter is a click, not hand-typed BeaconQL |
+| 17 | Web client **Logs** view: volume/severity histogram | A quiet visual sense of spike shape before reading rows |
+
+Phases 12&ndash;15 were a follow-up pass scoped to the three **high**-priority gaps identified against SigNoz's Logs Explorer (`assets/beacon-logs-redesign.html` has the full gap analysis and wireframes). Phase 16 begins the **medium**-priority items from that same analysis (click-to-filter, volume histogram, pause/resume, query-bar autocomplete), taken up one at a time rather than batched.
 
 ### Phase 0 — Scaffold `[Go]`
 
@@ -395,3 +403,100 @@ service:
 ```
 
 Adding `otlp/beacon` alongside the existing exporters (rather than replacing them) dual-writes every signal to both stacks — an incremental migration with zero risk to whatever Grafana dashboards or alerts already point at the bundled LGTM stack. Dropping the original exporters once Beacon covers a team's needs is a one-line config change, not a cutover event. Services that export straight to `:4317` without going through this Collector (bypassing it entirely) can repoint at Beacon the same way — change the exporter endpoint, nothing else, since both speak the same unmodified OTLP wire protocol.
+
+### Phase 12 — `before` cursor on `QueryLogs` `[Go]` — done
+
+**Goal:** `QueryLogs` can bound a query on both ends of the timestamp axis, not just a lower bound. This single addition is the shared foundation both Phase 13 (a custom time range has a fixed end) and Phase 15 (the Context tab's "10 rows immediately *before* the selected row") build on — neither needs a new RPC, just this one field threaded through the existing one.
+
+**Changed paths:**
+- `api/core/observability/logs/v1/logs.proto` — added `string before = 4` (RFC3339, exclusive upper bound, empty means unbounded — doc-commented the same way as `after`) and `bool ascending = 5` (default `false`/descending, matching existing behavior; `true` needed for "the rows immediately *after* a cursor," which descending-with-`after` cannot express) to `QueryLogsRequest`. `StreamLogsRequest` is unchanged — it stays the open-ended live-tail path; any query with a fixed end goes through `QueryLogs` instead (see Phase 13).
+- `services/core/beacon/store/clickhouse.go` — `Storer.QueryLogs`/`clickhouseStore.QueryLogs` gained a `before string` parameter (mirrors `after`); `noopStore.QueryLogs` updated to match.
+- `services/core/beacon/query/controller.go` — `Controller.QueryLogs` gained `before string, ascending bool`, threaded straight through; `StreamLogs`'s internal historical-replay call updated for the new signature (`before` always empty there — unbounded above, as before).
+- `services/core/beacon/query/rpc.go` — `QueryLogs` handler passes `req.Msg.GetBefore()`/`req.Msg.GetAscending()`.
+
+**How it works:** `logs` is partitioned `PARTITION BY toYYYYMMDD(timestamp)` (see [Data Model](#data-model)), so a bounded `WHERE timestamp > ? AND timestamp < ?` prunes whole-day partitions outside the range before scanning — a custom range query stays cheap even without a timestamp-leading sort key. No migration needed; this was a query-path change only.
+
+**Bug found and fixed along the way (not originally scoped, but the same file):** `clickhouse-go` v2's driver silently truncates a bare positional `time.Time` argument to whole-second precision — bound via a plain `?` placeholder, the driver has no way to know the destination is `DateTime64(9)` and defaults to `DateTime` (second precision, no fractional component). Verified directly: `timestamp < ?` bound this way against a cursor with 500 real matching rows returned exactly 1. This is a *pre-existing* bug — it silently affected the `after` cursor `StreamLogs`/`QueryLogs` already shipped with (Phase 2), and the identical pattern in `QueryTraceRoots`'s `before` cursor (Phase 5) and `QueryMetricPoints`'s `start`/`end` range (Phase 8), not something Phase 12 introduced. Fixed in all three places the same way: bind the timestamp as a string (`t.UTC().Format(time.RFC3339Nano)`) and cast it in SQL via `parseDateTime64BestEffort(?, 9)` instead of binding `time.Time` directly — verified against real ClickHouse data pre/post fix (500 rows recovered from the 1-row-truncated result; live tail confirmed still streaming correctly afterward).
+
+**How to test:** `QueryLogs` with only `after` set behaves exactly as before (regression check — verified live-tailing still works end-to-end in the browser after the fix). `QueryLogs` with both `after` and `before` set returns only rows strictly between the two timestamps. `QueryLogs` with only `before` set (default `ascending=false`) returns the most recent rows older than that timestamp — the exact shape Phase 15's Context tab needs for "load more before." `QueryLogs` with `after` set and `ascending=true` returns the earliest rows immediately following the cursor, not the current tail — needed for Context's "load more after."
+
+### Phase 13 — Web client Logs view: time range picker `[Rust/Dioxus]` — done
+
+**Goal:** Query an explicit historical window instead of only ever tailing from "now."
+
+**New paths:**
+- `services/core/beacon/web-client/src/components/time_range.rs` — a `TimeRangePicker` component: the `Last 15m ▾` pill plus its dropdown (relative presets — 5m/15m/1h/6h/24h/7d — and a custom start/end pair), emitting a small `TimeRange` enum (`Live(Duration)` or `Custom { start, end }`) via `on_change: EventHandler<TimeRange>`.
+
+**Changed paths:**
+- `services/core/beacon/web-client/src/views/stream.rs` — the existing always-`StreamLogs` behavior becomes conditional on the active `TimeRange`:
+  - `TimeRange::Live(d)` (the default, `Last 15m`) — same `StreamLogs` hand-rolled loop as today, but `after` is now seeded from `(now - d).to_rfc3339()` instead of an empty cursor, so switching presets actually changes what's shown rather than just labeling the same "recent N rows" replay. Live tailing continues exactly as it does today.
+  - `TimeRange::Custom { start, end }` — a one-shot call through the already-generated `use_logs_service_service().query_logs(...)` hook (the same pattern `traces.rs` uses for `SearchTraces`/`GetTrace` — no hand-rolled client needed here, `QueryLogs` already has a codegen'd hook, only `StreamLogs` doesn't) with `after: start, before: end`. No live tail is opened; the connection badge shows "historical" instead of "live"/"connecting".
+
+**How to test:** Selecting `Last 1h` after `Last 15m` shows strictly more rows going back further, still live-updating. Selecting a custom range in the past shows only rows inside that window, the live badge changes to "historical," and no new rows appear even while log traffic continues elsewhere in the cluster. Selecting `Last 15m` again returns to live tailing. Verified all of the above live in the browser.
+
+**Known v1 limitation (flagged, not fixed here):** a custom range wider than one `QueryLogs` page (`maxLimit` rows) shows only the most recent page within that window — no "load older" pagination inside a fixed range. Worth a follow-up once this phase is in use; not blocking for the wireframe's scope.
+
+**Bug found and fixed along the way:** the custom-range dropdown initially rendered cut off past the right edge of the viewport (only visible by scrolling). Root cause: this app loads Tailwind via the `@tailwindcss/browser` CDN runtime, which generates utility CSS by scanning/observing the DOM rather than from a precompiled stylesheet — a class appearing for the first time only when the dropdown first opens (`right-0`, `w-72`, etc.) isn't guaranteed to be styled on that first render. Fixed by moving the dropdown's layout-critical properties (position, right/top, width, z-index) to inline `style`, which applies immediately with no JIT dependency; cosmetic classes (colors, borders, shadow) were left as Tailwind classes.
+
+### Phase 14 — Web client Logs view: Trace correlation link `[Rust/Dioxus]` — done
+
+**Goal:** `trace_id` has been on every `LogRecord` since Phase 1 and is captured for every row, but is rendered nowhere in the UI. Surface it and make it a live link into the Traces view — no backend change needed at all: `SearchTraces`/`GetTrace` already accept a `trace_id`-scoped BeaconQL filter (Phase 5).
+
+**New paths:**
+- `services/core/beacon/web-client/src/components/trace_pill.rs` — a small `TracePill` component: renders a shortened `trace_id` (e.g. `a91d4f…9c206c`), `onclick` hands off to Traces (below). Renders nothing for an empty `trace_id`.
+
+**Changed paths:**
+- `services/core/beacon/web-client/src/main.rs` — added `PENDING_TRACE_ID: GlobalSignal<Option<String>>`, the same `Signal::global` pattern Blueprint's navbar uses for `BLUEPRINT_NAME`, as the hand-off channel between views (no query-string route param — this codebase has no existing precedent for Dioxus Router query segments, and a global signal is simpler for exactly this kind of one-shot cross-view state).
+- `services/core/beacon/web-client/src/views/stream.rs` — added a Trace column rendering `TracePill`; `onclick` sets `PENDING_TRACE_ID` to the row's `trace_id` and calls `use_navigator().push(Route::Traces {})`.
+- `services/core/beacon/web-client/src/views/traces.rs` — on mount, a `use_effect` checks `PENDING_TRACE_ID`: if set, seeds `search_req`/`expression` with `filter: trace_id = "<id>"`, immediately sets `selected_trace_id`/`get_req` so the flame graph opens without a second click, then clears the signal so a plain visit to `/traces` isn't affected.
+
+**How to test:** Click a Trace pill on a log row with a real `trace_id`; the Traces view opens with that trace's flame graph already rendered, not just the search list filtered. Visiting `/traces` directly (nav link, not via a log row) behaves exactly as it does today — empty search, no trace pre-selected. Verified end-to-end in the browser using a synthetic log row (`INSERT`ed directly, then deleted afterward) paired with a real `trace_id` already present in `spans` — real RPC-triggered log rows currently have no `trace_id` to click at all (see below), so this was the only way to exercise the click-through honestly rather than just trusting the code.
+
+**Gap found, then fixed (chassis, not Logs-view):** no row in `beacon.logs` had ever had a non-empty `trace_id` — confirmed directly (`SELECT count() FROM beacon.logs WHERE trace_id != ''` returned `0`). Phase 14's premise ("`trace_id` has been on every `LogRecord` since Phase 1") assumed the OTel logger correlates a log emitted during a traced RPC call with that call's trace; it didn't. Root cause: `NewTraceInterceptor()` (`pkg/chassis/otel_trace.go`) generated a `traceID`/`spanID` per request but never attached them to the request `context.Context` before calling the handler — and `OTelLogger.WithContext(ctx)` (`pkg/chassis/otel_logger.go`) was a documented, deliberate no-op ("v1 has no context-propagated trace correlation"). Fixed by closing that exact gap: `otel_trace.go` now has `withSpanContext`/`spanFromContext` (hex-encoded, an unexported context key), called in both `WrapUnary` and `WrapStreamingHandler` before invoking `next`; `WithContext` now reads them back and sets `"trace_id"`/`"span_id"` fields the same way an explicit `WithField` call already did (`encodeRecord` already looked for exactly those keys — no change needed there). Every existing `logger.WithContext(ctx)` call site in Blueprint's RPC handlers started correlating automatically the moment chassis rebuilt — zero caller changes. Verified against real traffic post-fix: `SELECT count() FROM beacon.logs WHERE trace_id != ''` went from `0` to `476` within a minute of restarting Blueprint, an `INNER JOIN` between `logs` and `spans` on `trace_id` returns matching rows with sane span names/durations, and clicking a real (non-synthetic) Trace pill in the browser opens the Traces view with the correct flame graph pre-rendered.
+
+### Phase 15 — Web client Logs view: log detail panel `[Rust/Dioxus]` — done
+
+**Goal:** A row can be inspected in full — untruncated body, both attribute maps (`resource_attributes` currently renders nowhere at all), and its immediate chronological neighbors — without leaving the Logs view.
+
+**New paths:**
+- `services/core/beacon/web-client/src/components/log_detail.rs` — a `LogDetailDrawer` component: right-side panel (`w-[420px]`), three tabs.
+  - **Overview** — full `body` (with a wrap/truncate toggle, local component state) and two read-only attribute tables (`attributes`, `resource_attributes`, both skipped entirely when empty); a `TracePill` (Phase 14) if `trace_id` is non-empty. No click-to-filter affordances here — that interaction is a **medium**-priority item from the gap analysis and deliberately out of scope for this phase.
+  - **JSON** — the selected `LogRecord`'s fields hand-formatted as pretty-printed JSON (matching this codebase's existing preference for hand-rolled formatting over pulling in `serde_json` as a new dependency purely for a debug view — `LogRecord`'s prost-generated struct doesn't derive `Serialize`; a small hand-rolled `json_string`/`json_object` pair handles escaping). No copy-to-clipboard button in this pass — cut for scope, not blocking.
+  - **Context** — 10 rows immediately before and after the selected row, ignoring the active BeaconQL filter (matching SigNoz's Context tab behavior): "before" via `QueryLogs { before: selected.timestamp, ascending: false, limit: 10 }` (Phase 12), "after" via `QueryLogs { after: selected.timestamp, ascending: true, limit: 10 }`; "load 10 more before/after" repeats the call using the newly-earliest/latest displayed row's timestamp as the next cursor. The selected row itself renders inline, highlighted, between the two lists.
+  - Given a `key` derived from the selected record's timestamp+body when rendered (see stream.rs below), Dioxus remounts a fresh `LogDetailDrawer` instance on every new row selection — resets `tab`/`wrap`/the Context lists/pagination state for free, no hand-rolled prop-change tracking needed.
+
+**Changed paths:**
+- `services/core/beacon/web-client/src/views/stream.rs` — rows are clickable (`onclick` sets a `selected: Signal<Option<LogRecord>>`, highlighted via `bg-base-300` while open); the table's container becomes a `flex` row with `LogDetailDrawer` as a sibling, narrowing the table rather than overlaying it.
+
+**How to test:** Clicking a row opens the drawer with the full body visible (no ellipsis), both attribute maps populated (confirmed live: a row with `resource_attributes.service.name` set — silently dropped everywhere before this phase — now actually shows it), and a valid Trace link if the row has one. The JSON tab's output matches Overview. The Context tab shows the selected row highlighted among 10 neighbors on each side; "load 10 more before" extends the list further back in correct chronological order without duplicating the boundary row. Verified all of the above live in the browser against real streaming data (not a mock).
+
+### Phase 16 — Web client Logs view: click-to-filter on attribute values `[Rust]` — done
+
+**Goal:** Turn a value in the log detail panel's attribute tables into a BeaconQL clause with a click, instead of hand-typing it into the query bar.
+
+**Changed paths:**
+- `services/core/beacon/web-client/src/components/log_detail.rs` — `AttributeTable` (Phase 15) gained a `namespace: &'static str` prop (`"attributes"` or `"resource_attributes"`, since BeaconQL needs to know which map to index) and an `on_filter: EventHandler<String>` prop; each row now renders `+`/`−` buttons that call it with a ready-to-use clause (`attributes["key"] = "value"` / `attributes["key"] != "value"`). A small `beaconql_string` helper backslash-escapes `\`/`"` the same way `query/beaconql.go`'s `lexString` unescapes them on the way back in. Threaded up through `OverviewTab` and `LogDetailDrawer`'s own new `on_filter` prop. "Group by" from the original wireframe is intentionally not built — BeaconQL has no aggregation functions, so it would have nothing to do (see the gap table's "Aggregation / Group By" row, still low-priority/unstarted).
+- `services/core/beacon/web-client/src/views/stream.rs` — `LogDetailDrawer`'s `on_filter` handler AND-combines the clause into the active `expression` and re-runs. The existing filter is parenthesized before combining (`(existing) AND clause`) — BeaconQL's `AND` binds tighter than `OR`, so appending a bare `AND clause` to a filter that already has a top-level `OR` would silently scope the new clause to only the `OR`'s last operand instead of the whole existing filter.
+
+**Bug found and fixed along the way (pre-existing, not introduced by this phase):** a filter matching zero historical rows — with no live traffic arriving afterward either — left the Logs view stuck on "connecting…" forever, discovered while testing a click-to-filter selection narrow enough to match nothing. Root cause: connect-go's `ServerStream` doesn't flush response headers to the client until the first `Send` call; `query/rpc.go`'s `StreamLogs` handler only ever called `Send` for an actual row, so an empty result left the client's initial `stream_logs().await` hanging with nothing to resolve it, even though the RPC was healthy. The same gap could also delay a malformed-filter error from surfacing. Fixed by sending one empty `StreamLogsResponse{}` heartbeat immediately, before replaying history or waiting on live rows — `record` is optional and the web client's stream loop already no-ops on `record: None`, so it's invisible in the UI; it exists purely to force the header flush. Verified directly: before the fix, a zero-match filter hung 15+ seconds with no sign of resolving; after, the badge reads "live" within the same render.
+
+**How to test:** Open a row's detail panel, click `+` next to an attribute value — the query bar updates to `attributes["key"] = "value"` and the list re-runs to match. Click `−` next to a different value with an existing filter already active — the bar shows `(existing) AND attributes["key"] != "value"`, correctly AND-combined regardless of whether the existing filter contains its own `OR`. A filter narrow enough to match nothing still flips the badge to "live" immediately rather than hanging on "connecting…".
+
+### Phase 17 — Web client Logs view: volume/severity histogram `[Rust]` — done
+
+**Goal:** A quiet visual sense of spike shape above the table before reading individual rows.
+
+**New paths:**
+- `services/core/beacon/web-client/src/components/severity_histogram.rs` — a `SeverityHistogram` component: 120 thin stacked bars (each `flex:1`, so raising the bucket count is purely a matter of trading individual bar width for time resolution — no layout changes needed), ~56px tall, framed as a labeled card (`bg-base-200`/`border-base-300`/`rounded-lg`, padded) rather than a bare strip — a chart with no title, no key, and no axis reads as decoration, not data, so all three were added in a follow-up polish pass:
+    - An eyebrow title ("Volume by severity") and a color legend (error/warn/info/other swatches, top-right) so the stacked colors don't rely on the reader already knowing the row-marker palette by heart.
+    - A start/end time axis along the bottom (`HH:MM:SS UTC`, from the same `min_ns`/`max_ns` the bucketing itself uses) so the strip reads as a chart *of* something instead of an abstract sparkline.
+  - Buckets whatever rows are *currently displayed* client-side (the same `lines` buffer the table itself renders from, capped at `MAX_LINES`) rather than issuing a new aggregation query — BeaconQL has no aggregate functions (see the gap table's still-unstarted "Aggregation / Group By" row), and bucketing the exact rows already on screen guarantees the histogram and the table underneath it never disagree about what they're showing. Being a plain function of its `lines` prop, it re-buckets and re-renders for free on every new row the live tail receives.
+  - Severities collapse into four stacked segments per bucket: `error`/`fatal` (`var(--color-error)`), `warn`/`warning` (`var(--color-warning)`), `info` (`var(--color-info)`) — the same theme-token colors `severity_stripe_color` already uses for the row markers, so the histogram and the rows read as the same visual language — and everything else (`debug`/`trace`/empty) as a faint `var(--color-base-content)` sliver so it doesn't compete for attention.
+  - Segment heights are relative to the tallest bucket's total (`(count * CHART_HEIGHT_PX) / max_total`), and each bucket carries a `title` tooltip with its per-severity breakdown on hover. Renders nothing (not an empty chart) when fewer than two distinct timestamps are loaded — nothing meaningful to bucket yet.
+
+**Changed paths:**
+- `services/core/beacon/web-client/src/views/stream.rs` — mounted between the status-badge row and the table, passed `lines: displayed.clone()`.
+
+**Known v1 limitation (flagged, not fixed here):** no click/drag-to-select a bucket range to narrow the time picker, unlike the original wireframe — a real interaction to build later, not just a styling pass; the histogram today is read-only.
+
+**How to test:** With mixed-severity traffic in view, bars show visibly different heights and stacked colors matching what's in the table below (verified live: amber `warn` bars of varying height from the reaper's bursty cadence, plus a blue `info` segment for a real startup log line and a real `error` segment, colors and proportions consistent with the underlying rows). The title, legend, and `HH:MM:SS UTC` start/end labels render and match the visible time range. An idle window with only one or two rows loaded renders no card at all rather than a degenerate single-pixel chart.

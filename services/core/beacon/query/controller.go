@@ -15,7 +15,11 @@ type (
 	// AST in-memory against newly-ingested rows for the live-tail half.
 	Controller interface {
 		Publisher
-		QueryLogs(ctx context.Context, filter string, limit int32, after string) ([]store.LogRow, error)
+		// QueryLogs parses filter once and compiles it to parameterized SQL. after/
+		// before independently bound either end of the timestamp range (either may
+		// be empty); ascending controls sort order — see store.Storer.QueryLogs's
+		// doc comment for the full contract.
+		QueryLogs(ctx context.Context, filter string, limit int32, after, before string, ascending bool) ([]store.LogRow, error)
 		// StreamLogs replays historical rows matching filter (ascending, so the
 		// client sees oldest-to-newest continuity), then blocks streaming live
 		// rows matching the same filter via send until ctx is cancelled or send
@@ -87,7 +91,7 @@ func (c *controller) Publish(row store.LogRow) {
 	c.observers.broadcast(row)
 }
 
-func (c *controller) QueryLogs(ctx context.Context, filter string, limit int32, after string) ([]store.LogRow, error) {
+func (c *controller) QueryLogs(ctx context.Context, filter string, limit int32, after, before string, ascending bool) ([]store.LogRow, error) {
 	ast, err := ParseBeaconQL(filter)
 	if err != nil {
 		return nil, err
@@ -96,7 +100,7 @@ func (c *controller) QueryLogs(ctx context.Context, filter string, limit int32, 
 	if err != nil {
 		return nil, err
 	}
-	return c.store.QueryLogs(ctx, whereSQL, args, limit, after, false)
+	return c.store.QueryLogs(ctx, whereSQL, args, limit, after, before, ascending)
 }
 
 func (c *controller) StreamLogs(ctx context.Context, filter string, limit int32, after string, send func(store.LogRow) error) error {
@@ -109,7 +113,7 @@ func (c *controller) StreamLogs(ctx context.Context, filter string, limit int32,
 		return err
 	}
 
-	historical, err := c.store.QueryLogs(ctx, whereSQL, args, limit, after, true)
+	historical, err := c.store.QueryLogs(ctx, whereSQL, args, limit, after, "", true)
 	if err != nil {
 		return err
 	}

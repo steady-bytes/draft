@@ -37,6 +37,12 @@ const (
 	EchoServiceSpeakProcedure = "/examples.echo.v1.EchoService/Speak"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	echoServiceServiceDescriptor     = v1.File_examples_echo_v1_service_proto.Services().ByName("EchoService")
+	echoServiceSpeakMethodDescriptor = echoServiceServiceDescriptor.Methods().ByName("Speak")
+)
+
 // EchoServiceClient is a client for the examples.echo.v1.EchoService service.
 type EchoServiceClient interface {
 	Speak(context.Context, *connect.Request[v1.SpeakRequest]) (*connect.Response[v1.SpeakResponse], error)
@@ -51,12 +57,11 @@ type EchoServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewEchoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) EchoServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	echoServiceMethods := v1.File_examples_echo_v1_service_proto.Services().ByName("EchoService").Methods()
 	return &echoServiceClient{
 		speak: connect.NewClient[v1.SpeakRequest, v1.SpeakResponse](
 			httpClient,
 			baseURL+EchoServiceSpeakProcedure,
-			connect.WithSchema(echoServiceMethods.ByName("Speak")),
+			connect.WithSchema(echoServiceSpeakMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -83,11 +88,10 @@ type EchoServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewEchoServiceHandler(svc EchoServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	echoServiceMethods := v1.File_examples_echo_v1_service_proto.Services().ByName("EchoService").Methods()
 	echoServiceSpeakHandler := connect.NewUnaryHandler(
 		EchoServiceSpeakProcedure,
 		svc.Speak,
-		connect.WithSchema(echoServiceMethods.ByName("Speak")),
+		connect.WithSchema(echoServiceSpeakMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/examples.echo.v1.EchoService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

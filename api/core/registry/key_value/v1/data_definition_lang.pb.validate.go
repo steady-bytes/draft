@@ -71,7 +71,7 @@ type IDMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m IDMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -300,7 +300,7 @@ type StatementMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StatementMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -400,7 +400,7 @@ type EqualMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m EqualMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

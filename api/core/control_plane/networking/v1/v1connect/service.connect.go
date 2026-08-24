@@ -44,6 +44,14 @@ const (
 	NetworkingServiceDeleteRouteProcedure = "/core.control_plane.networking.v1.NetworkingService/DeleteRoute"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	networkingServiceServiceDescriptor           = v1.File_core_control_plane_networking_v1_service_proto.Services().ByName("NetworkingService")
+	networkingServiceAddRouteMethodDescriptor    = networkingServiceServiceDescriptor.Methods().ByName("AddRoute")
+	networkingServiceListRoutesMethodDescriptor  = networkingServiceServiceDescriptor.Methods().ByName("ListRoutes")
+	networkingServiceDeleteRouteMethodDescriptor = networkingServiceServiceDescriptor.Methods().ByName("DeleteRoute")
+)
+
 // NetworkingServiceClient is a client for the core.control_plane.networking.v1.NetworkingService
 // service.
 type NetworkingServiceClient interface {
@@ -66,24 +74,23 @@ type NetworkingServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewNetworkingServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) NetworkingServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	networkingServiceMethods := v1.File_core_control_plane_networking_v1_service_proto.Services().ByName("NetworkingService").Methods()
 	return &networkingServiceClient{
 		addRoute: connect.NewClient[v1.AddRouteRequest, v1.AddRouteResponse](
 			httpClient,
 			baseURL+NetworkingServiceAddRouteProcedure,
-			connect.WithSchema(networkingServiceMethods.ByName("AddRoute")),
+			connect.WithSchema(networkingServiceAddRouteMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		listRoutes: connect.NewClient[v1.ListRoutesRequest, v1.ListRoutesResponse](
 			httpClient,
 			baseURL+NetworkingServiceListRoutesProcedure,
-			connect.WithSchema(networkingServiceMethods.ByName("ListRoutes")),
+			connect.WithSchema(networkingServiceListRoutesMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		deleteRoute: connect.NewClient[v1.DeleteRouteRequest, v1.DeleteRouteResponse](
 			httpClient,
 			baseURL+NetworkingServiceDeleteRouteProcedure,
-			connect.WithSchema(networkingServiceMethods.ByName("DeleteRoute")),
+			connect.WithSchema(networkingServiceDeleteRouteMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -129,23 +136,22 @@ type NetworkingServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewNetworkingServiceHandler(svc NetworkingServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	networkingServiceMethods := v1.File_core_control_plane_networking_v1_service_proto.Services().ByName("NetworkingService").Methods()
 	networkingServiceAddRouteHandler := connect.NewUnaryHandler(
 		NetworkingServiceAddRouteProcedure,
 		svc.AddRoute,
-		connect.WithSchema(networkingServiceMethods.ByName("AddRoute")),
+		connect.WithSchema(networkingServiceAddRouteMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	networkingServiceListRoutesHandler := connect.NewUnaryHandler(
 		NetworkingServiceListRoutesProcedure,
 		svc.ListRoutes,
-		connect.WithSchema(networkingServiceMethods.ByName("ListRoutes")),
+		connect.WithSchema(networkingServiceListRoutesMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	networkingServiceDeleteRouteHandler := connect.NewUnaryHandler(
 		NetworkingServiceDeleteRouteProcedure,
 		svc.DeleteRoute,
-		connect.WithSchema(networkingServiceMethods.ByName("DeleteRoute")),
+		connect.WithSchema(networkingServiceDeleteRouteMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/core.control_plane.networking.v1.NetworkingService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

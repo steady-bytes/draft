@@ -49,7 +49,8 @@ var (
 // LogsServiceClient is a client for the core.observability.logs.v1.LogsService service.
 type LogsServiceClient interface {
 	// QueryLogs returns a bounded set of log rows matching an optional BeaconQL
-	// filter expression, most recent first.
+	// filter expression, most recent first by default. `after`/`before` bound
+	// either or both ends of the timestamp range; `ascending` controls sort order.
 	QueryLogs(context.Context, *connect.Request[v1.QueryLogsRequest]) (*connect.Response[v1.QueryLogsResponse], error)
 	// StreamLogs opens a persistent server-streaming RPC. The server first replays
 	// historical rows matching `filter` (bounded by `limit`, optionally starting
@@ -105,7 +106,8 @@ func (c *logsServiceClient) StreamLogs(ctx context.Context, req *connect.Request
 // LogsServiceHandler is an implementation of the core.observability.logs.v1.LogsService service.
 type LogsServiceHandler interface {
 	// QueryLogs returns a bounded set of log rows matching an optional BeaconQL
-	// filter expression, most recent first.
+	// filter expression, most recent first by default. `after`/`before` bound
+	// either or both ends of the timestamp range; `ascending` controls sort order.
 	QueryLogs(context.Context, *connect.Request[v1.QueryLogsRequest]) (*connect.Response[v1.QueryLogsResponse], error)
 	// StreamLogs opens a persistent server-streaming RPC. The server first replays
 	// historical rows matching `filter` (bounded by `limit`, optionally starting
