@@ -1,0 +1,69 @@
+{{define "title"}}Bench — Dashboard{{end}}
+{{define "content"}}
+<div class="flex flex-col gap-8">
+  <div class="flex flex-col gap-1">
+    <span class="font-mono text-xs uppercase tracking-widest text-primary">Dashboard</span>
+    <h1 class="font-display text-4xl font-bold tracking-tight">Is it green?</h1>
+    <p class="text-base-content/60 max-w-xl">Last {{.TotalRuns}} run{{if ne .TotalRuns 1}}s{{end}} across {{.WorkflowCount}} workflow{{if ne .WorkflowCount 1}}s{{end}}.</p>
+  </div>
+
+  <div class="stats stats-vertical sm:stats-horizontal bg-base-200 border border-base-300 w-full">
+    <div class="stat">
+      <div class="stat-title font-mono text-xs uppercase tracking-wider">Pass rate</div>
+      <div class="stat-value font-display text-primary">{{.PassRatePct}}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title font-mono text-xs uppercase tracking-wider">Running now</div>
+      <div class="stat-value font-display {{if gt .RunningCount 0}}text-warning{{end}}">{{.RunningCount}}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title font-mono text-xs uppercase tracking-wider">Workflows loaded</div>
+      <div class="stat-value font-display">{{.WorkflowCount}}</div>
+    </div>
+  </div>
+
+  {{if .RecentFailures}}
+  <div class="flex flex-col gap-3">
+    <h2 class="font-display text-base font-semibold flex items-center gap-2"><span class="signal signal-error"></span> Needs attention</h2>
+    <div class="flex flex-col divide-y divide-base-300 border border-base-300 bg-base-200 rounded-box overflow-hidden">
+      {{range .RecentFailures}}
+      <a href="/runs/{{.RunID}}" class="flex items-center gap-3 px-4 py-3 hover:bg-base-300/50 transition-colors">
+        <span class="signal {{.SignalClass}}"></span>
+        <span class="font-mono text-sm text-base-content/90 flex-1">{{.WorkflowName}}</span>
+        <span class="font-mono text-xs text-base-content/40">{{.StartedAt}}</span>
+        <span class="font-mono text-xs text-base-content/40 w-16 text-right">{{.Duration}}</span>
+      </a>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+
+  <div class="flex flex-col gap-3">
+    <h2 class="font-display text-base font-semibold">Recent runs</h2>
+    {{if not .RecentRuns}}
+    <p class="text-base-content/50 text-sm">No runs yet. Trigger a workflow from the <a href="/workflows" class="link link-primary">workflows page</a>, or wait for its webhook to fire.</p>
+    {{else}}
+    <div class="overflow-x-auto border border-base-300 bg-base-200 rounded-box">
+      <table class="table">
+        <thead>
+          <tr class="font-mono text-xs uppercase tracking-wider text-base-content/45 border-base-300">
+            <th></th><th>Workflow</th><th>Started</th><th>Duration</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {{range .RecentRuns}}
+          <tr class="border-base-300 hover:bg-base-300/40">
+            <td><span class="signal {{.SignalClass}}"></span></td>
+            <td class="font-mono text-sm">{{.WorkflowName}}</td>
+            <td class="font-mono text-xs text-base-content/50">{{.StartedAt}}</td>
+            <td class="font-mono text-xs text-base-content/50">{{.Duration}}</td>
+            <td class="text-right"><a href="/runs/{{.RunID}}" class="link link-primary font-mono text-xs no-underline hover:underline">view &rarr;</a></td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

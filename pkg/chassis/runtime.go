@@ -15,9 +15,9 @@ import (
 type Runtime struct {
 	config                    Config
 	logger                    Logger
-	brokers                   []Broker
-	repositories              []Repository
-	secretStores              []SecretStore
+	effects                   []Effect
+	effectsMu                 sync.Mutex
+	shutdownOnce              sync.Once
 	isRPC                     bool
 	noMux                     bool
 	rpcReflectionServiceNames []string

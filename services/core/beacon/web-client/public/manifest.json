@@ -1,0 +1,13 @@
+{
+  "name": "Beacon",
+  "short_name": "Beacon",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "description": "Beacon is Draft's OpenTelemetry-native observability service: logs, traces, and metrics.",
+  "dir": "ltr",
+  "lang": "en"
+}

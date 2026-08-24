@@ -1,0 +1,48 @@
+{{define "title"}}Bench — Settings{{end}}
+{{define "content"}}
+<div class="flex flex-col gap-8 max-w-3xl">
+  <div class="flex flex-col gap-1">
+    <span class="font-mono text-xs uppercase tracking-widest text-primary">Settings</span>
+    <h1 class="font-display text-4xl font-bold tracking-tight">Plugin registries</h1>
+    <p class="text-base-content/60 max-w-xl">Every garage-compatible registry a <span class="font-mono">garage://</span> step or the workflow editor's search sidebar can resolve against. Seeded from <span class="font-mono">bench.plugin_registries</span> on first startup; edits here live only in the database from then on.</p>
+  </div>
+
+  {{if not .Registries}}
+  <p class="text-base-content/50 text-sm">No registries configured yet.</p>
+  {{else}}
+  <div class="flex flex-col divide-y divide-base-300 border border-base-300 bg-base-200">
+    {{range .Registries}}
+    <div class="flex items-center justify-between gap-4 px-4 py-3">
+      <div class="min-w-0">
+        <div class="font-display text-sm font-semibold">{{.Name}}</div>
+        <div class="font-mono text-xs text-base-content/50 truncate">{{.Address}}</div>
+      </div>
+      <form method="POST" action="/settings/{{.Name}}/delete" onsubmit="return confirm('Remove registry {{.Name}}? garage:// steps that only resolve there will start failing.');">
+        <button type="submit" class="btn btn-ghost btn-xs font-display text-error">Remove</button>
+      </form>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  <div class="flex flex-col gap-3">
+    <h2 class="font-display text-base font-semibold">Add a registry</h2>
+    {{if .Error}}
+    <div class="alert alert-error text-xs font-mono whitespace-pre-wrap items-start">
+      <span>{{.Error}}</span>
+    </div>
+    {{end}}
+    <form method="POST" action="/settings" class="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+      <div class="flex flex-col gap-1">
+        <label class="font-mono text-xs text-base-content/50">name</label>
+        <input type="text" name="name" value="{{.FormName}}" placeholder="garage" class="input input-bordered input-sm font-mono w-40" />
+      </div>
+      <div class="flex flex-col gap-1 flex-1">
+        <label class="font-mono text-xs text-base-content/50">address</label>
+        <input type="text" name="address" value="{{.FormAddress}}" placeholder="http://localhost:9301" class="input input-bordered input-sm font-mono w-full" />
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm font-display">Add</button>
+    </form>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,32 @@
+{{/*
+card-grid renders the catalog's card grid — one tag-styled card per plugin
+*name*, showing its latest published version. Used both as part of the full
+catalog page (catalog.html) and, standalone, as the htmx-swapped fragment
+the search input targets (ui.go's catalogCards handler), so it's kept in its
+own file rather than inlined into catalog.html.
+
+The wrapping div carries id="card-grid" itself (rather than the caller
+wrapping it) so an htmx response re-rendering just this template can
+hx-swap="outerHTML" straight onto it.
+*/}}
+{{define "card-grid"}}
+<div id="card-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+  {{if not .Cards}}
+    <div class="col-span-full flex flex-col items-center gap-2 text-center py-20 text-base-content/50">
+      <span class="font-display text-lg">{{if .Query}}Nothing matches &ldquo;{{.Query}}&rdquo;{{else}}The shelf is empty{{end}}</span>
+      <span class="text-sm max-w-sm">{{if .Query}}Try a different name or description, or clear the search.{{else}}Publish a plugin&#39;s manifest to Garage and it will show up here.{{end}}</span>
+    </div>
+  {{end}}
+  {{range .Cards}}
+  <a href="/plugins/{{.Name}}/{{.LatestVersion}}" class="group relative bg-base-200 border border-base-300 hover:border-primary/60 transition-colors p-5 flex flex-col gap-3">
+    <div class="absolute top-3 right-4 font-mono text-[0.65rem] tracking-wider text-base-content/35 group-hover:text-primary/70 transition-colors">{{.LatestVersion}}</div>
+    <h2 class="font-display text-lg font-semibold pr-10 leading-tight">{{.Name}}</h2>
+    <p class="text-sm text-base-content/60 leading-relaxed">{{.Description}}</p>
+    <div class="mt-auto pt-3 border-t border-base-300 flex items-center justify-between">
+      <span class="font-mono text-xs text-base-content/45">{{.Maintainer}}</span>
+      <span class="font-mono text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">view &rarr;</span>
+    </div>
+  </a>
+  {{end}}
+</div>
+{{end}}

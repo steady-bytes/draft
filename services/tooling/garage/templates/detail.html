@@ -1,0 +1,63 @@
+{{define "title"}}Garage — {{.Name}}{{end}}
+{{define "content"}}
+<div class="flex flex-col gap-8">
+  <div>
+    <div class="breadcrumbs text-xs font-mono text-base-content/40">
+      <ul><li><a href="/" class="hover:text-primary">catalog</a></li><li>{{.Name}}</li></ul>
+    </div>
+    <div class="flex items-start justify-between flex-wrap gap-4 mt-2">
+      <div>
+        <h1 class="font-display text-3xl font-bold tracking-tight">{{.Name}}</h1>
+        <p class="text-base-content/60 mt-1 max-w-xl">{{.Description}}</p>
+      </div>
+      <div class="text-sm text-right font-mono">
+        <div class="text-base-content/50">maintainer <span class="text-base-content/90">{{.Maintainer}}</span></div>
+        {{if .Source}}<div class="mt-1"><a class="link link-primary no-underline hover:underline" href="{{.Source}}" target="_blank" rel="noopener noreferrer">source &#8599;</a></div>{{end}}
+      </div>
+    </div>
+  </div>
+
+  {{if gt (len .Versions) 1}}
+  <div role="tablist" class="tabs tabs-lifted font-mono text-sm">
+    {{range .Versions}}
+    <a role="tab" href="/plugins/{{$.Name}}/{{.}}" class="tab {{if eq . $.Version}}tab-active tab-primary font-semibold{{end}}">{{.}}</a>
+    {{end}}
+  </div>
+  {{end}}
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="flex flex-col gap-3">
+      <h2 class="font-display text-base font-semibold">Config schema <span class="text-base-content/40 font-normal font-mono text-xs">with:</span></h2>
+      {{if .SchemaFields}}
+      <div class="overflow-x-auto border border-base-300 bg-base-200">
+        <table class="table">
+          <thead>
+            <tr class="font-mono text-xs uppercase tracking-wider text-base-content/45 border-base-300">
+              <th>Field</th><th>Type</th><th>Required</th>
+            </tr>
+          </thead>
+          <tbody>
+          {{range .SchemaFields}}
+            <tr class="border-base-300">
+              <td class="font-mono text-sm text-primary">{{.Name}}</td>
+              <td class="font-mono text-sm text-base-content/70">{{.Type}}</td>
+              <td>{{if .Required}}<span class="badge badge-warning badge-sm font-mono">required</span>{{else}}<span class="text-base-content/35 font-mono text-xs">optional</span>{{end}}</td>
+            </tr>
+          {{end}}
+          </tbody>
+        </table>
+      </div>
+      {{else}}
+      <p class="text-base-content/50 text-sm">Version {{.Version}} of {{.Name}} didn't publish a config schema.</p>
+      {{end}}
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <h2 class="font-display text-base font-semibold">Use it in a workflow</h2>
+      <div class="mockup-code bg-base-300 text-sm">
+        <pre data-prefix="" class="whitespace-pre-wrap"><code class="font-mono">{{.UsesSnippet}}</code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}

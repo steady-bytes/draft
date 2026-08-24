@@ -1,0 +1,37 @@
+service:
+  name: bench
+  domain: tooling
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9300
+    internal:
+      host: host.docker.internal
+      port: 9300
+
+repositories:
+  postgres:
+    url: postgres://bench:bench@localhost:5432/bench?sslmode=disable
+
+bench:
+  # Directory of workflow YAML files loaded (and upserted into Postgres) at
+  # startup — see workflows.go's loadWorkflowsDir. Relative to the process's
+  # working directory. Defaults to ./workflows if unset.
+  workflows_dir: ./workflows
+
+# Address Bench publishes run/step CloudEvents to (catalyst.go, Phase 7) — same
+# key and convention as services/examples/producer's own config.yaml. Defaults to
+# http://localhost:2220 if unset.
+catalyst:
+  address: http://localhost:2220
+
+# Address of Garage's PluginCatalogService, used by garage:// steps
+# (garage_plugin.go, Phase 6) to confirm a plugin is published before
+# resolving a live instance of it via Blueprint. Defaults to
+# http://localhost:9301 if unset.
+garage:
+  address: http://localhost:9301

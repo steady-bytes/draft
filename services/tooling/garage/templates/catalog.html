@@ -1,0 +1,27 @@
+{{define "title"}}Garage — Plugin Catalog{{end}}
+{{define "content"}}
+<div class="flex flex-col gap-8">
+  <div class="flex flex-col gap-1">
+    <span class="font-mono text-xs uppercase tracking-widest text-primary">Plugin Catalog</span>
+    <h1 class="font-display text-4xl font-bold tracking-tight">What's on the shelf</h1>
+    <p class="text-base-content/60 max-w-xl">Every step executor a Bench workflow can reference with <span class="font-mono text-base-content/80">uses: garage://name@version</span>.</p>
+  </div>
+
+  <label class="input input-bordered flex items-center gap-2 w-full sm:w-96 focus-within:input-primary">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input
+      type="search"
+      name="q"
+      placeholder="Search by name or description&hellip;"
+      class="grow font-mono text-sm"
+      value="{{.Query}}"
+      hx-get="/partials/catalog-cards"
+      hx-trigger="keyup changed delay:300ms, search"
+      hx-target="#card-grid"
+      hx-swap="outerHTML"
+    />
+  </label>
+
+  {{template "card-grid" .}}
+</div>
+{{end}}

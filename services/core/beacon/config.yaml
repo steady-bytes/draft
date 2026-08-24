@@ -1,0 +1,30 @@
+service:
+  name: beacon
+  domain: core
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_port: 2222
+    internal:
+      host: localhost
+      port: 2222
+
+# otlp configures Beacon's *separate* OTLP/gRPC ingestion listener. This is not
+# managed by chassis (chassis owns service.network.bind_port, Beacon's own
+# Connect-RPC surface) — it's a plain grpc.Server on the industry-standard OTLP
+# port so any off-the-shelf OTel SDK or Collector can export here unmodified.
+otlp:
+  bind_address: "0.0.0.0:4317"
+
+# clickhouse points at the same ClickHouse server Catalyst's docker-compose
+# already starts (services/core/catalyst/docker-compose.yaml) — Beacon uses a
+# separate `database` on that same server, not a second container.
+clickhouse:
+  enabled: true
+  address: "localhost:9000"
+  database: "beacon"
+  username: "default"
+  password: ""

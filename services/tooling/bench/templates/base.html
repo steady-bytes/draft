@@ -1,0 +1,147 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en" data-theme="workshop">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{block "title" .}}Bench{{end}}</title>
+
+  <!--
+    Same two-resource CDN setup as services/tooling/garage/templates/base.html,
+    for the same reason -- DaisyUI is a Tailwind plugin, not a replacement for
+    it, and needs Tailwind loaded separately to resolve any layout/spacing
+    utility class. See that file's comment for the full explanation and the
+    tradeoff of using Tailwind's Play CDN over a real build step.
+  -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="/static/htmx.min.js"></script>
+
+  <!--
+    The "workshop" theme, byte-for-byte the same token set as Garage's (see
+    that file for the full rationale) -- Bench and Garage are meant to read
+    as one product family, not two differently-skinned tools someone has to
+    re-orient between. Duplicated here rather than shared from one file
+    because each tooling service is its own separate Go module/binary with
+    its own embedded assets (this repo's established pattern throughout
+    services/tooling/*) -- there's no shared static-asset package to import
+    it from without inventing one, which isn't worth doing for one CSS block.
+  -->
+  <style>
+    [data-theme="workshop"] {
+      color-scheme: dark;
+      /* Background/neutral layers match Blueprint's own web client palette
+         (services/core/blueprint/web-client/src/views/cluster.rs's
+         #0a0d10/#10161c/#0e1318/#d7e0e8), converted to OKLCH, so switching
+         between Draft's tooling UIs and Blueprint itself isn't a jarring
+         background-color shift -- a deliberate choice to keep this one
+         axis consistent across products even though each still has its
+         own accent identity (see --p/--s/--a below, unchanged). */
+      --b1: 16% 0.008 248;
+      --b2: 19% 0.013 248;
+      --b3: 24% 0.016 248;
+      --bc: 90% 0.015 245;
+
+      --p:  58% 0.11 240;
+      --pc: 97% 0.012 240;
+      --s:  74% 0.12 70;
+      --sc: 20% 0.03 70;
+      --a:  62% 0.16 35;
+      --ac: 97% 0.012 35;
+      --n:  29% 0.017 248;
+      --nc: 90% 0.015 245;
+
+      --su:  70% 0.15 148;
+      --suc: 14% 0.03 148;
+      --wa:  78% 0.15 80;
+      --wac: 18% 0.03 80;
+      --er:  60% 0.19 25;
+      --erc: 97% 0.02 25;
+      --in:  68% 0.06 235;
+      --inc: 14% 0.02 235;
+
+      --rounded-box: 0.375rem;
+      --rounded-btn: 0.25rem;
+      --rounded-badge: 0.25rem;
+      --animation-btn: 0.15s;
+      --animation-input: 0.15s;
+      --btn-focus-scale: 0.98;
+      --border-btn: 1px;
+      --tab-radius: 0.25rem;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+      background-image:
+        linear-gradient(oklch(1 0 0 / 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, oklch(1 0 0 / 0.02) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .font-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }
+    .font-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+    /* Signal light -- see garage's base.html for the full rationale. Status
+       vocabulary shared across both products: passed/success, running
+       (pulsing)/warning, failed/error, and here also skipped/idle for a
+       step that never ran because an upstream dependency hard-failed. */
+    .signal {
+      display: inline-block;
+      width: 0.6rem;
+      height: 0.6rem;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .signal-success { background: oklch(var(--su)); box-shadow: 0 0 0 3px oklch(var(--su) / 0.18), 0 0 8px oklch(var(--su) / 0.55); }
+    .signal-warning { background: oklch(var(--wa)); box-shadow: 0 0 0 3px oklch(var(--wa) / 0.18), 0 0 8px oklch(var(--wa) / 0.55); animation: signal-pulse 1.6s ease-in-out infinite; }
+    .signal-error   { background: oklch(var(--er)); box-shadow: 0 0 0 3px oklch(var(--er) / 0.18), 0 0 8px oklch(var(--er) / 0.55); }
+    .signal-idle    { background: oklch(var(--bc) / 0.28); }
+    @keyframes signal-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .signal-warning { animation: none; }
+    }
+
+
+    /* Run timeline rail: the vertical connector line strung through a run's
+       steps on the run-detail page, giving the step sequence a literal
+       through-line the way a diagnostic panel's signal chain would. */
+    .rail { position: relative; }
+    .rail::before {
+      content: "";
+      position: absolute;
+      left: 0.29rem;
+      top: 0.9rem;
+      bottom: -0.4rem;
+      width: 1px;
+      background: oklch(var(--bc) / 0.12);
+    }
+    .rail:last-child::before { display: none; }
+  </style>
+</head>
+<body class="bg-base-100 text-base-content">
+  <div class="navbar border-b border-base-300 px-4 sm:px-8 bg-base-100/95 backdrop-blur sticky top-0 z-10">
+    <div class="flex-1 flex items-center gap-3">
+      <a href="/" class="font-display text-xl font-bold tracking-tight flex items-center gap-2">
+        <span class="text-primary">&#9670;</span> BENCH
+      </a>
+      <span class="font-mono text-xs text-base-content/50 hidden sm:inline">/workflow-engine</span>
+    </div>
+    <div class="flex-none flex items-center gap-1">
+      <a href="/" class="btn btn-ghost btn-sm font-display {{if eq .Nav "dashboard"}}text-primary{{end}}">DASHBOARD</a>
+      <a href="/workflows" class="btn btn-ghost btn-sm font-display {{if eq .Nav "workflows"}}text-primary{{end}}">WORKFLOWS</a>
+      <a href="/settings" class="btn btn-ghost btn-sm font-display {{if eq .Nav "settings"}}text-primary{{end}}">SETTINGS</a>
+      <a href="http://localhost:9301/" class="btn btn-ghost btn-sm font-display" title="Garage (plugin catalog)">GARAGE &#8599;</a>
+    </div>
+  </div>
+  <main class="container mx-auto px-4 sm:px-8 py-10 max-w-5xl">
+    {{template "content" .}}
+  </main>
+</body>
+</html>
+{{end}}

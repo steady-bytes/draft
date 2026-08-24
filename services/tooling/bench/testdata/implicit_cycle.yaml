@@ -1,0 +1,28 @@
+# No step's depends_on is literally circular, but the *effective* graph is: step-a
+# explicitly depends on step-c; step-b and step-c both omit depends_on, so each
+# defaults to the previous step in declaration order (step-b -> step-a, step-c ->
+# step-b). Effective edges: step-a -> step-c -> step-b -> step-a, a cycle that only
+# exists once the "defaults to previous step" rule is applied.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: implicit-cycle-workflow
+steps:
+  - name: step-a
+    uses: bench://grpc-call@v1
+    depends_on: [step-c]
+    with:
+      service: x
+      method: y
+
+  - name: step-b
+    uses: bench://grpc-call@v1
+    with:
+      service: x
+      method: y
+
+  - name: step-c
+    uses: bench://grpc-call@v1
+    with:
+      service: x
+      method: y

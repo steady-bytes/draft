@@ -20,3 +20,6 @@ go.work.sum
 # ignore user specific vscode settings
 .vscode/settings.json
 assets/*
+
+# scripts/run-tooling-stack.sh's build output and logs
+.local-stack/

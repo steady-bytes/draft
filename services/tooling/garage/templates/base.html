@@ -1,0 +1,154 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en" data-theme="workshop">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{block "title" .}}Garage{{end}}</title>
+
+  <!--
+    Two separate resources, not one: DaisyUI's compiled CSS gives us component
+    classes (.card, .btn, .badge, ...) and theme *tokens*, but it does not
+    include Tailwind itself -- DaisyUI is a Tailwind plugin, not a
+    replacement for it. Every layout/spacing/typography utility class used
+    throughout these templates (flex, grid, gap-6, text-3xl, container, ...)
+    comes from Tailwind, not DaisyUI. Loading only the DaisyUI stylesheet
+    (a bug present in an earlier version of this file) leaves those utility
+    classes with nothing to resolve to, silently: the page still renders,
+    just with almost no layout. This two-script combination is DaisyUI's own
+    documented no-build/CDN setup:
+      https://daisyui.com/docs/install/ (via CDN)
+    The Tailwind Play CDN JIT-compiles utilities from the classes it finds in
+    the DOM at request time. That's a real, known tradeoff for a service
+    without a Node/Tailwind build step (which this repo has deliberately
+    avoided so far -- see the sibling comment on why `templ` isn't used
+    either): Tailwind's own docs note the Play CDN isn't meant for
+    high-traffic production use. Acceptable for an internal dev tool at this
+    stage; revisit if it ever becomes a real cost.
+  -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="/static/htmx.min.js"></script>
+
+  <!--
+    "workshop" is a custom DaisyUI theme, not one of DaisyUI's bundled
+    presets (the earlier version of this page used the stock "dracula"
+    theme). DaisyUI themes are just CSS custom properties consumed by the
+    component classes already compiled into full.min.css, scoped under
+    [data-theme="..."] -- defining our own here re-themes every DaisyUI
+    component without needing DaisyUI's own build tooling. Colors are OKLCH
+    triplets (lightness chroma hue), the format this DaisyUI version
+    actually uses internally (verified against the loaded stylesheet, not
+    assumed -- DaisyUI v3 used a different HSL-based format).
+
+    Palette is deliberately drawn from Draft's own vocabulary rather than a
+    generic dashboard palette: a warm, dim workshop-at-night graphite base:
+    (not cold near-black), a "blueprint" cyanotype blue as the primary
+    accent (the name is not a coincidence -- Blueprint is one of Draft's own
+    core services), brass/amber and rust as secondary/accent, and signal
+    colors modeled on actual shop equipment: a safety-green pass light, an
+    amber work-light for in-progress, a rust-red fault light for failure.
+    Corner radii are small and machined rather than DaisyUI's soft default
+    rounding, closer to a stamped metal part than a bubbly SaaS card.
+  -->
+  <style>
+    [data-theme="workshop"] {
+      color-scheme: dark;
+      /* Background/neutral layers match Blueprint's own web client palette
+         (services/core/blueprint/web-client/src/views/cluster.rs's
+         #0a0d10/#10161c/#0e1318/#d7e0e8), converted to OKLCH, so switching
+         between Draft's tooling UIs and Blueprint itself isn't a jarring
+         background-color shift -- a deliberate choice to keep this one
+         axis consistent across products even though each still has its
+         own accent identity (see --p/--s/--a below, unchanged). */
+      --b1: 16% 0.008 248;
+      --b2: 19% 0.013 248;
+      --b3: 24% 0.016 248;
+      --bc: 90% 0.015 245;
+
+      --p:  58% 0.11 240;
+      --pc: 97% 0.012 240;
+      --s:  74% 0.12 70;
+      --sc: 20% 0.03 70;
+      --a:  62% 0.16 35;
+      --ac: 97% 0.012 35;
+      --n:  29% 0.017 248;
+      --nc: 90% 0.015 245;
+
+      --su:  70% 0.15 148;
+      --suc: 14% 0.03 148;
+      --wa:  78% 0.15 80;
+      --wac: 18% 0.03 80;
+      --er:  60% 0.19 25;
+      --erc: 97% 0.02 25;
+      --in:  68% 0.06 235;
+      --inc: 14% 0.02 235;
+
+      --rounded-box: 0.375rem;
+      --rounded-btn: 0.25rem;
+      --rounded-badge: 0.25rem;
+      --animation-btn: 0.15s;
+      --animation-input: 0.15s;
+      --btn-focus-scale: 0.98;
+      --border-btn: 1px;
+      --tab-radius: 0.25rem;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+      background-image:
+        linear-gradient(oklch(1 0 0 / 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, oklch(1 0 0 / 0.02) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .font-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }
+    .font-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+    /* Signal light: the one status indicator used everywhere status appears
+       across Garage and Bench (plugin freshness here; run/step state in
+       Bench) -- a small physical-feeling light rather than a flat pill, so
+       "what state is this in" reads the same way a shop's own equipment
+       would show it. */
+    .signal {
+      display: inline-block;
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .signal-success { background: oklch(var(--su)); box-shadow: 0 0 0 3px oklch(var(--su) / 0.18), 0 0 8px oklch(var(--su) / 0.55); }
+    .signal-warning { background: oklch(var(--wa)); box-shadow: 0 0 0 3px oklch(var(--wa) / 0.18), 0 0 8px oklch(var(--wa) / 0.55); animation: signal-pulse 1.6s ease-in-out infinite; }
+    .signal-error   { background: oklch(var(--er)); box-shadow: 0 0 0 3px oklch(var(--er) / 0.18), 0 0 8px oklch(var(--er) / 0.55); }
+    .signal-idle    { background: oklch(var(--bc) / 0.28); }
+    @keyframes signal-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .signal-warning { animation: none; }
+    }
+
+  </style>
+</head>
+<body class="bg-base-100 text-base-content">
+  <div class="navbar border-b border-base-300 px-4 sm:px-8 bg-base-100/95 backdrop-blur sticky top-0 z-10">
+    <div class="flex-1 flex items-center gap-3">
+      <a href="/" class="font-display text-xl font-bold tracking-tight flex items-center gap-2">
+        <span class="text-primary">&#9670;</span> GARAGE
+      </a>
+      <span class="font-mono text-xs text-base-content/50 hidden sm:inline">/plugin-catalog</span>
+    </div>
+    <div class="flex-none">
+      <a href="http://localhost:9300/" class="btn btn-ghost btn-sm font-display" title="Bench (workflow engine)">BENCH &#8599;</a>
+    </div>
+  </div>
+  <main class="container mx-auto px-4 sm:px-8 py-10 max-w-5xl">
+    {{template "content" .}}
+  </main>
+</body>
+</html>
+{{end}}

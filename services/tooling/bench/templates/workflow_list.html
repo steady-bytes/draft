@@ -1,0 +1,41 @@
+{{define "title"}}Bench — Workflows{{end}}
+{{define "content"}}
+<div class="flex flex-col gap-8">
+  <div class="flex items-start justify-between flex-wrap gap-4">
+    <div class="flex flex-col gap-1">
+      <span class="font-mono text-xs uppercase tracking-widest text-primary">Workflows</span>
+      <h1 class="font-display text-4xl font-bold tracking-tight">Workflows</h1>
+      <p class="text-base-content/60 max-w-xl">Seeded from <span class="font-mono text-base-content/80">bench.workflows_dir</span> on first startup, or created below — either way, edits after that live only in the database.</p>
+    </div>
+    <a href="/workflows/new" class="btn btn-primary font-display btn-sm">New workflow</a>
+  </div>
+
+  {{if not .Workflows}}
+  <p class="text-base-content/50 text-sm">Nothing here yet. <a href="/workflows/new" class="link link-primary no-underline hover:underline">Create a workflow</a> or drop a YAML file into the configured <span class="font-mono">workflows_dir</span> and restart Bench.</p>
+  {{else}}
+  <div class="flex flex-col gap-4">
+    {{range .Workflows}}
+    <a href="/workflows/{{.Name}}" class="group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 bg-base-200 border border-base-300 hover:border-primary/60 transition-colors px-5 py-4">
+      <div class="flex-1 min-w-0">
+        <h2 class="font-display text-lg font-semibold">{{.Name}}</h2>
+        {{if .Description}}<p class="text-sm text-base-content/60 truncate">{{.Description}}</p>{{end}}
+      </div>
+      <div class="flex items-center gap-6 font-mono text-xs text-base-content/50">
+        <span>{{.StepCount}} step{{if ne .StepCount 1}}s{{end}}</span>
+        {{if .WebhookSlug}}<span class="text-primary/70">/webhooks/{{.WebhookSlug}}</span>{{else}}<span class="text-base-content/30">no webhook</span>{{end}}
+      </div>
+      <div class="flex items-center gap-2 font-mono text-xs sm:w-40 sm:justify-end">
+        {{if .LastRun}}
+          <span class="signal {{.LastRun.SignalClass}}"></span>
+          <span class="text-base-content/50">{{.LastRun.Status}} &middot; {{.LastRun.StartedAt}}</span>
+        {{else}}
+          <span class="signal signal-idle"></span>
+          <span class="text-base-content/35">never run</span>
+        {{end}}
+      </div>
+    </a>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+{{end}}

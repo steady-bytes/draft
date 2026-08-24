@@ -1,0 +1,24 @@
+service:
+  name: catalyst-consume
+  domain: plugins
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9303
+    internal:
+      host: localhost
+      port: 9303
+
+# Garage is a fixed, known dependency for this plugin, the same way
+# services/tooling/slack-notify's own config.yaml documents.
+garage:
+  address: http://localhost:9301
+
+# Address this plugin's Execute call opens a Consume stream against. Same
+# key/default as services/tooling/bench/catalyst.go.
+catalyst:
+  address: http://localhost:2220

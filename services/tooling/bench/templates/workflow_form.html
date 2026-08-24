@@ -1,0 +1,102 @@
+{{/*
+workflow_form.html defines two blocks:
+
+  - "content": the full New/Edit workflow page (breadcrumb, form + sidebar),
+    parsed with base.html as workflowFormTemplate for a normal page load.
+  - "plugin-search-results": just the sidebar's result list, parsed alone
+    (not with base.html) as pluginSearchTemplate and served by ui.go's
+    pluginSearch handler -- the htmx-swapped fragment the search input
+    refreshes into, mirroring run_detail.html's "content" +
+    "run-detail-fragment" split.
+*/}}
+{{define "title"}}Bench — {{if .IsEdit}}Edit {{.Name}}{{else}}New workflow{{end}}{{end}}
+{{define "content"}}
+<div class="flex flex-col gap-6">
+  <div class="breadcrumbs text-xs font-mono text-base-content/40">
+    <ul>
+      <li><a href="/workflows" class="hover:text-primary">workflows</a></li>
+      {{if .IsEdit}}<li><a href="/workflows/{{.Name}}" class="hover:text-primary">{{.Name}}</a></li><li>edit</li>{{else}}<li>new</li>{{end}}
+    </ul>
+  </div>
+  <h1 class="font-display text-3xl font-bold tracking-tight">{{if .IsEdit}}Edit {{.Name}}{{else}}New workflow{{end}}</h1>
+
+  {{if .Error}}
+  <div class="alert alert-error text-xs font-mono whitespace-pre-wrap items-start">
+    <span>{{.Error}}</span>
+  </div>
+  {{end}}
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <form method="POST" action="{{.FormAction}}" class="flex flex-col gap-4 lg:col-span-2">
+      <textarea
+        id="workflow-yaml"
+        name="yaml"
+        rows="26"
+        spellcheck="false"
+        class="textarea textarea-bordered font-mono text-sm w-full leading-relaxed bg-base-200"
+      >{{.YAML}}</textarea>
+      <div class="flex items-center gap-3">
+        <button type="submit" class="btn btn-primary font-display btn-sm">Save</button>
+        <a href="{{if .IsEdit}}/workflows/{{.Name}}{{else}}/workflows{{end}}" class="btn btn-ghost font-display btn-sm">Cancel</a>
+      </div>
+    </form>
+
+    <div class="flex flex-col gap-3">
+      <h2 class="font-display text-sm font-semibold text-base-content/70">Add a step from a registry</h2>
+      <input
+        type="text"
+        name="q"
+        placeholder="search plugins…"
+        class="input input-bordered input-sm font-mono w-full"
+        hx-get="/workflows/plugins/search"
+        hx-trigger="input changed delay:300ms, search"
+        hx-target="#plugin-search-results"
+        hx-swap="innerHTML"
+        hx-include="this"
+      />
+      <div id="plugin-search-results" hx-get="/workflows/plugins/search" hx-trigger="load" hx-swap="innerHTML"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // appendStep is the one small piece of real client-side JS this page
+  // needs: htmx can fetch/swap the search results, but it can't reach into
+  // a <textarea>'s value. Appends to the end rather than at the cursor --
+  // simpler and can't land mid-indentation and corrupt existing YAML. See
+  // the design doc's "Appending, not inserting at the cursor."
+  function appendStep(snippet) {
+    const ta = document.getElementById('workflow-yaml');
+    const sep = ta.value.endsWith('\n') || ta.value === '' ? '' : '\n';
+    ta.value += sep + snippet;
+    ta.scrollTop = ta.scrollHeight;
+    ta.focus();
+  }
+</script>
+{{end}}
+
+{{define "plugin-search-results"}}
+{{if .Error}}
+<p class="text-error text-xs font-mono">{{.Error}}</p>
+{{else if .NoRegistries}}
+<p class="text-base-content/50 text-xs">No plugin registries configured. <a href="/settings" class="link link-primary no-underline hover:underline">Add one in Settings</a>.</p>
+{{else if not .Results}}
+<p class="text-base-content/50 text-xs">No plugins matched.</p>
+{{else}}
+<div class="flex flex-col gap-2 max-h-[32rem] overflow-y-auto">
+  {{range .Results}}
+  <div class="border border-base-300 bg-base-200 p-3 flex flex-col gap-1">
+    <div class="flex items-baseline justify-between gap-2">
+      <span class="font-display text-sm font-semibold">{{.Name}}</span>
+      <span class="font-mono text-[0.65rem] text-base-content/40">{{.Version}}</span>
+    </div>
+    <p class="text-xs text-base-content/60 line-clamp-2">{{.Description}}</p>
+    <div class="flex items-center justify-between gap-2 mt-1">
+      <span class="font-mono text-[0.6rem] uppercase tracking-wider text-primary/60">{{.RegistryName}}</span>
+      <button type="button" class="btn btn-ghost btn-xs font-display" onclick="appendStep({{.Snippet}})">Add step</button>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}
+{{end}}

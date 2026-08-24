@@ -1,0 +1,51 @@
+{{define "title"}}Bench — {{.Name}}{{end}}
+{{define "content"}}
+<div class="flex flex-col gap-8">
+  <div>
+    <div class="breadcrumbs text-xs font-mono text-base-content/40">
+      <ul><li><a href="/workflows" class="hover:text-primary">workflows</a></li><li>{{.Name}}</li></ul>
+    </div>
+    <div class="flex items-start justify-between flex-wrap gap-4 mt-2">
+      <div>
+        <h1 class="font-display text-3xl font-bold tracking-tight">{{.Name}}</h1>
+        {{if .Description}}<p class="text-base-content/60 mt-1 max-w-xl">{{.Description}}</p>{{end}}
+        {{if .WebhookSlug}}<p class="font-mono text-xs text-primary/70 mt-2">POST /webhooks/{{.WebhookSlug}}</p>{{end}}
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/workflows/{{.Name}}/edit" class="btn btn-ghost font-display btn-sm">Edit</a>
+        <form method="POST" action="/workflows/{{.Name}}/delete" onsubmit="return confirm('Delete {{.Name}}? Its run history is kept, but the definition is gone.');">
+          <button type="submit" class="btn btn-ghost font-display btn-sm text-error">Delete</button>
+        </form>
+        <form method="POST" action="/workflows/{{.Name}}/run">
+          <button type="submit" class="btn btn-primary font-display btn-sm">Run now</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="flex flex-col gap-3">
+      <h2 class="font-display text-base font-semibold">Definition</h2>
+      <pre class="font-mono text-sm bg-base-300 rounded p-4 overflow-x-auto whitespace-pre-wrap break-words">{{.YAML}}</pre>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <h2 class="font-display text-base font-semibold">Run history</h2>
+      {{if not .Runs}}
+      <p class="text-base-content/50 text-sm">No runs yet.</p>
+      {{else}}
+      <div class="flex flex-col divide-y divide-base-300 border border-base-300 bg-base-200 rounded-box overflow-hidden">
+        {{range .Runs}}
+        <a href="/runs/{{.RunID}}" class="flex items-center gap-3 px-4 py-3 hover:bg-base-300/50 transition-colors">
+          <span class="signal {{.SignalClass}}"></span>
+          <span class="font-mono text-xs text-base-content/40 flex-1">{{.StartedAt}}</span>
+          <span class="font-mono text-xs text-base-content/60">{{.Status}}</span>
+          <span class="font-mono text-xs text-base-content/40 w-16 text-right">{{.Duration}}</span>
+        </a>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}

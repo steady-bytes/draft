@@ -1,0 +1,18 @@
+service:
+  name: garage
+  domain: tooling
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9301
+    internal:
+      host: host.docker.internal
+      port: 9301
+
+repositories:
+  postgres:
+    url: postgres://garage:garage@localhost:5432/garage?sslmode=disable

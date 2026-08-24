@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package core.observability.metrics.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/observability/metrics/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Metrics Service ────────────────────────────────────────────────────────
+//
+// MetricsService is Beacon's client-facing query surface for metric data
+// ingested over OTLP (see the OTLP MetricsService receiver in
+// services/core/beacon/ingest/metrics.go). It is deliberately separate from
+// the OTLP receiver: OTLP is the standard ingestion protocol any exporter
+// speaks, MetricsService is the Connect-RPC surface the Dioxus web client
+// (and any other Beacon consumer) queries against — the same split already
+// used by LogsService/TracesService.
+service MetricsService {
+    // QueryMetrics evaluates a scoped PromQL-subset expression (range-vector
+    // selectors, rate(), sum/avg/max/min by(...), simple scalar arithmetic —
+    // see services/core/beacon/query/promql.go) against `metric_points` over
+    // [start, end], sampled at `step`, and returns one time series per
+    // distinct label set the expression produces.
+    rpc QueryMetrics(QueryMetricsRequest) returns (QueryMetricsResponse) {}
+}
+
+// Sample is one (timestamp, value) point of a TimeSeries.
+message Sample {
+    google.protobuf.Timestamp timestamp = 1;
+    double                    value     = 2;
+}
+
+// TimeSeries is one distinct label set's worth of samples produced by a
+// QueryMetrics evaluation. metric_name is set for a bare selector result
+// (e.g. `http_requests_total{...}`) and left empty once the expression
+// aggregates away a single metric identity (e.g. `sum by (route) (...)`).
+message TimeSeries {
+    string               metric_name = 1;
+    map<string, string>  labels      = 2;
+    repeated Sample       samples    = 3;
+}
+
+message QueryMetricsRequest {
+    // PromQL-subset expression, e.g. `rate(http_requests_total{route="/api"}[5m])`
+    // or `sum by (route) (rate(http_requests_total[5m]))`. See
+    // query/promql.go's doc comment for the exact supported grammar. Malformed
+    // or unsupported constructs return a clear parse error (CodeInvalidArgument),
+    // never a raw ClickHouse error or a silent misinterpretation.
+    string query = 1;
+    // RFC3339 timestamps bounding the evaluation window. Empty `start` means
+    // "server default lookback" (see query/promql.go); empty `end` means "now".
+    string start = 2;
+    string end   = 3;
+    // Sample interval as a Go-style duration string (e.g. "15s", "1m"). Empty
+    // means "server default" (the window divided into a bounded number of
+    // steps — see query/promql.go).
+    string step = 4;
+}
+
+message QueryMetricsResponse {
+    repeated TimeSeries series = 1;
+}

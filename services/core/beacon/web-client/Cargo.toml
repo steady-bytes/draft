@@ -1,0 +1,41 @@
+[package]
+name = "beacon-pwa"
+version = "0.1.0"
+authors = ["steady-bytes | steady-bytes.com"]
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dioxus = { version = "0.7.5", features = ["web", "router"] }
+dioxus-logger = "0.7.4"
+once_cell = "1.21.3"
+web-sys = "0.3.77"
+draft-api = { path = "../../../../api", features = ["web"] }
+dioxus-grpc = { path = "../../../../tools/dioxus-grpc", default-features = false }
+tonic-web-wasm-client = "0.9.1"
+prost = "0.14"
+prost-types = "0.14"
+chrono = "0.4.44"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+
+[features]
+default = ["web"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

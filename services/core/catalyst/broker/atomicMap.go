@@ -77,6 +77,19 @@ func (am *atomicMap) send(ctx context.Context, ch chan *acv1.CloudEvent, stream 
 	}
 }
 
+// Broadcast is misnamed as of 2026-08-23 -- see "Known issues" under Catalyst in
+// docs/website/content/docs/architecture/core-services.md for the full writeup.
+// Short version: key (built by controller.go via am.hash(descriptorName)) is
+// always the same value for every event, since it hashes the *CloudEvent Go
+// struct's own proto type name, not the event's .Type field -- so every
+// producer/consumer in the cluster shares one bucket in am.n regardless of
+// declared event type. And that one shared channel is unbuffered, read by every
+// open Consume stream's am.send goroutine, so a single `ch <- msg` here is
+// received by exactly one of them (first ready wins), not all of them. With
+// more than one Consume stream open concurrently, each event reaches exactly
+// one subscriber, not every interested one, despite the name. Fixing this needs
+// keying on msg.GetType() (not the envelope's own descriptor name) and
+// per-consumer delivery instead of one shared channel.
 func (am *atomicMap) Broadcast(key string, msg *acv1.CloudEvent) {
 	am.mu.RLock()
 	ch, ok := am.n[key]

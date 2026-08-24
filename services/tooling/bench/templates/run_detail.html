@@ -1,0 +1,92 @@
+{{/*
+run_detail.html defines two blocks:
+
+  - "content": the full page (breadcrumb, then the fragment below), parsed
+    together with base.html as runDetailTemplate (templates.go) for a normal
+    page load.
+  - "run-detail-fragment": just the run header + step timeline, parsed alone
+    as runDetailFragmentTemplate and served by ui.go's runDetailFragment
+    handler. While a run is in flight (runDetailPageData.Polling), this
+    fragment's own wrapping div carries the hx-get/hx-trigger that re-fetches
+    and replaces itself every 2s -- and, critically, *stops* on its own: once
+    a poll response reflects a terminal status, that response's Polling is
+    false, so the freshly-swapped-in div carries no hx-trigger at all, and
+    htmx has nothing left to re-trigger. No separate "stop polling" signal
+    needed; the fragment's own content decides whether it keeps polling.
+*/}}
+{{define "content"}}
+<div class="flex flex-col gap-6">
+  <div class="breadcrumbs text-xs font-mono text-base-content/40">
+    <ul><li><a href="/workflows" class="hover:text-primary">workflows</a></li><li><a href="/workflows/{{.WorkflowName}}" class="hover:text-primary">{{.WorkflowName}}</a></li><li>{{.RunID}}</li></ul>
+  </div>
+  {{template "run-detail-fragment" .}}
+</div>
+{{end}}
+
+{{define "run-detail-fragment"}}
+<div id="run-detail" class="flex flex-col gap-6"
+  {{if .Polling}}hx-get="/partials/runs/{{.RunID}}" hx-trigger="every 2s" hx-swap="outerHTML"{{end}}>
+
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <span class="signal {{.SignalClass}}" style="width:0.9rem;height:0.9rem"></span>
+      <div>
+        <h1 class="font-display text-2xl font-bold tracking-tight">{{.WorkflowName}}</h1>
+        <p class="font-mono text-xs text-base-content/40">{{.RunID}}</p>
+      </div>
+    </div>
+    <div class="text-right font-mono text-sm">
+      <div class="uppercase tracking-wider {{if eq .Status "failed"}}text-error{{else if eq .Status "passed"}}text-success{{else}}text-warning{{end}}">{{.Status}}</div>
+      <div class="text-base-content/40 text-xs">{{.StartedAt}} &middot; {{.Duration}}</div>
+    </div>
+  </div>
+
+  <div class="flex flex-col">
+    {{range .Steps}}
+    <div class="rail pl-6 pb-6 relative">
+      <span class="signal {{.SignalClass}} absolute left-0 top-1"></span>
+      <div class="flex items-baseline justify-between gap-4">
+        <span class="font-mono text-sm">{{.Name}}</span>
+        <span class="font-mono text-xs text-base-content/40">{{.Duration}}</span>
+      </div>
+      <div class="text-xs font-mono uppercase tracking-wider text-base-content/40 mt-0.5">{{.Status}}</div>
+      {{if .Error}}
+      <div class="alert alert-error mt-2 py-2 px-3 text-xs font-mono items-start">
+        <span>{{.Error}}</span>
+      </div>
+      {{end}}
+      {{if .HasDiagnostics}}
+      <div class="collapse collapse-arrow bg-base-200/50 border border-base-300 mt-2 text-xs">
+        <input type="checkbox" {{if eq .Status "failed"}}checked{{end}} />
+        <div class="collapse-title font-mono uppercase tracking-wider text-base-content/50 min-h-0 py-2 px-3">
+          troubleshooting detail
+        </div>
+        <div class="collapse-content px-3">
+          <div class="flex flex-col gap-3 pt-1">
+            {{if .RequestJSON}}
+            <div>
+              <div class="font-mono text-[0.65rem] uppercase tracking-wider text-base-content/40 mb-1">request</div>
+              <pre class="font-mono text-xs bg-base-300/60 rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">{{.RequestJSON}}</pre>
+            </div>
+            {{end}}
+            {{if .ResponseJSON}}
+            <div>
+              <div class="font-mono text-[0.65rem] uppercase tracking-wider text-base-content/40 mb-1">response</div>
+              <pre class="font-mono text-xs bg-base-300/60 rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">{{.ResponseJSON}}</pre>
+            </div>
+            {{end}}
+            {{if .DetailJSON}}
+            <div>
+              <div class="font-mono text-[0.65rem] uppercase tracking-wider text-base-content/40 mb-1">detail</div>
+              <pre class="font-mono text-xs bg-base-300/60 rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">{{.DetailJSON}}</pre>
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,25 @@
+# Phase 6's own proof workflow: exercises the new garage:// plugin
+# resolution path end to end against a real published plugin
+# (services/tooling/catalyst-consume) rather than a fixture. Trigger this
+# workflow and, while its single step is waiting, trigger any other
+# workflow (e.g. crud-e2e) so a real tooling.workflow.v1.RunFinished event
+# fires for this step to pick up.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: catalyst-consume-e2e
+  description: Waits for the next workflow run to finish and extracts its run_id/status via the catalyst-consume garage plugin.
+steps:
+  - name: wait-for-a-run-to-finish
+    uses: garage://catalyst-consume@v1
+    with:
+      event_type: tooling.workflow.v1.RunFinished
+      timeout: 15s
+      fields:
+        run_id: runId
+        workflow: workflowName
+        status: status
+    # No expect: block -- unlike bench://grpc-call@v1, a garage:// plugin's
+    # own StepResponse.Success/Error is authoritative pass/fail (it already
+    # knows whether it succeeded); Bench's garage:// executor
+    # (garage_plugin.go) never reads step.GetExpect().

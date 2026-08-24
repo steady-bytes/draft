@@ -1,0 +1,28 @@
+service:
+  name: slack-notify
+  domain: plugins
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9302
+    internal:
+      host: localhost
+      port: 9302
+
+# Garage is a fixed, known dependency for this plugin (the same way services
+# resolve Blueprint's own address via static service.entrypoint config rather
+# than discovery — discovery needs something to bootstrap against in the
+# first place), so its address is a static config value here, not something
+# resolved dynamically through Blueprint.
+garage:
+  address: http://localhost:9301
+
+# The actual Slack incoming-webhook URL this plugin posts to. Left empty in
+# checked-in config: this is infrastructure config a deployment supplies, not
+# a secret to bake into the repo.
+slack:
+  webhook_url: ""

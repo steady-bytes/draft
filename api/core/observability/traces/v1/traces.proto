@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package core.observability.traces.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/observability/traces/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Traces Service ─────────────────────────────────────────────────────────
+//
+// TracesService is Beacon's client-facing query surface for trace/span data
+// ingested over OTLP (see the OTLP TraceService receiver in
+// services/core/beacon/ingest). It is deliberately separate from the OTLP
+// receiver: OTLP is the standard ingestion protocol any exporter speaks,
+// TracesService is the Connect-RPC surface the Dioxus web client (and any
+// other Beacon consumer) queries against.
+service TracesService {
+    // SearchTraces returns a bounded, paginated set of trace roots matching an
+    // optional BeaconQL filter expression (compiled against the `trace_roots`
+    // materialized view's columns — see query/beaconql.go's CompileTraceRoot),
+    // most recent first.
+    rpc SearchTraces(SearchTracesRequest) returns (SearchTracesResponse) {}
+
+    // GetTrace returns every span belonging to one trace_id, ordered so a
+    // flame graph can be assembled from parent/child relationships (by
+    // start_time ascending, so a parent always precedes its children).
+    rpc GetTrace(GetTraceRequest) returns (GetTraceResponse) {}
+}
+
+// TraceRoot mirrors one row of the `trace_roots` materialized view (see
+// services/core/beacon/store) — the root span (parent_span_id = "") of a
+// trace, used to populate the Traces view's search-result list without
+// scanning every span of every trace.
+message TraceRoot {
+    string                    trace_id     = 1;
+    string                    service_name = 2;
+    string                    span_name    = 3;
+    google.protobuf.Timestamp start_time   = 4;
+    uint64                    duration_ns  = 5;
+    string                    status_code  = 6;
+}
+
+// Span mirrors one row of the `spans` table (see services/core/beacon/store)
+// which in turn mirrors OTel semantic conventions directly — field names are
+// lifted from the OTLP Span proto rather than invented.
+message Span {
+    string                    trace_id       = 1;
+    string                    span_id        = 2;
+    string                    parent_span_id = 3;
+    string                    service_name   = 4;
+    string                    span_name      = 5;
+    string                    kind           = 6;
+    google.protobuf.Timestamp start_time     = 7;
+    uint64                    duration_ns    = 8;
+    string                    status_code    = 9;
+    map<string, string>       attributes     = 10;
+}
+
+message SearchTracesRequest {
+    // BeaconQL filter expression evaluated against trace_roots's columns,
+    // e.g. `duration_ms > 200 AND service_name = "beacon"`. `duration_ms` is
+    // a synthetic field — trace_roots stores duration_ns, the filter compiler
+    // scales the literal for ergonomics (see CompileTraceRoot). Empty string
+    // means no filter — return the most recent traces unfiltered.
+    string filter = 1;
+    // Maximum rows to return. 0 = server default (see store/clickhouse.go).
+    int32  limit  = 2;
+    // RFC3339 timestamp cursor — only traces with start_time strictly before
+    // this value are returned, for backward pagination through results
+    // ordered most-recent-first. Empty string means no cursor.
+    string before = 3;
+}
+
+message SearchTracesResponse {
+    repeated TraceRoot traces = 1;
+}
+
+message GetTraceRequest {
+    string trace_id = 1;
+}
+
+message GetTraceResponse {
+    repeated Span spans = 1;
+}

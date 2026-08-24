@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package tooling.plugin_catalog.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/tooling/plugin_catalog/v1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// PluginCatalogService is Garage's own API: publishing and querying the
+// catalog of versioned StepExecutor plugins Bench workflows resolve
+// `uses: garage://name@version` references against. Garage does not execute
+// plugins itself — it only stores and serves their manifests. See
+// docs/website/content/docs/architecture/garage-plugin-repository.md.
+service PluginCatalogService {
+    // Publish registers a new plugin version. Called by a plugin at startup
+    // as a chassis.Effect, whose inverse is Retract — see Publishing and
+    // discovery in the Garage doc.
+    rpc Publish(PublishRequest) returns (PublishResponse) {}
+    // Retract removes a published version from the catalog. Called by a
+    // plugin on graceful shutdown, so a no-longer-running plugin doesn't
+    // linger in the catalog as if it were still available.
+    rpc Retract(RetractRequest) returns (RetractResponse) {}
+    rpc Get(GetPluginRequest) returns (Plugin) {}
+    rpc List(ListPluginsRequest) returns (ListPluginsResponse) {}
+    rpc Search(SearchPluginsRequest) returns (SearchPluginsResponse) {}
+}
+
+// Plugin is one published version of a plugin. Publishing the same name at a
+// new version creates a new Plugin row, not an update to a previous one —
+// published versions are immutable; only Retract removes one.
+message Plugin {
+    string name = 1;
+    string version = 2;
+    string description = 3;
+    string maintainer = 4;
+    string source = 5;
+    // config_schema and result_schema are JSON Schema documents (encoded as
+    // google.protobuf.Struct) validating a step's `with:` block and a
+    // StepResponse's result respectively. See tooling.step_executor.v1.
+    google.protobuf.Struct config_schema = 6;
+    google.protobuf.Struct result_schema = 7;
+    google.protobuf.Timestamp published_at = 8;
+}
+
+message PublishRequest {
+    string name = 1;
+    string version = 2;
+    string description = 3;
+    string maintainer = 4;
+    string source = 5;
+    google.protobuf.Struct config_schema = 6;
+    google.protobuf.Struct result_schema = 7;
+}
+
+message PublishResponse {
+    Plugin plugin = 1;
+}
+
+message RetractRequest {
+    string name = 1;
+    string version = 2;
+}
+
+message RetractResponse {}
+
+message GetPluginRequest {
+    string name = 1;
+    // version is exact-pinned (e.g. "v2") — Garage does not resolve version
+    // ranges. See the Garage doc's Open questions.
+    string version = 2;
+}
+
+message ListPluginsRequest {
+    int32 page_size = 1;
+    string page_token = 2;
+}
+
+message ListPluginsResponse {
+    repeated Plugin plugins = 1;
+    string next_page_token = 2;
+}
+
+message SearchPluginsRequest {
+    string query = 1;
+}
+
+message SearchPluginsResponse {
+    repeated Plugin plugins = 1;
+}

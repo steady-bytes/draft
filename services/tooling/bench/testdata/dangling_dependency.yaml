@@ -1,0 +1,18 @@
+# query-course depends_on a step name that's never declared.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: dangling-dependency-workflow
+steps:
+  - name: create-course
+    uses: bench://grpc-call@v1
+    with:
+      service: golf-app.app.v1.CourseCreator
+      method: CreateCourse
+
+  - name: query-course
+    uses: bench://grpc-call@v1
+    depends_on: [nonexistent-step]
+    with:
+      service: golf-app.app.v1.CourseCreator
+      method: GetCourse

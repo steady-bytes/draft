@@ -1,0 +1,11 @@
+# uses: has no valid scheme (http:// isn't bench:// or garage://).
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: bad-scheme-workflow
+steps:
+  - name: create-course
+    uses: http://grpc-call@v1
+    with:
+      service: golf-app.app.v1.CourseCreator
+      method: CreateCourse

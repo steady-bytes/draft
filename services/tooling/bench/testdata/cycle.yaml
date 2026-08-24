@@ -1,0 +1,19 @@
+# create-course and query-course depend on each other, an explicit cycle.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: cycle-workflow
+steps:
+  - name: create-course
+    uses: bench://grpc-call@v1
+    depends_on: [query-course]
+    with:
+      service: golf-app.app.v1.CourseCreator
+      method: CreateCourse
+
+  - name: query-course
+    uses: bench://grpc-call@v1
+    depends_on: [create-course]
+    with:
+      service: golf-app.app.v1.CourseCreator
+      method: GetCourse

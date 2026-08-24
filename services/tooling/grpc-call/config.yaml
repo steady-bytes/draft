@@ -1,0 +1,19 @@
+service:
+  name: grpc-call
+  domain: plugins
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9305
+    internal:
+      host: localhost
+      port: 9305
+
+# Garage is a fixed, known dependency for this plugin, the same way
+# services/tooling/catalyst-consume's own config.yaml documents.
+garage:
+  address: http://localhost:9301

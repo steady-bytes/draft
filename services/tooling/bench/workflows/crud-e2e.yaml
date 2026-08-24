@@ -1,0 +1,47 @@
+# Phase 4/5's proof workflow: testdata/crud_e2e.yaml (Phase 3's own end-to-end
+# fixture, targeting services/examples/crud's real CrudService) with a webhook
+# trigger added, so there's something real for POST /webhooks/crud-e2e and
+# TriggerRun to route to during this phase's own testing. See the doc's worked
+# example (valid_course_creation.yaml in testdata/) for the shape this mirrors —
+# that one targets golf-app.app.v1.CourseCreator, which doesn't exist anywhere in
+# this monorepo, so it isn't usable for a live proof the way this workflow is.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: crud-e2e
+  description: Create a Name via CrudService, then confirm it's queryable.
+trigger:
+  webhook:
+    slug: crud-e2e
+    signature:
+      header: X-Bench-Signature
+      secret_ref: blueprint://secrets/bench/crud-e2e-webhook
+steps:
+  - name: create-name
+    uses: bench://grpc-call@v1
+    with:
+      service: examples.crud.v1.CrudService
+      method: Create
+      request:
+        name:
+          first_name: "Ada"
+          last_name: "Lovelace"
+    expect:
+      status: OK
+      body:
+        id: { exists: true }
+
+  - name: read-name
+    uses: bench://grpc-call@v1
+    depends_on: [create-name]
+    with:
+      service: examples.crud.v1.CrudService
+      method: Read
+      request:
+        id: "{{ steps.create-name.result.id }}"
+    expect:
+      status: OK
+      body:
+        name:
+          firstName: { equals: "Ada" }
+          lastName: { matches: "^Love.*" }

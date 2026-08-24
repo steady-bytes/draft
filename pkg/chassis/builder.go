@@ -21,7 +21,6 @@ import (
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	"golang.org/x/sync/errgroup"
 )
 
 type (
@@ -49,36 +48,44 @@ func Closer() CloseChan {
 ////////////////////////////
 
 func (c *Runtime) WithRepository(plugin Repository) *Runtime {
-	logger := c.logger.WithField("plugin", reflect.TypeOf(plugin).String())
-	err := plugin.Open(context.Background(), c.config)
-	if err != nil {
-		logger.WithError(err).Fatal("failed to set up repository plugin")
-	}
-	c.repositories = append(c.repositories, plugin)
-	logger.Info("successfully set up repository plugin")
-	return c
+	name := reflect.TypeOf(plugin).String()
+	return c.Effect(name, func() (func(context.Context) error, error) {
+		if err := plugin.Open(context.Background(), c.config); err != nil {
+			return nil, err
+		}
+		c.logger.WithField("plugin", name).Info("successfully set up repository plugin")
+		return plugin.Close, nil
+	})
 }
 
 func (c *Runtime) WithBroker(plugin Broker) *Runtime {
-	logger := c.logger.WithField("plugin", reflect.TypeOf(plugin).String())
-	err := plugin.Open(context.Background(), c.config)
-	if err != nil {
-		logger.WithError(err).Fatal("failed to set up broker plugin")
-	}
-	c.brokers = append(c.brokers, plugin)
-	logger.Info("successfully set up broker plugin")
-	return c
+	name := reflect.TypeOf(plugin).String()
+	return c.Effect(name, func() (func(context.Context) error, error) {
+		if err := plugin.Open(context.Background(), c.config); err != nil {
+			return nil, err
+		}
+		c.logger.WithField("plugin", name).Info("successfully set up broker plugin")
+		return func(ctx context.Context) error {
+			if err := plugin.Close(false); err != nil {
+				c.logger.WithField("plugin", name).Error("failed to gracefully close broker: forcing")
+				return plugin.Close(true)
+			}
+			return nil
+		}, nil
+	})
 }
 
 func (c *Runtime) WithSecretStore(plugin SecretStore) *Runtime {
-	logger := c.logger.WithField("plugin", reflect.TypeOf(plugin).String())
-	err := plugin.Open(context.Background(), c.config)
-	if err != nil {
-		logger.WithError(err).Fatal("failed to set up secret store plugin")
-	}
-	c.secretStores = append(c.secretStores, plugin)
-	logger.Info("successfully set up secret store plugin")
-	return c
+	name := reflect.TypeOf(plugin).String()
+	return c.Effect(name, func() (func(context.Context) error, error) {
+		if err := plugin.Open(context.Background(), c.config); err != nil {
+			return nil, err
+		}
+		c.logger.WithField("plugin", name).Info("successfully set up secret store plugin")
+		// SecretStore has no Close method today, so there's nothing to revert.
+		// Explicit nil, not an omission: the day it gains one, this is a one-line change.
+		return nil, nil
+	})
 }
 
 func (c *Runtime) WithClientApplication(files embed.FS, rootDir string) *Runtime {
@@ -334,50 +341,32 @@ func (c *Runtime) Start() {
 	c.shutdown()
 }
 
+// shutdown reverts every tracked effect in LIFO (reverse-registration) order. A later
+// effect may have been set up assuming an earlier one was still in place, so its
+// inverse must run first — see effect.go and docs/website/content/docs/architecture/
+// chassis-composability.md for the full rationale. One failed teardown does not stop
+// the rest from being attempted.
+//
+// shutdown is guarded by a sync.Once so each effect's dispose fires at most once even
+// if shutdown is somehow triggered twice — mirroring the self-disposal guarantee every
+// individual effect gets in Cordis's own model, applied once at the runtime level
+// instead of once per effect.
 func (c *Runtime) shutdown() {
-	c.logger.Info("shutting down")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	group := errgroup.Group{}
+	c.shutdownOnce.Do(func() {
+		c.logger.Info("shutting down")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	// TODO: shutdown rpc server?
+		// TODO: shutdown rpc server?
 
-	// shutdown repositories
-	for _, r := range c.repositories {
-		r := r
-		group.Go(func() error {
-			e := r.Close(ctx)
-			if e != nil {
-				return c.logger.WithField("plugin", reflect.TypeOf(r).String()).Wrap(e)
+		for i := len(c.effects) - 1; i >= 0; i-- {
+			e := c.effects[i]
+			if err := e.Dispose(ctx); err != nil {
+				c.logger.WithError(err).WithField("effect", e.Name).Error("failed to revert effect during shutdown")
 			}
-			return nil
-		})
-	}
-
-	// shutdown brokers
-	for _, b := range c.brokers {
-		b := b
-		group.Go(func() error {
-			e := b.Close(false)
-			if e == nil {
-				return nil
-			}
-			c.logger.WithField("plugin", reflect.TypeOf(b).String()).Error("failed to gracefully close broker: forcing")
-			e = b.Close(true)
-			if e != nil {
-				return c.logger.WithField("plugin", reflect.TypeOf(b).String()).Wrap(e)
-			}
-			return nil
-		})
-	}
-
-	// wait for graceful shutdowns
-	err := group.Wait()
-	if err != nil {
-		c.logger.WrappedError(err, "failed to shutdown gracefully")
-		return
-	}
-	c.logger.Info("shutdown successfully")
+		}
+		c.logger.Info("shutdown complete")
+	})
 }
 
 // TODO -> use closer

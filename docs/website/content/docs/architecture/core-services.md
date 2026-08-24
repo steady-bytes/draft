@@ -12,6 +12,7 @@ A Draft cluster is made up of a few core services that are used to store your sy
 - [Blueprint](https://github.com/steady-bytes/draft/tree/main/services/core/blueprint)- A distributed key/value store and service registry for handling service discovery.
 - [Fuse](https://github.com/steady-bytes/draft/tree/main/services/core/fuse) - A [control plane](https://en.wikipedia.org/wiki/Control_plane) handling routing configuration to services running.
 - [Catalyst](https://github.com/steady-bytes/draft/tree/main/services/core/catalyst) - An event streaming interface for real-time message production and consumption.
+- [Beacon](/docs/architecture/beacon-observability) - An [OpenTelemetry](https://opentelemetry.io/docs/)-native observability service handling log, trace, and metric ingestion and query, backed by [ClickHouse](https://github.com/ClickHouse/ClickHouse). *(planned — see the linked design doc)*
 
 Additionally, [envoy](https://www.envoyproxy.io/) is used as the ingress controller to the system. Envoy is controlled by routing rules configured through [Fuse](#fuse).
 
@@ -70,3 +71,18 @@ Catalyst is the event interface of a Draft cluster. Catalyst can be run in two w
 
 1. As a standalone message bus that will handle event processing for all consumers and producers.
 2. As a pass-through interface for other message systems like [Apache Kafka](https://kafka.apache.org/), [Redpanda](https://www.redpanda.com/), and [NATS](https://nats.io/). We are in early development of this component. If your interested in on collaborating with use please [reach out](https://steady-bytes.com/contact).
+
+### Known issues
+
+**`Consume` fans events out to one subscriber at a time, not to every subscriber (found 2026-08-23, not yet fixed).** `services/core/catalyst/broker/atomicMap.go`'s `Broadcast` — despite its name — does not broadcast to every open `Consume` stream. Two things combine to cause this:
+
+1. `Broadcast`'s (and the matching `Broker`/registration path's) routing key is computed as `hash(msg.ProtoReflect().Descriptor().FullName())` — the *Go struct's own proto type name*, i.e. always `"CloudEvent"`, regardless of the event's own `.Type` field (`"tooling.workflow.v1.RunStarted"`, `"examples.user.v1.UserCreated"`, etc.). Every producer and every consumer therefore shares exactly one routing key, cluster-wide, no matter what type they declared interest in via `ConsumeRequest.Message.Type`. (Client-side type filtering — every existing producer/consumer pair in this repo, e.g. `services/examples/consumer`, filters `event.Type` after receiving — is what makes this invisible under a *single* consumer of a given type.)
+2. Delivery for that one shared key goes through one shared **unbuffered** `chan *acv1.CloudEvent` (`atomicMap.n[key]`), and every open `Consume` stream's `send` goroutine reads from that same channel. Go's unbuffered-channel semantics mean each `Broadcast(key, msg)` call (a single `ch <- msg`) is received by exactly **one** of the waiting goroutines, chosen essentially at random — not all of them.
+
+Net effect: with more than one `Consume` stream open at the same time (even for different declared event types — see point 1), each produced event is delivered to exactly one of them, not to every interested subscriber. A single consumer works correctly (verified live: `services/tooling/bench` publishing `RunStarted`/`StepCompleted`/`RunFinished` events, received in full and in order by one subscriber). This was found while verifying Bench's own event publishing ([Bench — Workflow Engine](/docs/architecture/bench-workflow-engine)'s Phase 7) — Bench's producer-side code is correct and unaffected; this is pre-existing Catalyst broker behavior, not something Bench-side work can fix. **Not fixed as of this writing** — a fix needs `Broadcast`/`Broker` keyed on the event's own `.Type` (not the CloudEvent envelope's type) and, for true fan-out, delivering into a per-consumer copy of the message rather than one shared channel serving every stream.
+
+## Beacon
+
+*Planned — not yet implemented. See [Beacon — Observability](/docs/architecture/beacon-observability) for the full system design and phased implementation plan.*
+
+Beacon is Draft's observability service: log, trace, and metric ingestion over standard [OTLP](https://opentelemetry.io/docs/specs/otlp/), backed by ClickHouse, with a Dioxus web client served the same way Blueprint serves its own UI. It is deliberately independent of Catalyst — telemetry volume and shape don't fit the CloudEvent bus, and Catalyst's own event bus has an [open fan-out bug](#known-issues) that rules out depending on it for ingestion. Beacon registers with Blueprint and routes through Fuse like every other core service.

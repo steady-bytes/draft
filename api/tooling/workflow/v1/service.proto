@@ -1,0 +1,246 @@
+syntax = "proto3";
+
+package tooling.workflow.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/tooling/workflow/v1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// WorkflowService is Bench's own API: triggering runs manually and querying
+// their status. The webhook trigger itself is a raw HTTP endpoint outside
+// this RPC surface (external callers post arbitrary JSON, not Connect-framed
+// requests) — see docs/website/content/docs/architecture/bench-workflow-engine.md.
+service WorkflowService {
+    // TriggerRun starts a run of a workflow manually (the UI's "run now"
+    // path) — the same execution path a webhook-triggered run takes, just a
+    // different entry point.
+    rpc TriggerRun(TriggerRunRequest) returns (TriggerRunResponse) {}
+    // GetRun returns the current status of one run, polled by run_id.
+    rpc GetRun(GetRunRequest) returns (Run) {}
+    // ListRuns returns run history, optionally filtered to one workflow.
+    rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {}
+    // ListWorkflows returns every configured workflow.
+    rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse) {}
+    // CreateWorkflow persists a new workflow from a raw YAML document (the
+    // same shape as a workflows_dir file's contents), parsed and validated
+    // server-side. Fails if a workflow with the same name already exists —
+    // see docs/website/content/docs/architecture/bench-workflow-engine.md's
+    // "Authoring workflows without a file" for why this is a real create,
+    // not the storage layer's own unconditional upsert.
+    rpc CreateWorkflow(CreateWorkflowRequest) returns (CreateWorkflowResponse) {}
+    // UpdateWorkflow replaces an existing workflow's definition. Fails if
+    // name doesn't already exist, or if yaml's own metadata.name doesn't
+    // match name — a rename isn't supported (see the doc's Open questions).
+    rpc UpdateWorkflow(UpdateWorkflowRequest) returns (UpdateWorkflowResponse) {}
+    // DeleteWorkflow removes a workflow's definition. Its run history is
+    // untouched — runs are keyed by workflow_name as a plain string, not a
+    // foreign key, so deleting the definition doesn't delete what it ran.
+    rpc DeleteWorkflow(DeleteWorkflowRequest) returns (DeleteWorkflowResponse) {}
+}
+
+enum RunStatus {
+    RUN_STATUS_UNSPECIFIED = 0;
+    RUN_STATUS_PENDING = 1;
+    RUN_STATUS_RUNNING = 2;
+    RUN_STATUS_PASSED = 3;
+    RUN_STATUS_FAILED = 4;
+}
+
+enum StepStatus {
+    STEP_STATUS_UNSPECIFIED = 0;
+    STEP_STATUS_PENDING = 1;
+    STEP_STATUS_RUNNING = 2;
+    STEP_STATUS_PASSED = 3;
+    STEP_STATUS_FAILED = 4;
+    STEP_STATUS_SKIPPED = 5;
+}
+
+enum FailurePolicy {
+    FAILURE_POLICY_UNSPECIFIED = 0;
+    FAILURE_POLICY_FAIL = 1;
+    FAILURE_POLICY_CONTINUE = 2;
+    FAILURE_POLICY_RETRY = 3;
+}
+
+// WebhookTrigger configures the webhook Bench exposes for a workflow.
+// POST /webhooks/{slug} triggers a run, authenticated by an HMAC signature
+// over the raw request body.
+message WebhookTrigger {
+    string slug = 1;
+    string signature_header = 2;
+    // secret_ref is a reference the runtime resolves to the actual HMAC
+    // secret (e.g. a Blueprint-KV-backed secret store key) — never the
+    // secret value itself.
+    string secret_ref = 3;
+}
+
+message Trigger {
+    WebhookTrigger webhook = 1;
+}
+
+message RetryPolicy {
+    int32 attempts = 1;
+    // backoff is a Go duration string, e.g. "2s".
+    string backoff = 2;
+}
+
+// Step is one unit of work within a Workflow: a reference to a plugin (or a
+// built-in executor), the configuration to pass it, and the assertions to
+// check against its result.
+message Step {
+    string name = 1;
+    // uses is a plugin reference, scheme://name@version — "bench://" for
+    // built-in executors, "garage://" for a plugin resolved through Garage's
+    // PluginCatalogService.
+    string uses = 2;
+    // with is the step's configuration, passed opaquely to the executor.
+    google.protobuf.Struct with = 3;
+    // expect is assertion configuration, interpreted by the executor itself,
+    // not by Bench.
+    google.protobuf.Struct expect = 4;
+    // depends_on names the steps that must complete before this one starts.
+    // Empty defaults to the previous step in declaration order.
+    repeated string depends_on = 5;
+    FailurePolicy on_failure = 6;
+    RetryPolicy retry = 7;
+}
+
+// Workflow is a named, versioned definition: metadata, a trigger
+// configuration, and an ordered list of steps.
+message Workflow {
+    string name = 1;
+    string description = 2;
+    Trigger trigger = 3;
+    repeated Step steps = 4;
+}
+
+// StepResult is one step's outcome within a Run.
+message StepResult {
+    string step_name = 1;
+    StepStatus status = 2;
+    google.protobuf.Struct result = 3;
+    string error = 4;
+    google.protobuf.Timestamp started_at = 5;
+    google.protobuf.Timestamp finished_at = 6;
+    // request is the step's `with:` block after {{ steps.X.result }}
+    // templating was resolved against already-completed steps -- i.e. what
+    // was actually sent, not the literal (possibly still-templated) with:
+    // from the workflow's YAML. Present whenever templating succeeded, even
+    // if the step then failed for some other reason (a bad response, a
+    // failed assertion) -- knowing exactly what was sent is exactly what's
+    // needed to troubleshoot that failure.
+    google.protobuf.Struct request = 7;
+    // detail carries executor-specific diagnostic information that doesn't
+    // belong in result (the response a later step's templating can consume)
+    // or error (a short human-readable failure reason) -- e.g.
+    // bench://grpc-call@v1 reports the resolved target address, the exact
+    // URL it called, and the HTTP status code it got back. Optional, and
+    // its shape is defined by whichever executor populated it, the same way
+    // result's shape is.
+    google.protobuf.Struct detail = 8;
+}
+
+// Run is one execution of a Workflow.
+message Run {
+    string run_id = 1;
+    string workflow_name = 2;
+    RunStatus status = 3;
+    google.protobuf.Timestamp started_at = 4;
+    google.protobuf.Timestamp finished_at = 5;
+    repeated StepResult steps = 6;
+}
+
+message TriggerRunRequest {
+    string workflow_name = 1;
+    google.protobuf.Struct inputs = 2;
+}
+
+message TriggerRunResponse {
+    string run_id = 1;
+    RunStatus status = 2;
+}
+
+message GetRunRequest {
+    string run_id = 1;
+}
+
+message ListRunsRequest {
+    // workflow_name filters to one workflow; empty returns runs across all
+    // workflows.
+    string workflow_name = 1;
+    int32 page_size = 2;
+    string page_token = 3;
+}
+
+message ListRunsResponse {
+    repeated Run runs = 1;
+    string next_page_token = 2;
+}
+
+message ListWorkflowsRequest {}
+
+message ListWorkflowsResponse {
+    repeated Workflow workflows = 1;
+}
+
+// CreateWorkflow/UpdateWorkflow are YAML-in, YAML-validated-server-side --
+// not a structured message built field-by-field -- so both reuse the exact
+// parse-and-validate path workflows_dir files already go through
+// (loader.go's ParseWorkflow), rather than a second workflow-authoring code
+// path that could drift from the file-based one.
+message CreateWorkflowRequest {
+    // yaml is a complete workflow document, the same shape as a
+    // workflows_dir file's contents.
+    string yaml = 1;
+}
+
+message CreateWorkflowResponse {
+    Workflow workflow = 1;
+}
+
+message UpdateWorkflowRequest {
+    // name identifies the workflow being replaced; yaml is its full new
+    // definition. name must equal yaml's own metadata.name.
+    string name = 1;
+    string yaml = 2;
+}
+
+message UpdateWorkflowResponse {
+    Workflow workflow = 1;
+}
+
+message DeleteWorkflowRequest {
+    string name = 1;
+}
+
+message DeleteWorkflowResponse {}
+
+// RunEvent is the CloudEvent payload Bench publishes on Catalyst when a run
+// starts or finishes (tooling.workflow.v1.RunStarted / .RunFinished) -- see
+// docs/website/content/docs/architecture/bench-workflow-engine.md's "webhook
+// trigger and status API" section: "every status transition ... is also
+// published as a CloudEvent on Catalyst." Deliberately lighter than Run
+// itself -- no steps, no request/result/detail payloads -- since GetRun
+// remains the source of truth for full detail; this is just enough for a
+// subscriber to know a run started or how it ended without polling.
+message RunEvent {
+    string run_id = 1;
+    string workflow_name = 2;
+    RunStatus status = 3;
+    google.protobuf.Timestamp started_at = 4;
+    google.protobuf.Timestamp finished_at = 5;
+}
+
+// StepEvent is the CloudEvent payload Bench publishes on Catalyst
+// (tooling.workflow.v1.StepCompleted) whenever a step reaches a terminal
+// status (passed, failed, or skipped) within a run.
+message StepEvent {
+    string run_id = 1;
+    string workflow_name = 2;
+    string step_name = 3;
+    StepStatus status = 4;
+    string error = 5;
+    google.protobuf.Timestamp started_at = 6;
+    google.protobuf.Timestamp finished_at = 7;
+}

@@ -1,0 +1,42 @@
+[application]
+
+# App (Project) Name
+name = "beacon pwa"
+
+# Dioxus App Default Platform
+# desktop, web, mobile, ssr
+default_platform = "web"
+
+# `build` & `serve` dist path
+out_dir = "dist"
+
+# resource (public) file folder
+asset_dir = "public"
+
+[web.app]
+
+# HTML title tag content
+title = "{beacon}"
+
+[web.watcher]
+
+# when watcher trigger, regenerate the `index.html`
+reload_html = true
+
+# which files or dirs will be watcher monitoring
+watch_path = ["src", "public"]
+
+[web.resource.dev]
+
+# Proxy Beacon's own Connect-RPC surface (QueryLogs/StreamLogs) so `dx serve`'s
+# dev origin can reach it same-origin instead of hitting CORS — mirrors
+# Blueprint's web-client proxy entries, pointed at Beacon's bind_port (2222)
+# from config.yaml rather than Blueprint's (2221).
+[[web.proxy]]
+backend = "http://localhost:2222/core.observability.logs.v1.LogsService/"
+
+[[web.proxy]]
+backend = "http://localhost:2222/core.observability.traces.v1.TracesService/"
+
+[[web.proxy]]
+backend = "http://localhost:2222/core.observability.metrics.v1.MetricsService/"

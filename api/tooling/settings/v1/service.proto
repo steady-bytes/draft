@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package tooling.settings.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/tooling/settings/v1";
+
+// SettingsService is Bench's own runtime-configuration API. Its only
+// resource today is plugin registries -- see
+// docs/website/content/docs/architecture/bench-workflow-engine.md's
+// "Connecting a plugin registry" section. A registry is anything speaking
+// tooling.plugin_catalog.v1.PluginCatalogService (Garage's own contract);
+// Bench never assumes it's talking to Garage specifically.
+service SettingsService {
+    // ListPluginRegistries returns every configured registry -- seeded from
+    // bench.plugin_registries config at startup, or added/edited/removed
+    // here at runtime.
+    rpc ListPluginRegistries(ListPluginRegistriesRequest) returns (ListPluginRegistriesResponse) {}
+    // AddPluginRegistry live-checks address (a real
+    // PluginCatalogService.List call) before persisting it, and fails if
+    // name is already taken -- the same create-not-upsert discipline
+    // CreateWorkflow already established.
+    rpc AddPluginRegistry(AddPluginRegistryRequest) returns (AddPluginRegistryResponse) {}
+    // UpdatePluginRegistry live-checks the new address the same way before
+    // replacing an existing registry's address. Fails if name doesn't
+    // already exist.
+    rpc UpdatePluginRegistry(UpdatePluginRegistryRequest) returns (UpdatePluginRegistryResponse) {}
+    // DeletePluginRegistry removes a registry. Steps already referencing a
+    // plugin that was only ever found there will fail the next time they
+    // run, the same as any other now-unreachable dependency.
+    rpc DeletePluginRegistry(DeletePluginRegistryRequest) returns (DeletePluginRegistryResponse) {}
+}
+
+message PluginRegistry {
+    string name = 1;
+    string address = 2;
+}
+
+message ListPluginRegistriesRequest {}
+
+message ListPluginRegistriesResponse {
+    repeated PluginRegistry registries = 1;
+}
+
+message AddPluginRegistryRequest {
+    string name = 1;
+    string address = 2;
+}
+
+message AddPluginRegistryResponse {
+    PluginRegistry registry = 1;
+}
+
+message UpdatePluginRegistryRequest {
+    string name = 1;
+    string address = 2;
+}
+
+message UpdatePluginRegistryResponse {
+    PluginRegistry registry = 1;
+}
+
+message DeletePluginRegistryRequest {
+    string name = 1;
+}
+
+message DeletePluginRegistryResponse {}

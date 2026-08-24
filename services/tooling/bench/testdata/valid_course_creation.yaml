@@ -1,0 +1,48 @@
+# The worked example from docs/website/content/docs/architecture/bench-workflow-engine.md's
+# "Primitives" section, verbatim. Phase 2 only loads/validates this — it doesn't
+# execute the garage://slack-notify@v2 step, so the fact that plugin doesn't exist
+# yet is irrelevant here.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: course-creation-e2e
+  description: Create a course via CourseCreator, then confirm it's queryable.
+trigger:
+  webhook:
+    slug: course-creation-e2e
+    signature:
+      header: X-Bench-Signature
+      secret_ref: blueprint://secrets/bench/course-creation-webhook
+steps:
+  - name: create-course
+    uses: bench://grpc-call@v1
+    with:
+      service: golf-app.app.v1.CourseCreator
+      method: CreateCourse
+      request:
+        name: "Pebble Beach"
+        holes: 18
+    expect:
+      status: OK
+      body:
+        id: { exists: true }
+
+  - name: query-course
+    uses: bench://grpc-call@v1
+    depends_on: [create-course]
+    with:
+      service: golf-app.app.v1.CourseCreator
+      method: GetCourse
+      request:
+        id: "{{ steps.create-course.result.id }}"
+    expect:
+      status: OK
+      body:
+        name: { equals: "Pebble Beach" }
+
+  - name: notify-slack-on-seed-data
+    uses: garage://slack-notify@v2
+    with:
+      channel: "#e2e-results"
+      message: "Seeded a test course: {{ steps.create-course.result.id }}"
+    on_failure: continue

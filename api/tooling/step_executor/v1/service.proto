@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package tooling.step_executor.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/tooling/step_executor/v1";
+
+import "google/protobuf/struct.proto";
+
+// StepExecutor is the fixed, minimal contract every Bench plugin implements.
+// A plugin is an ordinary Draft service that registers this RPC with
+// Blueprint for discovery and, if it's meant to be resolved by name+version
+// through a `uses: garage://...` reference, publishes a manifest to Garage's
+// PluginCatalogService (tooling.plugin_catalog.v1) describing itself. See
+// docs/website/content/docs/architecture/garage-plugin-repository.md.
+service StepExecutor {
+    rpc Execute(StepRequest) returns (StepResponse) {}
+}
+
+message StepRequest {
+    string step_name = 1;
+    // config is the step's `with:` block, passed through opaquely — its
+    // shape is defined by whatever config_schema the plugin published to
+    // Garage, not by this proto.
+    google.protobuf.Struct config = 2;
+    // context carries resolved {{ steps.X.result }} references from earlier
+    // steps in the same run, keyed by step name.
+    google.protobuf.Struct context = 3;
+}
+
+message StepResponse {
+    bool success = 1;
+    // result is available to later steps via {{ steps.<name>.result }}.
+    google.protobuf.Struct result = 2;
+    string error = 3;
+}

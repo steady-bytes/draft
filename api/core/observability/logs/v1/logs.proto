@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package core.observability.logs.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/observability/logs/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Logs Service ─────────────────────────────────────────────────────────────
+//
+// LogsService is Beacon's client-facing query surface for log data ingested over
+// OTLP (see the OTLP LogsService receiver in services/core/beacon/ingest). It is
+// deliberately separate from the OTLP receiver: OTLP is the standard ingestion
+// protocol any exporter speaks, LogsService is the Connect-RPC surface the Dioxus
+// web client (and any other Beacon consumer) queries against.
+service LogsService {
+    // QueryLogs returns a bounded set of log rows matching an optional BeaconQL
+    // filter expression, most recent first.
+    rpc QueryLogs(QueryLogsRequest) returns (QueryLogsResponse) {}
+
+    // StreamLogs opens a persistent server-streaming RPC. The server first replays
+    // historical rows matching `filter` (bounded by `limit`, optionally starting
+    // after the `after` cursor), then continues streaming newly-ingested rows
+    // matching the same filter as they arrive. The stream stays open until the
+    // client closes it; the client re-issues the RPC with a new `filter` to change
+    // the active filter, using the last received row's timestamp as the new
+    // `after` cursor so no rows are missed or duplicated across the switch.
+    rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse) {}
+}
+
+// LogRecord mirrors the `beacon.logs` ClickHouse row (see services/core/beacon/store)
+// which in turn mirrors OTel semantic conventions directly — field names are lifted
+// from the OTLP LogRecord/Resource protos rather than invented, so no translation
+// layer is needed between ingestion and query.
+message LogRecord {
+    google.protobuf.Timestamp timestamp           = 1;
+    string                    trace_id             = 2;
+    string                    span_id              = 3;
+    string                    severity_text        = 4;
+    uint32                    severity_number      = 5;
+    string                    service_name         = 6;
+    string                    body                 = 7;
+    map<string, string>       attributes           = 8;
+    map<string, string>       resource_attributes  = 9;
+}
+
+message QueryLogsRequest {
+    // BeaconQL filter expression, e.g. `severity_text = "ERROR" AND service_name = "beacon"`.
+    // Empty string means no filter — return the most recent rows unfiltered.
+    string filter = 1;
+    // Maximum rows to return. 0 = server default (see query/logs.go).
+    int32  limit  = 2;
+    // RFC3339 timestamp cursor — only rows strictly after this timestamp are returned.
+    // Empty string means no lower bound.
+    string after  = 3;
+}
+
+message QueryLogsResponse {
+    repeated LogRecord records = 1;
+}
+
+message StreamLogsRequest {
+    // BeaconQL filter expression; empty means no filter.
+    string filter = 1;
+    // Caps the number of historical rows replayed before switching to live tail.
+    // 0 = server default.
+    int32  limit  = 2;
+    // RFC3339 timestamp cursor to begin historical replay after. Empty means
+    // "start from the server default lookback window".
+    string after  = 3;
+}
+
+// One record per stream message so the web client can render each line as it
+// arrives rather than waiting for a batch.
+message StreamLogsResponse {
+    LogRecord record = 1;
+}

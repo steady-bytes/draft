@@ -1,0 +1,14 @@
+service:
+  name: heartbeat
+  domain: core
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9200
+    internal:
+      host: localhost
+      port: 9200

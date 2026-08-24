@@ -1,0 +1,45 @@
+# Phase 3's end-to-end proof workflow: the doc's own worked example
+# (valid_course_creation.yaml) targets golf-app.app.v1.CourseCreator, which doesn't
+# exist anywhere in this monorepo. This workflow exercises the exact same shape
+# (grpc-call -> grpc-call with data flow via {{ steps.X.result.Y }}, plus a dotted
+# nested-field assertion) against services/examples/crud's real, already-running
+# CrudService instead — see the Phase 3 report for how this was actually run against
+# a live crud + Blueprint + Postgres.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: crud-e2e
+  description: Create a Name via CrudService, then confirm it's queryable.
+steps:
+  - name: create-name
+    uses: bench://grpc-call@v1
+    with:
+      service: examples.crud.v1.CrudService
+      method: Create
+      request:
+        name:
+          first_name: "Ada"
+          last_name: "Lovelace"
+    expect:
+      status: OK
+      body:
+        id: { exists: true }
+
+  - name: read-name
+    uses: bench://grpc-call@v1
+    depends_on: [create-name]
+    with:
+      service: examples.crud.v1.CrudService
+      method: Read
+      request:
+        id: "{{ steps.create-name.result.id }}"
+    expect:
+      status: OK
+      body:
+        name:
+          # Connect's JSON mapping uses protobuf's default camelCase field
+          # names (firstName/lastName), not the .proto source's snake_case
+          # (first_name/last_name) — confirmed against a live response while
+          # proving this workflow end to end, see the Phase 3 report.
+          firstName: { equals: "Ada" }
+          lastName: { matches: "^Love.*" }

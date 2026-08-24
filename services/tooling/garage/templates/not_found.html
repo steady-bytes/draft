@@ -1,0 +1,13 @@
+{{define "title"}}Garage — Not Found{{end}}
+{{define "content"}}
+<div class="hero py-24">
+  <div class="hero-content text-center">
+    <div class="max-w-md flex flex-col items-center gap-3">
+      <span class="signal signal-error"></span>
+      <h1 class="font-display text-2xl font-bold">Not on the shelf</h1>
+      <p class="text-base-content/60 font-mono text-sm">{{.Message}}</p>
+      <a href="/" class="btn btn-primary font-display mt-2">Back to catalog</a>
+    </div>
+  </div>
+</div>
+{{end}}
