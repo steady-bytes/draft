@@ -13,6 +13,9 @@ service:
       host: localhost
       port: 9302
 
+telemetry:
+  enabled: true
+
 # Garage is a fixed, known dependency for this plugin (the same way services
 # resolve Blueprint's own address via static service.entrypoint config rather
 # than discovery — discovery needs something to bootstrap against in the

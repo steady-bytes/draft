@@ -13,6 +13,9 @@ service:
       host: localhost
       port: 9306
 
+telemetry:
+  enabled: true
+
 # Garage is a fixed, known dependency for this plugin, the same way
 # services/tooling/catalyst-consume's own config.yaml documents.
 garage:

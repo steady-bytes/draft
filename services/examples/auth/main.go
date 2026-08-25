@@ -3,18 +3,18 @@ package main
 import (
 	"context"
 
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	authv1 "github.com/steady-bytes/draft/api/examples/auth/v1"
 	authv1Connect "github.com/steady-bytes/draft/api/examples/auth/v1/v1connect"
-	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 
 	"connectrpc.com/connect"
 )
 
 func main() {
+	chassis.NewMetricsReporter().Start()
 	var (
-		logger = zerolog.New()
+		logger = chassis.NewOTelLogger()
 		ctrl   = &controller{logger: logger}
 	)
 
@@ -52,7 +52,7 @@ type controller struct {
 }
 
 func (c *controller) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := authv1Connect.NewAuthExampleServiceHandler(c)
+	pattern, handler := authv1Connect.NewAuthExampleServiceHandler(c, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

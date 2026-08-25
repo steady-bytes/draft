@@ -18,12 +18,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	workflowv1 "github.com/steady-bytes/draft/api/tooling/workflow/v1"
+	"github.com/steady-bytes/draft/pkg/chassis"
+	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -39,6 +42,7 @@ type Scheduler struct {
 	executors      map[string]Executor
 	events         EventPublisher
 	garageExecutor Executor
+	logger         chassis.Logger
 }
 
 // NewScheduler builds the production Scheduler, wired to the one bench://
@@ -55,12 +59,13 @@ type Scheduler struct {
 // events publishes a CloudEvent on Catalyst for every run/step status transition
 // (catalyst.go, Phase 7) — pass a *catalystPublisher for the real service, or
 // noopEventPublisher{} anywhere that's not wanted/available.
-func NewScheduler(store ResultStore, resolver Resolver, httpClient connect.HTTPClient, registries registryLister, events EventPublisher) *Scheduler {
+func NewScheduler(store ResultStore, resolver Resolver, httpClient connect.HTTPClient, registries registryLister, events EventPublisher, logger chassis.Logger) *Scheduler {
 	sched := newSchedulerWithExecutors(store, map[string]Executor{
 		"bench://grpc-call@v1": NewGrpcCallExecutor(resolver),
 	})
 	sched.events = events
 	sched.garageExecutor = NewGaragePluginExecutor(httpClient, registries, resolver)
+	sched.logger = logger
 	return sched
 }
 
@@ -70,7 +75,7 @@ func NewScheduler(store ResultStore, resolver Resolver, httpClient connect.HTTPC
 // publishing defaults to a no-op so existing tests don't need a fake Catalyst
 // connection to exercise the scheduler itself.
 func newSchedulerWithExecutors(store ResultStore, executors map[string]Executor) *Scheduler {
-	return &Scheduler{store: store, executors: executors, events: noopEventPublisher{}}
+	return &Scheduler{store: store, executors: executors, events: noopEventPublisher{}, logger: zerolog.New()}
 }
 
 // beginRun creates a new Run's identity and initial PENDING row and persists it
@@ -92,6 +97,7 @@ func (s *Scheduler) beginRun(ctx context.Context, w *workflowv1.Workflow) (*work
 	if err := s.store.UpsertRun(ctx, run); err != nil {
 		return nil, err
 	}
+	s.logger.WithField("workflow_name", w.GetName()).WithField("run_id", run.GetRunId()).Info("workflow triggered")
 	return run, nil
 }
 
@@ -138,8 +144,21 @@ func (s *Scheduler) StartRun(ctx context.Context, w *workflowv1.Workflow) (*work
 // graph — the actual DAG walk, shared by both Run's synchronous and StartRun's
 // asynchronous callers.
 func (s *Scheduler) execute(ctx context.Context, run *workflowv1.Run, w *workflowv1.Workflow) (*workflowv1.Run, error) {
+	// A run-level span rooted here, not in the TriggerRun/webhook RPC handler:
+	// StartRun returns to that handler (closing its NewTraceInterceptor span)
+	// the instant beginRun's one DB write finishes, well before any step has
+	// run — see this scheduler's file comment and beginRun's doc comment. ctx
+	// itself may or may not already carry a span (StartRun passes
+	// context.Background(), so it won't; Run passes its caller's ctx, which
+	// will if that caller is itself traced) — either way runSpan becomes the
+	// root every step span below hangs off of.
+	ctx, runSpan := chassis.StartSpan(ctx, "workflow:"+w.GetName())
+	runSpan.SetAttribute("workflow_name", w.GetName())
+	runSpan.SetAttribute("run_id", run.GetRunId())
+
 	run.Status = workflowv1.RunStatus_RUN_STATUS_RUNNING
 	if err := s.store.UpsertRun(ctx, run); err != nil {
+		runSpan.End(err)
 		return nil, err
 	}
 	s.events.RunStarted(run)
@@ -194,6 +213,12 @@ func (s *Scheduler) execute(ctx context.Context, run *workflowv1.Run, w *workflo
 			} else {
 				sr = s.runStep(ctx, run.GetRunId(), step, &mu, results)
 			}
+			s.logger.
+				WithField("workflow_name", run.GetWorkflowName()).
+				WithField("run_id", run.GetRunId()).
+				WithField("step_name", sr.GetStepName()).
+				WithField("status", sr.GetStatus().String()).
+				Info("step completed")
 			s.events.StepCompleted(run.GetRunId(), run.GetWorkflowName(), sr)
 
 			mu.Lock()
@@ -223,7 +248,16 @@ func (s *Scheduler) execute(ctx context.Context, run *workflowv1.Run, w *workflo
 		run.Status = workflowv1.RunStatus_RUN_STATUS_PASSED
 	}
 	if err := s.store.UpsertRun(ctx, run); err != nil {
+		runSpan.End(err)
 		return run, err
+	}
+
+	if runFailed {
+		s.logger.WithField("workflow_name", run.GetWorkflowName()).WithField("run_id", run.GetRunId()).Error("workflow failed")
+		runSpan.End(fmt.Errorf("workflow %q failed", run.GetWorkflowName()))
+	} else {
+		s.logger.WithField("workflow_name", run.GetWorkflowName()).WithField("run_id", run.GetRunId()).Info("workflow succeeded")
+		runSpan.End(nil)
 	}
 	s.events.RunFinished(run)
 
@@ -269,6 +303,16 @@ func waitForDependencies(
 // starting and the terminal row once finished, per the brief's incremental-
 // persistence requirement.
 func (s *Scheduler) runStep(ctx context.Context, runID string, step *workflowv1.Step, mu *sync.Mutex, results map[string]*workflowv1.StepResult) *workflowv1.StepResult {
+	// Child of execute's run-level span — see chassis.StartSpan's doc comment
+	// for why a nested call like this automatically links to the parent
+	// carried on ctx. This ctx (not the parameter above it) is what gets
+	// passed to exec.Execute below, so bench://grpc-call@v1 and garage://
+	// steps can read chassis.TraceParentHeader(ctx) and hand the trace off to
+	// whatever they call — see grpc_call.go and garage_plugin.go.
+	ctx, stepSpan := chassis.StartSpan(ctx, "step:"+step.GetName())
+	stepSpan.SetAttribute("step_name", step.GetName())
+	stepSpan.SetAttribute("uses", step.GetUses())
+
 	startedAt := timestamppb.Now()
 	if err := s.store.UpsertStepResult(ctx, runID, &workflowv1.StepResult{
 		StepName:  step.GetName(),
@@ -368,6 +412,13 @@ func (s *Scheduler) runStep(ctx context.Context, runID string, step *workflowv1.
 	if err := s.store.UpsertStepResult(ctx, runID, sr); err != nil {
 		_ = err // best-effort, see the matching comment in Run above
 	}
+
+	var spanErr error
+	if !passed {
+		spanErr = errors.New(failReason)
+	}
+	stepSpan.End(spanErr)
+
 	return sr
 }
 

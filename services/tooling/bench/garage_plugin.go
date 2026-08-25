@@ -45,6 +45,7 @@ import (
 	stepexecutorv1 "github.com/steady-bytes/draft/api/tooling/step_executor/v1"
 	stepexecutorv1connect "github.com/steady-bytes/draft/api/tooling/step_executor/v1/v1connect"
 	workflowv1 "github.com/steady-bytes/draft/api/tooling/workflow/v1"
+	"github.com/steady-bytes/draft/pkg/chassis"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -110,7 +111,13 @@ func (e *garagePluginExecutor) Execute(ctx context.Context, step *workflowv1.Ste
 		return nil, fmt.Errorf("garage plugin %q@%q: %w", name, version, err)
 	}
 
-	client := stepexecutorv1connect.NewStepExecutorClient(e.httpClient, "http://"+addr, connect.WithGRPC())
+	// NewTraceClientInterceptor injects ctx's current span (the one runStep
+	// started for this step) as a traceparent header, so the plugin's own
+	// NewTraceInterceptor continues this trace instead of starting a new,
+	// disconnected one — the connect-go-client counterpart to grpc_call.go's
+	// direct chassis.TraceParentHeader(ctx) call for its plain net/http request.
+	client := stepexecutorv1connect.NewStepExecutorClient(e.httpClient, "http://"+addr,
+		connect.WithGRPC(), connect.WithInterceptors(chassis.NewTraceClientInterceptor()))
 
 	// Context is left unset: this step's with: has already been fully
 	// template-resolved by the time Execute is called (scheduler.go's

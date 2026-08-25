@@ -25,7 +25,6 @@ import (
 	kvv1 "github.com/steady-bytes/draft/api/core/registry/key_value/v1"
 	kvv1Connect "github.com/steady-bytes/draft/api/core/registry/key_value/v1/v1connect"
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -36,7 +35,8 @@ import (
 const heartbeatBlueprintKey = "heartbeat_service_address"
 
 func main() {
-	logger := zerolog.New()
+	logger := chassis.NewOTelLogger()
+	chassis.NewMetricsReporter().Start()
 
 	// chassis.New(logger) calls logger.Start(config), which is what gives the
 	// zerolog wrapper its real output writer. A child logger derived via

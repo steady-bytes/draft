@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	workflowv1 "github.com/steady-bytes/draft/api/tooling/workflow/v1"
+	"github.com/steady-bytes/draft/pkg/chassis"
 
 	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -78,6 +79,14 @@ func (e *grpcCallExecutor) Execute(ctx context.Context, step *workflowv1.Step, w
 		return nil, fmt.Errorf("grpc-call: building request to %s: %w", url, err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	// This is a plain net/http call, not a connect-go client — no
+	// chassis.NewTraceClientInterceptor to reach for, so the header is set
+	// directly. If ctx carries a span (scheduler.go's runStep starts one per
+	// step), the target service's own NewTraceInterceptor continues this
+	// trace instead of starting a new, disconnected one.
+	if tp, ok := chassis.TraceParentHeader(ctx); ok {
+		httpReq.Header.Set("traceparent", tp)
+	}
 
 	resp, err := e.httpClient.Do(httpReq)
 	if err != nil {

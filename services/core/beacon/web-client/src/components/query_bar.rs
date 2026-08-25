@@ -29,6 +29,27 @@ impl QueryGrammar {
     }
 }
 
+/// beaconql_string renders a BeaconQL string literal for an arbitrary value
+/// (a map key/value, a filter value typed into QueryBuilder, …) —
+/// backslash-then-quote escaping, matching what query/beaconql.go's
+/// lexString unescapes on the way back in (`\` followed by any character is
+/// that character literally). Shared by log_detail.rs's click-to-filter and
+/// query_builder.rs's fragment generation — both build BeaconQL string
+/// literals from arbitrary user/attribute text and must escape identically.
+pub(crate) fn beaconql_string(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
 #[component]
 pub fn QueryBar(
     #[props(default)] grammar: QueryGrammar,

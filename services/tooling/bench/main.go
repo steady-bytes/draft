@@ -40,9 +40,10 @@ func main() {
 	}
 
 	var (
-		logger = zerolog.New()
+		logger = chassis.NewOTelLogger()
 		db     = bun.New("")
 	)
+	chassis.NewMetricsReporter().Start()
 
 	// chassis.New(...).WithRepository(db) opens the Postgres connection
 	// synchronously (WithRepository wraps it in a chassis.Effect, and Effect's
@@ -108,7 +109,7 @@ func main() {
 	}()
 	events := NewCatalystPublisher(eventsCtx, httpClient, cfg, logger)
 
-	scheduler := NewScheduler(store, resolver, httpClient, store, events)
+	scheduler := NewScheduler(store, resolver, httpClient, store, events, logger)
 	secrets := newBlueprintSecretResolver(httpClient, cfg.Entrypoint())
 
 	rpcHandler := NewHandler(logger, store, scheduler)
@@ -197,7 +198,7 @@ func runRun(path string) int {
 		return 1
 	}
 	events := NewCatalystPublisher(ctx, httpClient, cfg, zerolog.New())
-	scheduler := NewScheduler(store, resolver, httpClient, store, events)
+	scheduler := NewScheduler(store, resolver, httpClient, store, events, zerolog.New())
 
 	run, err := scheduler.Run(ctx, w)
 	if err != nil {

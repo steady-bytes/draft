@@ -44,7 +44,7 @@ func NewHandler(logger chassis.Logger, store *pgResultStore, scheduler workflowR
 }
 
 func (h *handler) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := workflowv1connect.NewWorkflowServiceHandler(h)
+	pattern, handler := workflowv1connect.NewWorkflowServiceHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

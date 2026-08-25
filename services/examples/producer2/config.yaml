@@ -15,5 +15,8 @@ service:
     external:
       host: localhost:10000
 
+telemetry:
+  enabled: true
+
 catalyst:
   address: http://localhost:2220

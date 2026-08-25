@@ -112,8 +112,12 @@ command -v docker >/dev/null 2>&1 || die "docker is required (for the Postgres c
 docker info >/dev/null 2>&1 || die "docker daemon isn't running"
 
 # ---------------------------------------------------------------------------
-# Postgres — one instance, two databases (bench, garage), matching each
-# tooling service's checked-in config.yaml (repositories.postgres.url).
+# Postgres — one instance, three databases: bench and garage (this script's
+# own managed services) plus draft, matching every services/examples/*
+# service's checked-in config.yaml (repositories.postgres.url) — e.g. crud,
+# which isn't started by this script but connects to this same local
+# Postgres instance whenever it's run by hand, and previously needed its
+# role/database created manually after every fresh Postgres container.
 # ---------------------------------------------------------------------------
 log "Starting Postgres"
 docker run -d --name "$POSTGRES_CONTAINER" \
@@ -130,13 +134,15 @@ done
 docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres >/dev/null 2>&1 \
   || die "postgres never became ready"
 
-log "Creating bench/garage roles and databases"
+log "Creating bench/garage/draft roles and databases"
 docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null \
-  || die "failed to create bench/garage roles/databases"
+  || die "failed to create bench/garage/draft roles/databases"
 CREATE ROLE bench LOGIN PASSWORD 'bench';
 CREATE DATABASE bench OWNER bench;
 CREATE ROLE garage LOGIN PASSWORD 'garage';
 CREATE DATABASE garage OWNER garage;
+CREATE ROLE draft LOGIN PASSWORD 'draft';
+CREATE DATABASE draft OWNER draft;
 SQL
 
 # ---------------------------------------------------------------------------

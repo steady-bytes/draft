@@ -8,9 +8,12 @@ service:
 
   network:
     bind_address: localhost
-    bind_port: 9092
+    bind_port: 9095
     internal:
       host: host.docker.internal
-      port: 9092
+      port: 9095
     external:
       host: localhost:10000
+
+telemetry:
+  enabled: true

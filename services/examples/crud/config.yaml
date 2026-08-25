@@ -10,10 +10,13 @@ service:
     bind_address: localhost
     bind_port: 9090
     internal:
-      host: host.docker.internal
+      host: localhost
       port: 9090
     external:
       host: localhost:10000
+
+telemetry:
+  enabled: true
 
 repositories:
   postgres:

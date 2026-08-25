@@ -4,6 +4,8 @@ go 1.24.1
 
 replace github.com/steady-bytes/draft/api => ../../../api
 
+replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/ClickHouse/clickhouse-go/v2 v2.46.0

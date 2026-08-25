@@ -2,14 +2,14 @@ package main
 
 import (
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 
 	cp "github.com/steady-bytes/draft/services/core/fuse/control_plane"
 )
 
 func main() {
+	chassis.NewMetricsReporter().Start()
 	var (
-		logger       = zerolog.New()
+		logger       = chassis.NewOTelLogger()
 		controlPlane = cp.NewControlPlane(logger)
 		// xDS server containing a share cache between the envoy proxies
 		xdsServer = cp.NewXDSRpc(logger, controlPlane)

@@ -13,6 +13,9 @@ service:
       host: host.docker.internal
       port: 9300
 
+telemetry:
+  enabled: true
+
 repositories:
   postgres:
     url: postgres://bench:bench@localhost:5432/bench?sslmode=disable

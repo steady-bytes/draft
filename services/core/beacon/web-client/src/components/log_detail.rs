@@ -4,6 +4,7 @@ use dioxus::prelude::*;
 use draft_api::hook::core_observability_logs_v1::use_logs_service_service;
 use draft_api::proto::core_observability_logs_v1::{LogRecord, QueryLogsRequest};
 
+use crate::components::query_bar::beaconql_string;
 use crate::components::{severity_label, severity_stripe_color, TracePill};
 
 const CONTEXT_PAGE: i32 = 10;
@@ -101,7 +102,12 @@ pub fn LogDetailDrawer(record: LogRecord, on_close: EventHandler<()>, on_filter:
     let trace_id = record.trace_id.clone();
 
     rsx! {
-        div { class: "w-[420px] shrink-0 border-l border-base-300 flex flex-col h-full overflow-hidden bg-base-100",
+        // Positioned absolute (against the `relative` container stream.rs wraps
+        // the table + drawer in) rather than as a normal flex sibling — an
+        // overlay panel over the table's right edge, not a layout participant
+        // that pushes the table narrower every time a row is selected.
+        div {
+            class: "absolute inset-y-0 right-0 w-[420px] border-l border-base-300 shadow-xl flex flex-col overflow-hidden bg-base-100 z-10 animate-[drawer-slide-in_0.18s_ease-out]",
             div { class: "flex items-center justify-between px-3 py-2 border-b border-base-300",
                 div { class: "flex items-center gap-2 min-w-0",
                     div {
@@ -270,23 +276,6 @@ fn AttributeTable(
     }
 }
 
-/// beaconql_string renders a BeaconQL string literal for an arbitrary Go map
-/// key/value — backslash-then-quote escaping, matching what
-/// query/beaconql.go's lexString unescapes on the way back in (`\` followed
-/// by any character is that character literally).
-fn beaconql_string(s: &str) -> String {
-    let mut out = String::with_capacity(s.len() + 2);
-    out.push('"');
-    for c in s.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            c => out.push(c),
-        }
-    }
-    out.push('"');
-    out
-}
 
 #[component]
 fn JsonTab(record: LogRecord) -> Element {

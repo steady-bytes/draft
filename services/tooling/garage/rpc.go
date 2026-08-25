@@ -40,7 +40,7 @@ func NewHandler(logger chassis.Logger, store *store) Handler {
 }
 
 func (h *handler) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := plugincatalogv1connect.NewPluginCatalogServiceHandler(h)
+	pattern, handler := plugincatalogv1connect.NewPluginCatalogServiceHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

@@ -500,3 +500,42 @@ Adding `otlp/beacon` alongside the existing exporters (rather than replacing the
 **Known v1 limitation (flagged, not fixed here):** no click/drag-to-select a bucket range to narrow the time picker, unlike the original wireframe — a real interaction to build later, not just a styling pass; the histogram today is read-only.
 
 **How to test:** With mixed-severity traffic in view, bars show visibly different heights and stacked colors matching what's in the table below (verified live: amber `warn` bars of varying height from the reaper's bursty cadence, plus a blue `info` segment for a real startup log line and a real `error` segment, colors and proportions consistent with the underlying rows). The title, legend, and `HH:MM:SS UTC` start/end labels render and match the visible time range. An idle window with only one or two rows loaded renders no card at all rather than a degenerate single-pixel chart.
+
+### Phase 18 — Manual spans (`chassis.StartSpan`) + Bench end-to-end workflow tracing `[Go]` — done
+
+**Goal:** `NewTraceInterceptor` (Phase 10) only ever covers the synchronous body of one inbound RPC handler call — exactly right for a plain request/response endpoint, wrong for a handler that kicks off background work and returns before that work is done. Bench's `Scheduler.StartRun` is the motivating case: `TriggerRun`'s handler returns as soon as `beginRun`'s single DB write finishes (by design — see `scheduler.go`'s doc comments), while the workflow's steps keep running in a detached goroutine, on `context.Background()`, for the run's whole lifetime. The span the interceptor reported for that call covered a few milliseconds of bookkeeping, not the actual workflow — confirmed directly: three `TriggerRun` spans in `beacon.spans` measured 2–5ms each while the workflows they kicked off ran for hundreds of milliseconds, and zero spans existed anywhere for the individual steps. This phase gives any chassis service a way to create spans outside of an inbound-RPC-handler's synchronous scope, and uses it to give Bench real per-workflow/per-step tracing.
+
+**New paths:** none — everything is added to the existing Phase 10 files.
+
+**Changed paths:**
+- `pkg/chassis/otel_trace.go`:
+  - `chassis.StartSpan(ctx, name string) (context.Context, *Span)` — starts a new span and returns a `ctx` carrying it. If `ctx` already carries a span (from an inbound `NewTraceInterceptor`-wrapped handler, a propagated inbound `traceparent` header, or an outer `StartSpan` call), the new span is a **child** in that same trace; otherwise it starts a new trace. `(*Span).SetAttribute(key, value string)` attaches string attributes; `(*Span).End(err error)` reports the span to Beacon with an OK or ERROR status.
+  - `encodeSpan` gained a `parentSpanID []byte` parameter (wire field 4, previously always omitted) so a span can declare its parent — needed for both nested `StartSpan` calls and continued cross-process traces.
+  - **Cross-process propagation**, using the standard W3C [`traceparent`](https://www.w3.org/TR/trace-context/#traceparent-header) header (`00-{trace-id}-{parent-id}-{flags}`) rather than a bespoke format, so any two chassis services — or a future non-Go one — can hand a trace across a network call:
+    - `chassis.TraceParentHeader(ctx) (string, bool)` — builds the header value for `ctx`'s current span, for a caller using a plain `net/http` request (no generated connect-go client to attach an interceptor to).
+    - `chassis.NewTraceClientInterceptor()` — a connect-go client interceptor that sets the header automatically on every outbound unary/streaming call; pass it to `connect.NewXxxClient(httpClient, baseURL, connect.WithInterceptors(chassis.NewTraceClientInterceptor()))`.
+    - `NewTraceInterceptor`'s `WrapUnary`/`WrapStreamingHandler` (the *receiving* side, unchanged call shape) now check the inbound request for a `traceparent` header first — if present and well-formed, the request continues that trace (its span becomes a child of the incoming one) instead of unconditionally minting a new, disconnected trace id the way it always did before this phase.
+  - A process-wide `*OTelExporter` singleton (`sync.Once`) backs `StartSpan`/`Span.End` — `newOTelExporter` starts a background send-loop goroutine and its own HTTP client per call, so `StartSpan` must not repeat that per span the way `NewTraceInterceptor`/`NewOTelLogger` each do once at their own construction time.
+- `services/tooling/bench/scheduler.go` — `Scheduler.execute` opens a root span (`workflow:<name>`, attributes `workflow_name`/`run_id`) around the whole DAG walk, ended OK/ERROR based on `runFailed` — this is the span `TriggerRun`'s own short-lived interceptor span was never long enough to be. `Scheduler.runStep` opens a child span (`step:<name>`, attributes `step_name`/`uses`) per step, ended OK/ERROR based on that step's pass/fail outcome, and passes its span-carrying `ctx` into `exec.Execute` so an executor can propagate the trace onward.
+- `services/tooling/bench/grpc_call.go` — sets the `traceparent` header directly via `chassis.TraceParentHeader(ctx)` on its outbound `*http.Request` (a plain `net/http` call, not a connect-go client, so there's no interceptor chain to attach to).
+- `services/tooling/bench/garage_plugin.go` — adds `connect.WithInterceptors(chassis.NewTraceClientInterceptor())` to its `stepexecutorv1connect.NewStepExecutorClient` construction, so a `garage://` step's call to the plugin also continues the trace.
+
+**Usage — the pattern any chassis service can follow** for background work started from (but outliving) an inbound handler:
+
+```go
+func (s *Scheduler) execute(ctx context.Context, run *workflowv1.Run, w *workflowv1.Workflow) (*workflowv1.Run, error) {
+    ctx, runSpan := chassis.StartSpan(ctx, "workflow:"+w.GetName())
+    runSpan.SetAttribute("workflow_name", w.GetName())
+    runSpan.SetAttribute("run_id", run.GetRunId())
+    // ... do the work, using ctx for anything downstream ...
+    if runFailed {
+        runSpan.End(fmt.Errorf("workflow %q failed", w.GetName()))
+    } else {
+        runSpan.End(nil)
+    }
+}
+```
+
+Call `chassis.StartSpan(ctx, name)` again anywhere further down the same call path (another goroutine, a retry loop, a per-item iteration) to add a child span — nesting falls out automatically from whatever span `ctx` already carries, no explicit parent-passing needed. For an outbound call that should hand the trace to another chassis service: use `connect.WithInterceptors(chassis.NewTraceClientInterceptor())` on a connect-go client, or set the `chassis.TraceParentHeader(ctx)` header by hand on a raw `net/http` request — either way, the receiving service's own `NewTraceInterceptor` picks it up with no further wiring.
+
+**How to test:** Trigger a workflow (`curl -X POST http://localhost:9300/tooling.workflow.v1.WorkflowService/TriggerRun -d '{"workflow_name":"crud-e2e"}'`) and query `beacon.spans` for the resulting `trace_id`. Verified live: a passing run produced `workflow:crud-e2e` (root) → `step:create-name` / `step:read-name` (children, correct `parent_span_id`) → `examples.crud.v1.CrudService/Create` / `.../Read` (crud's own spans, now children of the matching step span instead of disconnected new traces), all one `trace_id`, all `STATUS_CODE_OK`. Stopping `crud` mid-run and re-triggering produced the same shape with `STATUS_CODE_ERROR` on both `workflow:crud-e2e` and `step:create-name` (and no span at all for the skipped `read-name`, since no work happened for it). Confirmed this only took effect after rebuilding *both* services sharing the local chassis `replace` — bench and crud each needed a fresh build for the new `traceparent`-aware `NewTraceInterceptor` to take effect on their side.

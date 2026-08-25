@@ -4,11 +4,11 @@ import (
 	broker "github.com/steady-bytes/draft/services/core/catalyst/broker"
 
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 )
 
 func main() {
-	logger := zerolog.New()
+	logger := chassis.NewOTelLogger()
+	chassis.NewMetricsReporter().Start()
 
 	cfg := chassis.GetConfig()
 

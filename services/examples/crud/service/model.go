@@ -2,11 +2,21 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	crudv1 "github.com/steady-bytes/draft/api/examples/crud/v1"
 	"github.com/steady-bytes/draft/pkg/repositories/postgres/bun"
 )
+
+// CreateSchema creates the names table if it doesn't already exist. Mirrors
+// the pattern in services/tooling/bench/model.go's createSchema.
+func CreateSchema(ctx context.Context, db bun.Repository) error {
+	if _, err := db.Client().NewCreateTable().Model((*crudv1.Name)(nil)).IfNotExists().Exec(ctx); err != nil {
+		return fmt.Errorf("failed to create table for %T: %w", (*crudv1.Name)(nil), err)
+	}
+	return nil
+}
 
 type (
 	Model interface {

@@ -8,12 +8,15 @@ service:
 
   network:
     bind_address: localhost
-    bind_port: 9091
+    bind_port: 9097
     internal:
       host: localhost
-      port: 9091
+      port: 9097
     external:
       host: localhost:10000
+
+telemetry:
+  enabled: true
 
 catalyst:
   address: http://localhost:2220

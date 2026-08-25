@@ -12,6 +12,9 @@ service:
       host: localhost
       port: 18000
 
+telemetry:
+  enabled: true
+
 fuse:
   address: http://localhost:18000
   listener:

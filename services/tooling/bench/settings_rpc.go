@@ -38,7 +38,7 @@ func NewSettingsHandler(logger chassis.Logger, store *pgResultStore, httpClient 
 }
 
 func (h *settingsHandler) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := settingsv1connect.NewSettingsServiceHandler(h)
+	pattern, handler := settingsv1connect.NewSettingsServiceHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

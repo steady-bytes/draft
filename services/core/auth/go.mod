@@ -4,6 +4,8 @@ go 1.23.2
 
 replace github.com/steady-bytes/draft/api => ../../../api
 
+replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/steady-bytes/draft/api v1.0.0

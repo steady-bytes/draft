@@ -9,7 +9,7 @@ use draft_api::proto::core_observability_logs_v1::{
 };
 
 use crate::components::{
-    severity_label, severity_stripe_color, LogDetailDrawer, QueryBar, QueryGrammar,
+    severity_label, severity_stripe_color, LogDetailDrawer, QueryBar, QueryBuilder, QueryGrammar,
     SeverityHistogram, TimeRange, TimeRangePicker, TracePill,
 };
 
@@ -45,6 +45,15 @@ pub fn Stream() -> Element {
     let mut time_range: Signal<TimeRange> = use_signal(TimeRange::default);
     // The row a LogDetailDrawer (Phase 15) is currently open for, if any.
     let mut selected: Signal<Option<LogRecord>> = use_signal(|| None);
+    // Mirrors Blueprint's Store page "Stream" toggle (services/core/blueprint/
+    // web-client/src/views/store.rs): pausing doesn't change the selected time
+    // window, it freezes the tail on a one-shot snapshot of it — see
+    // start_stream's TimeRange::Live arm below, which takes the same QueryLogs
+    // snapshot path TimeRange::Custom already used, rather than introducing a
+    // second query mechanism. Only meaningful in Live mode; a Custom range is
+    // already a fixed one-shot query with nothing to pause (see the toggle's
+    // `disabled` binding below).
+    let mut streaming = use_signal(|| true);
 
     // Custom-range one-shot query plumbing — same use_resource-backed hook
     // pattern traces.rs uses for SearchTraces. The resource also fires once,
@@ -71,6 +80,21 @@ pub fn Stream() -> Element {
         error.set(None);
 
         match time_range.peek().clone() {
+            TimeRange::Live(duration) if !streaming.peek().clone() => {
+                // Paused — same one-shot QueryLogs snapshot TimeRange::Custom
+                // uses below, bounded to the Live picker's own duration window
+                // instead of the picker's fixed start/end. The effect watching
+                // query_result populates `lines` from this regardless of which
+                // branch set it, so no separate handling is needed here.
+                status.set(StreamStatus::Historical);
+                query_req.set(QueryLogsRequest {
+                    filter: expression.peek().clone(),
+                    limit: 0,
+                    after: (Utc::now() - duration).to_rfc3339(),
+                    before: Utc::now().to_rfc3339(),
+                    ascending: false,
+                });
+            }
             TimeRange::Live(duration) => {
                 if reset {
                     cursor.set(String::new());
@@ -165,12 +189,15 @@ pub fn Stream() -> Element {
         }
     });
 
-    // Seed `lines` from the latest QueryLogs result while a Custom range is
-    // active. QueryLogs returns descending (most-recent-first); reversed here
-    // so `lines` is always oldest-first internally regardless of which path
-    // populated it, matching the render's `.rev()` below.
+    // Seed `lines` from the latest QueryLogs result whenever the active query
+    // is a one-shot snapshot rather than a live tail — a Custom range (always
+    // one-shot) or a paused Live range (see start_stream's TimeRange::Live
+    // arm above). QueryLogs returns descending (most-recent-first); reversed
+    // here so `lines` is always oldest-first internally regardless of which
+    // path populated it, matching the render's `.rev()` below.
     use_effect(move || {
-        if !matches!(time_range(), TimeRange::Custom { .. }) {
+        let live_tailing = matches!(time_range(), TimeRange::Live(_)) && streaming();
+        if live_tailing {
             return;
         }
         match &*query_result.read() {
@@ -196,11 +223,35 @@ pub fn Stream() -> Element {
 
     let displayed = lines.read();
     let status_val = status();
+    // Color carries what the separate live/historical/connecting/disconnected
+    // badge used to say in text, now on the toggle itself: green while
+    // actually tailing, amber mid-handshake, red if a live tail dropped, and
+    // the plain unlit toggle for an intentional pause (Historical) — matching
+    // each state's former badge color (badge-success/-neutral/-error) so this
+    // is a recoloring, not a new vocabulary.
+    let toggle_class = match status_val {
+        StreamStatus::Connecting => "toggle toggle-xs toggle-warning",
+        StreamStatus::Connected => "toggle toggle-xs toggle-success",
+        StreamStatus::Historical => "toggle toggle-xs",
+        StreamStatus::Disconnected => "toggle toggle-xs toggle-error",
+    };
 
     rsx! {
         div { class: "p-4 flex flex-col gap-3 h-screen",
             div { class: "flex items-center gap-2",
-                h1 { class: "text-lg font-bold shrink-0", "Logs" }
+                label { class: "flex items-center gap-2 cursor-pointer select-none shrink-0",
+                    input {
+                        r#type: "checkbox",
+                        class: "{toggle_class}",
+                        checked: streaming(),
+                        disabled: matches!(time_range(), TimeRange::Custom { .. }),
+                        onchange: move |_| {
+                            streaming.toggle();
+                            start_stream.call(true);
+                        },
+                    }
+                    span { class: "text-xs text-base-content/50", "Stream" }
+                }
                 div { class: "flex-1 min-w-0",
                     QueryBar {
                         grammar: QueryGrammar::BeaconQl,
@@ -221,30 +272,26 @@ pub fn Stream() -> Element {
                 }
             }
 
-            div { class: "flex items-center gap-2 text-xs",
-                match status_val {
-                    StreamStatus::Connecting => rsx! {
-                        span { class: "badge badge-ghost badge-sm", "connecting…" }
-                    },
-                    StreamStatus::Connected => rsx! {
-                        span { class: "badge badge-success badge-sm", "live" }
-                    },
-                    StreamStatus::Historical => rsx! {
-                        span { class: "badge badge-neutral badge-sm", "historical" }
-                    },
-                    StreamStatus::Disconnected => rsx! {
-                        span { class: "badge badge-error badge-sm", "disconnected" }
-                    },
-                }
-                if let Some(err) = error() {
-                    span { class: "text-error font-mono", "{err}" }
-                }
+            QueryBuilder {
+                expression,
+                on_add: move |next: String| {
+                    expression.set(next);
+                    start_stream.call(false);
+                },
+            }
+
+            if let Some(err) = error() {
+                div { class: "text-xs text-error font-mono", "{err}" }
             }
 
             SeverityHistogram { lines: displayed.clone() }
 
-            div { class: "flex-1 min-h-0 flex",
-                div { class: "flex-1 overflow-auto min-h-0",
+            // `relative` anchors LogDetailDrawer's `absolute` overlay to this
+            // box rather than the page, so it slides in over the table's
+            // right edge instead of joining it as a flex sibling that would
+            // narrow the table (and reflow every row) on selection.
+            div { class: "flex-1 min-h-0 relative",
+                div { class: "h-full overflow-auto",
                     table { class: "table table-xs",
                         thead {
                             tr {

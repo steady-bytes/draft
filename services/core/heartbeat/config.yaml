@@ -12,3 +12,6 @@ service:
     internal:
       host: localhost
       port: 9200
+
+telemetry:
+  enabled: true

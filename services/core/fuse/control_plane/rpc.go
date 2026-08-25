@@ -71,7 +71,7 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 	}
 	h.logger.Info("registered fuse address with blueprint")
 
-	pattern, handler := ntConnect.NewNetworkingServiceHandler(h)
+	pattern, handler := ntConnect.NewNetworkingServiceHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

@@ -73,7 +73,7 @@ func NewHandler(ctx context.Context, logger chassis.Logger, catalystAddr string)
 }
 
 func (h *handler) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := stepexecutorv1connect.NewStepExecutorHandler(h)
+	pattern, handler := stepexecutorv1connect.NewStepExecutorHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

@@ -11,7 +11,6 @@ import (
 	crudv1 "github.com/steady-bytes/draft/api/examples/crud/v1"
 	userv1 "github.com/steady-bytes/draft/api/examples/user/v1"
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 
 	"connectrpc.com/connect"
 	"golang.org/x/net/http2"
@@ -32,7 +31,8 @@ var eventTypes = []string{
 }
 
 func main() {
-	logger := zerolog.New()
+	logger := chassis.NewOTelLogger()
+	chassis.NewMetricsReporter().Start()
 
 	defer chassis.New(logger).
 		Register(chassis.RegistrationOptions{

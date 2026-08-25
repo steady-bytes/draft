@@ -36,13 +36,15 @@ func NewRPC(logger chassis.Logger, controller Controller, tracesController Trace
 }
 
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := logsv1connect.NewLogsServiceHandler(h)
+	interceptor := connect.WithInterceptors(chassis.NewTraceInterceptor())
+
+	pattern, handler := logsv1connect.NewLogsServiceHandler(h, interceptor)
 	server.AddHandler(pattern, handler, true)
 
-	tracesPattern, tracesHandler := tracesv1connect.NewTracesServiceHandler(h)
+	tracesPattern, tracesHandler := tracesv1connect.NewTracesServiceHandler(h, interceptor)
 	server.AddHandler(tracesPattern, tracesHandler, true)
 
-	metricsPattern, metricsHandler := metricsv1connect.NewMetricsServiceHandler(h)
+	metricsPattern, metricsHandler := metricsv1connect.NewMetricsServiceHandler(h, interceptor)
 	server.AddHandler(metricsPattern, metricsHandler, true)
 }
 

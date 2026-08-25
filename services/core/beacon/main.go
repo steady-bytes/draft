@@ -11,7 +11,6 @@ import (
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 
 	"github.com/steady-bytes/draft/services/core/beacon/ingest"
 	"github.com/steady-bytes/draft/services/core/beacon/query"
@@ -22,7 +21,8 @@ import (
 var files embed.FS
 
 func main() {
-	logger := zerolog.New()
+	logger := chassis.NewOTelLogger()
+	chassis.NewMetricsReporter().Start()
 
 	cfg := chassis.GetConfig()
 

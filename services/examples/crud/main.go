@@ -1,23 +1,25 @@
 package main
 
 import (
+	"context"
+
 	"github.com/steady-bytes/draft/pkg/chassis"
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 	"github.com/steady-bytes/draft/pkg/repositories/postgres/bun"
 	"github.com/steady-bytes/draft/services/examples/crud/service"
 )
 
 func main() {
+	chassis.NewMetricsReporter().Start()
 
 	var (
-		logger = zerolog.New()
+		logger = chassis.NewOTelLogger()
 		db     = bun.New("")
 		model  = service.NewModel(db)
 	)
 
-	defer chassis.New(logger).
+	runtime := chassis.New(logger).
 		Register(chassis.RegistrationOptions{
 			Namespace: "examples",
 		}).
@@ -27,6 +29,11 @@ func main() {
 			Match: &ntv1.RouteMatch{
 				Prefix: "/examples.crud.v1.CrudService/",
 			},
-		}).
-		Start()
+		})
+
+	if err := service.CreateSchema(context.Background(), db); err != nil {
+		logger.WithError(err).Fatal("failed to create crud schema")
+	}
+
+	defer runtime.Start()
 }

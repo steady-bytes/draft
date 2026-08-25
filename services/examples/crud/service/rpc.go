@@ -29,7 +29,7 @@ func NewHandler(logger chassis.Logger, model Model) Handler {
 }
 
 func (h *handler) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := crudv1Connect.NewCrudServiceHandler(h)
+	pattern, handler := crudv1Connect.NewCrudServiceHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

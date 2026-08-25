@@ -12,6 +12,9 @@ service:
       host: localhost
       port: 2220
 
+telemetry:
+  enabled: true
+
 clickhouse:
   enabled: true
   address: "localhost:9000"

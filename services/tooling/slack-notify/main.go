@@ -19,11 +19,11 @@ import (
 	"net/http"
 
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 )
 
 func main() {
-	logger := zerolog.New()
+	logger := chassis.NewOTelLogger()
+	chassis.NewMetricsReporter().Start()
 
 	manifest, err := buildManifest()
 	if err != nil {

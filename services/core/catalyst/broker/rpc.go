@@ -38,22 +38,24 @@ func NewRPC(logger chassis.Logger, controller Controller) Rpc {
 }
 
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
-	producerPattern, producerHandler := acConnect.NewProducerHandler(h)
+	interceptor := connect.WithInterceptors(chassis.NewTraceInterceptor())
+
+	producerPattern, producerHandler := acConnect.NewProducerHandler(h, interceptor)
 	server.AddHandler(producerPattern, producerHandler, true)
 
-	consumerPattern, consumerHandler := acConnect.NewConsumerHandler(h)
+	consumerPattern, consumerHandler := acConnect.NewConsumerHandler(h, interceptor)
 	server.AddHandler(consumerPattern, consumerHandler, true)
 
-	queryPattern, queryHandler := acConnect.NewQueryHandler(h)
+	queryPattern, queryHandler := acConnect.NewQueryHandler(h, interceptor)
 	server.AddHandler(queryPattern, queryHandler, true)
 
-	topologyPattern, topologyHandler := acConnect.NewTopologyHandler(h)
+	topologyPattern, topologyHandler := acConnect.NewTopologyHandler(h, interceptor)
 	server.AddHandler(topologyPattern, topologyHandler, true)
 
-	metricsPattern, metricsHandler := acConnect.NewMetricsHandler(h)
+	metricsPattern, metricsHandler := acConnect.NewMetricsHandler(h, interceptor)
 	server.AddHandler(metricsPattern, metricsHandler, true)
 
-	resourceMetricsPattern, resourceMetricsHandler := acConnect.NewResourceMetricsHandler(h)
+	resourceMetricsPattern, resourceMetricsHandler := acConnect.NewResourceMetricsHandler(h, interceptor)
 	server.AddHandler(resourceMetricsPattern, resourceMetricsHandler, true)
 }
 
@@ -115,4 +117,3 @@ func (h *rpc) GetTopicSeries(ctx context.Context, req *connect.Request[acv1.GetT
 	}
 	return connect.NewResponse(resp), nil
 }
-

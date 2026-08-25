@@ -12,6 +12,9 @@ service:
       host: localhost
       port: 2222
 
+telemetry:
+  enabled: true
+
 # otlp configures Beacon's *separate* OTLP/gRPC ingestion listener. This is not
 # managed by chassis (chassis owns service.network.bind_port, Beacon's own
 # Connect-RPC surface) — it's a plain grpc.Server on the industry-standard OTLP

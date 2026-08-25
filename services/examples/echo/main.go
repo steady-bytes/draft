@@ -7,14 +7,14 @@ import (
 	echov1 "github.com/steady-bytes/draft/api/examples/echo/v1"
 	echov1Connect "github.com/steady-bytes/draft/api/examples/echo/v1/v1connect"
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 
 	"connectrpc.com/connect"
 )
 
 func main() {
+	chassis.NewMetricsReporter().Start()
 	var (
-		logger = zerolog.New()
+		logger = chassis.NewOTelLogger()
 		ctrl   = &controller{
 			logger: logger,
 		}
@@ -43,7 +43,7 @@ type controller struct {
 }
 
 func (h *controller) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := echov1Connect.NewEchoServiceHandler(h)
+	pattern, handler := echov1Connect.NewEchoServiceHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

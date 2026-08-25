@@ -24,3 +24,6 @@ pub use log_detail::LogDetailDrawer;
 
 mod severity_histogram;
 pub use severity_histogram::SeverityHistogram;
+
+mod query_builder;
+pub use query_builder::QueryBuilder;

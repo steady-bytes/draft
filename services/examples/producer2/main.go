@@ -11,7 +11,6 @@ import (
 	acv1 "github.com/steady-bytes/draft/api/core/message_broker/actors/v1"
 	acConnect "github.com/steady-bytes/draft/api/core/message_broker/actors/v1/v1connect"
 	"github.com/steady-bytes/draft/pkg/chassis"
-	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
 	"github.com/steady-bytes/draft/services/examples/producer2/events"
 
 	"connectrpc.com/connect"
@@ -19,7 +18,8 @@ import (
 )
 
 func main() {
-	logger := zerolog.New()
+	logger := chassis.NewOTelLogger()
+	chassis.NewMetricsReporter().Start()
 
 	defer chassis.New(logger).
 		Register(chassis.RegistrationOptions{

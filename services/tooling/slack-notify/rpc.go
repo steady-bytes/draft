@@ -48,7 +48,7 @@ func NewHandler(logger chassis.Logger, httpClient *http.Client, webhookURL func(
 }
 
 func (h *handler) RegisterRPC(server chassis.Rpcer) {
-	pattern, handler := stepexecutorv1connect.NewStepExecutorHandler(h)
+	pattern, handler := stepexecutorv1connect.NewStepExecutorHandler(h, connect.WithInterceptors(chassis.NewTraceInterceptor()))
 	server.AddHandler(pattern, handler, true)
 }
 

@@ -2,6 +2,8 @@ module github.com/steady-bytes/draft/services/examples/file_host
 
 go 1.23.2
 
+replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
+
 require (
 	github.com/steady-bytes/draft/api v1.0.0
 	github.com/steady-bytes/draft/pkg/chassis v0.4.4

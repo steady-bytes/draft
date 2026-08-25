@@ -13,6 +13,9 @@ service:
       host: host.docker.internal
       port: 9095
 
+telemetry:
+  enabled: true
+
 # auth.mode controls whether the service validates tokens (authentik) or allows
 # all requests through (bypass). Use bypass for local development without Authentik.
 auth:
