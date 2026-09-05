@@ -120,6 +120,18 @@ func (c *Runtime) WithRoute(route *ntv1.Route) *Runtime {
 	return c
 }
 
+// TryWithRoute behaves like WithRoute but returns the error instead of panicking.
+// Every other WithRoute caller registers a route from the builder chain, before
+// Start() runs, against a Fuse that's expected to already be up and reachable --
+// a failure there really is unexpected and panicking is correct. This exists for
+// the one caller (Blueprint's own registerBlueprintUIRoute) that has to register
+// a route from a Start()-spawned goroutine, racing against Fuse's own startup and
+// self-registration, where a failure is the expected, retryable common case rather
+// than a bug.
+func (c *Runtime) TryWithRoute(route *ntv1.Route) error {
+	return c.withRoute(route)
+}
+
 func (c *Runtime) DisableMux() *Runtime {
 	c.noMux = true
 	return c
@@ -203,12 +215,20 @@ func (c *Runtime) Register(options RegistrationOptions) *Runtime {
 	return c
 }
 
+// resolveAdvertiseAddress returns the host:port this process advertises to peers — the address
+// Blueprint uses (alongside the process name) to derive a deterministic registry identity, and
+// the same value reported on every `ClientDetails.advertise_address` in synchronize().
+func (c *Runtime) resolveAdvertiseAddress() string {
+	return fmt.Sprintf("%s:%d", c.config.GetString("service.network.internal.host"), c.config.GetInt("service.network.internal.port"))
+}
+
 // register the `process` with `blueprint` to receive it's system identity
 func (c *Runtime) initialize() (*sdv1.ProcessIdentity, error) {
 	req := connect.NewRequest(&sdv1.InitializeRequest{
 		Name: c.config.GetString("service.name"),
 		// TODO (@andrewsc208): find a nonce generator, or use a more secure method to generate a public key for the process to use
-		Nonce: "FUSE",
+		Nonce:            "FUSE",
+		AdvertiseAddress: c.resolveAdvertiseAddress(),
 	})
 
 	res, err := c.blueprintClient.Initialize(context.Background(), req)
@@ -246,7 +266,7 @@ func (c *Runtime) synchronize(ctx context.Context, pid *sdv1.ProcessIdentity, op
 		}
 
 		// TODO: should we also save external host/port?
-		adder := fmt.Sprintf("%s:%d", c.config.GetString("service.network.internal.host"), c.config.GetInt("service.network.internal.port"))
+		adder := c.resolveAdvertiseAddress()
 
 		req := connect.NewRequest(&sdv1.ClientDetails{
 			Pid:              pid.GetPid(),

@@ -27,3 +27,9 @@ pub use severity_histogram::SeverityHistogram;
 
 mod query_builder;
 pub use query_builder::QueryBuilder;
+
+mod wide_event_query_builder;
+pub use wide_event_query_builder::WideEventQueryBuilder;
+
+mod wide_event_histogram;
+pub use wide_event_histogram::WideEventHistogram;

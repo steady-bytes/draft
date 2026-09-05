@@ -28,7 +28,7 @@ type (
 	}
 
 	KeyValue interface {
-		Delete(log chassis.Logger, key string, value T) error
+		Delete(log chassis.Logger, key string, value T, timeout time.Duration) error
 		Set(log chassis.Logger, key string, value T, timeout time.Duration) (*SetResponse, error)
 		Get(log chassis.Logger, key string, value T) (T, error)
 		List(log chassis.Logger, kind T) (map[string]T, error)
@@ -98,10 +98,64 @@ func (c *controller) LeadershipChange(log chassis.Logger, leader bool, address s
 	}
 }
 
-func (c *controller) Delete(log chassis.Logger, key string, kind T) error {
-	if err := c.model.Delete(key, kind); err != nil {
-		return err
+// Delete removes key from the store, replicated the same way Set is: forwarded to the raft
+// leader if this node isn't it, then applied through raft.Apply so every node's local model sees
+// the delete — not just whichever node happened to receive the RPC. (Previously this wrote
+// straight to the local model, bypassing raft entirely; see
+// docs/architecture/service-registry-identity.md for why that was unsafe for a multi-node
+// cluster.)
+func (c *controller) Delete(log chassis.Logger, key string, kind T, timeout time.Duration) error {
+	if c.raft.State() != raft.Leader {
+		log.Debug("forwarding delete request to leader")
+		a, _ := anypb.New(&kvv1.Value{})
+		anyValue, err := c.model.Get("leader", a)
+		if err != nil {
+			log.WithError(err).Error("failed to get leader address")
+			return err
+		}
+		v := &kvv1.Value{}
+		err = anypb.UnmarshalTo(anyValue, v, proto.UnmarshalOptions{})
+		if err != nil {
+			log.WithError(err).Error("failed to unmarshal leader value")
+			return err
+		}
+		client := kvv1Cnt.NewKeyValueServiceClient(http.DefaultClient, v.Data)
+
+		req := connect.NewRequest(&kvv1.DeleteRequest{
+			Key:   key,
+			Value: kind,
+		})
+		_, err = client.Delete(context.Background(), req)
+		if err != nil {
+			log.WithError(err).Error("failed to forward delete request to leader")
+			return err
+		}
+
+		return nil
 	}
+
+	lsmLog, err := c.buildLSMLog(key, kind, fsv1.Operation_DELETE)
+	if err != nil {
+		log.Error(ErrFailedLSMLogBuild.Error())
+		return ErrFailedLSMLogBuild
+	}
+
+	future := c.raft.Apply(lsmLog, timeout)
+	if err := future.Error(); err != nil {
+		log.Error(err.Error())
+		return errors.New("failed to apply command")
+	}
+
+	res, ok := future.Response().(*SetResponse)
+	if !ok {
+		return errors.New("failed to apply command")
+	}
+
+	if res.Error != nil {
+		log.Error(res.Error.Error())
+		return res.Error
+	}
+
 	return nil
 }
 
@@ -224,7 +278,16 @@ func (c *controller) Apply(log *raft.Log) interface{} {
 
 		switch payload.Operation {
 		case Delete:
-			fmt.Println("TODO: make sure to call the `Apply` command with the `Delete` operations so it's committed to all nodes")
+			if err := c.model.Delete(payload.Key, payload.Value); err != nil {
+				return &SetResponse{
+					Error: errors.New("failed to delete key/val"),
+					Data:  payload,
+				}
+			}
+			return &SetResponse{
+				Error: nil,
+				Data:  payload,
+			}
 		case Set:
 			if err := c.model.Set(payload.Key, payload.Value); err != nil {
 				return &SetResponse{

@@ -737,6 +737,16 @@ type OTelLogger struct {
 	level       LogLevel
 	fields      Fields
 	depth       int
+	// spanBuf, when non-nil, is the active span's log buffer (see
+	// otel_trace.go's spanLogBuffer) — set by WithContext when ctx carries a
+	// span, threaded through WithFields/WithCallDepth's copy-construction the
+	// same way exporter/serviceName/level/fields already are. emit appends
+	// every log line here in addition to its normal OTLP export, for
+	// eventual inclusion in that span's WideEvent (wide_event.go). nil for
+	// any logger that never went through WithContext(ctx) — e.g. a plain
+	// package-level `logger.Info(...)` outside a traced span — which costs
+	// nothing beyond the nil check.
+	spanBuf *spanLogBuffer
 }
 
 // NewOTelLogger constructs an OTelLogger. It does nothing observable until
@@ -788,11 +798,13 @@ func (l *OTelLogger) WithError(err error) Logger {
 // context — outside an RPC handler, or a service that hasn't wired the
 // interceptor into RegisterRPC yet.
 func (l *OTelLogger) WithContext(ctx context.Context) Logger {
-	traceIDHex, spanIDHex, ok := spanFromContext(ctx)
+	traceIDHex, spanIDHex, logBuf, ok := spanFromContext(ctx)
 	if !ok {
 		return l
 	}
-	return l.WithFields(Fields{"trace_id": traceIDHex, "span_id": spanIDHex})
+	n := l.WithFields(Fields{"trace_id": traceIDHex, "span_id": spanIDHex}).(*OTelLogger)
+	n.spanBuf = logBuf
+	return n
 }
 
 func (l *OTelLogger) WithField(key string, value any) Logger {
@@ -813,6 +825,7 @@ func (l *OTelLogger) WithFields(fields Fields) Logger {
 		level:       l.level,
 		fields:      merged,
 		depth:       l.depth,
+		spanBuf:     l.spanBuf,
 	}
 }
 
@@ -823,6 +836,7 @@ func (l *OTelLogger) WithCallDepth(depth int) Logger {
 		level:       l.level,
 		fields:      l.fields,
 		depth:       depth,
+		spanBuf:     l.spanBuf,
 	}
 }
 
@@ -875,6 +889,7 @@ func (l *OTelLogger) Panic(msg string) {
 // threshold). No-ops entirely before Start has been called or when the
 // exporter is disabled.
 func (l *OTelLogger) emit(level LogLevel, msg string) {
+	l.bufferForWideEvent(level, msg)
 	if l.exporter == nil || !l.exporter.Enabled() || level > l.level {
 		return
 	}
@@ -883,10 +898,23 @@ func (l *OTelLogger) emit(level LogLevel, msg string) {
 
 // emitSync is emit's synchronous counterpart, used only by Fatal/Panic.
 func (l *OTelLogger) emitSync(level LogLevel, msg string) {
+	l.bufferForWideEvent(level, msg)
 	if l.exporter == nil || !l.exporter.Enabled() || level > l.level {
 		return
 	}
 	l.exporter.ExportSync(logsExportProcedure, l.encodeRecord(level, msg))
+}
+
+// bufferForWideEvent appends this log line to the active span's log buffer
+// (see otel_trace.go's spanLogBuffer), if any — a no-op when l.spanBuf is
+// nil (no WithContext(ctx) call, or ctx carried no span) or when level is
+// below the configured threshold, matching what actually gets exported.
+// This is additive: it never affects the normal OTLP export path below.
+func (l *OTelLogger) bufferForWideEvent(level LogLevel, msg string) {
+	if l.spanBuf == nil || level > l.level {
+		return
+	}
+	l.spanBuf.append(spanLogLine{timestamp: time.Now(), severity: level.String(), body: msg})
 }
 
 // encodeRecord builds one Export request body for a single log record at

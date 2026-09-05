@@ -93,28 +93,86 @@ type spanContextKey struct{}
 type spanContext struct {
 	traceIDHex string
 	spanIDHex  string
+	// logBuf accumulates log lines emitted during this span's lifetime, for
+	// inclusion in the WideEvent produced when the span ends (see
+	// wide_event.go) — see spanLogBuffer's own doc comment. Never inherited
+	// from a parent span: withSpanContext always allocates a fresh one, so a
+	// child span's logs stay attributed to the child's own WideEvent, one
+	// WideEvent per span, not per trace.
+	logBuf *spanLogBuffer
 }
 
 // withSpanContext returns a copy of ctx carrying traceID/spanID (raw OTel
 // bytes, hex-encoded here to match the "hex strings" convention
 // OTelLogger.encodeRecord already expects under the "trace_id"/"span_id"
-// field keys).
-func withSpanContext(ctx context.Context, traceID, spanID []byte) context.Context {
+// field keys) and a fresh spanLogBuffer for this span.
+func withSpanContext(ctx context.Context, traceID, spanID []byte, logBuf *spanLogBuffer) context.Context {
 	return context.WithValue(ctx, spanContextKey{}, spanContext{
 		traceIDHex: hex.EncodeToString(traceID),
 		spanIDHex:  hex.EncodeToString(spanID),
+		logBuf:     logBuf,
 	})
 }
 
-// spanFromContext returns the trace/span ids withSpanContext attached, if
-// any — false if ctx was never wrapped (no NewTraceInterceptor in the call
-// path, or a context that didn't descend from the wrapped handler's).
-func spanFromContext(ctx context.Context) (traceIDHex, spanIDHex string, ok bool) {
+// spanFromContext returns the trace/span ids and log buffer withSpanContext
+// attached, if any — false if ctx was never wrapped (no NewTraceInterceptor
+// in the call path, or a context that didn't descend from the wrapped
+// handler's).
+func spanFromContext(ctx context.Context) (traceIDHex, spanIDHex string, logBuf *spanLogBuffer, ok bool) {
 	sc, ok := ctx.Value(spanContextKey{}).(spanContext)
 	if !ok {
-		return "", "", false
+		return "", "", nil, false
 	}
-	return sc.traceIDHex, sc.spanIDHex, true
+	return sc.traceIDHex, sc.spanIDHex, sc.logBuf, true
+}
+
+// ─── Per-span log buffering (for WideEvent — see wide_event.go) ────────────
+//
+// spanLogBuffer accumulates the log lines a plain logger.WithContext(ctx).Info(...)
+// call (or Warn/Error/etc.) emits during one span's lifetime, so
+// buildAndProduceWideEvent (wide_event.go) can attach them to that span's
+// WideEvent when it ends. Capped at maxBufferedSpanLogs so a pathological
+// span that logs excessively, or never ends, can't grow this unboundedly —
+// OTelLogger.emit (otel_logger.go) drops (counted, not silently) past the
+// cap rather than growing the slice further.
+
+const maxBufferedSpanLogs = 200
+
+type spanLogLine struct {
+	timestamp time.Time
+	severity  string
+	body      string
+}
+
+type spanLogBuffer struct {
+	mu       sync.Mutex
+	lines    []spanLogLine
+	overflow uint64
+}
+
+func newSpanLogBuffer() *spanLogBuffer {
+	return &spanLogBuffer{}
+}
+
+// append adds line to the buffer, or counts it as overflow once
+// maxBufferedSpanLogs is reached rather than growing further.
+func (b *spanLogBuffer) append(line spanLogLine) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if len(b.lines) >= maxBufferedSpanLogs {
+		b.overflow++
+		return
+	}
+	b.lines = append(b.lines, line)
+}
+
+// drain returns every buffered line and the overflow count. Safe to call
+// once a span has ended; nothing appends to a buffer after its span's
+// context has gone out of scope.
+func (b *spanLogBuffer) drain() ([]spanLogLine, uint64) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.lines, b.overflow
 }
 
 // ─── Cross-process propagation (W3C Trace Context) ──────────────────────────
@@ -164,7 +222,7 @@ func parseTraceParent(value string) (traceID, spanID []byte, ok bool) {
 // disconnected one. ok is false if ctx carries no span (e.g. it never
 // descended from a NewTraceInterceptor-wrapped handler or a StartSpan call).
 func TraceParentHeader(ctx context.Context) (string, bool) {
-	traceIDHex, spanIDHex, ok := spanFromContext(ctx)
+	traceIDHex, spanIDHex, _, ok := spanFromContext(ctx)
 	if !ok {
 		return "", false
 	}
@@ -255,8 +313,9 @@ func (i *otelInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		start := time.Now()
 		traceID, parentID := traceAndParentFromHeader(req.Header())
 		spanID := newSpanID()
-		res, err := next(withSpanContext(ctx, traceID, spanID), req)
-		i.reportSpan(traceID, spanID, parentID, req.Spec().Procedure, start, time.Now(), err)
+		logBuf := newSpanLogBuffer()
+		res, err := next(withSpanContext(ctx, traceID, spanID, logBuf), req)
+		i.reportSpan(traceID, spanID, parentID, req.Spec().Procedure, start, time.Now(), err, logBuf)
 		return res, err
 	}
 }
@@ -276,8 +335,9 @@ func (i *otelInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc
 		start := time.Now()
 		traceID, parentID := traceAndParentFromHeader(conn.RequestHeader())
 		spanID := newSpanID()
-		err := next(withSpanContext(ctx, traceID, spanID), conn)
-		i.reportSpan(traceID, spanID, parentID, conn.Spec().Procedure, start, time.Now(), err)
+		logBuf := newSpanLogBuffer()
+		err := next(withSpanContext(ctx, traceID, spanID, logBuf), conn)
+		i.reportSpan(traceID, spanID, parentID, conn.Spec().Procedure, start, time.Now(), err, logBuf)
 		return err
 	}
 }
@@ -297,19 +357,35 @@ func traceAndParentFromHeader(h interface{ Get(string) string }) (traceID, paren
 }
 
 // reportSpan builds and (async, fire-and-forget) exports one Span covering
-// [start, end] for procedure, with OK/ERROR status derived from err.
-func (i *otelInterceptor) reportSpan(traceID, spanID, parentID []byte, procedure string, start, end time.Time, err error) {
-	statusCode := uint64(statusCodeOK)
-	statusMsg := ""
-	if err != nil {
-		statusCode = statusCodeError
-		statusMsg = err.Error()
-	}
+// [start, end] for procedure, with OK/ERROR status derived from err, then
+// drains logBuf and produces this span's WideEvent (wide_event.go) — see
+// docs/website/content/docs/architecture/wide-events.md.
+func (i *otelInterceptor) reportSpan(traceID, spanID, parentID []byte, procedure string, start, end time.Time, err error, logBuf *spanLogBuffer) {
+	statusText, statusCode := statusFromErr(err)
 
 	span := encodeSpan(traceID, spanID, parentID, procedure, spanKindServer,
-		uint64(start.UnixNano()), uint64(end.UnixNano()), nil, statusCode, statusMsg)
+		uint64(start.UnixNano()), uint64(end.UnixNano()), nil, statusCode, statusText)
 	body := encodeExportTraceRequest(i.serviceName, [][]byte{span})
 	i.exporter.Export(tracesExportProcedure, body)
+
+	produceWideEventForSpan(i.serviceName, traceID, spanID, parentID, procedure, start, end, statusOKorError(err), logBuf, nil, nil, nil)
+}
+
+// statusFromErr returns the OTel Status message/code pair for err (nil = OK).
+func statusFromErr(err error) (string, uint64) {
+	if err != nil {
+		return err.Error(), statusCodeError
+	}
+	return "", statusCodeOK
+}
+
+// statusOKorError returns the WideEvent status_code string
+// (Span.status_code's own convention — "OK"/"ERROR") for err.
+func statusOKorError(err error) string {
+	if err != nil {
+		return "ERROR"
+	}
+	return "OK"
 }
 
 // ─── Manual spans (StartSpan) ────────────────────────────────────────────────
@@ -358,6 +434,9 @@ type Span struct {
 	name                      string
 	start                     time.Time
 	attrs                     map[string]string
+	businessAttrs             map[string]string
+	runtimeAttrs              map[string]string
+	logBuf                    *spanLogBuffer
 }
 
 // StartSpan starts a new span named name and returns a context carrying it
@@ -381,8 +460,9 @@ func StartSpan(ctx context.Context, name string) (context.Context, *Span) {
 		traceID = newTraceID()
 	}
 	spanID := newSpanID()
-	span := &Span{traceID: traceID, spanID: spanID, parentID: parentID, name: name, start: time.Now()}
-	return withSpanContext(ctx, traceID, spanID), span
+	logBuf := newSpanLogBuffer()
+	span := &Span{traceID: traceID, spanID: spanID, parentID: parentID, name: name, start: time.Now(), logBuf: logBuf}
+	return withSpanContext(ctx, traceID, spanID, logBuf), span
 }
 
 // SetAttribute attaches a string attribute reported alongside the span when
@@ -395,26 +475,52 @@ func (s *Span) SetAttribute(key, value string) {
 	s.attrs[key] = value
 }
 
+// SetBusinessAttribute attaches business/domain context (user_id,
+// workflow_run_id, request parameters, etc.) to this span's eventual
+// WideEvent — see docs/website/content/docs/architecture/wide-events.md's
+// Data Model. Unlike SetAttribute, this has no equivalent in
+// NewTraceInterceptor's automatic path today; only StartSpan callers can set
+// it.
+func (s *Span) SetBusinessAttribute(key, value string) {
+	if s.businessAttrs == nil {
+		s.businessAttrs = make(map[string]string)
+	}
+	s.businessAttrs[key] = value
+}
+
+// SetRuntimeAttribute attaches process/infra telemetry (goroutine count,
+// memory, host/pod identity, etc.) to this span's eventual WideEvent — same
+// scope boundary as SetBusinessAttribute.
+func (s *Span) SetRuntimeAttribute(key, value string) {
+	if s.runtimeAttrs == nil {
+		s.runtimeAttrs = make(map[string]string)
+	}
+	s.runtimeAttrs[key] = value
+}
+
 // End reports the span to Beacon, covering [start-of-StartSpan, now], with
 // an OK status if err is nil or an ERROR status carrying err.Error()
-// otherwise. A disabled exporter (telemetry.enabled: false, or unset) makes
-// this a no-op, matching NewTraceInterceptor's behavior.
+// otherwise, then drains this span's log buffer and produces its WideEvent
+// (wide_event.go). A disabled exporter (telemetry.enabled: false, or unset)
+// makes this a no-op, matching NewTraceInterceptor's behavior — WideEvent
+// production for manual spans is coupled to the same flag as tracing itself
+// in this phase (a span has to exist to have a WideEvent, and spans
+// currently only exist when telemetry.enabled is true); decoupling the two
+// is future work, not attempted here.
 func (s *Span) End(err error) {
 	exporter, serviceName := manualExporter()
 	if !exporter.Enabled() {
 		return
 	}
-	statusCode := uint64(statusCodeOK)
-	statusMsg := ""
-	if err != nil {
-		statusCode = statusCodeError
-		statusMsg = err.Error()
-	}
+	statusText, statusCode := statusFromErr(err)
 
 	encoded := encodeSpan(s.traceID, s.spanID, s.parentID, s.name, spanKindInternal,
-		uint64(s.start.UnixNano()), uint64(time.Now().UnixNano()), s.attrs, statusCode, statusMsg)
+		uint64(s.start.UnixNano()), uint64(time.Now().UnixNano()), s.attrs, statusCode, statusText)
 	body := encodeExportTraceRequest(serviceName, [][]byte{encoded})
 	exporter.Export(tracesExportProcedure, body)
+
+	produceWideEventForSpan(serviceName, s.traceID, s.spanID, s.parentID, s.name, s.start, time.Now(),
+		statusOKorError(err), s.logBuf, s.attrs, s.businessAttrs, s.runtimeAttrs)
 }
 
 // ─── Client-side propagation ─────────────────────────────────────────────────

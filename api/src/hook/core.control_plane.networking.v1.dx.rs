@@ -32,4 +32,11 @@ impl NetworkingServiceServiceHook {
             async move { client.delete_route(req()).await.map(|resp| resp.into_inner()) }
         })
     }
+    pub fn validate_route(&self, req: Signal<proto::ValidateRouteRequest>) -> Resource<Result<proto::ValidateRouteResponse, tonic::Status>> {
+        let client = self.0.to_owned();
+        use_resource(move || {
+            let mut client = client.clone();
+            async move { client.validate_route(req()).await.map(|resp| resp.into_inner()) }
+        })
+    }
 }

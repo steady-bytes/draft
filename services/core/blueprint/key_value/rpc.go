@@ -90,7 +90,7 @@ func (h *rpc) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteReques
 		value = req.Msg.GetValue()
 	)
 
-	err := h.controller.Delete(log, key, value)
+	err := h.controller.Delete(log, key, value, 500*time.Millisecond)
 	if err != nil {
 		h.logger.WithError(err).Error(ErrFailedDelete.Error())
 		return nil, connect.NewError(connect.CodeInternal, ErrFailedDelete)

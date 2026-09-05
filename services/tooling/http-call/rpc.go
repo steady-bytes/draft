@@ -214,6 +214,17 @@ func doRequest(ctx context.Context, client *http.Client, call *httpCall) (status
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("building request to %s: %w", call.url, err)
 	}
+	// This is a plain net/http call, not a connect-go client — no
+	// chassis.NewTraceClientInterceptor to reach for, so the header is set
+	// directly, same as services/tooling/bench/grpc_call.go's built-in
+	// bench://grpc-call@v1 executor. If ctx carries a span (scheduler.go's
+	// runStep starts one per step), the target service's own
+	// NewTraceInterceptor continues this trace instead of starting a new,
+	// disconnected one. Set before call.headers so an explicit
+	// with.headers.traceparent in workflow config can still override it.
+	if tp, ok := chassis.TraceParentHeader(ctx); ok {
+		httpReq.Header.Set("traceparent", tp)
+	}
 	for k, v := range call.headers {
 		httpReq.Header.Set(k, v)
 	}

@@ -4,8 +4,14 @@ pub use key_value::KeyValueView;
 mod service_registry;
 pub use service_registry::ServiceRegistry;
 
+mod service_detail;
+pub use service_detail::ServiceDetail;
+
 mod gateway;
 pub use gateway::Gateway;
+
+mod route_detail;
+pub use route_detail::{NewRoute, RouteDetail};
 
 mod agents;
 pub use agents::Agents;

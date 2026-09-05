@@ -25,7 +25,7 @@ const (
 // *
 // CloudEvent Protobuf Format
 //
-// - Required context attributes are explicity represented.
+// - Required context attributes are explicitly represented.
 // - Optional and Extension context attributes are carried in a map structure.
 // - Data may be represented as binary, text, or protobuf messages.
 //

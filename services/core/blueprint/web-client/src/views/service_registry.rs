@@ -1,17 +1,19 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use dioxus::prelude::*;
+use dioxus_grpc::GrpcConfig;
 use draft_api::{
     hook::core_registry_service_discovery_v1::{
         filter, use_service_discovery_service_service, Filter, QueryRequest,
     },
     proto::core_registry_service_discovery_v1::{
-        service_discovery_service_client::ServiceDiscoveryServiceClient, ProcessHealthState,
-        ProcessRunningState, WatchRequest,
+        service_discovery_service_client::ServiceDiscoveryServiceClient, Process,
+        ProcessHealthState, ProcessRunningState, WatchRequest,
     },
 };
-use dioxus_grpc::GrpcConfig;
 use tonic_web_wasm_client::Client as WasmClient;
+
+use crate::Route as AppRoute;
 
 #[component]
 pub fn ServiceRegistry() -> Element {
@@ -25,8 +27,9 @@ pub fn ServiceRegistry() -> Element {
     let query_result = service.query(query_request);
 
     // processes map seeded by Query and updated by Watch
-    let mut processes: Signal<HashMap<String, draft_api::proto::core_registry_service_discovery_v1::Process>> =
-        use_signal(HashMap::new);
+    let mut processes: Signal<
+        HashMap<String, draft_api::proto::core_registry_service_discovery_v1::Process>,
+    > = use_signal(HashMap::new);
 
     // seed from query result
     use_effect(move || {
@@ -64,8 +67,21 @@ pub fn ServiceRegistry() -> Element {
         }
     });
 
-    let mut sorted: Vec<_> = processes.read().values().cloned().collect();
-    sorted.sort_by(|a, b| a.name.cmp(&b.name));
+    // Group by `name` — Blueprint's registry can (today, pending the
+    // deterministic-identity fix) hold several rows for the same logical
+    // service, one per restart's `pid`. Showing one row per `pid` here would
+    // surface that as visible duplication; grouping by name instead shows
+    // one row per logical service, with a per-instance breakdown one click
+    // away on the detail page.
+    let mut by_name: BTreeMap<String, Vec<Process>> = BTreeMap::new();
+    for process in processes.read().values() {
+        by_name
+            .entry(process.name.clone())
+            .or_default()
+            .push(process.clone());
+    }
+
+    let navigator = use_navigator();
 
     rsx! {
         div {
@@ -74,54 +90,66 @@ pub fn ServiceRegistry() -> Element {
                     thead {
                         tr {
                             th { "Name" }
-                            th { "PID" }
-                            th { "IP Address" }
+                            th { "Instances" }
                             th { "Running State" }
                             th { "Health" }
                         }
                     }
                     tbody {
-                        if sorted.is_empty() {
+                        if by_name.is_empty() {
                             if query_result.read().is_none() {
                                 tr {
-                                    td { colspan: "5", class: "text-center", "Loading..." }
+                                    td { colspan: "4", class: "text-center", "Loading..." }
                                 }
                             } else {
                                 tr {
-                                    td { colspan: "5", class: "text-center text-base-content/50",
+                                    td { colspan: "4", class: "text-center text-base-content/50",
                                         "No processes registered"
                                     }
                                 }
                             }
                         }
-                        for process in sorted {
+                        for (name , instances) in by_name {
                             {
-                                let running = ProcessRunningState::try_from(process.running_state)
-                                    .map(|s| s.as_str_name().trim_start_matches("PROCESS_").to_string())
-                                    .unwrap_or_else(|_| "UNKNOWN".to_string());
-                                let health = ProcessHealthState::try_from(process.health_state)
-                                    .map(|s| s.as_str_name().trim_start_matches("PROCESS_").to_string())
-                                    .unwrap_or_else(|_| "UNKNOWN".to_string());
+                                let row_name = name.clone();
+                                let count = instances.len();
 
-                                let running_class = match process.running_state {
-                                    s if s == ProcessRunningState::ProcessRunning as i32 => "badge badge-success badge-sm",
-                                    s if s == ProcessRunningState::ProcessDiconnected as i32 => "badge badge-error badge-sm",
-                                    s if s == ProcessRunningState::ProcessStarting as i32 => "badge badge-warning badge-sm",
-                                    _ => "badge badge-ghost badge-sm",
-                                };
-                                let health_class = match process.health_state {
-                                    s if s == ProcessHealthState::ProcessHealthy as i32 => "badge badge-success badge-sm",
-                                    s if s == ProcessHealthState::ProcessUnhealthy as i32 => "badge badge-error badge-sm",
-                                    _ => "badge badge-ghost badge-sm",
-                                };
+                                let running_count = instances.iter().filter(|p| p.running_state == ProcessRunningState::ProcessRunning as i32).count();
+                                let disconnected_count = instances.iter().filter(|p| p.running_state == ProcessRunningState::ProcessDiconnected as i32).count();
+                                let starting_count = instances.iter().filter(|p| p.running_state == ProcessRunningState::ProcessStarting as i32).count();
+
+                                let healthy_count = instances.iter().filter(|p| p.health_state == ProcessHealthState::ProcessHealthy as i32).count();
+                                let unhealthy_count = instances.iter().filter(|p| p.health_state == ProcessHealthState::ProcessUnhealthy as i32).count();
 
                                 rsx! {
-                                    tr { class: "hover:bg-base-300",
-                                        td { "{process.name}" }
-                                        td { class: "font-mono text-xs", "{process.pid}" }
-                                        td { "{process.ip_address}" }
-                                        td { span { class: "{running_class}", "{running}" } }
-                                        td { span { class: "{health_class}", "{health}" } }
+                                    tr {
+                                        class: "hover:bg-base-300 cursor-pointer",
+                                        onclick: move |_| { navigator.push(AppRoute::ServiceDetail { name: row_name.clone() }); },
+                                        td { "{name}" }
+                                        td { "{count}" }
+                                        td {
+                                            div { class: "flex gap-1 flex-wrap",
+                                                if running_count > 0 {
+                                                    span { class: "badge badge-success badge-sm", "{running_count} running" }
+                                                }
+                                                if starting_count > 0 {
+                                                    span { class: "badge badge-warning badge-sm", "{starting_count} starting" }
+                                                }
+                                                if disconnected_count > 0 {
+                                                    span { class: "badge badge-error badge-sm", "{disconnected_count} disconnected" }
+                                                }
+                                            }
+                                        }
+                                        td {
+                                            div { class: "flex gap-1 flex-wrap",
+                                                if healthy_count > 0 {
+                                                    span { class: "badge badge-success badge-sm", "{healthy_count} healthy" }
+                                                }
+                                                if unhealthy_count > 0 {
+                                                    span { class: "badge badge-error badge-sm", "{unhealthy_count} unhealthy" }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -130,8 +158,7 @@ pub fn ServiceRegistry() -> Element {
                     tfoot {
                         tr {
                             th { "Name" }
-                            th { "PID" }
-                            th { "IP Address" }
+                            th { "Instances" }
                             th { "Running State" }
                             th { "Health" }
                         }

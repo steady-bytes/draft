@@ -235,6 +235,12 @@ pub struct InitializeRequest {
     /// A token will not be issued, and a process will not be able to connect to the `SystemJournal` if the `nonce` is not signed with the correct public key
     #[prost(string, tag = "2")]
     pub nonce: ::prost::alloc::string::String,
+    /// The address (host:port) this process will advertise to peers once registered — the same
+    /// value later sent on every `ClientDetails.advertise_address` in `Synchronize`. Sent this
+    /// early so the registry can derive a deterministic process identity from `name` + this address
+    /// instead of minting a random one, making `Initialize` an idempotent upsert across restarts.
+    #[prost(string, tag = "3")]
+    pub advertise_address: ::prost::alloc::string::String,
 }
 /// InitResponse - Details used by the client to provided to complete the connection
 /// If the token is lost and the registry has not received a `ProcessDetails` message within a 2 mintues

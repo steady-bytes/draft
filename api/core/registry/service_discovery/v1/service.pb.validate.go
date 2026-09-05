@@ -474,6 +474,8 @@ func (m *InitializeRequest) validate(all bool) error {
 
 	// no validation rules for Nonce
 
+	// no validation rules for AdvertiseAddress
+
 	if len(errors) > 0 {
 		return InitializeRequestMultiError(errors)
 	}

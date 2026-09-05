@@ -59,7 +59,11 @@ Fuse is the [control plane](https://en.wikipedia.org/wiki/Control_plane) for a d
 
 1. Once a process has [registered](#process-registration) to Blueprint, the Fuse address is looked up and routing details are sent to Fuse.
 2. Fuse will update envoy with the new route table
-3. Optionally Fuse will store the routing information within Blueprint
+3. Fuse stores the routing information within Blueprint
+
+*Expansion into a full dynamic API gateway — conflict validation, subdomain matching, gRPC-Web, request tracing, automatic TLS/mTLS, and a Blueprint UI — is in progress. See [Fuse — API Gateway](/docs/architecture/fuse-api-gateway) for the system design and phased plan.*
+
+Every core service's own UI (Blueprint, Beacon, Bench, Garage) is now reachable through Fuse this way too, each on its own subdomain (`blueprint.draft.localhost`, etc.) rather than only on its own bind port — see [Service UIs via Subdomains](/docs/architecture/service-ui-subdomains).
 
 </br>
 <img src="/images/docs/fuse-route-registration.png" alt="Blueprint process registration diagram" style="border-radius: 1%; display: block; margin-left: auto; margin-right: auto; width: 80%;"/>

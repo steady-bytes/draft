@@ -26,7 +26,28 @@ const (
 
 	// ReapInterval is how often the reaper loop runs. Exported so main.go can drive the ticker.
 	ReapInterval = 30 * time.Second
+
+	// DeregisterThreshold is how long a process may sit disconnected before the reaper deletes
+	// its registry entry outright, mirroring Consul's DeregisterCriticalServiceAfter. A process
+	// that restarts before this elapses never even reaches it — Initialize's deterministic
+	// identity (see processID) upserts its existing row instead of leaving a disconnected one
+	// behind. This tier exists for processes that are actually gone for good, and for cleaning up
+	// entries left over from before deterministic identity existed.
+	DeregisterThreshold = 5 * time.Minute
 )
+
+// processNamespaceUUID seeds the deterministic (UUIDv5) process identity computed by processID.
+// It's an arbitrary, fixed UUID — it doesn't need to mean anything, only to stay stable across
+// builds so the same (name, advertiseAddress) always hashes to the same id.
+var processNamespaceUUID = uuid.MustParse("8f3b6c1a-8e34-4b7e-9b8a-2f6b7b9a4d10")
+
+// processID derives a deterministic process identity from name and advertiseAddress, so the same
+// logical instance (same name, same reachable address) always computes the same id across
+// restarts. This makes Initialize a pure upsert instead of needing to race-detect and reuse a
+// prior disconnected entry — see docs/architecture/service-registry-identity.md.
+func processID(name, advertiseAddress string) string {
+	return uuid.NewSHA1(processNamespaceUUID, []byte(name+"@"+advertiseAddress)).String()
+}
 
 type (
 	Controller interface {
@@ -35,7 +56,7 @@ type (
 
 	ServiceDiscovery interface {
 		Finalize(ctx context.Context, log chassis.Logger, pid string) error
-		Initialize(ctx context.Context, log chassis.Logger, nonce, name string) (*sdv1.ProcessIdentity, error)
+		Initialize(ctx context.Context, log chassis.Logger, nonce, name, advertiseAddress string) (*sdv1.ProcessIdentity, error)
 		Synchronize(ctx context.Context, log chassis.Logger, details *sdv1.ClientDetails)
 
 		Query(ctx context.Context, log chassis.Logger) (map[string]*sdv1.Process, error)
@@ -91,11 +112,16 @@ const (
 
 // Initialize - When a service starts and wants to register itself with the system then a unique name, and system nonce
 // can be provided to get `ProcessIdentity` details so that A process can then finalize service registration
-func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, name string) (*sdv1.ProcessIdentity, error) {
+//
+// The process identity is deterministic — a UUIDv5 derived from `name` + `advertiseAddress` (see
+// processID) — rather than a fresh random UUID per call. The same logical instance (same name,
+// same reachable address) always computes the same id, so Initialize is a pure upsert: a restart
+// naturally overwrites its own prior registry row instead of racing to detect and reuse it. See
+// docs/architecture/service-registry-identity.md for the full rationale.
+func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, name, advertiseAddress string) (*sdv1.ProcessIdentity, error) {
 	var (
-		err     error
-		process *sdv1.Process
-		pAny    = &anypb.Any{}
+		err  error
+		pAny = &anypb.Any{}
 	)
 
 	// validate the nonce (this will also require that a nonce is read in by the chassis).
@@ -107,25 +133,12 @@ func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, 
 	// 	return nil, errors.New(ErrFailedNonce)
 	// }
 
-	// reuse the PID of a disconnected process with the same name if one exists
-	existing, err := c.Query(ctx, log)
-	if err == nil {
-		for _, p := range existing {
-			if p.Name == name && p.RunningState == sdv1.ProcessRunningState_PROCESS_DICONNECTED {
-				process = p
-				break
-			}
-		}
-	}
-
-	if process == nil {
-		process = &sdv1.Process{
-			Pid:         uuid.NewString(),
-			Name:        name,
-			ProcessKind: sdv1.ProcessKind_SERVER_PROCESS,
-			Metadata:    []*sdv1.Metadata{},
-			JoinedTime:  timestamppb.Now(),
-		}
+	process := &sdv1.Process{
+		Pid:         processID(name, advertiseAddress),
+		Name:        name,
+		ProcessKind: sdv1.ProcessKind_SERVER_PROCESS,
+		Metadata:    []*sdv1.Metadata{},
+		JoinedTime:  timestamppb.Now(),
 	}
 
 	process.RunningState = sdv1.ProcessRunningState_PROCESS_STARTING
@@ -274,7 +287,30 @@ func (c *controller) Reap(ctx context.Context, log chassis.Logger) {
 		if process.LastStatusTime == nil {
 			continue
 		}
-		if time.Since(process.LastStatusTime.AsTime()) > staleThreshold {
+		sinceLastStatus := time.Since(process.LastStatusTime.AsTime())
+
+		// Already disconnected and past DeregisterThreshold: remove the entry outright rather
+		// than leaving a permanent tombstone. This also cleans up rows left over from before
+		// deterministic identity existed, with no special-case migration needed.
+		if process.RunningState == sdv1.ProcessRunningState_PROCESS_DICONNECTED && sinceLastStatus > DeregisterThreshold {
+			log.WithField("pid", process.Pid).WithField("name", process.Name).Warn("reaper: deregistering process disconnected past threshold")
+
+			pAny, err := anypb.New(process)
+			if err != nil {
+				log.WithError(err).WithField("pid", process.Pid).Error("reaper: failed to marshal process")
+				continue
+			}
+
+			if err := c.kvController.Delete(log, process.Pid, pAny, 500*time.Millisecond); err != nil {
+				log.WithError(err).WithField("pid", process.Pid).Error("reaper: failed to deregister disconnected process")
+				continue
+			}
+
+			c.broadcaster.PublishRemoved(process.Pid)
+			continue
+		}
+
+		if sinceLastStatus > staleThreshold {
 			log.WithField("pid", process.Pid).WithField("name", process.Name).Warn("reaper: marking stale process as disconnected")
 
 			process.RunningState = sdv1.ProcessRunningState_PROCESS_DICONNECTED

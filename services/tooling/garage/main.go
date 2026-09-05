@@ -54,6 +54,23 @@ func main() {
 				Prefix: "/tooling.plugin_catalog.v1.PluginCatalogService/",
 			},
 		}).
+		// A second, distinctly-named route: exposes Garage's UI (ui.go's
+		// Catalog/Plugin detail pages, on this same mux/port per the comment
+		// above) through Fuse on its own subdomain. Needs an explicit Name for
+		// the same reason as beacon/main.go's equivalent addition — an unset
+		// Route.Name would auto-derive to "tooling-garage" again, colliding
+		// with the route above instead of adding a second one.
+		WithRoute(&ntv1.Route{
+			Name: "tooling-garage-ui",
+			Match: &ntv1.RouteMatch{
+				Host:   "garage.draft.localhost",
+				Prefix: "/",
+			},
+			// See blueprint/main.go's identical field for why: Fuse's grpc_web filter
+			// bridges browser grpc-web calls into plain (HTTP/2-only) gRPC, which
+			// breaks against an HTTP/1.1-only upstream cluster.
+			EnableHttp2: true,
+		}).
 		Register(chassis.RegistrationOptions{
 			Namespace: "tooling",
 		}).

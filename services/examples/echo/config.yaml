@@ -9,7 +9,15 @@ service:
   network:
     bind_address: localhost
     bind_port: 9091
+    # internal.host is advertised to peers (service discovery, OTel export target resolution)
+    # and must be reachable from other host-native processes -- see route.host below for the
+    # one caller (Envoy, which runs in Docker) that needs a different address.
     internal:
+      host: localhost
+      port: 9091
+    # route.host overrides internal.host for Fuse's route-endpoint auto-fill only (see
+    # pkg/chassis/networking.go's getConfigInternalHost).
+    route:
       host: host.docker.internal
       port: 9091
     external:
@@ -17,3 +25,5 @@ service:
 
 telemetry:
   enabled: true
+  wide_events:
+    enabled: true

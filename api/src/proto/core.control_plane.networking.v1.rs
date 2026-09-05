@@ -12,10 +12,17 @@ pub struct AddRouteRequest {
 /// AddRouteResponse - Response to adding a route to the networking configuration. Just because a message
 /// was received doesn't mean it was successful. The `code` field is used to determine the success of the
 /// route entry.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AddRouteResponse {
     #[prost(enumeration = "AddRouteResponseCode", tag = "1")]
     pub code: i32,
+    /// Human-readable detail, populated on non-OK codes (eg. explaining which existing route conflicted).
+    #[prost(string, tag = "2")]
+    pub message: ::prost::alloc::string::String,
+    /// Names of existing routes that conflict with the requested route, populated when code is INVALID_REQUEST
+    /// due to a conflict.
+    #[prost(string, repeated, tag = "3")]
+    pub conflicting_routes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListRoutesRequest {}
@@ -34,6 +41,24 @@ pub struct DeleteRouteRequest {
 pub struct DeleteRouteResponse {
     #[prost(enumeration = "DeleteRouteCode", tag = "1")]
     pub code: i32,
+}
+/// ValidateRouteRequest - check a candidate route against the existing networking configuration
+/// without persisting it.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ValidateRouteRequest {
+    #[prost(message, optional, tag = "1")]
+    pub route: ::core::option::Option<Route>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ValidateRouteResponse {
+    #[prost(bool, tag = "1")]
+    pub valid: bool,
+    /// Names of existing routes that conflict with the candidate route. Empty when valid is true.
+    #[prost(string, repeated, tag = "2")]
+    pub conflicting_routes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Human-readable detail, populated when valid is false.
+    #[prost(string, tag = "3")]
+    pub message: ::prost::alloc::string::String,
 }
 /// RouteAuth declares the authentication policy for a single route. When absent or
 /// enabled=false the route is public and no ext_authz check is performed.
@@ -107,9 +132,13 @@ pub struct RouteMatch {
     /// TODO -> implement pre 2.0 relase of `fuse`
     #[prost(message, optional, tag = "4")]
     pub dynamic_metadata: ::core::option::Option<DynamicMetadata>,
-    /// Host address for the route
+    /// Host address for the route. May be a literal hostname or a single leading wildcard label
+    /// (eg. "\*.draft.localhost") to match any subdomain.
     #[prost(string, tag = "5")]
     pub host: ::prost::alloc::string::String,
+    /// Whether `prefix` is matched exactly or as a prefix. Defaults to PREFIX when unset.
+    #[prost(enumeration = "MatchType", tag = "6")]
+    pub match_type: i32,
 }
 /// consider using the `key/value` from `blueprint` key/value store
 /// TODO -> implement pre 1.0 relase of `fuse`
@@ -226,6 +255,40 @@ impl AuthPolicy {
             "AUTH_POLICY_AUTHENTICATED" => Some(Self::Authenticated),
             "AUTH_POLICY_GROUPS" => Some(Self::Groups),
             "AUTH_POLICY_SCOPES" => Some(Self::Scopes),
+            _ => None,
+        }
+    }
+}
+/// MatchType controls whether `RouteMatch.prefix` is compiled to an Envoy exact-path match or a
+/// prefix match. MATCH_TYPE_UNSPECIFIED is treated as MATCH_TYPE_PREFIX — this matches the runtime
+/// behavior every route compiled to before this field existed, so already-registered services keep
+/// working unchanged. New callers should set MATCH_TYPE_EXACT explicitly; UNSPECIFIED defaulting to
+/// PREFIX is a deliberate backward-compatibility shim, not the intended long-term default.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MatchType {
+    Unspecified = 0,
+    Exact = 1,
+    Prefix = 2,
+}
+impl MatchType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MATCH_TYPE_UNSPECIFIED",
+            Self::Exact => "MATCH_TYPE_EXACT",
+            Self::Prefix => "MATCH_TYPE_PREFIX",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MATCH_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "MATCH_TYPE_EXACT" => Some(Self::Exact),
+            "MATCH_TYPE_PREFIX" => Some(Self::Prefix),
             _ => None,
         }
     }
@@ -405,6 +468,37 @@ pub mod networking_service_client {
                     GrpcMethod::new(
                         "core.control_plane.networking.v1.NetworkingService",
                         "DeleteRoute",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Validate a route against the existing networking configuration without persisting it.
+        /// Used to surface conflicts (eg. in the blueprint UI) before a route is actually added.
+        pub async fn validate_route(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ValidateRouteRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ValidateRouteResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.control_plane.networking.v1.NetworkingService/ValidateRoute",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.control_plane.networking.v1.NetworkingService",
+                        "ValidateRoute",
                     ),
                 );
             self.inner.unary(req, path, codec).await

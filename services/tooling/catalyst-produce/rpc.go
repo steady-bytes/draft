@@ -121,7 +121,7 @@ func (h *handler) Execute(ctx context.Context, req *connect.Request[stepexecutor
 		}
 	}
 
-	event, err := buildEvent(eventType, source, subject, data)
+	event, err := buildEvent(ctx, eventType, source, subject, data)
 	if err != nil {
 		return connect.NewResponse(&stepexecutorv1.StepResponse{
 			Success: false,
@@ -198,8 +198,13 @@ func parseConfig(config *structpb.Struct) (eventType, source, subject string, da
 // buildEvent constructs the CloudEvent to send, matching the shape
 // services/tooling/bench/catalyst.go's runEvent/stepEvent build (a JSON
 // text-data body, a "time" attribute, and — when set — a "subject"
-// attribute).
-func buildEvent(eventType, source, subject string, data map[string]interface{}) (*acv1.CloudEvent, error) {
+// attribute). Also attaches a "traceparent" attribute (chassis.
+// CloudEventTraceParentAttribute) when ctx carries a span — this step's own
+// request-level span, from Execute's NewTraceInterceptor wrapping, itself
+// continuing whatever bench step called it — so a consumer of this event
+// can correlate its own handling back to the workflow that produced it,
+// the same guarantee TraceParentHeader already gives a direct RPC/HTTP call.
+func buildEvent(ctx context.Context, eventType, source, subject string, data map[string]interface{}) (*acv1.CloudEvent, error) {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("config.data could not be marshaled to JSON: %w", err)
@@ -210,6 +215,9 @@ func buildEvent(eventType, source, subject string, data map[string]interface{}) 
 	}
 	if subject != "" {
 		attrs["subject"] = &acv1.CloudEvent_CloudEventAttributeValue{Attr: &acv1.CloudEvent_CloudEventAttributeValue_CeString{CeString: subject}}
+	}
+	if tp, ok := chassis.CloudEventTraceParentAttribute(ctx); ok {
+		attrs[chassis.CloudEventTraceParentAttributeKey] = tp
 	}
 
 	return &acv1.CloudEvent{

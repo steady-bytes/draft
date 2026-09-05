@@ -1,9 +1,9 @@
 package control_plane
 
 import (
-	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -21,6 +21,7 @@ import (
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	extauthzv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
+	grpcwebv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_web/v3"
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	upstreams "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
@@ -43,7 +44,9 @@ type (
 
 		LoadCache()
 		UpdateCacheWithNewRoute(route *ntv1.Route) error
+		DeleteRoute(ctx context.Context, name string) error
 		ListRoutes(ctx context.Context) ([]*ntv1.Route, error)
+		FindConflicts(ctx context.Context, candidate *ntv1.Route) ([]string, error)
 		Increment() string
 	}
 
@@ -160,6 +163,62 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 	return cp.apply(ctx, client)
 }
 
+// DeleteRoute removes a route from the blueprint key/value store and rebuilds the Envoy snapshot
+// without it, mirroring what UpdateCacheWithNewRoute already does on add.
+func (cp *controlPlane) DeleteRoute(ctx context.Context, name string) error {
+	client := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
+
+	routeModel, err := anypb.New(&ntv1.Route{})
+	if err != nil {
+		cp.logger.Error(err.Error())
+		return ErrFailedRouteMarshal
+	}
+
+	_, err = client.Delete(ctx, connect.NewRequest(&kvv1.DeleteRequest{
+		Key:   name,
+		Value: routeModel,
+	}))
+	if err != nil {
+		cp.logger.Error(err.Error())
+		return err
+	}
+
+	return cp.apply(ctx, client)
+}
+
+// FindConflicts returns the names of any existing routes that share the same (host, match_type,
+// prefix) tuple as candidate. Excludes candidate.Name itself so re-registering an unchanged route
+// doesn't flag against itself.
+func (cp *controlPlane) FindConflicts(ctx context.Context, candidate *ntv1.Route) ([]string, error) {
+	existing, err := cp.ListRoutes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	key := routeKey(candidate.GetMatch())
+	var conflicts []string
+	for _, r := range existing {
+		if r.GetName() == candidate.GetName() {
+			continue
+		}
+		if r.GetMatch().GetHost() == candidate.GetMatch().GetHost() && routeKey(r.GetMatch()) == key {
+			conflicts = append(conflicts, r.GetName())
+		}
+	}
+	return conflicts, nil
+}
+
+// routeKey normalizes match_type (UNSPECIFIED behaves as PREFIX, matching the compiled Envoy
+// behavior in makeRouterConfig) so two routes that would compile to the same Envoy route conflict
+// even if one left match_type unset.
+func routeKey(m *ntv1.RouteMatch) string {
+	mt := m.GetMatchType()
+	if mt == ntv1.MatchType_MATCH_TYPE_UNSPECIFIED {
+		mt = ntv1.MatchType_MATCH_TYPE_PREFIX
+	}
+	return fmt.Sprintf("%d:%s", mt, m.GetPrefix())
+}
+
 func (cp *controlPlane) ListRoutes(ctx context.Context) ([]*ntv1.Route, error) {
 	client := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
 
@@ -246,7 +305,8 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 		return err
 	}
 
-	// Build the ordered HttpFilter chain. ext_authz must come before the router.
+	// Build the ordered HttpFilter chain. ext_authz must come before grpc_web, which must come
+	// before the router.
 	httpFilters := []*hcm.HttpFilter{}
 	if authEnabled {
 		extAuthzFilter, err := makeExtAuthzFilter(authAddr)
@@ -256,6 +316,17 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 		}
 		httpFilters = append(httpFilters, extAuthzFilter)
 	}
+	// grpc_web translates the grpc-web wire format browsers use into standard gRPC. It's a no-op
+	// passthrough for non-grpc-web requests, so it's safe to enable unconditionally.
+	grpcWebAny, err := anypb.New(&grpcwebv3.GrpcWeb{})
+	if err != nil {
+		cp.logger.Error(err.Error())
+		return err
+	}
+	httpFilters = append(httpFilters, &hcm.HttpFilter{
+		Name:       "envoy.filters.http.grpc_web",
+		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: grpcWebAny},
+	})
 	httpFilters = append(httpFilters, &hcm.HttpFilter{
 		Name:       "fuse-http-router",
 		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: routerConfig},
@@ -279,6 +350,18 @@ func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueSe
 		},
 		// disable with 0 value
 		StreamIdleTimeout: &durationpb.Duration{},
+		// Host-based routing (subdomain-per-service UI routes, RouteMatch.host generally)
+		// matches VirtualHost.Domains against the request's Host/:authority header verbatim,
+		// port included, unless told otherwise. A browser includes the port whenever it's
+		// non-default (eg. Host: blueprint.draft.localhost:10000 hitting this listener's own
+		// non-standard port) -- without this, that request falls through to the catch-all "*"
+		// virtual host instead of matching the dedicated one, since routes are registered with
+		// just the bare host (eg. "blueprint.draft.localhost"), not host:port. Confirmed live:
+		// curl with an explicit Host header (no port) matched correctly and masked this: only
+		// testing through an actual browser against the real listener port surfaced it.
+		StripPortMode: &hcm.HttpConnectionManager_StripAnyHostPort{
+			StripAnyHostPort: true,
+		},
 	}
 
 	pbst, err := anypb.New(manager)
@@ -520,12 +603,18 @@ func makeRouterConfig(routes map[string]*anypb.Any, authEnabled bool) *route.Rou
 			perRouteConfig[AUTH_FILTER_NAME] = authCfg
 		}
 
+		// match_type is unset (UNSPECIFIED) on every route registered before this field existed;
+		// treat that the same as PREFIX so those routes keep compiling identically. See routeKey,
+		// which applies the same normalization for conflict detection.
+		routeMatch := &route.RouteMatch{}
+		if r.Match.GetMatchType() == ntv1.MatchType_MATCH_TYPE_EXACT {
+			routeMatch.PathSpecifier = &route.RouteMatch_Path{Path: r.Match.Prefix}
+		} else {
+			routeMatch.PathSpecifier = &route.RouteMatch_Prefix{Prefix: r.Match.Prefix}
+		}
+
 		envoyRoute := &route.Route{
-			Match: &route.RouteMatch{
-				PathSpecifier: &route.RouteMatch_Prefix{
-					Prefix: r.Match.Prefix,
-				},
-			},
+			Match: routeMatch,
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
 					ClusterSpecifier: &route.RouteAction_Cluster{
@@ -559,9 +648,27 @@ func makeRouterConfig(routes map[string]*anypb.Any, authEnabled bool) *route.Rou
 	//		Doing this is important since you might have multiple services (routes) attached to a single host with
 	// 		one hosting a web-client with a prefix of "/" and others hosting APIs with prefixes like "/examples.crud.v1.CrudService/".
 	// 		This needs to be revisited with a proper pattern defined for enabling developers to define RouteMatch ordering.
+	//
+	// EXACT routes (compiled to route.RouteMatch_Path, not _Prefix) must sort before every PREFIX route regardless of
+	// path length: Envoy's route.RouteMatch.GetPrefix() returns "" for a _Path-specified match, so comparing raw
+	// GetPrefix() values (the previous version of this sort) silently treated every EXACT route as if it had the
+	// shortest possible prefix -- losing to a catch-all "/" PREFIX route instead of winning as the more specific
+	// match. Two EXACT routes never need ordering between each other: identical (host, EXACT, path) tuples are
+	// already rejected as a conflict in AddRoute, so within one virtual host at most one can match a given path.
 	for _, vh := range virtualHosts {
 		slices.SortFunc(vh.Routes, func(a, b *route.Route) int {
-			return cmp.Compare(b.Match.GetPrefix(), a.Match.GetPrefix())
+			aExact := a.Match.GetPath() != ""
+			bExact := b.Match.GetPath() != ""
+			if aExact != bExact {
+				if aExact {
+					return -1
+				}
+				return 1
+			}
+			if aExact {
+				return 0
+			}
+			return len(b.Match.GetPrefix()) - len(a.Match.GetPrefix())
 		})
 	}
 

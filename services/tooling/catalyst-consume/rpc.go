@@ -201,6 +201,18 @@ func buildResult(event *acv1.CloudEvent, fields map[string]string) (*structpb.St
 			"source":  event.GetSource(),
 			"id":      event.GetId(),
 			"subject": attrString(event, "subject"),
+			// Surfaced for correlation, not auto-applied to this step's own
+			// span: catalyst-consume's Execute is already correctly parented
+			// to whatever called it (bench, via garage_plugin.go's
+			// NewTraceClientInterceptor) — that's a real, useful relationship
+			// in its own right ("which workflow step triggered this"),
+			// distinct from "who originally produced the event," which this
+			// is. Forcing one parent_span_id to represent both would destroy
+			// the first to gain the second; real tracing systems solve this
+			// with span links (a secondary reference), which WideEvent's
+			// schema doesn't have yet. A workflow author who wants to jump to
+			// the producing trace can read this directly.
+			"traceparent": attrString(event, chassis.CloudEventTraceParentAttributeKey),
 		},
 		"payload": payload,
 	}

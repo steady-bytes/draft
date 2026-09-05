@@ -1,0 +1,213 @@
+# Same proof as fuse-proxy-e2e (register a route, call it through the real Envoy
+# proxy, confirm the consuming service received it, clean up) but sends 10 requests
+# instead of one, waiting 5s between each via bench://delay@v1 -- there's no native
+# "repeat N times" construct in Bench's DAG model, so this is 10 literal steps
+# chained by depends_on rather than a loop. Useful for watching a route hold up
+# under repeated real traffic rather than a single request, e.g. while tailing
+# Envoy's/Fuse's logs or its /stats endpoint during a run.
+#
+# See fuse-proxy-e2e.yaml for the full rationale behind the route/host/path
+# choices (exact match on the real Connect method path, default virtual host,
+# 127.0.0.1 instead of a synthetic *.localhost subdomain) -- unchanged here.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: fuse-proxy-e2e-10x
+  description: Register a route with Fuse, call it through the real Envoy proxy 10 times (5s apart), and confirm the consuming service received every one.
+steps:
+  - name: register-test-route
+    uses: bench://grpc-call@v1
+    with:
+      service: core.control_plane.networking.v1.NetworkingService
+      method: AddRoute
+      request:
+        route:
+          name: bench-fuse-proxy-test-10x
+          match:
+            prefix: /examples.echo.v1.EchoService/Speak
+            match_type: MATCH_TYPE_EXACT
+          endpoint:
+            host: host.docker.internal
+            port: 9091
+    expect:
+      status: OK
+      body:
+        code: { equals: "OK" }
+
+  - name: call-1
+    uses: garage://http-call@v1
+    depends_on: [register-test-route]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #1" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #1" } }
+
+  - name: wait-1
+    uses: bench://delay@v1
+    depends_on: [call-1]
+    with: { duration: 5s }
+
+  - name: call-2
+    uses: garage://http-call@v1
+    depends_on: [wait-1]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #2" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #2" } }
+
+  - name: wait-2
+    uses: bench://delay@v1
+    depends_on: [call-2]
+    with: { duration: 5s }
+
+  - name: call-3
+    uses: garage://http-call@v1
+    depends_on: [wait-2]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #3" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #3" } }
+
+  - name: wait-3
+    uses: bench://delay@v1
+    depends_on: [call-3]
+    with: { duration: 5s }
+
+  - name: call-4
+    uses: garage://http-call@v1
+    depends_on: [wait-3]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #4" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #4" } }
+
+  - name: wait-4
+    uses: bench://delay@v1
+    depends_on: [call-4]
+    with: { duration: 5s }
+
+  - name: call-5
+    uses: garage://http-call@v1
+    depends_on: [wait-4]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #5" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #5" } }
+
+  - name: wait-5
+    uses: bench://delay@v1
+    depends_on: [call-5]
+    with: { duration: 5s }
+
+  - name: call-6
+    uses: garage://http-call@v1
+    depends_on: [wait-5]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #6" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #6" } }
+
+  - name: wait-6
+    uses: bench://delay@v1
+    depends_on: [call-6]
+    with: { duration: 5s }
+
+  - name: call-7
+    uses: garage://http-call@v1
+    depends_on: [wait-6]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #7" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #7" } }
+
+  - name: wait-7
+    uses: bench://delay@v1
+    depends_on: [call-7]
+    with: { duration: 5s }
+
+  - name: call-8
+    uses: garage://http-call@v1
+    depends_on: [wait-7]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #8" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #8" } }
+
+  - name: wait-8
+    uses: bench://delay@v1
+    depends_on: [call-8]
+    with: { duration: 5s }
+
+  - name: call-9
+    uses: garage://http-call@v1
+    depends_on: [wait-8]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #9" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #9" } }
+
+  - name: wait-9
+    uses: bench://delay@v1
+    depends_on: [call-9]
+    with: { duration: 5s }
+
+  - name: call-10
+    uses: garage://http-call@v1
+    depends_on: [wait-9]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers: { Content-Type: application/json }
+      body: { input: "hello through fuse #10" }
+      expect:
+        status: OK
+        body: { output: { equals: "hello through fuse #10" } }
+
+  - name: cleanup-test-route
+    uses: bench://grpc-call@v1
+    depends_on: [call-10]
+    with:
+      service: core.control_plane.networking.v1.NetworkingService
+      method: DeleteRoute
+      request:
+        name: bench-fuse-proxy-test-10x
+    expect:
+      status: OK
+      body:
+        code: { equals: "DELETE_ROUTE_OK" }

@@ -42,14 +42,18 @@ const (
 	// NetworkingServiceDeleteRouteProcedure is the fully-qualified name of the NetworkingService's
 	// DeleteRoute RPC.
 	NetworkingServiceDeleteRouteProcedure = "/core.control_plane.networking.v1.NetworkingService/DeleteRoute"
+	// NetworkingServiceValidateRouteProcedure is the fully-qualified name of the NetworkingService's
+	// ValidateRoute RPC.
+	NetworkingServiceValidateRouteProcedure = "/core.control_plane.networking.v1.NetworkingService/ValidateRoute"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	networkingServiceServiceDescriptor           = v1.File_core_control_plane_networking_v1_service_proto.Services().ByName("NetworkingService")
-	networkingServiceAddRouteMethodDescriptor    = networkingServiceServiceDescriptor.Methods().ByName("AddRoute")
-	networkingServiceListRoutesMethodDescriptor  = networkingServiceServiceDescriptor.Methods().ByName("ListRoutes")
-	networkingServiceDeleteRouteMethodDescriptor = networkingServiceServiceDescriptor.Methods().ByName("DeleteRoute")
+	networkingServiceServiceDescriptor             = v1.File_core_control_plane_networking_v1_service_proto.Services().ByName("NetworkingService")
+	networkingServiceAddRouteMethodDescriptor      = networkingServiceServiceDescriptor.Methods().ByName("AddRoute")
+	networkingServiceListRoutesMethodDescriptor    = networkingServiceServiceDescriptor.Methods().ByName("ListRoutes")
+	networkingServiceDeleteRouteMethodDescriptor   = networkingServiceServiceDescriptor.Methods().ByName("DeleteRoute")
+	networkingServiceValidateRouteMethodDescriptor = networkingServiceServiceDescriptor.Methods().ByName("ValidateRoute")
 )
 
 // NetworkingServiceClient is a client for the core.control_plane.networking.v1.NetworkingService
@@ -62,6 +66,9 @@ type NetworkingServiceClient interface {
 	// Delete a route from the networking configuration, requires the name of the route
 	// and returns a response code to indicate the success of the operation
 	DeleteRoute(context.Context, *connect.Request[v1.DeleteRouteRequest]) (*connect.Response[v1.DeleteRouteResponse], error)
+	// Validate a route against the existing networking configuration without persisting it.
+	// Used to surface conflicts (eg. in the blueprint UI) before a route is actually added.
+	ValidateRoute(context.Context, *connect.Request[v1.ValidateRouteRequest]) (*connect.Response[v1.ValidateRouteResponse], error)
 }
 
 // NewNetworkingServiceClient constructs a client for the
@@ -93,14 +100,21 @@ func NewNetworkingServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(networkingServiceDeleteRouteMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		validateRoute: connect.NewClient[v1.ValidateRouteRequest, v1.ValidateRouteResponse](
+			httpClient,
+			baseURL+NetworkingServiceValidateRouteProcedure,
+			connect.WithSchema(networkingServiceValidateRouteMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // networkingServiceClient implements NetworkingServiceClient.
 type networkingServiceClient struct {
-	addRoute    *connect.Client[v1.AddRouteRequest, v1.AddRouteResponse]
-	listRoutes  *connect.Client[v1.ListRoutesRequest, v1.ListRoutesResponse]
-	deleteRoute *connect.Client[v1.DeleteRouteRequest, v1.DeleteRouteResponse]
+	addRoute      *connect.Client[v1.AddRouteRequest, v1.AddRouteResponse]
+	listRoutes    *connect.Client[v1.ListRoutesRequest, v1.ListRoutesResponse]
+	deleteRoute   *connect.Client[v1.DeleteRouteRequest, v1.DeleteRouteResponse]
+	validateRoute *connect.Client[v1.ValidateRouteRequest, v1.ValidateRouteResponse]
 }
 
 // AddRoute calls core.control_plane.networking.v1.NetworkingService.AddRoute.
@@ -118,6 +132,11 @@ func (c *networkingServiceClient) DeleteRoute(ctx context.Context, req *connect.
 	return c.deleteRoute.CallUnary(ctx, req)
 }
 
+// ValidateRoute calls core.control_plane.networking.v1.NetworkingService.ValidateRoute.
+func (c *networkingServiceClient) ValidateRoute(ctx context.Context, req *connect.Request[v1.ValidateRouteRequest]) (*connect.Response[v1.ValidateRouteResponse], error) {
+	return c.validateRoute.CallUnary(ctx, req)
+}
+
 // NetworkingServiceHandler is an implementation of the
 // core.control_plane.networking.v1.NetworkingService service.
 type NetworkingServiceHandler interface {
@@ -128,6 +147,9 @@ type NetworkingServiceHandler interface {
 	// Delete a route from the networking configuration, requires the name of the route
 	// and returns a response code to indicate the success of the operation
 	DeleteRoute(context.Context, *connect.Request[v1.DeleteRouteRequest]) (*connect.Response[v1.DeleteRouteResponse], error)
+	// Validate a route against the existing networking configuration without persisting it.
+	// Used to surface conflicts (eg. in the blueprint UI) before a route is actually added.
+	ValidateRoute(context.Context, *connect.Request[v1.ValidateRouteRequest]) (*connect.Response[v1.ValidateRouteResponse], error)
 }
 
 // NewNetworkingServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -154,6 +176,12 @@ func NewNetworkingServiceHandler(svc NetworkingServiceHandler, opts ...connect.H
 		connect.WithSchema(networkingServiceDeleteRouteMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	networkingServiceValidateRouteHandler := connect.NewUnaryHandler(
+		NetworkingServiceValidateRouteProcedure,
+		svc.ValidateRoute,
+		connect.WithSchema(networkingServiceValidateRouteMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/core.control_plane.networking.v1.NetworkingService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case NetworkingServiceAddRouteProcedure:
@@ -162,6 +190,8 @@ func NewNetworkingServiceHandler(svc NetworkingServiceHandler, opts ...connect.H
 			networkingServiceListRoutesHandler.ServeHTTP(w, r)
 		case NetworkingServiceDeleteRouteProcedure:
 			networkingServiceDeleteRouteHandler.ServeHTTP(w, r)
+		case NetworkingServiceValidateRouteProcedure:
+			networkingServiceValidateRouteHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -181,4 +211,8 @@ func (UnimplementedNetworkingServiceHandler) ListRoutes(context.Context, *connec
 
 func (UnimplementedNetworkingServiceHandler) DeleteRoute(context.Context, *connect.Request[v1.DeleteRouteRequest]) (*connect.Response[v1.DeleteRouteResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.control_plane.networking.v1.NetworkingService.DeleteRoute is not implemented"))
+}
+
+func (UnimplementedNetworkingServiceHandler) ValidateRoute(context.Context, *connect.Request[v1.ValidateRouteRequest]) (*connect.Response[v1.ValidateRouteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.control_plane.networking.v1.NetworkingService.ValidateRoute is not implemented"))
 }

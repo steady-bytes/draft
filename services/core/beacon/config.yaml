@@ -8,8 +8,19 @@ service:
 
   network:
     bind_port: 2222
+    # internal.host is advertised to Blueprint's ServiceDiscoveryService and used by every
+    # host-native peer (including chassis's own OTel exporter, resolving "beacon" to send
+    # telemetry) — must be reachable from other native processes, so "localhost" here, not
+    # "host.docker.internal" (that only resolves inside Docker; see route.host below for the
+    # one caller, Envoy, that actually runs there).
     internal:
       host: localhost
+      port: 2222
+    # route.host overrides internal.host for Fuse's route-endpoint auto-fill only (see
+    # pkg/chassis/networking.go's getConfigInternalHost) — Envoy runs inside Docker and needs
+    # "host.docker.internal" to reach this (host-native) process; nothing else should use it.
+    route:
+      host: host.docker.internal
       port: 2222
 
 telemetry:

@@ -6,13 +6,15 @@ use web_sys::window;
 mod components;
 mod views;
 
-use views::{Metrics, PageNotFound, Stream, Traces};
+use views::{Metrics, PageNotFound, Stream, Traces, WideEvents};
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
     #[layout(dashboard_layout)]
         #[route("/")]
+        WideEvents {},
+        #[route("/logs")]
         Stream {},
         #[route("/traces")]
         Traces {},
@@ -79,6 +81,11 @@ fn dashboard_layout() -> Element {
                     span { class: "text-lg font-bold tracking-tight", "{{beacon}}" }
                 }
                 div { class: "px-2 flex gap-1",
+                    Link {
+                        to: Route::WideEvents {},
+                        class: "btn btn-sm btn-ghost",
+                        "Events"
+                    }
                     Link {
                         to: Route::Stream {},
                         class: "btn btn-sm btn-ghost",

@@ -43,12 +43,13 @@ var (
 
 func (h *rpc) Initialize(ctx context.Context, req *connect.Request[sdv1.InitializeRequest]) (*connect.Response[sdv1.InitializeResponse], error) {
 	var (
-		log   = h.logger.WithContext(ctx)
-		nonce = req.Msg.Nonce
-		name  = req.Msg.Name
+		log              = h.logger.WithContext(ctx)
+		nonce            = req.Msg.Nonce
+		name             = req.Msg.Name
+		advertiseAddress = req.Msg.AdvertiseAddress
 	)
 
-	identity, err := h.controller.Initialize(ctx, log, nonce, name)
+	identity, err := h.controller.Initialize(ctx, log, nonce, name, advertiseAddress)
 	if err != nil {
 		log.
 			WithError(err).

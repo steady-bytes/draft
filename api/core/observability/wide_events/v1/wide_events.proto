@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package core.observability.wide_events.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/core/observability/wide_events/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── WideEvents Service ─────────────────────────────────────────────────────
+//
+// WideEventsService is Beacon's query and ingestion surface for WideEvents —
+// see docs/website/content/docs/architecture/wide-events.md for the full
+// design. A WideEvent is produced two ways: automatically by pkg/chassis on
+// span completion (both the NewTraceInterceptor-wrapped RPC-handler path and
+// the manual StartSpan/Span.End path), and directly via CreateWideEvent for
+// callers with no chassis span to hang one off of — chiefly the Dioxus/WASM
+// web clients, which never run chassis's Go-native span/log buffering at
+// all. Either way, every WideEvent flows through Catalyst as a CloudEvent
+// (type "core.observability.wide_events.v1.WideEvent") and Beacon consumes
+// it back into its own `wide_events` ClickHouse table — CreateWideEvent does
+// not write to ClickHouse directly.
+service WideEventsService {
+    // SearchWideEvents returns a bounded, paginated set of WideEvents
+    // matching an optional BeaconQL filter expression, most recent first —
+    // same shape as TracesService.SearchTraces.
+    rpc SearchWideEvents(SearchWideEventsRequest) returns (SearchWideEventsResponse) {}
+
+    // GetWideEvent fetches one WideEvent by span_id, full logs/attributes
+    // included.
+    rpc GetWideEvent(GetWideEventRequest) returns (GetWideEventResponse) {}
+
+    // CreateWideEvent submits a WideEvent directly. Takes a WideEvent
+    // message, not a raw CloudEvent -- the caller shouldn't need to know
+    // about the envelope. Beacon builds the CloudEvent internally and
+    // produces it via Catalyst like any other WideEvent, so it's visible to
+    // every other consumer built against this stream, not just Beacon.
+    rpc CreateWideEvent(CreateWideEventRequest) returns (CreateWideEventResponse) {}
+}
+
+// WideEvent is one record per span, carrying its trace context, every log
+// line emitted during it, and whatever attributes the producer attached —
+// see the design doc's "wide event / canonical log line" framing.
+message WideEvent {
+    string trace_id       = 1;
+    string span_id        = 2;
+    string parent_span_id = 3;
+    string service_name   = 4;
+    string span_name      = 5;
+
+    google.protobuf.Timestamp start_time  = 6;
+    uint64                    duration_ns = 7;
+
+    // Same meaning/values as Span.status_code (traces/v1) -- this is the
+    // field exception-handling consumers filter on. No separate outcome
+    // field.
+    string status_code = 8;
+
+    repeated LogLine logs = 9;
+
+    // OTel semantic-convention attributes -- same meaning as Span.attributes
+    // in traces/v1, kept separate from the two attribute maps below so
+    // standard OTel keys (http.method, etc.) don't mix with app-specific
+    // context.
+    map<string, string> attributes = 10;
+    // Business/domain context the handling code knows about this unit of
+    // work: user_id, workflow_run_id, request parameters, etc.
+    map<string, string> business_attributes = 11;
+    // Process/infra telemetry at the time of the span: goroutine count,
+    // memory, host/pod identity, etc.
+    map<string, string> runtime_attributes = 12;
+}
+
+// LogLine is one log line emitted during a WideEvent's span.
+message LogLine {
+    google.protobuf.Timestamp timestamp = 1;
+    string                    severity  = 2; // same values as LogRecord.severity_text (logs/v1)
+    string                    body      = 3;
+}
+
+message SearchWideEventsRequest {
+    // BeaconQL filter expression, e.g. `service_name = "beacon" AND status_code = "ERROR"`.
+    // Empty string means no filter -- return the most recent WideEvents unfiltered.
+    string filter = 1;
+    // Maximum rows to return. 0 = server default.
+    int32 limit = 2;
+    // RFC3339 timestamp cursor -- only WideEvents with start_time strictly
+    // before this value are returned, for backward pagination through
+    // results ordered most-recent-first. Empty string means no cursor.
+    string before = 3;
+}
+
+message SearchWideEventsResponse {
+    repeated WideEvent events = 1;
+}
+
+message GetWideEventRequest {
+    string span_id = 1;
+}
+
+message GetWideEventResponse {
+    WideEvent event = 1;
+}
+
+message CreateWideEventRequest {
+    WideEvent event = 1;
+}
+
+message CreateWideEventResponse {
+    // Echoes WideEvent.span_id once accepted, or a server-generated one if
+    // the caller left it empty.
+    string span_id = 1;
+}

@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	workflowv1 "github.com/steady-bytes/draft/api/tooling/workflow/v1"
 	"github.com/steady-bytes/draft/pkg/chassis"
 	"github.com/steady-bytes/draft/pkg/loggers/zerolog"
@@ -122,6 +123,20 @@ func main() {
 		WithRPCHandler(webhookH).
 		WithRPCHandler(uiHandler).
 		WithRPCHandler(settingsHandler).
+		// Exposes Bench's server-rendered UI (dashboard, workflow/run detail,
+		// settings — all on this same mux/port) through Fuse on its own
+		// subdomain, alongside its existing direct-bind-port reachability.
+		WithRoute(&ntv1.Route{
+			Name: "tooling-bench-ui",
+			Match: &ntv1.RouteMatch{
+				Host:   "bench.draft.localhost",
+				Prefix: "/",
+			},
+			// See blueprint/main.go's identical field for why: Fuse's grpc_web filter
+			// bridges browser grpc-web calls into plain (HTTP/2-only) gRPC, which
+			// breaks against an HTTP/1.1-only upstream cluster.
+			EnableHttp2: true,
+		}).
 		Register(chassis.RegistrationOptions{
 			Namespace: "tooling",
 		}).

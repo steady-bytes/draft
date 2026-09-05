@@ -236,9 +236,31 @@ func invoke(ctx context.Context, call *grpcCall) (map[string]interface{}, error)
 		return nil, fmt.Errorf("config.request does not match %s's input type %s: %w", call.method, methodDesc.GetInputType().GetFullyQualifiedName(), err)
 	}
 
+	// This dials the target with a raw google.golang.org/grpc client (see
+	// this file's own top comment for why — dynamic reflection, no
+	// connect-go stub for an arbitrary external service), so there's no
+	// chassis.NewTraceClientInterceptor to reach for. Propagate the same way
+	// services/tooling/http-call/rpc.go's doRequest does for its plain
+	// net/http call: read the span ctx carries (from this plugin's own
+	// NewTraceInterceptor-wrapped Execute, itself continuing whatever bench
+	// step started it) and forward it as outgoing gRPC metadata, so the
+	// target's own NewTraceInterceptor continues this trace instead of
+	// starting a new, disconnected one. call.md (explicit config.metadata)
+	// can still override it, same precedence as http-call's config.headers.
+	md := call.md
+	if tp, ok := chassis.TraceParentHeader(ctx); ok {
+		if md == nil {
+			md = metadata.MD{}
+		} else {
+			md = md.Copy()
+		}
+		if len(md.Get("traceparent")) == 0 {
+			md.Set("traceparent", tp)
+		}
+	}
 	callCtx := ctx
-	if len(call.md) > 0 {
-		callCtx = metadata.NewOutgoingContext(ctx, call.md)
+	if len(md) > 0 {
+		callCtx = metadata.NewOutgoingContext(ctx, md)
 	}
 
 	stub := grpcdynamic.NewStub(conn)

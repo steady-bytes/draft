@@ -62,6 +62,7 @@ type Scheduler struct {
 func NewScheduler(store ResultStore, resolver Resolver, httpClient connect.HTTPClient, registries registryLister, events EventPublisher, logger chassis.Logger) *Scheduler {
 	sched := newSchedulerWithExecutors(store, map[string]Executor{
 		"bench://grpc-call@v1": NewGrpcCallExecutor(resolver),
+		"bench://delay@v1":     NewDelayExecutor(),
 	})
 	sched.events = events
 	sched.garageExecutor = NewGaragePluginExecutor(httpClient, registries, resolver)

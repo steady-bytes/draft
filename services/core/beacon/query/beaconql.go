@@ -728,6 +728,97 @@ func scaledLiteralValue(l Literal, scale float64) any {
 	return literalValue(l)
 }
 
+// ─── Compile for wide_events ────────────────────────────────────────────────
+//
+// CompileWideEvent mirrors CompileTraceRoot's structure exactly, against
+// wide_events' own columns instead. See
+// docs/website/content/docs/architecture/wide-events.md's Data Model for the
+// schema this maps onto.
+func CompileWideEvent(expr Expr) (string, []any, error) {
+	switch e := expr.(type) {
+	case nil:
+		return "", nil, nil
+	case *BinaryExpr:
+		lsql, largs, err := CompileWideEvent(e.Left)
+		if err != nil {
+			return "", nil, err
+		}
+		rsql, rargs, err := CompileWideEvent(e.Right)
+		if err != nil {
+			return "", nil, err
+		}
+		return fmt.Sprintf("(%s) %s (%s)", lsql, e.Op, rsql), append(largs, rargs...), nil
+	case *ComparisonExpr:
+		col, colArgs, err := columnForWideEvent(e.Field)
+		if err != nil {
+			return "", nil, err
+		}
+		args := append(colArgs, literalValue(e.Value))
+		return col + " " + e.Op + " ?", args, nil
+	case *LikeExpr:
+		col, colArgs, err := columnForWideEvent(e.Field)
+		if err != nil {
+			return "", nil, err
+		}
+		kw := "LIKE"
+		if e.Negated {
+			kw = "NOT LIKE"
+		}
+		args := append(colArgs, e.Pattern)
+		return col + " " + kw + " ?", args, nil
+	case *InExpr:
+		col, colArgs, err := columnForWideEvent(e.Field)
+		if err != nil {
+			return "", nil, err
+		}
+		placeholders := make([]string, len(e.Values))
+		args := colArgs
+		for i, v := range e.Values {
+			placeholders[i] = "?"
+			args = append(args, literalValue(v))
+		}
+		kw := "IN"
+		if e.Negated {
+			kw = "NOT IN"
+		}
+		return col + " " + kw + " (" + strings.Join(placeholders, ", ") + ")", args, nil
+	default:
+		return "", nil, &ParseError{Msg: "unrecognized expression node"}
+	}
+}
+
+// columnForWideEvent maps a BeaconQL field name to a fixed wide_events column
+// expression, mirroring columnFor/columnForTraceRoot's injection boundary:
+// only the literal cases below are ever returned, never a string assembled
+// from f.Name.
+func columnForWideEvent(f FieldRef) (col string, colArgs []any, err error) {
+	name := strings.ToLower(f.Name)
+	switch name {
+	case "attributes":
+		if f.MapKey == nil {
+			return "", nil, &ParseError{Msg: `attributes requires a map key, e.g. attributes["http.method"]`}
+		}
+		return "attributes[?]", []any{*f.MapKey}, nil
+	case "business_attributes":
+		if f.MapKey == nil {
+			return "", nil, &ParseError{Msg: `business_attributes requires a map key, e.g. business_attributes["user_id"]`}
+		}
+		return "business_attributes[?]", []any{*f.MapKey}, nil
+	case "runtime_attributes":
+		if f.MapKey == nil {
+			return "", nil, &ParseError{Msg: `runtime_attributes requires a map key, e.g. runtime_attributes["host"]`}
+		}
+		return "runtime_attributes[?]", []any{*f.MapKey}, nil
+	case "trace_id", "span_id", "parent_span_id", "service_name", "span_name", "start_time", "duration_ns", "status_code":
+		if f.MapKey != nil {
+			return "", nil, &ParseError{Msg: fmt.Sprintf("field %q does not support map-index access", f.Name)}
+		}
+		return name, nil, nil
+	default:
+		return "", nil, &ParseError{Msg: fmt.Sprintf("unknown field %q", f.Name)}
+	}
+}
+
 // ─── Matches: AST evaluated in-memory against a store.LogRow ──────────────
 //
 // Used for StreamLogs' live-tail path so newly-ingested rows can be filtered

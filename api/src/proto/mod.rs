@@ -2,6 +2,8 @@
 pub mod core_message_broker_actors_v1;
 #[path = "./core.registry.service_discovery.v1.rs"]
 pub mod core_registry_service_discovery_v1;
+#[path = "./core.observability.wide_events.v1.rs"]
+pub mod core_observability_wide_events_v1;
 #[path = "./core.control_plane.networking.v1.rs"]
 pub mod core_control_plane_networking_v1;
 #[path = "./core.observability.logs.v1.rs"]

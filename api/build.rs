@@ -13,6 +13,7 @@ fn main() -> Result<()> {
         "./core/observability/logs/v1/",
         "./core/observability/traces/v1/",
         "./core/observability/metrics/v1/",
+        "./core/observability/wide_events/v1/",
     ];
 
     let protos_to_compile: Vec<_> = proto_dirs

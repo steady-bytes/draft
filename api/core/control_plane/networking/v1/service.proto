@@ -21,6 +21,9 @@ service NetworkingService {
     // Delete a route from the networking configuration, requires the name of the route
     // and returns a response code to indicate the success of the operation
     rpc DeleteRoute(DeleteRouteRequest) returns (DeleteRouteResponse) {}
+    // Validate a route against the existing networking configuration without persisting it.
+    // Used to surface conflicts (eg. in the blueprint UI) before a route is actually added.
+    rpc ValidateRoute(ValidateRouteRequest) returns (ValidateRouteResponse) {}
 }
 
 // AddRouteRequest - Add a route to the networking configuration
@@ -44,6 +47,11 @@ enum AddRouteResponseCode {
 // route entry.
 message AddRouteResponse {
     AddRouteResponseCode code = 1;
+    // Human-readable detail, populated on non-OK codes (eg. explaining which existing route conflicted).
+    string message = 2;
+    // Names of existing routes that conflict with the requested route, populated when code is INVALID_REQUEST
+    // due to a conflict.
+    repeated string conflicting_routes = 3;
 }
 
 message ListRoutesRequest {}
@@ -65,6 +73,20 @@ enum DeleteRouteCode {
 
 message DeleteRouteResponse {
     DeleteRouteCode code = 1;
+}
+
+// ValidateRouteRequest - check a candidate route against the existing networking configuration
+// without persisting it.
+message ValidateRouteRequest {
+    Route route = 1;
+}
+
+message ValidateRouteResponse {
+    bool valid = 1;
+    // Names of existing routes that conflict with the candidate route. Empty when valid is true.
+    repeated string conflicting_routes = 2;
+    // Human-readable detail, populated when valid is false.
+    string message = 3;
 }
 
 // Primary Networking Primitives
@@ -118,10 +140,21 @@ message Endpoint {
     uint32 port = 2;
 }
 
+// MatchType controls whether `RouteMatch.prefix` is compiled to an Envoy exact-path match or a
+// prefix match. MATCH_TYPE_UNSPECIFIED is treated as MATCH_TYPE_PREFIX — this matches the runtime
+// behavior every route compiled to before this field existed, so already-registered services keep
+// working unchanged. New callers should set MATCH_TYPE_EXACT explicitly; UNSPECIFIED defaulting to
+// PREFIX is a deliberate backward-compatibility shim, not the intended long-term default.
+enum MatchType {
+    MATCH_TYPE_UNSPECIFIED = 0;
+    MATCH_TYPE_EXACT       = 1;
+    MATCH_TYPE_PREFIX      = 2;
+}
+
 // parameters for matching a route
 message RouteMatch {
     // domains for the url a configured in `fuse` but the path to be matched of a route is configured by the `process`
-    // (ie. api.draft.com/health -> /health) 
+    // (ie. api.draft.com/health -> /health)
     string prefix = 1;
     // option to match headers of a request
     // TODO -> implement pre 1.0 relase of `fuse`
@@ -137,8 +170,11 @@ message RouteMatch {
 	// dynamic metadata for a match to occur.
     // TODO -> implement pre 2.0 relase of `fuse`
     optional DynamicMetadata dynamic_metadata = 4;
-    // Host address for the route
+    // Host address for the route. May be a literal hostname or a single leading wildcard label
+    // (eg. "*.draft.localhost") to match any subdomain.
     string host = 5;
+    // Whether `prefix` is matched exactly or as a prefix. Defaults to PREFIX when unset.
+    MatchType match_type = 6;
 }
 
 // consider using the `key/value` from `blueprint` key/value store

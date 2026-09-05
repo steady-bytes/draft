@@ -3,7 +3,10 @@ package control_plane
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	ntConnect "github.com/steady-bytes/draft/api/core/control_plane/networking/v1/v1connect"
@@ -78,12 +81,17 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 var (
 	AddingRoute = "Add route request received"
 	// Errors
-	ErrNotImplemented           = errors.New("not implemented")
 	ErrInvalidRequest           = errors.New("invalid request")
 	ErrInvalidRoute             = errors.New("invalid route")
 	ErrInvalidRoutePrefix       = errors.New("invalid route prefix")
 	ErrInvalidRouteName         = errors.New("invalid route name")
+	ErrInvalidRouteHost         = errors.New("invalid route host: must be a hostname or a single leading wildcard label (eg. *.draft.localhost)")
 	ErrUnableToUpdateProxyCache = errors.New("unable to update proxy cache")
+
+	// hostPattern accepts a plain hostname (api.draft.localhost) or a single leading wildcard
+	// label (*.draft.localhost). Envoy's virtual host domain matcher already understands the
+	// wildcard form directly — this only guards against malformed input (eg. more than one "*").
+	hostPattern = regexp.MustCompile(`^(\*\.)?[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$`)
 )
 
 func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRequest]) (*connect.Response[ntv1.AddRouteResponse], error) {
@@ -113,6 +121,22 @@ func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRe
 		return nil, ErrInvalidRouteName
 	}
 
+	if host := msg.GetRoute().GetMatch().GetHost(); host != "" && !hostPattern.MatchString(host) {
+		return nil, ErrInvalidRouteHost
+	}
+
+	conflicts, err := h.controlPlane.FindConflicts(ctx, msg.GetRoute())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if len(conflicts) > 0 {
+		return connect.NewResponse(&ntv1.AddRouteResponse{
+			Code:              ntv1.AddRouteResponseCode_INVALID_REQUEST,
+			Message:           fmt.Sprintf("conflicts with existing route(s): %s", strings.Join(conflicts, ", ")),
+			ConflictingRoutes: conflicts,
+		}), nil
+	}
+
 	if err != h.controlPlane.UpdateCacheWithNewRoute(msg.GetRoute()) {
 		return nil, ErrUnableToUpdateProxyCache
 	}
@@ -125,8 +149,34 @@ func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRe
 }
 
 // DeleteRoute implements Rpc.
-func (h *rpc) DeleteRoute(context.Context, *connect.Request[ntv1.DeleteRouteRequest]) (*connect.Response[ntv1.DeleteRouteResponse], error) {
-	return nil, ErrNotImplemented
+func (h *rpc) DeleteRoute(ctx context.Context, req *connect.Request[ntv1.DeleteRouteRequest]) (*connect.Response[ntv1.DeleteRouteResponse], error) {
+	name := req.Msg.GetName()
+	if name == "" {
+		return nil, ErrInvalidRouteName
+	}
+	if err := h.controlPlane.DeleteRoute(ctx, name); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&ntv1.DeleteRouteResponse{
+		Code: ntv1.DeleteRouteCode_DELETE_ROUTE_OK,
+	}), nil
+}
+
+// ValidateRoute implements Rpc. It runs the same conflict check as AddRoute without persisting
+// anything, so callers (eg. the blueprint UI) can check before submitting.
+func (h *rpc) ValidateRoute(ctx context.Context, req *connect.Request[ntv1.ValidateRouteRequest]) (*connect.Response[ntv1.ValidateRouteResponse], error) {
+	conflicts, err := h.controlPlane.FindConflicts(ctx, req.Msg.GetRoute())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	resp := &ntv1.ValidateRouteResponse{
+		Valid:             len(conflicts) == 0,
+		ConflictingRoutes: conflicts,
+	}
+	if len(conflicts) > 0 {
+		resp.Message = fmt.Sprintf("conflicts with existing route(s): %s", strings.Join(conflicts, ", "))
+	}
+	return connect.NewResponse(resp), nil
 }
 
 // ListRoutes implements Rpc.

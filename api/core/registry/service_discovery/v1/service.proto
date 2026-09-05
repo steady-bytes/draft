@@ -78,6 +78,11 @@ message InitializeRequest {
   string name = 1;
   // A token will not be issued, and a process will not be able to connect to the `SystemJournal` if the `nonce` is not signed with the correct public key
   string nonce = 2;
+  // The address (host:port) this process will advertise to peers once registered — the same
+  // value later sent on every `ClientDetails.advertise_address` in `Synchronize`. Sent this
+  // early so the registry can derive a deterministic process identity from `name` + this address
+  // instead of minting a random one, making `Initialize` an idempotent upsert across restarts.
+  string advertise_address = 3;
 }
 
 // InitResponse - Details used by the client to provided to complete the connection

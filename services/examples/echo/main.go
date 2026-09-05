@@ -48,7 +48,7 @@ func (h *controller) RegisterRPC(server chassis.Rpcer) {
 }
 
 func (c *controller) Speak(ctx context.Context, req *connect.Request[echov1.SpeakRequest]) (*connect.Response[echov1.SpeakResponse], error) {
-	c.logger.WithField("input", req.Msg.Input).Info("received request")
+	c.logger.WithContext(ctx).WithField("input", req.Msg.Input).Info("received request")
 	return connect.NewResponse(&echov1.SpeakResponse{
 		Output: req.Msg.Input,
 	}), nil

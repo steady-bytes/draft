@@ -1,0 +1,82 @@
+# Proves Fuse's dynamic routing end to end: register a brand-new route via
+# NetworkingService.AddRoute, then make a real HTTP request through Fuse's
+# Envoy listener (not directly to the backend) and confirm the response came
+# from the actual consuming service (examples-echo, which echoes its input —
+# so a correct echo proves the request really traversed the proxy to reach
+# it, not just that Fuse returned something).
+#
+# Requires Envoy running against Fuse's xDS server (see the bootstrap at
+# .local-stack/envoy-bootstrap.yaml) and examples-echo already running and
+# self-registered with Fuse — both are separate from this workflow itself.
+#
+# register-test-route matches the *exact* full method path (not the service
+# prefix examples-echo already self-registers) on the default host, so it
+# can't conflict with examples-echo's own PREFIX registration even though
+# both end up in the same catch-all virtual host — Fuse's conflict check
+# compares (host, match_type, prefix) as a tuple, and EXACT + the longer
+# path is a different key. Envoy's own route sort (longest prefix first)
+# then makes this route win for that one path regardless of order.
+#
+# Deliberately not using a synthetic *.localhost subdomain here: that
+# resolution trick is a *browser* behavior (RFC 6761), not something Go's
+# (or the OS's) resolver does -- confirmed by hitting exactly this failure
+# with garage://http-call@v1 ("dial tcp: lookup ...localhost: no such
+# host"). Fixing it by adding a Host header wouldn't work either: Go's
+# net/http only honors the wire Host line from Request.Host, and http-call's
+# plugin only ever calls Header.Set (see services/tooling/http-call/rpc.go),
+# so a configured "Host" header is silently dropped. Calling 127.0.0.1
+# directly and matching on the default ("*") virtual host sidesteps both
+# problems. cleanup-test-route removes the route afterward so repeated runs
+# don't leave it behind in the shared route table.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: fuse-proxy-e2e
+  description: Register a route with Fuse, call it through the real Envoy proxy, and confirm the consuming service received it.
+steps:
+  - name: register-test-route
+    uses: bench://grpc-call@v1
+    with:
+      service: core.control_plane.networking.v1.NetworkingService
+      method: AddRoute
+      request:
+        route:
+          name: bench-fuse-proxy-test
+          match:
+            prefix: /examples.echo.v1.EchoService/Speak
+            match_type: MATCH_TYPE_EXACT
+          endpoint:
+            host: host.docker.internal
+            port: 9091
+    expect:
+      status: OK
+      body:
+        code: { equals: "OK" }
+
+  - name: call-echo-through-proxy
+    uses: garage://http-call@v1
+    depends_on: [register-test-route]
+    with:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.echo.v1.EchoService/Speak"
+      headers:
+        Content-Type: application/json
+      body:
+        input: "hello through fuse"
+      expect:
+        status: OK
+        body:
+          output: { equals: "hello through fuse" }
+
+  - name: cleanup-test-route
+    uses: bench://grpc-call@v1
+    depends_on: [call-echo-through-proxy]
+    with:
+      service: core.control_plane.networking.v1.NetworkingService
+      method: DeleteRoute
+      request:
+        name: bench-fuse-proxy-test
+    expect:
+      status: OK
+      body:
+        code: { equals: "DELETE_ROUTE_OK" }

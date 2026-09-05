@@ -7,6 +7,15 @@ draft: false
 toc: true
 ---
 
+> **Superseded.** The Cluster view was later rewritten from egui to a pure
+> Dioxus PCB-style canvas (see the `project-cluster-view` design note), and
+> none of the persistence work below was ported to it — the current
+> `views/cluster.rs` has hardcoded seed data and no localStorage/KV
+> persistence at all. See
+> [Cluster View — Live Topology Implementation Plan](/docs/architecture/cluster-live-topology-implementation-plan)
+> for the current plan, which re-does this persistence work against the
+> real renderer. This document is kept for historical context only.
+
 The cluster page of the Blueprint web client renders a live graph of Draft core services using [egui](https://github.com/emilk/egui) embedded inside a Dioxus component. This document describes how the graph is built, how node layout is persisted to the browser's `localStorage`, and how that same layout will later be synced to Blueprint's key-value store so it survives across browsers and sessions.
 
 ---
