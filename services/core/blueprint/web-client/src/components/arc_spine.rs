@@ -1,5 +1,5 @@
+use crate::components::topology::{event_color, TopologyData};
 use dioxus::prelude::*;
-use crate::components::topology::{TopologyData, event_color};
 
 const SVG_H: f32 = 640.0;
 const NODE_W: f32 = 220.0;
@@ -21,8 +21,11 @@ fn col_ys(count: usize) -> Vec<f32> {
 
 fn bezier(x1: f32, y1: f32, x2: f32, y2: f32) -> String {
     let cp = (x2 - x1) * 0.35;
-    format!("M {x1:.1} {y1:.1} C {:.1} {y1:.1} {:.1} {y2:.1} {x2:.1} {y2:.1}",
-        x1 + cp, x2 - cp)
+    format!(
+        "M {x1:.1} {y1:.1} C {:.1} {y1:.1} {:.1} {y2:.1} {x2:.1} {y2:.1}",
+        x1 + cp,
+        x2 - cp
+    )
 }
 
 struct EdgeInfo {
@@ -52,69 +55,89 @@ pub fn ArcSpine(data: TopologyData) -> Element {
     let prod_ys = col_ys(data.producers.len());
     let cons_ys = col_ys(data.consumers.len());
 
-    let prod_cy: std::collections::HashMap<String, f32> = data.producers.iter().zip(prod_ys.iter())
+    let prod_cy: std::collections::HashMap<String, f32> = data
+        .producers
+        .iter()
+        .zip(prod_ys.iter())
         .map(|(n, &y)| (n.id.clone(), y))
         .collect();
-    let cons_cy: std::collections::HashMap<String, f32> = data.consumers.iter().zip(cons_ys.iter())
+    let cons_cy: std::collections::HashMap<String, f32> = data
+        .consumers
+        .iter()
+        .zip(cons_ys.iter())
         .map(|(n, &y)| (n.id.clone(), y))
         .collect();
 
     // Bundle offset: group edges by (pid, cid), assign slot per-edge
     let mut group_totals: std::collections::HashMap<(String, String), usize> = Default::default();
     for e in &data.edges {
-        *group_totals.entry((e.producer_id.clone(), e.consumer_id.clone())).or_insert(0) += 1;
+        *group_totals
+            .entry((e.producer_id.clone(), e.consumer_id.clone()))
+            .or_insert(0) += 1;
     }
     let mut group_pos: std::collections::HashMap<(String, String), usize> = Default::default();
 
-    let edges: Vec<EdgeInfo> = data.edges.iter().map(|e| {
-        let py = prod_cy.get(&e.producer_id).copied().unwrap_or(SVG_H / 2.0);
-        let cy = cons_cy.get(&e.consumer_id).copied().unwrap_or(SVG_H / 2.0);
-        let key = (e.producer_id.clone(), e.consumer_id.clone());
-        let n = *group_totals.get(&key).unwrap_or(&1);
-        let pos = {
-            let slot = group_pos.entry(key).or_insert(0);
-            let v = *slot;
-            *slot += 1;
-            v
-        };
-        let offset = (pos as f32 - (n as f32 - 1.0) / 2.0) * 13.0;
-        let y1 = py + offset;
-        let y2 = cy + offset;
-        EdgeInfo {
-            key: format!("{}-{}-{}", e.producer_id, e.consumer_id, e.event_type),
-            pid: e.producer_id.clone(),
-            cid: e.consumer_id.clone(),
-            etype: e.event_type.clone(),
-            path: bezier(EDGE_X1, y1, EDGE_X2, y2),
-            mid_x: (EDGE_X1 + EDGE_X2) / 2.0,
-            mid_y: (y1 + y2) / 2.0,
-            color: event_color(&e.event_type),
-        }
-    }).collect();
+    let edges: Vec<EdgeInfo> = data
+        .edges
+        .iter()
+        .map(|e| {
+            let py = prod_cy.get(&e.producer_id).copied().unwrap_or(SVG_H / 2.0);
+            let cy = cons_cy.get(&e.consumer_id).copied().unwrap_or(SVG_H / 2.0);
+            let key = (e.producer_id.clone(), e.consumer_id.clone());
+            let n = *group_totals.get(&key).unwrap_or(&1);
+            let pos = {
+                let slot = group_pos.entry(key).or_insert(0);
+                let v = *slot;
+                *slot += 1;
+                v
+            };
+            let offset = (pos as f32 - (n as f32 - 1.0) / 2.0) * 13.0;
+            let y1 = py + offset;
+            let y2 = cy + offset;
+            EdgeInfo {
+                key: format!("{}-{}-{}", e.producer_id, e.consumer_id, e.event_type),
+                pid: e.producer_id.clone(),
+                cid: e.consumer_id.clone(),
+                etype: e.event_type.clone(),
+                path: bezier(EDGE_X1, y1, EDGE_X2, y2),
+                mid_x: (EDGE_X1 + EDGE_X2) / 2.0,
+                mid_y: (y1 + y2) / 2.0,
+                color: event_color(&e.event_type),
+            }
+        })
+        .collect();
 
-    let prod_nodes: Vec<NodeInfo> = data.producers.iter().zip(prod_ys.iter()).map(|(n, &y)| {
-        NodeInfo {
+    let prod_nodes: Vec<NodeInfo> = data
+        .producers
+        .iter()
+        .zip(prod_ys.iter())
+        .map(|(n, &y)| NodeInfo {
             id: n.id.clone(),
             name: n.name.clone(),
             cy: y,
             dot_color: "#3b82f6",
             glow_color: "#3b82f666",
             sel_stroke: "#3b82f6",
-        }
-    }).collect();
+        })
+        .collect();
 
-    let cons_nodes: Vec<NodeInfo> = data.consumers.iter().zip(cons_ys.iter()).map(|(n, &y)| {
-        NodeInfo {
+    let cons_nodes: Vec<NodeInfo> = data
+        .consumers
+        .iter()
+        .zip(cons_ys.iter())
+        .map(|(n, &y)| NodeInfo {
             id: n.id.clone(),
             name: n.name.clone(),
             cy: y,
             dot_color: "#22c55e",
             glow_color: "#22c55e66",
             sel_stroke: "#22c55e",
-        }
-    }).collect();
+        })
+        .collect();
 
-    let event_types: Vec<(String, &'static str)> = data.unique_event_types().iter()
+    let event_types: Vec<(String, &'static str)> = data
+        .unique_event_types()
+        .iter()
         .map(|s| (s.to_string(), event_color(s)))
         .collect();
 

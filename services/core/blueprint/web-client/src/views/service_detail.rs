@@ -7,8 +7,8 @@ use draft_api::{
         filter, use_service_discovery_service_service, Filter, QueryRequest,
     },
     proto::core_registry_service_discovery_v1::{
-        service_discovery_service_client::ServiceDiscoveryServiceClient, Process,
-        ProcessHealthState, ProcessRunningState, WatchRequest,
+        service_discovery_service_client::ServiceDiscoveryServiceClient, GetClusterDetailsRequest,
+        LeadershipStatus, Node, Process, ProcessHealthState, ProcessRunningState, WatchRequest,
     },
 };
 use prost_types::Timestamp;
@@ -30,6 +30,13 @@ pub fn ServiceDetail(name: String) -> Element {
 
     let service = use_service_discovery_service_service();
     let query_result = service.query(query_request);
+
+    // Blueprint is the only service that registers every raft node under one shared name (see
+    // main.go's self-registration comment) instead of one row per instance -- so it's the only
+    // place a "Raft Cluster" section makes sense. Called unconditionally (Dioxus hooks can't be
+    // called conditionally) even for other services; the resource result is just never rendered.
+    let cluster_details_request = use_signal(|| GetClusterDetailsRequest {});
+    let cluster_result = service.get_cluster_details(cluster_details_request);
 
     let mut processes: Signal<HashMap<String, Process>> = use_signal(HashMap::new);
 
@@ -81,8 +88,14 @@ pub fn ServiceDetail(name: String) -> Element {
     });
 
     let total = instances.len();
-    let healthy_count = instances.iter().filter(|p| p.health_state == ProcessHealthState::ProcessHealthy as i32).count();
-    let unhealthy_count = instances.iter().filter(|p| p.health_state == ProcessHealthState::ProcessUnhealthy as i32).count();
+    let healthy_count = instances
+        .iter()
+        .filter(|p| p.health_state == ProcessHealthState::ProcessHealthy as i32)
+        .count();
+    let unhealthy_count = instances
+        .iter()
+        .filter(|p| p.health_state == ProcessHealthState::ProcessUnhealthy as i32)
+        .count();
 
     rsx! {
         div { class: "p-4 flex flex-col gap-4",
@@ -108,6 +121,30 @@ pub fn ServiceDetail(name: String) -> Element {
                 }
             }
 
+            if name == "blueprint" {
+                div { class: "flex flex-col gap-2",
+                    h3 { class: "font-semibold text-sm text-base-content/70", "Raft Cluster" }
+                    match &*cluster_result.read() {
+                        Some(Ok(details)) if !details.nodes.is_empty() => rsx! {
+                            div { class: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4",
+                                for node in details.nodes.clone() {
+                                    RaftNodeCard { key: "{node.id}", node }
+                                }
+                            }
+                        },
+                        Some(Ok(_)) => rsx! {
+                            div { class: "text-sm text-base-content/50", "No raft nodes reported yet." }
+                        },
+                        Some(Err(err)) => rsx! {
+                            div { class: "text-sm text-error", "Failed to load cluster details: {err}" }
+                        },
+                        None => rsx! {
+                            div { class: "text-sm text-base-content/50", "Loading cluster details..." }
+                        },
+                    }
+                }
+            }
+
             if instances.is_empty() {
                 div { class: "text-center text-base-content/50 py-12",
                     if query_result.read().is_none() {
@@ -121,6 +158,32 @@ pub fn ServiceDetail(name: String) -> Element {
                     for process in instances {
                         ProcessCard { key: "{process.pid}", process }
                     }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn RaftNodeCard(node: Node) -> Element {
+    let is_leader = node.leadership_status == LeadershipStatus::Leader as i32;
+
+    rsx! {
+        div {
+            class: if is_leader {
+                "card bg-base-200 border-2 border-primary shadow-sm"
+            } else {
+                "card bg-base-200 border border-base-300 shadow-sm"
+            },
+            div { class: "card-body p-4 gap-2",
+                div { class: "flex items-center justify-between gap-2",
+                    span { class: "font-mono text-xs break-all", "{node.id}" }
+                    if is_leader {
+                        span { class: "badge badge-primary", "LEADER" }
+                    }
+                }
+                div { class: "text-xs text-base-content/70",
+                    "Address: " span { class: "font-mono", "{node.address}" }
                 }
             }
         }

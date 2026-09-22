@@ -41,17 +41,17 @@ type Scheduler struct {
 	store          ResultStore
 	executors      map[string]Executor
 	events         EventPublisher
-	garageExecutor Executor
+	foundryExecutor Executor
 	logger         chassis.Logger
 }
 
 // NewScheduler builds the production Scheduler, wired to the one bench://
 // executor Phase 3 ships (bench://grpc-call@v1) and, as of Phase 6/11, real
-// garage:// plugin resolution against every currently-configured registry
-// (garage_plugin.go) — resolver doubles as both the ServiceResolver
-// grpc-call steps use and the PluginResolver garage:// steps use (see
+// foundry:// plugin resolution against every currently-configured registry
+// (foundry_plugin.go) — resolver doubles as both the ServiceResolver
+// grpc-call steps use and the PluginResolver foundry:// steps use (see
 // discovery.go's Resolver interface); registries is queried fresh on every
-// garage:// step, not cached here, so a registry added/edited/removed
+// foundry:// step, not cached here, so a registry added/edited/removed
 // through the Settings page takes effect without a restart (Phase 10c
 // applied the same fix shape to webhook routing). Every other bench://
 // executor (e.g. the not-yet-built bench://http-call@v1) still fails clearly
@@ -65,7 +65,7 @@ func NewScheduler(store ResultStore, resolver Resolver, httpClient connect.HTTPC
 		"bench://delay@v1":     NewDelayExecutor(),
 	})
 	sched.events = events
-	sched.garageExecutor = NewGaragePluginExecutor(httpClient, registries, resolver)
+	sched.foundryExecutor = NewFoundryPluginExecutor(httpClient, registries, resolver)
 	sched.logger = logger
 	return sched
 }
@@ -154,8 +154,14 @@ func (s *Scheduler) execute(ctx context.Context, run *workflowv1.Run, w *workflo
 	// will if that caller is itself traced) — either way runSpan becomes the
 	// root every step span below hangs off of.
 	ctx, runSpan := chassis.StartSpan(ctx, "workflow:"+w.GetName())
-	runSpan.SetAttribute("workflow_name", w.GetName())
-	runSpan.SetAttribute("run_id", run.GetRunId())
+	// Business context (what this span/WideEvent is *about*), not a generic
+	// OTel attribute -- see docs/architecture/wide-events.md's Decisions on
+	// why business_attributes is kept separate from attributes. Was
+	// SetAttribute (landed in the WideEvent's generic `attributes` map only
+	// by side effect of End() forwarding s.attrs alongside the business/
+	// runtime maps, not because that's the documented place for it).
+	runSpan.SetBusinessAttribute("workflow_name", w.GetName())
+	runSpan.SetBusinessAttribute("run_id", run.GetRunId())
 
 	run.Status = workflowv1.RunStatus_RUN_STATUS_RUNNING
 	if err := s.store.UpsertRun(ctx, run); err != nil {
@@ -212,14 +218,31 @@ func (s *Scheduler) execute(ctx context.Context, run *workflowv1.Run, w *workflo
 					_ = err
 				}
 			} else {
-				sr = s.runStep(ctx, run.GetRunId(), step, &mu, results)
+				sr = s.runStep(ctx, run.GetRunId(), run.GetWorkflowName(), step, &mu, results)
 			}
-			s.logger.
+			// Log level reflects outcome (mirrors execute's own
+			// workflow-failed/succeeded split below) so a failed or skipped
+			// step is visible by severity alone -- grepping/filtering Bench's
+			// logs for "level=error" surfaces it without reading the status
+			// field on every "step completed" line. sr.GetError() is only
+			// non-empty for FAILED/SKIPPED (see runStep and the blocked
+			// branch above), so it's safe to attach unconditionally.
+			logLine := s.logger.
 				WithField("workflow_name", run.GetWorkflowName()).
 				WithField("run_id", run.GetRunId()).
 				WithField("step_name", sr.GetStepName()).
-				WithField("status", sr.GetStatus().String()).
-				Info("step completed")
+				WithField("status", sr.GetStatus().String())
+			if errMsg := sr.GetError(); errMsg != "" {
+				logLine = logLine.WithField("error", errMsg)
+			}
+			switch sr.GetStatus() {
+			case workflowv1.StepStatus_STEP_STATUS_FAILED:
+				logLine.Error("step completed")
+			case workflowv1.StepStatus_STEP_STATUS_SKIPPED:
+				logLine.Warn("step completed")
+			default:
+				logLine.Info("step completed")
+			}
 			s.events.StepCompleted(run.GetRunId(), run.GetWorkflowName(), sr)
 
 			mu.Lock()
@@ -303,16 +326,22 @@ func waitForDependencies(
 // RetryPolicy if on_failure is FAILURE_POLICY_RETRY. Persists a RUNNING row before
 // starting and the terminal row once finished, per the brief's incremental-
 // persistence requirement.
-func (s *Scheduler) runStep(ctx context.Context, runID string, step *workflowv1.Step, mu *sync.Mutex, results map[string]*workflowv1.StepResult) *workflowv1.StepResult {
+func (s *Scheduler) runStep(ctx context.Context, runID, workflowName string, step *workflowv1.Step, mu *sync.Mutex, results map[string]*workflowv1.StepResult) *workflowv1.StepResult {
 	// Child of execute's run-level span — see chassis.StartSpan's doc comment
 	// for why a nested call like this automatically links to the parent
 	// carried on ctx. This ctx (not the parameter above it) is what gets
-	// passed to exec.Execute below, so bench://grpc-call@v1 and garage://
+	// passed to exec.Execute below, so bench://grpc-call@v1 and foundry://
 	// steps can read chassis.TraceParentHeader(ctx) and hand the trace off to
-	// whatever they call — see grpc_call.go and garage_plugin.go.
+	// whatever they call — see grpc_call.go and foundry_plugin.go.
 	ctx, stepSpan := chassis.StartSpan(ctx, "step:"+step.GetName())
 	stepSpan.SetAttribute("step_name", step.GetName())
 	stepSpan.SetAttribute("uses", step.GetUses())
+	// Same run_id/workflow_name as the parent run-level span (see execute) --
+	// set again here, not just inherited, so a step's own WideEvent is
+	// independently queryable back to its run without a trace_id join (eg.
+	// `SearchWideEvents` filtered to a failing step across every run).
+	stepSpan.SetBusinessAttribute("run_id", runID)
+	stepSpan.SetBusinessAttribute("workflow_name", workflowName)
 
 	startedAt := timestamppb.Now()
 	if err := s.store.UpsertStepResult(ctx, runID, &workflowv1.StepResult{
@@ -424,7 +453,7 @@ func (s *Scheduler) runStep(ctx context.Context, runID string, step *workflowv1.
 }
 
 // executorFor resolves a step's `uses:` reference to the Executor that should run
-// it. garage:// resolves through garageExecutor (garage_plugin.go, Phase 6); any
+// it. foundry:// resolves through foundryExecutor (foundry_plugin.go, Phase 6); any
 // bench:// reference other than the one executor this phase ships fails clearly
 // rather than hanging or no-oping, so a workflow author gets an actionable error
 // instead of silent misbehavior.
@@ -435,11 +464,11 @@ func (s *Scheduler) executorFor(uses string) (Executor, error) {
 	}
 
 	switch scheme {
-	case "garage":
-		if s.garageExecutor == nil {
-			return nil, fmt.Errorf("step uses %q: this scheduler was not constructed with a garage:// executor", uses)
+	case "foundry":
+		if s.foundryExecutor == nil {
+			return nil, fmt.Errorf("step uses %q: this scheduler was not constructed with a foundry:// executor", uses)
 		}
-		return s.garageExecutor, nil
+		return s.foundryExecutor, nil
 	case "bench":
 		exec, ok := s.executors[uses]
 		if !ok {

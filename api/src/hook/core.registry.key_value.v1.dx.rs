@@ -39,4 +39,25 @@ impl KeyValueServiceServiceHook {
             async move { client.list(req()).await.map(|resp| resp.into_inner()) }
         })
     }
+    pub fn list_kinds(&self, req: Signal<proto::ListKindsRequest>) -> Resource<Result<proto::ListKindsResponse, tonic::Status>> {
+        let client = self.0.to_owned();
+        use_resource(move || {
+            let mut client = client.clone();
+            async move { client.list_kinds(req()).await.map(|resp| resp.into_inner()) }
+        })
+    }
+    pub fn register_type(&self, req: Signal<proto::RegisterTypeRequest>) -> Resource<Result<proto::RegisterTypeResponse, tonic::Status>> {
+        let client = self.0.to_owned();
+        use_resource(move || {
+            let mut client = client.clone();
+            async move { client.register_type(req()).await.map(|resp| resp.into_inner()) }
+        })
+    }
+    pub fn decode_values(&self, req: Signal<proto::DecodeValuesRequest>) -> Resource<Result<proto::DecodeValuesResponse, tonic::Status>> {
+        let client = self.0.to_owned();
+        use_resource(move || {
+            let mut client = client.clone();
+            async move { client.decode_values(req()).await.map(|resp| resp.into_inner()) }
+        })
+    }
 }

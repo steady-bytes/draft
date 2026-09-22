@@ -13,6 +13,10 @@ type (
 		Stats(ctx context.Context) map[string]string
 
 		GetClusterDetails() raft.Configuration
+		// Leader returns the current leader's raft node ID and address, as seen by this node.
+		// Both are empty if this node doesn't currently know of a leader (e.g. an election is in
+		// progress).
+		Leader() (id string, address string)
 	}
 
 	raftController struct {
@@ -50,4 +54,9 @@ func (c *raftController) Stats(ctx context.Context) map[string]string {
 
 func (c *raftController) GetClusterDetails() raft.Configuration {
 	return c.raft.GetConfiguration().Configuration()
+}
+
+func (c *raftController) Leader() (string, string) {
+	address, id := c.raft.LeaderWithID()
+	return string(id), string(address)
 }

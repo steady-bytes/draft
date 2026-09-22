@@ -1,13 +1,13 @@
 ---
 weight: 36
 title: Service UIs via Subdomains
-description: Every service's own UI (Blueprint, Beacon, Bench, Garage) reachable through Fuse on a dedicated subdomain, self-discovered in Blueprint's sidebar — plus the real bugs found building it.
+description: Every service's own UI (Blueprint, Beacon, Bench, Foundry) reachable through Fuse on a dedicated subdomain, self-discovered in Blueprint's sidebar — plus the real bugs found building it.
 icon: 'hub'
 draft: false
 toc: true
 ---
 
-Every Draft service that ships a UI used to be reachable only by hitting its own bind port directly — `localhost:2221` for Blueprint, `:2222` for Beacon, `:9300` for Bench, `:9301` for Garage. None of them were routed through Fuse. This is the design and the real bugs found wiring that up, following [Fuse — API Gateway](/docs/architecture/fuse-api-gateway)'s subdomain-per-service plan (its Phase 3).
+Every Draft service that ships a UI used to be reachable only by hitting its own bind port directly — `localhost:2221` for Blueprint, `:2222` for Beacon, `:9300` for Bench, `:9301` for Foundry. None of them were routed through Fuse. This is the design and the real bugs found wiring that up, following [Fuse — API Gateway](/docs/architecture/fuse-api-gateway)'s subdomain-per-service plan (its Phase 3).
 
 ## The convention
 
@@ -25,10 +25,10 @@ WithRoute(&ntv1.Route{
 ```
 
 - **`Host: "<service>.draft.localhost"`, `Prefix: "/"`** — a dedicated subdomain, catching everything. Since `chassis.WithClientApplication` already mounts a service's own UI at `/` on its own internal mux (dispatching to more specific RPC handler patterns first via normal `http.ServeMux` precedence), one route per service is enough to expose *both* its UI and its RPC API — no path rewriting, no second listener. `*.localhost` — any depth of subdomain, not just one label — already resolves to `127.0.0.1` in modern browsers (RFC 6761) with zero `/etc/hosts` config.
-- **An explicit `Name`.** `chassis.WithRoute` auto-derives an unset `Route.Name` from `"<domain>-<service>"` — the same value every *other* unnamed `WithRoute` call from that same service would also derive. A service that already registers one RPC-only route (Beacon, Garage) needs its UI route explicitly named, or the second call silently overwrites the first instead of adding a second route.
+- **An explicit `Name`.** `chassis.WithRoute` auto-derives an unset `Route.Name` from `"<domain>-<service>"` — the same value every *other* unnamed `WithRoute` call from that same service would also derive. A service that already registers one RPC-only route (Beacon, Foundry) needs its UI route explicitly named, or the second call silently overwrites the first instead of adding a second route.
 - **`EnableHttp2: true`.** See [Why every route needs it](#why-every-route-needs-enablehttp2) below — this one is easy to forget and fails in a confusing way.
 
-Four services carry this today: `blueprint.draft.localhost`, `beacon.draft.localhost`, `bench.draft.localhost`, `garage.draft.localhost` (`core-blueprint-ui`, `core-beacon-ui`, `tooling-bench-ui`, `tooling-garage-ui` in Fuse's route table).
+Four services carry this today: `blueprint.draft.localhost`, `beacon.draft.localhost`, `bench.draft.localhost`, `foundry.draft.localhost` (`core-blueprint-ui`, `core-beacon-ui`, `tooling-bench-ui`, `tooling-foundry-ui` in Fuse's route table).
 
 ## Self-discovery in Blueprint's sidebar
 
@@ -44,7 +44,7 @@ Every other service's `WithRoute` call runs synchronously, before `Start()`, aga
 
 ### A rejected `AddRoute` looked like success
 
-`chassis.withRoute` (`pkg/chassis/networking.go`) checked only the RPC call's transport-level `err`, never `AddRouteResponse.GetCode()`. A route Fuse actually rejected — say, for conflicting with an existing one — came back as an ordinary, error-free response, so the registering service logged "successfully added route" and moved on, with nothing actually persisted. This sat undetected until Garage's real `PluginCatalogService` route silently lost to a **stale, orphaned KV entry** named `tooling-bench` (auto-derived from `<domain>-<service>`, matching what today's Bench would derive too, but written by some earlier version of Bench's code that no longer exists) claiming the identical `(host="", prefix)` pair. `ListRoutes` and `ListRoutes` via Blueprint's own KV directly both agreed: Garage's route was never there. Deleting the orphan unblocked it immediately. Fixed at the source: `withRoute` now checks `resp.Msg.GetCode()` and turns a non-`OK` response into a real Go `error`, so a future conflict fails loudly (panics, per every other `WithRoute` failure) instead of silently no-opping.
+`chassis.withRoute` (`pkg/chassis/networking.go`) checked only the RPC call's transport-level `err`, never `AddRouteResponse.GetCode()`. A route Fuse actually rejected — say, for conflicting with an existing one — came back as an ordinary, error-free response, so the registering service logged "successfully added route" and moved on, with nothing actually persisted. This sat undetected until Foundry's real `PluginCatalogService` route silently lost to a **stale, orphaned KV entry** named `tooling-bench` (auto-derived from `<domain>-<service>`, matching what today's Bench would derive too, but written by some earlier version of Bench's code that no longer exists) claiming the identical `(host="", prefix)` pair. `ListRoutes` and `ListRoutes` via Blueprint's own KV directly both agreed: Foundry's route was never there. Deleting the orphan unblocked it immediately. Fixed at the source: `withRoute` now checks `resp.Msg.GetCode()` and turns a non-`OK` response into a real Go `error`, so a future conflict fails loudly (panics, per every other `WithRoute` failure) instead of silently no-opping.
 
 ### Browsers include the port; Fuse's routes didn't
 
@@ -58,7 +58,7 @@ StripPortMode: &hcm.HttpConnectionManager_StripAnyHostPort{
 
 ### Why every route needs `EnableHttp2`
 
-Fuse's [`grpc_web` filter](/docs/architecture/fuse-api-gateway#phase-2--grpc-web) bridges a browser's grpc-web request into plain gRPC before forwarding it upstream — and plain gRPC is HTTP/2-only. Every chassis-based backend already speaks HTTP/2 cleartext regardless (`pkg/chassis/builder.go`'s `Start` always wraps its handler in `h2c.NewHandler`), but Envoy's *cluster* config for a route defaults to HTTP/1.1 unless `Route.EnableHttp2` says otherwise. Without it, Envoy has a plain-gRPC request to send and only an HTTP/1.1-capable upstream cluster to send it over — the browser's own RPC calls came back as an opaque "malformed response," with no hint that the fix was a boolean on the *route*, not anything in the client. Symptom only showed up once a real `tonic_web_wasm_client` (Blueprint's own web client) call went through Fuse; plain Connect-JSON traffic (`curl`, `garage://http-call@v1`) never exercises the grpc-web path at all, so it looked fine.
+Fuse's [`grpc_web` filter](/docs/architecture/fuse-api-gateway#phase-2--grpc-web) bridges a browser's grpc-web request into plain gRPC before forwarding it upstream — and plain gRPC is HTTP/2-only. Every chassis-based backend already speaks HTTP/2 cleartext regardless (`pkg/chassis/builder.go`'s `Start` always wraps its handler in `h2c.NewHandler`), but Envoy's *cluster* config for a route defaults to HTTP/1.1 unless `Route.EnableHttp2` says otherwise. Without it, Envoy has a plain-gRPC request to send and only an HTTP/1.1-capable upstream cluster to send it over — the browser's own RPC calls came back as an opaque "malformed response," with no hint that the fix was a boolean on the *route*, not anything in the client. Symptom only showed up once a real `tonic_web_wasm_client` (Blueprint's own web client) call went through Fuse; plain Connect-JSON traffic (`curl`, `foundry://http-call@v1`) never exercises the grpc-web path at all, so it looked fine.
 
 ### `API_DOMAIN` stopped meaning "Fuse" once subdomains were real
 

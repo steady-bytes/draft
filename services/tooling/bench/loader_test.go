@@ -8,7 +8,7 @@ import (
 )
 
 // TestLoadWorkflowFile_Valid loads the full worked example from the doc's
-// "Primitives" section (including its garage://slack-notify@v2 step — Phase 2 only
+// "Primitives" section (including its foundry://slack-notify@v2 step — Phase 2 only
 // loads and validates it, it doesn't execute it) and checks the conversion produced
 // the expected wire-type shape, including the two fields that can't be
 // yaml.Unmarshal'd directly: With/Expect (*structpb.Struct) and OnFailure
@@ -83,7 +83,7 @@ func TestLoadWorkflowFile_Valid(t *testing.T) {
 	}
 
 	notify := steps[2]
-	if got, want := notify.GetUses(), "garage://slack-notify@v2"; got != want {
+	if got, want := notify.GetUses(), "foundry://slack-notify@v2"; got != want {
 		t.Errorf("steps[2].uses = %q, want %q", got, want)
 	}
 	if got, want := notify.GetOnFailure(), workflowv1.FailurePolicy_FAILURE_POLICY_CONTINUE; got != want {
@@ -110,7 +110,7 @@ func TestParseWorkflow_Invalid(t *testing.T) {
 		{
 			name:            "bad uses scheme",
 			file:            "testdata/bad_scheme.yaml",
-			wantErrContains: "must have scheme bench:// or garage://",
+			wantErrContains: "must have scheme bench:// or foundry://",
 		},
 		{
 			name:            "dangling depends_on reference",
@@ -175,7 +175,7 @@ steps:
   - name: no-scheme-step
     uses: grpc-call@v1
 `,
-			wantErrContains: "must have scheme bench:// or garage://",
+			wantErrContains: "must have scheme bench:// or foundry://",
 		},
 		{
 			name: "duplicate step names",

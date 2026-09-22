@@ -17,7 +17,7 @@ const (
 )
 
 // buildManifest constructs the PublishRequest catalyst-consume sends to
-// Garage's PluginCatalogService on startup.
+// Foundry's PluginCatalogService on startup.
 func buildManifest() (*plugincatalogv1.PublishRequest, error) {
 	configSchema, err := structpb.NewStruct(map[string]interface{}{
 		"type":     "object",

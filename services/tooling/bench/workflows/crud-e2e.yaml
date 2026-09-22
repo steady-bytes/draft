@@ -5,11 +5,34 @@
 # example (valid_course_creation.yaml in testdata/) for the shape this mirrors —
 # that one targets golf-app.app.v1.CourseCreator, which doesn't exist anywhere in
 # this monorepo, so it isn't usable for a live proof the way this workflow is.
+#
+# Routed through the real Envoy proxy (127.0.0.1:10000), not called directly --
+# same motivation as fuse-proxy-e2e.yaml: a run of this workflow also exercises
+# Fuse/Envoy's routing, not just CrudService in isolation. Unlike
+# fuse-proxy-e2e.yaml, no AddRoute/DeleteRoute step is needed here:
+# services/examples/crud/main.go already calls WithRoute for
+# "/examples.crud.v1.CrudService/" unconditionally at startup (so does echo's
+# own main.go for EchoService -- fuse-proxy-e2e.yaml's explicit route step
+# there is exercising the dynamic AddRoute/DeleteRoute RPCs themselves, on
+# top of proxying, not compensating for CrudService/EchoService having no
+# route at all). Registering a second route for the same prefix here failed
+# live with "conflicts with existing route(s): examples-crud" -- confirming
+# the permanent one already covers it.
+#
+# Note the response shape difference going through the proxy introduces:
+# foundry://http-call@v1 wraps the actual JSON response under `result.body`
+# (alongside sibling `status`/`headers`), where a direct bench://grpc-call@v1
+# step's result was the response itself -- see read-name's
+# `{{ steps.create-name.result.body.id }}` reference below. Also note expect:
+# is nested inside with: here (http-call's own convention, evaluated by the
+# plugin itself against the raw response), not a sibling of with: the way
+# bench://grpc-call@v1 expects it -- a sibling-level expect: is specific to
+# that executor and is never read for a foundry:// step.
 apiVersion: bench/v1
 kind: Workflow
 metadata:
   name: crud-e2e
-  description: Create a Name via CrudService, then confirm it's queryable.
+  description: Create a Name via CrudService through the real Envoy proxy, then confirm it's queryable.
 trigger:
   webhook:
     slug: crud-e2e
@@ -18,30 +41,32 @@ trigger:
       secret_ref: blueprint://secrets/bench/crud-e2e-webhook
 steps:
   - name: create-name
-    uses: bench://grpc-call@v1
+    uses: foundry://http-call@v1
     with:
-      service: examples.crud.v1.CrudService
-      method: Create
-      request:
+      method: POST
+      url: "http://127.0.0.1:10000/examples.crud.v1.CrudService/Create"
+      headers: { Content-Type: application/json }
+      body:
         name:
           first_name: "Ada"
           last_name: "Lovelace"
-    expect:
-      status: OK
-      body:
-        id: { exists: true }
+      expect:
+        status: OK
+        body:
+          id: { exists: true }
 
   - name: read-name
-    uses: bench://grpc-call@v1
+    uses: foundry://http-call@v1
     depends_on: [create-name]
     with:
-      service: examples.crud.v1.CrudService
-      method: Read
-      request:
-        id: "{{ steps.create-name.result.id }}"
-    expect:
-      status: OK
+      method: POST
+      url: "http://127.0.0.1:10000/examples.crud.v1.CrudService/Read"
+      headers: { Content-Type: application/json }
       body:
-        name:
-          firstName: { equals: "Ada" }
-          lastName: { matches: "^Love.*" }
+        id: "{{ steps.create-name.result.body.id }}"
+      expect:
+        status: OK
+        body:
+          name:
+            firstName: { equals: "Ada" }
+            lastName: { matches: "^Love.*" }

@@ -77,7 +77,7 @@ type WebhookTriggerMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m WebhookTriggerMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -204,7 +204,7 @@ type TriggerMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m TriggerMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -268,6 +268,139 @@ var _ interface {
 	ErrorName() string
 } = TriggerValidationError{}
 
+// Validate checks the field values on BenchWebhookSecret with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *BenchWebhookSecret) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on BenchWebhookSecret with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// BenchWebhookSecretMultiError, or nil if none found.
+func (m *BenchWebhookSecret) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *BenchWebhookSecret) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Secret
+
+	if all {
+		switch v := interface{}(m.GetRotatedAt()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, BenchWebhookSecretValidationError{
+					field:  "RotatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, BenchWebhookSecretValidationError{
+					field:  "RotatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetRotatedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BenchWebhookSecretValidationError{
+				field:  "RotatedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return BenchWebhookSecretMultiError(errors)
+	}
+
+	return nil
+}
+
+// BenchWebhookSecretMultiError is an error wrapping multiple validation errors
+// returned by BenchWebhookSecret.ValidateAll() if the designated constraints
+// aren't met.
+type BenchWebhookSecretMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m BenchWebhookSecretMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m BenchWebhookSecretMultiError) AllErrors() []error { return m }
+
+// BenchWebhookSecretValidationError is the validation error returned by
+// BenchWebhookSecret.Validate if the designated constraints aren't met.
+type BenchWebhookSecretValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e BenchWebhookSecretValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e BenchWebhookSecretValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e BenchWebhookSecretValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e BenchWebhookSecretValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e BenchWebhookSecretValidationError) ErrorName() string {
+	return "BenchWebhookSecretValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e BenchWebhookSecretValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sBenchWebhookSecret.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = BenchWebhookSecretValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = BenchWebhookSecretValidationError{}
+
 // Validate checks the field values on RetryPolicy with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -307,7 +440,7 @@ type RetryPolicyMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RetryPolicyMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -498,7 +631,7 @@ type StepMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StepMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -664,7 +797,7 @@ type WorkflowMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m WorkflowMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -914,7 +1047,7 @@ type StepResultMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StepResultMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1110,7 +1243,7 @@ type RunMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RunMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1241,7 +1374,7 @@ type TriggerRunRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m TriggerRunRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1347,7 +1480,7 @@ type TriggerRunResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m TriggerRunResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1451,7 +1584,7 @@ type GetRunRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GetRunRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1557,7 +1690,7 @@ type ListRunsRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListRunsRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1693,7 +1826,7 @@ type ListRunsResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListRunsResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1793,7 +1926,7 @@ type ListWorkflowsRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListWorkflowsRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1929,7 +2062,7 @@ type ListWorkflowsResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListWorkflowsResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -2033,7 +2166,7 @@ type CreateWorkflowRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CreateWorkflowRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -2164,7 +2297,7 @@ type CreateWorkflowResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m CreateWorkflowResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -2270,7 +2403,7 @@ type UpdateWorkflowRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m UpdateWorkflowRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -2401,7 +2534,7 @@ type UpdateWorkflowResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m UpdateWorkflowResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -2505,7 +2638,7 @@ type DeleteWorkflowRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DeleteWorkflowRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -2607,7 +2740,7 @@ type DeleteWorkflowResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m DeleteWorkflowResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -2772,7 +2905,7 @@ type RunEventMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RunEventMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -2939,7 +3072,7 @@ type StepEventMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StepEventMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

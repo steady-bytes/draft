@@ -145,6 +145,10 @@ func (h *rpc) Query(ctx context.Context, req *connect.Request[sdv1.QueryRequest]
 	}), nil
 }
 
+func (h *rpc) GetClusterDetails(ctx context.Context, req *connect.Request[sdv1.GetClusterDetailsRequest]) (*connect.Response[sdv1.ClusterDetails], error) {
+	return connect.NewResponse(h.controller.GetClusterDetails()), nil
+}
+
 func (h *rpc) ReportHealth(
 	ctx context.Context,
 	req *connect.Request[sdv1.ReportHealthRequest],

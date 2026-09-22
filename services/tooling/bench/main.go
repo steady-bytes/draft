@@ -137,6 +137,15 @@ func main() {
 			// breaks against an HTTP/1.1-only upstream cluster.
 			EnableHttp2: true,
 		}).
+		// Lets Blueprint's Key/Value browser decode BenchWebhookSecret entries (the
+		// webhook HMAC secrets newBlueprintSecretResolver reads) generically instead of
+		// showing an opaque byte count -- see docs/website/content/docs/architecture/
+		// kv-type-registry-implementation-plan.md's Phase 6. Safe to run synchronously
+		// here, before Start(): unlike WithRoute's Fuse registration, this doesn't
+		// depend on this process's own mux being up yet, only on Blueprint already
+		// being reachable, which every other direct KV call in this file already
+		// assumes.
+		WithRegisteredType(&workflowv1.BenchWebhookSecret{}).
 		Register(chassis.RegistrationOptions{
 			Namespace: "tooling",
 		}).

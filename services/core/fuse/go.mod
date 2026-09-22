@@ -13,6 +13,8 @@ require (
 	github.com/steady-bytes/draft/api v1.0.0
 	github.com/steady-bytes/draft/pkg/chassis v0.4.5
 	github.com/steady-bytes/draft/pkg/loggers v0.2.4
+	golang.org/x/crypto v0.32.0
+	golang.org/x/net v0.34.0
 	google.golang.org/protobuf v1.36.3
 )
 
@@ -53,7 +55,6 @@ require (
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect

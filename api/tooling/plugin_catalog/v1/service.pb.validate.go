@@ -166,7 +166,7 @@ type PluginMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m PluginMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -334,7 +334,7 @@ type PublishRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m PublishRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -463,7 +463,7 @@ type PublishResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m PublishResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -567,7 +567,7 @@ type RetractRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RetractRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -667,7 +667,7 @@ type RetractResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RetractResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -771,7 +771,7 @@ type GetPluginRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GetPluginRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -875,7 +875,7 @@ type ListPluginsRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListPluginsRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1013,7 +1013,7 @@ type ListPluginsResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m ListPluginsResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1117,7 +1117,7 @@ type SearchPluginsRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m SearchPluginsRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1253,7 +1253,7 @@ type SearchPluginsResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m SearchPluginsResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

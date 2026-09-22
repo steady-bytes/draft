@@ -16,7 +16,7 @@ const (
 	pluginVersion = "v1"
 )
 
-// buildManifest constructs the PublishRequest grpc-call sends to Garage's
+// buildManifest constructs the PublishRequest grpc-call sends to Foundry's
 // PluginCatalogService on startup.
 func buildManifest() (*plugincatalogv1.PublishRequest, error) {
 	configSchema, err := structpb.NewStruct(map[string]interface{}{

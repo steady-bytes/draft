@@ -126,6 +126,14 @@ func main() {
 			ingest.ConsumeWideEvents(wideEventCtx, logger, catalystAddr, wideEventWriter)
 		}).
 		WithRoute(&ntv1.Route{
+			// Named explicitly (rather than left to the "<domain>-<service>" auto-derived
+			// default, which would be "core-beacon") because it was renamed to "beacon" via
+			// the Gateway UI -- AddRoute upserts by name, so leaving this unset would make
+			// every restart re-assert a "core-beacon" route that permanently conflicts with
+			// the renamed one on this same match (host, prefix), crash-looping the service on
+			// every subsequent restart until the stale route was manually deleted. Naming it
+			// to match keeps restarts an idempotent no-op update instead.
+			Name: "beacon",
 			Match: &ntv1.RouteMatch{
 				// LogsService, TracesService, and MetricsService all share this
 				// literal package prefix, so one route covers all three of
@@ -140,9 +148,15 @@ func main() {
 		// unset Route.Name from "<domain>-<service>" the same way the route
 		// above did, and a second unnamed call here would silently overwrite
 		// it instead of adding a second route (both would resolve to the same
-		// key: "core-beacon").
+		// key: "core-beacon"). Named "beacon-ui" (not the older
+		// "core-beacon-ui") to match this route's current name in Blueprint's
+		// KV — Fuse routes persist there permanently across restarts (see
+		// FindConflicts/UpdateCacheWithNewRoute in
+		// services/core/fuse/control_plane/controller.go), so once this route
+		// was renamed via the Gateway UI, leaving the old name here would
+		// crash-loop the service the same way the route above briefly did.
 		WithRoute(&ntv1.Route{
-			Name: "core-beacon-ui",
+			Name: "beacon-ui",
 			Match: &ntv1.RouteMatch{
 				Host:   "beacon.draft.localhost",
 				Prefix: "/",

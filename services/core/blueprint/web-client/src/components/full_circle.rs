@@ -1,6 +1,6 @@
-use std::f32::consts::PI;
-use dioxus::prelude::*;
 use crate::components::topology::TopologyData;
+use dioxus::prelude::*;
+use std::f32::consts::PI;
 
 const CX0: f32 = 340.0;
 const CY0: f32 = 340.0;
@@ -20,7 +20,9 @@ fn evenly_spaced(start: f32, end: f32, n: usize) -> Vec<f32> {
     match n {
         0 => vec![],
         1 => vec![(start + end) / 2.0],
-        _ => (0..n).map(|i| start + i as f32 * (end - start) / (n - 1) as f32).collect(),
+        _ => (0..n)
+            .map(|i| start + i as f32 * (end - start) / (n - 1) as f32)
+            .collect(),
     }
 }
 
@@ -47,10 +49,26 @@ fn thread_alpha(vol: u32, max: u32) -> f32 {
 }
 
 static BG_DOTS: &[(f32, f32)] = &[
-    (72.0, 44.0), (145.0, 90.0), (312.0, 28.0), (498.0, 61.0), (620.0, 44.0),
-    (51.0, 200.0), (190.0, 155.0), (580.0, 130.0), (660.0, 210.0), (30.0, 380.0),
-    (640.0, 340.0), (85.0, 520.0), (600.0, 490.0), (180.0, 610.0), (480.0, 640.0),
-    (620.0, 580.0), (350.0, 665.0), (120.0, 660.0), (230.0, 50.0), (560.0, 330.0),
+    (72.0, 44.0),
+    (145.0, 90.0),
+    (312.0, 28.0),
+    (498.0, 61.0),
+    (620.0, 44.0),
+    (51.0, 200.0),
+    (190.0, 155.0),
+    (580.0, 130.0),
+    (660.0, 210.0),
+    (30.0, 380.0),
+    (640.0, 340.0),
+    (85.0, 520.0),
+    (600.0, 490.0),
+    (180.0, 610.0),
+    (480.0, 640.0),
+    (620.0, 580.0),
+    (350.0, 665.0),
+    (120.0, 660.0),
+    (230.0, 50.0),
+    (560.0, 330.0),
 ];
 
 #[derive(Clone)]
@@ -80,9 +98,9 @@ struct ConnRow {
 
 fn has_conn(sel_id: &str, nid: &str, edges: &[Edge]) -> bool {
     nid == sel_id
-        || edges.iter().any(|e| {
-            (e.pid == sel_id || e.cid == sel_id) && (e.pid == nid || e.cid == nid)
-        })
+        || edges
+            .iter()
+            .any(|e| (e.pid == sel_id || e.cid == sel_id) && (e.pid == nid || e.cid == nid))
 }
 
 #[component]
@@ -99,25 +117,49 @@ pub fn FullCircle(data: TopologyData) -> Element {
     let prod_degs = evenly_spaced(-80.0, 80.0, data.producers.len());
     let cons_degs = evenly_spaced(100.0, 260.0, data.consumers.len());
 
-    let nodes: Vec<Node> = data.producers.iter().zip(&prod_degs)
-        .map(|(n, &d)| Node { id: n.id.clone(), label: n.name.clone(), is_prod: true, deg: d })
-        .chain(data.consumers.iter().zip(&cons_degs)
-            .map(|(n, &d)| Node { id: n.id.clone(), label: n.name.clone(), is_prod: false, deg: d }))
+    let nodes: Vec<Node> = data
+        .producers
+        .iter()
+        .zip(&prod_degs)
+        .map(|(n, &d)| Node {
+            id: n.id.clone(),
+            label: n.name.clone(),
+            is_prod: true,
+            deg: d,
+        })
+        .chain(data.consumers.iter().zip(&cons_degs).map(|(n, &d)| Node {
+            id: n.id.clone(),
+            label: n.name.clone(),
+            is_prod: false,
+            deg: d,
+        }))
         .collect();
 
     let max_vol = data.edges.iter().map(|e| e.vol).max().unwrap_or(1);
 
-    let edges: Vec<Edge> = data.edges.iter().map(|e| {
-        let pa = nodes.iter().find(|n| n.id == e.producer_id).map(|n| n.deg).unwrap_or(0.0);
-        let ca = nodes.iter().find(|n| n.id == e.consumer_id).map(|n| n.deg).unwrap_or(180.0);
-        Edge {
-            pid: e.producer_id.clone(),
-            cid: e.consumer_id.clone(),
-            ev: e.event_type.clone(),
-            vol: e.vol,
-            path: bezier(pa, ca),
-        }
-    }).collect();
+    let edges: Vec<Edge> = data
+        .edges
+        .iter()
+        .map(|e| {
+            let pa = nodes
+                .iter()
+                .find(|n| n.id == e.producer_id)
+                .map(|n| n.deg)
+                .unwrap_or(0.0);
+            let ca = nodes
+                .iter()
+                .find(|n| n.id == e.consumer_id)
+                .map(|n| n.deg)
+                .unwrap_or(180.0);
+            Edge {
+                pid: e.producer_id.clone(),
+                cid: e.consumer_id.clone(),
+                ev: e.event_type.clone(),
+                vol: e.vol,
+                path: bezier(pa, ca),
+            }
+        })
+        .collect();
 
     let sel_val = sel();
     let hov_val = hovered();
@@ -126,46 +168,52 @@ pub fn FullCircle(data: TopologyData) -> Element {
     let vol_mode = show_vol();
 
     // 36 evenly-spaced outer-ring tick marks, skipping positions near a node (< 4°)
-    let ticks: Vec<[f32; 4]> = (0..36u32).filter_map(|i| {
-        let tick_deg = (i as f32 / 36.0) * 360.0 + 90.0;
-        let near = nodes.iter().any(|nd| {
-            let d = ((nd.deg - tick_deg + 540.0) % 360.0) - 180.0;
-            d.abs() < 4.01
-        });
-        if near { return None; }
-        let (x1, y1) = circ(tick_deg, OR - 2.0);
-        let (x2, y2) = circ(tick_deg, OR + 2.0);
-        Some([x1, y1, x2, y2])
-    }).collect();
+    let ticks: Vec<[f32; 4]> = (0..36u32)
+        .filter_map(|i| {
+            let tick_deg = (i as f32 / 36.0) * 360.0 + 90.0;
+            let near = nodes.iter().any(|nd| {
+                let d = ((nd.deg - tick_deg + 540.0) % 360.0) - 180.0;
+                d.abs() < 4.01
+            });
+            if near {
+                return None;
+            }
+            let (x1, y1) = circ(tick_deg, OR - 2.0);
+            let (x2, y2) = circ(tick_deg, OR + 2.0);
+            Some([x1, y1, x2, y2])
+        })
+        .collect();
 
     // Volume-scale bar descriptors: (stroke-width, x-start)
     let vol_bars: [(f32, f32); 4] = [(0.5, 128.0), (2.0, 150.0), (5.0, 172.0), (8.0, 194.0)];
 
     // Pre-compute tooltip data from hovered node
-    let tooltip: Option<(String, String, Vec<ConnRow>, u32)> =
-        hov_val.as_ref().and_then(|hid| {
-            nodes.iter().find(|n| &n.id == hid).map(|nd| {
-                let mut rows: Vec<ConnRow> = edges.iter()
-                    .filter(|e| &e.pid == hid || &e.cid == hid)
-                    .map(|e| {
-                        let partner_id = if &e.pid == hid { &e.cid } else { &e.pid };
-                        let partner = nodes.iter().find(|n| &n.id == partner_id)
-                            .map(|n| n.label.clone())
-                            .unwrap_or_else(|| partner_id.clone());
-                        ConnRow {
-                            ev: e.ev.clone(),
-                            partner,
-                            vol: e.vol,
-                            bar_w: ((e.vol as f32 / max_vol as f32) * 60.0).round() as u32,
-                        }
-                    })
-                    .collect();
-                rows.sort_by(|a, b| b.vol.cmp(&a.vol));
-                let total: u32 = rows.iter().map(|r| r.vol).sum();
-                let ntype = if nd.is_prod { "producer" } else { "consumer" };
-                (nd.label.clone(), ntype.to_string(), rows, total)
-            })
-        });
+    let tooltip: Option<(String, String, Vec<ConnRow>, u32)> = hov_val.as_ref().and_then(|hid| {
+        nodes.iter().find(|n| &n.id == hid).map(|nd| {
+            let mut rows: Vec<ConnRow> = edges
+                .iter()
+                .filter(|e| &e.pid == hid || &e.cid == hid)
+                .map(|e| {
+                    let partner_id = if &e.pid == hid { &e.cid } else { &e.pid };
+                    let partner = nodes
+                        .iter()
+                        .find(|n| &n.id == partner_id)
+                        .map(|n| n.label.clone())
+                        .unwrap_or_else(|| partner_id.clone());
+                    ConnRow {
+                        ev: e.ev.clone(),
+                        partner,
+                        vol: e.vol,
+                        bar_w: ((e.vol as f32 / max_vol as f32) * 60.0).round() as u32,
+                    }
+                })
+                .collect();
+            rows.sort_by(|a, b| b.vol.cmp(&a.vol));
+            let total: u32 = rows.iter().map(|r| r.vol).sum();
+            let ntype = if nd.is_prod { "producer" } else { "consumer" };
+            (nd.label.clone(), ntype.to_string(), rows, total)
+        })
+    });
 
     // Pre-compute center-panel data from selected node (or mesh summary)
     let (sel_center, n_nodes, n_edges) = {
@@ -173,7 +221,8 @@ pub fn FullCircle(data: TopologyData) -> Element {
         let ne = edges.len();
         let info = sel_val.as_ref().and_then(|sid| {
             nodes.iter().find(|n| &n.id == sid).map(|nd| {
-                let conns: Vec<_> = edges.iter()
+                let conns: Vec<_> = edges
+                    .iter()
                     .filter(|e| &e.pid == sid || &e.cid == sid)
                     .collect();
                 let total: u32 = conns.iter().map(|e| e.vol).sum();

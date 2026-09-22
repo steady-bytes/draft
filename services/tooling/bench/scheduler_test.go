@@ -426,14 +426,14 @@ func TestScheduler_RetryExhaustedIsAHardFailure(t *testing.T) {
 	}
 }
 
-func TestScheduler_GarageStepFailsClearlyWithoutHanging(t *testing.T) {
+func TestScheduler_FoundryStepFailsClearlyWithoutHanging(t *testing.T) {
 	store := newMemStore()
 	sched := newSchedulerWithExecutors(store, map[string]Executor{})
 
 	w := &workflowv1.Workflow{
-		Name: "garage-unsupported",
+		Name: "foundry-unsupported",
 		Steps: []*workflowv1.Step{
-			{Name: "notify", Uses: "garage://slack-notify@v2", With: &structpb.Struct{Fields: map[string]*structpb.Value{}}},
+			{Name: "notify", Uses: "foundry://slack-notify@v2", With: &structpb.Struct{Fields: map[string]*structpb.Value{}}},
 		},
 	}
 
@@ -460,11 +460,11 @@ func TestScheduler_GarageStepFailsClearlyWithoutHanging(t *testing.T) {
 		if sr.GetStatus() != workflowv1.StepStatus_STEP_STATUS_FAILED {
 			t.Errorf("notify status = %v, want FAILED", sr.GetStatus())
 		}
-		if !strings.Contains(sr.GetError(), "garage") {
-			t.Errorf("error = %q, want it to mention garage:// is unimplemented", sr.GetError())
+		if !strings.Contains(sr.GetError(), "foundry") {
+			t.Errorf("error = %q, want it to mention foundry:// is unimplemented", sr.GetError())
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatal("Run did not return within 2s — a garage:// step must fail cleanly, not hang")
+		t.Fatal("Run did not return within 2s — a foundry:// step must fail cleanly, not hang")
 	}
 }
 

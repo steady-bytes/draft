@@ -7,7 +7,7 @@
   <title>{{block "title" .}}Bench{{end}}</title>
 
   <!--
-    Same two-resource CDN setup as services/tooling/garage/templates/base.html,
+    Same two-resource CDN setup as services/tooling/foundry/templates/base.html,
     for the same reason -- DaisyUI is a Tailwind plugin, not a replacement for
     it, and needs Tailwind loaded separately to resolve any layout/spacing
     utility class. See that file's comment for the full explanation and the
@@ -21,8 +21,8 @@
   <script src="/static/htmx.min.js"></script>
 
   <!--
-    The "workshop" theme, byte-for-byte the same token set as Garage's (see
-    that file for the full rationale) -- Bench and Garage are meant to read
+    The "workshop" theme, byte-for-byte the same token set as Foundry's (see
+    that file for the full rationale) -- Bench and Foundry are meant to read
     as one product family, not two differently-skinned tools someone has to
     re-orient between. Duplicated here rather than shared from one file
     because each tooling service is its own separate Go module/binary with
@@ -84,7 +84,7 @@
     .font-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }
     .font-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
 
-    /* Signal light -- see garage's base.html for the full rationale. Status
+    /* Signal light -- see foundry's base.html for the full rationale. Status
        vocabulary shared across both products: passed/success, running
        (pulsing)/warning, failed/error, and here also skipped/idle for a
        step that never ran because an upstream dependency hard-failed. */
@@ -136,7 +136,7 @@
       <a href="/" class="btn btn-ghost btn-sm font-display {{if eq .Nav "dashboard"}}text-primary{{end}}">DASHBOARD</a>
       <a href="/workflows" class="btn btn-ghost btn-sm font-display {{if eq .Nav "workflows"}}text-primary{{end}}">WORKFLOWS</a>
       <a href="/settings" class="btn btn-ghost btn-sm font-display {{if eq .Nav "settings"}}text-primary{{end}}">SETTINGS</a>
-      <a href="http://localhost:9301/" class="btn btn-ghost btn-sm font-display" title="Garage (plugin catalog)">GARAGE &#8599;</a>
+      <a href="http://localhost:9301/" class="btn btn-ghost btn-sm font-display" title="Foundry (plugin catalog)">FOUNDRY &#8599;</a>
     </div>
   </div>
   <main class="container mx-auto px-4 sm:px-8 py-10 max-w-5xl">

@@ -5,119 +5,40 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
-	"slices"
-	"strconv"
+	"sort"
 	"strings"
-	"time"
 
 	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
 	kvv1 "github.com/steady-bytes/draft/api/core/registry/key_value/v1"
 	kvv1Connect "github.com/steady-bytes/draft/api/core/registry/key_value/v1/v1connect"
 
-	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	extauthzv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ext_authz/v3"
-	grpcwebv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_web/v3"
-	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
-	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	upstreams "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
-
 	"connectrpc.com/connect"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/test/v3"
-	"github.com/google/uuid"
 	"github.com/steady-bytes/draft/pkg/chassis"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-type (
-	ControlPlane interface {
-		cache.SnapshotCache
-
-		LoadCache()
-		UpdateCacheWithNewRoute(route *ntv1.Route) error
-		DeleteRoute(ctx context.Context, name string) error
-		ListRoutes(ctx context.Context) ([]*ntv1.Route, error)
-		FindConflicts(ctx context.Context, candidate *ntv1.Route) ([]string, error)
-		Increment() string
-	}
-
-	controlPlane struct {
-		count           string
-		xDSServer       server.Server
-		logger          chassis.Logger
-		cache           cache.SnapshotCache
-		listenerAddress string
-		listenerPort    uint32
-	}
-)
-
-const (
-	// default listener values if key is not set in the `config.yaml` file when the service is run
-	LISTENER_DEFAULT_NAME    = "listener_0"
-	LISTENER_DEFAULT_ADDRESS = "0.0.0.0"
-	LISTENER_DEFAULT_PORT    = 80
-	// config keys
-	LISTENER_ADDRESS_CONFIG_KEY = "fuse.listener.address"
-	LISTENER_PORT_CONFIG_KEY    = "fuse.listener.port"
-
-	DEFAULT_ROUTE_CONFIG_NAME = "route_config"
-
-	// auth service discovery
-	AuthServiceBlueprintKey = "auth_service_address"
-	AUTH_CLUSTER_NAME       = "auth-service"
-	AUTH_FILTER_NAME        = "envoy.filters.http.ext_authz"
-)
+// controlPlane owns route validation, conflict detection, and persistence
+// to Blueprint's key/value store -- identical regardless of which
+// ProxyBackend is active. Turning a validated route table into live
+// traffic handling is the one thing that differs by backend; see apply()
+// and backend.go's ProxyBackend interface.
+type controlPlane struct {
+	logger  chassis.Logger
+	backend ProxyBackend
+}
 
 var (
 	ErrFailedRouteMarshal = errors.New("failed to marshal route")
 	ErrUnableToSaveRoute  = errors.New("unable to save route in the key/value store")
 )
 
-func NewControlPlane(logger chassis.Logger) *controlPlane {
-	var (
-		ctx      = context.Background()
-		cache    = cache.NewSnapshotCache(false, cache.IDHash{}, logger)
-		snapshot = GenerateSnapshot()
-		config   = chassis.GetConfig()
-	)
-
-	// ensure the snapshot is well-formed
-	if err := snapshot.Consistent(); err != nil {
-		logger.WithError(err).WithField("snapshot", snapshot).Panic("snapshot failed consistency check")
-	}
-
-	// set the snapshot to the cache
-	if err := cache.SetSnapshot(ctx, "fuse-proxy-1", snapshot); err != nil {
-		logger.WithError(err).WithField("snapshot", snapshot).Panic("failed to set snapshot")
-	}
-
-	// TODO: find a more elegant way to handle debug enable.
-	cb := &test.Callbacks{Debug: true}
-
-	// set listener attributes from config (or defaults)
-	listenerAddress := config.GetString(LISTENER_ADDRESS_CONFIG_KEY)
-	if listenerAddress == "" {
-		listenerAddress = LISTENER_DEFAULT_ADDRESS
-	}
-	listenerPort := config.GetUint32(LISTENER_PORT_CONFIG_KEY)
-	if listenerPort == 0 {
-		listenerPort = LISTENER_DEFAULT_PORT
-	}
+// NewControlPlane constructs the backend-agnostic control plane. backend is
+// whichever ProxyBackend main.go selected via ProxyBackendName().
+func NewControlPlane(logger chassis.Logger, backend ProxyBackend) *controlPlane {
 	return &controlPlane{
-		xDSServer:       server.NewServer(ctx, cache, cb),
-		logger:          logger,
-		cache:           cache,
-		listenerAddress: listenerAddress,
-		listenerPort:    listenerPort,
+		logger:  logger,
+		backend: backend,
 	}
 }
 
@@ -150,7 +71,7 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 	}
 
 	setReq := connect.NewRequest(&kvv1.SetRequest{
-		Key:   route.Name,
+		Key:   storageKey(route.GetName(), route.GetEndpoint()),
 		Value: val,
 	})
 
@@ -164,9 +85,17 @@ func (cp *controlPlane) UpdateCacheWithNewRoute(route *ntv1.Route) error {
 }
 
 // DeleteRoute removes a route from the blueprint key/value store and rebuilds the Envoy snapshot
-// without it, mirroring what UpdateCacheWithNewRoute already does on add.
+// without it, mirroring what UpdateCacheWithNewRoute already does on add. A logical route name can
+// be backed by more than one stored registration (eg. every raft node in a Blueprint cluster
+// registering the same route -- see storageKey), so this removes every registration sharing name,
+// not just one, matching the UI's "delete this whole route" expectation.
 func (cp *controlPlane) DeleteRoute(ctx context.Context, name string) error {
 	client := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
+
+	raw, err := cp.listRawRoutes(ctx, client)
+	if err != nil {
+		return err
+	}
 
 	routeModel, err := anypb.New(&ntv1.Route{})
 	if err != nil {
@@ -174,13 +103,17 @@ func (cp *controlPlane) DeleteRoute(ctx context.Context, name string) error {
 		return ErrFailedRouteMarshal
 	}
 
-	_, err = client.Delete(ctx, connect.NewRequest(&kvv1.DeleteRequest{
-		Key:   name,
-		Value: routeModel,
-	}))
-	if err != nil {
-		cp.logger.Error(err.Error())
-		return err
+	for key, r := range raw {
+		if r.GetName() != name {
+			continue
+		}
+		if _, err := client.Delete(ctx, connect.NewRequest(&kvv1.DeleteRequest{
+			Key:   key,
+			Value: routeModel,
+		})); err != nil {
+			cp.logger.Error(err.Error())
+			return err
+		}
 	}
 
 	return cp.apply(ctx, client)
@@ -188,8 +121,11 @@ func (cp *controlPlane) DeleteRoute(ctx context.Context, name string) error {
 
 // FindConflicts returns the names of any existing routes that share the same (host, match_type,
 // prefix) tuple as candidate. Excludes candidate.Name itself so re-registering an unchanged route
-// doesn't flag against itself.
-func (cp *controlPlane) FindConflicts(ctx context.Context, candidate *ntv1.Route) ([]string, error) {
+// doesn't flag against itself, and excludes existingName (when non-empty) so validating a rename
+// — candidate.Name is the new name, existingName the route's name before the edit — doesn't flag
+// against its own not-yet-deleted prior version. AddRoute's own call passes "" (no additional
+// exclusion; by the time it runs during a rename, the old name has already been deleted).
+func (cp *controlPlane) FindConflicts(ctx context.Context, candidate *ntv1.Route, existingName string) ([]string, error) {
 	existing, err := cp.ListRoutes(ctx)
 	if err != nil {
 		return nil, err
@@ -198,7 +134,7 @@ func (cp *controlPlane) FindConflicts(ctx context.Context, candidate *ntv1.Route
 	key := routeKey(candidate.GetMatch())
 	var conflicts []string
 	for _, r := range existing {
-		if r.GetName() == candidate.GetName() {
+		if r.GetName() == candidate.GetName() || (existingName != "" && r.GetName() == existingName) {
 			continue
 		}
 		if r.GetMatch().GetHost() == candidate.GetMatch().GetHost() && routeKey(r.GetMatch()) == key {
@@ -206,6 +142,29 @@ func (cp *controlPlane) FindConflicts(ctx context.Context, candidate *ntv1.Route
 		}
 	}
 	return conflicts, nil
+}
+
+// checkCapabilities returns a non-empty rejection message if candidate
+// requires something the active backend's Capabilities() says it can't
+// honor -- Phase 8's config-time validation, so a setting the backend
+// can't enforce is rejected at registration instead of silently accepted
+// and never actually applied.
+//
+// mTLS is the only thing checked here on purpose. WideEvents
+// (wide_events_disabled) degrades safely when unsupported -- a backend
+// that can't produce one just doesn't, same as an ordinary opt-out — so
+// there's nothing to reject; see the design doc's WideEvent section.
+// TLS has no per-route field to check at all: it's a listener-level
+// setting (fuse.tls.mode), not something an individual Route opts into.
+// mTLS is different in kind: silently not enforcing a client-certificate
+// requirement is a real security downgrade, not a graceful no-op, which is
+// exactly the gap this phase exists to close.
+func (cp *controlPlane) checkCapabilities(candidate *ntv1.Route) string {
+	caps := cp.backend.Capabilities()
+	if candidate.GetMtls().GetEnabled() && !caps.MTLS {
+		return fmt.Sprintf("route requires mTLS, but the active proxy backend (%s) doesn't support it", cp.backend.Name())
+	}
+	return ""
 }
 
 // routeKey normalizes match_type (UNSPECIFIED behaves as PREFIX, matching the compiled Envoy
@@ -219,9 +178,27 @@ func routeKey(m *ntv1.RouteMatch) string {
 	return fmt.Sprintf("%d:%s", mt, m.GetPrefix())
 }
 
+// ListRoutes returns one logical route per registered name, merging every stored registration
+// that shares a name (see storageKey) into a single Route with Endpoints populated from all of
+// them. This is the view every caller outside this file should use -- conflict detection, the
+// RPC handler, and the gateway UI all want "one row per route", not one row per backend instance.
 func (cp *controlPlane) ListRoutes(ctx context.Context) ([]*ntv1.Route, error) {
 	client := kvv1Connect.NewKeyValueServiceClient(http.DefaultClient, chassis.GetConfig().Entrypoint())
 
+	raw, err := cp.listRawRoutes(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+	return mergeRoutes(raw), nil
+}
+
+// listRawRoutes returns every stored route registration keyed by its raw KV key (one entry per
+// storageKey, so a load-balanced route with N registered backends has N entries here, all sharing
+// the same Route.Name). Callers that need "one row per logical route" should go through
+// ListRoutes/mergeRoutes instead; this is for the two places that need the raw per-registration
+// keys themselves: DeleteRoute (to remove every registration under a name) and apply (which merges
+// them into Envoy clusters directly, skipping ListRoutes' extra Route re-serialization).
+func (cp *controlPlane) listRawRoutes(ctx context.Context, client kvv1Connect.KeyValueServiceClient) (map[string]*ntv1.Route, error) {
 	routeModel, err := anypb.New(&ntv1.Route{})
 	if err != nil {
 		return nil, ErrFailedRouteMarshal
@@ -232,528 +209,105 @@ func (cp *controlPlane) ListRoutes(ctx context.Context) ([]*ntv1.Route, error) {
 		return nil, ErrUnableToSaveRoute
 	}
 
-	routes := make([]*ntv1.Route, 0, len(resp.Msg.GetValues()))
-	for _, v := range resp.Msg.GetValues() {
+	raw := make(map[string]*ntv1.Route, len(resp.Msg.GetValues()))
+	for key, v := range resp.Msg.GetValues() {
 		r := &ntv1.Route{}
 		if err := v.UnmarshalTo(r); err != nil {
 			return nil, ErrFailedRouteMarshal
 		}
-		routes = append(routes, r)
+		// List returns each entry keyed by its physical storage key ("<type_url>-<key>", see
+		// blueprint's key_value.Model.makeKey), not the logical key Set/Get/Delete take -- those
+		// three re-apply the type_url prefix themselves. Passing a physical key straight back into
+		// Delete would double-prefix it and silently delete nothing (found live: a second
+		// registration's endpoint survived a DeleteRoute call that reported OK). Strip it back to
+		// the logical key here, the same way ListKinds already does, so callers of this map (namely
+		// DeleteRoute) can pass a key straight to Delete. Type_urls never contain a hyphen, so
+		// splitting on the first one unambiguously recovers the logical key.
+		_, logicalKey, found := strings.Cut(key, "-")
+		if !found {
+			continue
+		}
+		raw[logicalKey] = r
 	}
-	return routes, nil
+	return raw, nil
 }
 
+// mergeRoutes groups raw per-registration routes by Name into one logical route per name.
+// Multiple processes registering the identical (name, match) tuple -- eg. every raft node in a
+// Blueprint cluster registering the same UI route -- are meant to be load-balanced as one Envoy
+// cluster, not treated as separate routes or clobber each other. The first registration in sorted
+// key order wins for every non-endpoint field (match, auth, http2); since routes sharing a name
+// are expected to share a definition, this is only a real choice for the endpoint fields, where
+// Endpoint keeps that same first instance (for existing single-endpoint readers) and Endpoints
+// carries the full deduplicated set. Sorting keys first (rather than ranging the map directly)
+// keeps that "first" choice deterministic across repeated calls instead of flapping with Go's
+// randomized map iteration order.
+func mergeRoutes(raw map[string]*ntv1.Route) []*ntv1.Route {
+	keys := make([]string, 0, len(raw))
+	for k := range raw {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	byName := make(map[string]*ntv1.Route, len(raw))
+	seenEndpoint := make(map[string]map[string]bool, len(raw))
+	var order []string
+
+	for _, k := range keys {
+		r := raw[k]
+		name := r.GetName()
+		merged, ok := byName[name]
+		if !ok {
+			merged = proto.Clone(r).(*ntv1.Route)
+			merged.Endpoints = nil
+			byName[name] = merged
+			seenEndpoint[name] = map[string]bool{}
+			order = append(order, name)
+		}
+		if ep := r.GetEndpoint(); ep != nil {
+			ek := endpointKey(ep)
+			if !seenEndpoint[name][ek] {
+				seenEndpoint[name][ek] = true
+				merged.Endpoints = append(merged.Endpoints, ep)
+			}
+		}
+	}
+
+	routes := make([]*ntv1.Route, 0, len(order))
+	for _, name := range order {
+		routes = append(routes, byName[name])
+	}
+	return routes
+}
+
+// storageKey is the KV key a single route registration is stored under. Composed from the route's
+// name and its own endpoint (rather than just the name) so that multiple processes registering
+// the identical route name -- the normal case for a horizontally-scaled or raft-clustered service,
+// where every instance calls chassis's WithRoute with the same Route.Name and its own address --
+// each get their own KV entry instead of overwriting each other's. mergeRoutes groups these back
+// into one logical route per name when reading. A process re-registering from the same address
+// (eg. across a restart) reuses the same key, so that registration still upserts in place rather
+// than accumulating.
+func storageKey(name string, e *ntv1.Endpoint) string {
+	return fmt.Sprintf("%s@%s", name, endpointKey(e))
+}
+
+func endpointKey(e *ntv1.Endpoint) string {
+	return fmt.Sprintf("%s:%d", e.GetHost(), e.GetPort())
+}
+
+// apply merges the currently-persisted routes and hands them to whichever
+// ProxyBackend is active. All the backend-specific work (Envoy snapshot
+// building, or the native backend's in-memory table swap once it exists)
+// lives on the backend's own Apply method -- see backend.go and
+// envoy_backend.go.
 func (cp *controlPlane) apply(ctx context.Context, client kvv1Connect.KeyValueServiceClient) error {
-
-	routeModel, err := anypb.New(&ntv1.Route{})
+	raw, err := cp.listRawRoutes(ctx, client)
 	if err != nil {
-		cp.logger.Error(err.Error())
-		return ErrFailedRouteMarshal
-	}
-
-	listRoutesReq := connect.NewRequest(&kvv1.ListRequest{
-		Value: routeModel,
-	})
-
-	routes, err := client.List(ctx, listRoutesReq)
-	if err != nil {
-		cp.logger.Error(err.Error())
-		return ErrUnableToSaveRoute
-	}
-
-	// Discover the auth service address. Empty string means auth is not deployed;
-	// routes are treated as public and no ext_authz filter is added.
-	authAddr := cp.getAuthServiceAddress(ctx, client)
-	authEnabled := authAddr != ""
-
-	var snapshot *cache.Snapshot
-	var clusters []types.Resource
-	var systemRoutes []types.Resource
-
-	for _, rr := range routes.Msg.GetValues() {
-		newRoute := &ntv1.Route{}
-
-		err := rr.UnmarshalTo(newRoute)
-		if err != nil {
-			cp.logger.Error(err.Error())
-			return ErrFailedRouteMarshal
-		}
-
-		// Add individual service routes to the new snapshot
-		clusterLoadAssignment := makeEndpoint(newRoute)
-		clusters = append(clusters, makeCluster(newRoute, clusterLoadAssignment))
-	}
-
-	// Add the auth service cluster when auth is enabled so Envoy can reach it.
-	if authEnabled {
-		authCluster, err := makeAuthCluster(authAddr)
-		if err != nil {
-			cp.logger.WithError(err).Warn("invalid auth_service_address — running without auth")
-			authEnabled = false
-		} else {
-			clusters = append(clusters, authCluster)
-		}
-	}
-
-	systemRoutes = append(systemRoutes, makeRouterConfig(routes.Msg.GetValues(), authEnabled))
-
-	newRouter := &router.Router{}
-
-	routerConfig, err := anypb.New(newRouter)
-	if err != nil {
-		cp.logger.Error(err.Error())
 		return err
 	}
-
-	// Build the ordered HttpFilter chain. ext_authz must come before grpc_web, which must come
-	// before the router.
-	httpFilters := []*hcm.HttpFilter{}
-	if authEnabled {
-		extAuthzFilter, err := makeExtAuthzFilter(authAddr)
-		if err != nil {
-			cp.logger.WithError(err).Error("failed to build ext_authz filter")
-			return err
-		}
-		httpFilters = append(httpFilters, extAuthzFilter)
-	}
-	// grpc_web translates the grpc-web wire format browsers use into standard gRPC. It's a no-op
-	// passthrough for non-grpc-web requests, so it's safe to enable unconditionally.
-	grpcWebAny, err := anypb.New(&grpcwebv3.GrpcWeb{})
-	if err != nil {
-		cp.logger.Error(err.Error())
-		return err
-	}
-	httpFilters = append(httpFilters, &hcm.HttpFilter{
-		Name:       "envoy.filters.http.grpc_web",
-		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: grpcWebAny},
-	})
-	httpFilters = append(httpFilters, &hcm.HttpFilter{
-		Name:       "fuse-http-router",
-		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: routerConfig},
-	})
-
-	// HTTP filter configuration
-	manager := &hcm.HttpConnectionManager{
-		CodecType:  hcm.HttpConnectionManager_AUTO,
-		StatPrefix: "http",
-		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
-			Rds: &hcm.Rds{
-				ConfigSource:    makeConfigSource(),
-				RouteConfigName: routeConfigName(),
-			},
-		},
-		HttpFilters: httpFilters,
-		UpgradeConfigs: []*hcm.HttpConnectionManager_UpgradeConfig{
-			{
-				UpgradeType: "websocket",
-			},
-		},
-		// disable with 0 value
-		StreamIdleTimeout: &durationpb.Duration{},
-		// Host-based routing (subdomain-per-service UI routes, RouteMatch.host generally)
-		// matches VirtualHost.Domains against the request's Host/:authority header verbatim,
-		// port included, unless told otherwise. A browser includes the port whenever it's
-		// non-default (eg. Host: blueprint.draft.localhost:10000 hitting this listener's own
-		// non-standard port) -- without this, that request falls through to the catch-all "*"
-		// virtual host instead of matching the dedicated one, since routes are registered with
-		// just the bare host (eg. "blueprint.draft.localhost"), not host:port. Confirmed live:
-		// curl with an explicit Host header (no port) matched correctly and masked this: only
-		// testing through an actual browser against the real listener port surfaced it.
-		StripPortMode: &hcm.HttpConnectionManager_StripAnyHostPort{
-			StripAnyHostPort: true,
-		},
-	}
-
-	pbst, err := anypb.New(manager)
-	if err != nil {
-		cp.logger.Error(err.Error())
-		return err
-	}
-
-	// create the default listener envoy will use
-	listener := &listener.Listener{
-		Name: LISTENER_DEFAULT_NAME,
-		Address: &core.Address{
-			Address: &core.Address_SocketAddress{
-				SocketAddress: &core.SocketAddress{
-					Protocol: core.SocketAddress_TCP,
-					Address:  cp.listenerAddress,
-					PortSpecifier: &core.SocketAddress_PortValue{
-						PortValue: cp.listenerPort,
-					},
-				},
-			},
-		},
-		FilterChains: []*listener.FilterChain{{
-			Filters: []*listener.Filter{{
-				Name: "http-connection-manager",
-				ConfigType: &listener.Filter_TypedConfig{
-					TypedConfig: pbst,
-				},
-			}},
-		}},
-	}
-
-	snapshot, _ = cache.NewSnapshot(cp.increment(),
-		map[resource.Type][]types.Resource{
-			resource.ClusterType:  clusters,
-			resource.RouteType:    systemRoutes,
-			resource.ListenerType: {listener},
-		},
-	)
-
-	// Apply the newly generated snapshot to the cache
-	if err := cp.cache.SetSnapshot(ctx, "fuse-proxy-1", snapshot); err != nil {
-		cp.logger.Errorf("snapshot error: %+v", err)
-		return err
-	}
-
-	return nil
-}
-
-// getAuthServiceAddress reads the auth service address from Blueprint KV.
-// Returns an empty string if the auth service is not registered.
-func (cp *controlPlane) getAuthServiceAddress(ctx context.Context, client kvv1Connect.KeyValueServiceClient) string {
-	val, err := anypb.New(&kvv1.Value{})
-	if err != nil {
-		return ""
-	}
-	resp, err := client.Get(ctx, connect.NewRequest(&kvv1.GetRequest{
-		Key:   AuthServiceBlueprintKey,
-		Value: val,
-	}))
-	if err != nil {
-		return ""
-	}
-	value := &kvv1.Value{}
-	if err := resp.Msg.GetValue().UnmarshalTo(value); err != nil {
-		return ""
-	}
-	return value.Data
-}
-
-// Increase the version of the snapshot. At this point we are just generating a random UUID.
-//
-// TODO: Keep track of the version in `blueprint` to load historical routing configurations.
-// Having an audit trail of routing configurations is important for debugging
-func (cp *controlPlane) increment() string {
-	cp.count = uuid.New().String()
-	return cp.count
-}
-
-func makeCluster(r *ntv1.Route, loadAssignment *endpoint.ClusterLoadAssignment) *cluster.Cluster {
-	c := &cluster.Cluster{
-		Name:                 clusterName(r),
-		ConnectTimeout:       durationpb.New(5 * time.Second),
-		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_LOGICAL_DNS},
-		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
-		LoadAssignment:       loadAssignment,
-		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
-	}
-
-	// enabling HTTP2 supports gRPC but can cause servers without HTTP2 support to fail the connection with a protocol error
-	if r.EnableHttp2 {
-		a, _ := anypb.New(&upstreams.HttpProtocolOptions{
-			UpstreamProtocolOptions: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_{
-				ExplicitHttpConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig{
-					ProtocolConfig: &upstreams.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
-						Http2ProtocolOptions: &core.Http2ProtocolOptions{},
-					},
-				},
-			},
-		})
-		c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
-			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": a,
-		}
-	}
-
-	return c
-}
-
-// makeAuthCluster builds an Envoy cluster that points to the auth service.
-func makeAuthCluster(rawURL string) (*cluster.Cluster, error) {
-	host, port, err := parseAuthServiceURL(rawURL)
-	if err != nil {
-		return nil, err
-	}
-	la := &endpoint.ClusterLoadAssignment{
-		ClusterName: AUTH_CLUSTER_NAME,
-		Endpoints: []*endpoint.LocalityLbEndpoints{{
-			LbEndpoints: []*endpoint.LbEndpoint{{
-				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-					Endpoint: &endpoint.Endpoint{
-						Address: &core.Address{
-							Address: &core.Address_SocketAddress{
-								SocketAddress: &core.SocketAddress{
-									Protocol:      core.SocketAddress_TCP,
-									Address:       host,
-									PortSpecifier: &core.SocketAddress_PortValue{PortValue: port},
-								},
-							},
-						},
-					},
-				},
-			}},
-		}},
-	}
-	return &cluster.Cluster{
-		Name:                 AUTH_CLUSTER_NAME,
-		ConnectTimeout:       durationpb.New(5 * time.Second),
-		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_LOGICAL_DNS},
-		LbPolicy:             cluster.Cluster_ROUND_ROBIN,
-		LoadAssignment:       la,
-		DnsLookupFamily:      cluster.Cluster_V4_ONLY,
-	}, nil
-}
-
-// makeExtAuthzFilter builds the ext_authz HttpFilter that points to the auth service cluster.
-func makeExtAuthzFilter(rawURL string) (*hcm.HttpFilter, error) {
-	extAuthzConfig := &extauthzv3.ExtAuthz{
-		Services: &extauthzv3.ExtAuthz_HttpService{
-			HttpService: &extauthzv3.HttpService{
-				ServerUri: &core.HttpUri{
-					Uri: rawURL,
-					HttpUpstreamType: &core.HttpUri_Cluster{
-						Cluster: AUTH_CLUSTER_NAME,
-					},
-					Timeout: durationpb.New(250 * time.Millisecond),
-				},
-			},
-		},
-		TransportApiVersion: resource.DefaultAPIVersion,
-		// deny the request if the auth service is unavailable
-		FailureModeAllow: false,
-	}
-	extAuthzAny, err := anypb.New(extAuthzConfig)
-	if err != nil {
-		return nil, err
-	}
-	return &hcm.HttpFilter{
-		Name:       AUTH_FILTER_NAME,
-		ConfigType: &hcm.HttpFilter_TypedConfig{TypedConfig: extAuthzAny},
-	}, nil
-}
-
-// makePerRouteAuthConfig returns the typed_per_filter_config for the ext_authz filter on
-// a single route. When authEnabled is false (no auth service registered) nil is returned.
-func makePerRouteAuthConfig(r *ntv1.Route, authEnabled bool) *anypb.Any {
-	if !authEnabled {
-		return nil
-	}
-
-	auth := r.GetAuth()
-
-	// No auth field, disabled auth, or explicit bypass → disable the check for this route.
-	if auth == nil || !auth.Enabled || auth.Policy == ntv1.AuthPolicy_AUTH_POLICY_BYPASS {
-		perRoute := &extauthzv3.ExtAuthzPerRoute{
-			Override: &extauthzv3.ExtAuthzPerRoute_Disabled{Disabled: true},
-		}
-		a, _ := anypb.New(perRoute)
-		return a
-	}
-
-	// Build context extensions carrying the policy requirements so the auth service
-	// can enforce them without needing its own route table.
-	contextExtensions := map[string]string{}
-	switch auth.Policy {
-	case ntv1.AuthPolicy_AUTH_POLICY_GROUPS:
-		if len(auth.RequiredGroups) > 0 {
-			contextExtensions["required_groups"] = strings.Join(auth.RequiredGroups, ",")
-		}
-	case ntv1.AuthPolicy_AUTH_POLICY_SCOPES:
-		if len(auth.RequiredScopes) > 0 {
-			contextExtensions["required_scopes"] = strings.Join(auth.RequiredScopes, " ")
-		}
-	}
-
-	perRoute := &extauthzv3.ExtAuthzPerRoute{
-		Override: &extauthzv3.ExtAuthzPerRoute_CheckSettings{
-			CheckSettings: &extauthzv3.CheckSettings{
-				ContextExtensions: contextExtensions,
-			},
-		},
-	}
-	a, _ := anypb.New(perRoute)
-	return a
-}
-
-// `makeRoute` creates a route for the given cluster, and a virtual host for the process that is attempting to add the route.
-//
-// `nt_route` 			:route configuration that is being added to the snapshot.
-// `authEnabled` 		:whether the auth service is registered; controls per-route ext_authz config generation.
-func makeRouterConfig(routes map[string]*anypb.Any, authEnabled bool) *route.RouteConfiguration {
-	var (
-		virtualHosts       []*route.VirtualHost
-		defaultVirtualHost = &route.VirtualHost{
-			Name:    "default",
-			Domains: []string{"*"},
-			Routes:  []*route.Route{},
-		}
-	)
-
-	for _, rt := range routes {
-		r := &ntv1.Route{}
-		err := rt.UnmarshalTo(r)
-		if err != nil {
-			return nil
-		}
-
-		perRouteConfig := map[string]*anypb.Any{}
-		if authCfg := makePerRouteAuthConfig(r, authEnabled); authCfg != nil {
-			perRouteConfig[AUTH_FILTER_NAME] = authCfg
-		}
-
-		// match_type is unset (UNSPECIFIED) on every route registered before this field existed;
-		// treat that the same as PREFIX so those routes keep compiling identically. See routeKey,
-		// which applies the same normalization for conflict detection.
-		routeMatch := &route.RouteMatch{}
-		if r.Match.GetMatchType() == ntv1.MatchType_MATCH_TYPE_EXACT {
-			routeMatch.PathSpecifier = &route.RouteMatch_Path{Path: r.Match.Prefix}
-		} else {
-			routeMatch.PathSpecifier = &route.RouteMatch_Prefix{Prefix: r.Match.Prefix}
-		}
-
-		envoyRoute := &route.Route{
-			Match: routeMatch,
-			Action: &route.Route_Route{
-				Route: &route.RouteAction{
-					ClusterSpecifier: &route.RouteAction_Cluster{
-						Cluster: clusterName(r),
-					},
-					// disable with 0 value
-					Timeout: &durationpb.Duration{},
-				},
-			},
-			TypedPerFilterConfig: perRouteConfig,
-		}
-
-		// if no host is requested, add to default host
-		if r.Match.Host == "" {
-			defaultVirtualHost.Routes = append(defaultVirtualHost.Routes, envoyRoute)
-		} else {
-			virtualHosts = append(virtualHosts, &route.VirtualHost{
-				Name:    r.Name,
-				Domains: []string{r.Match.Host},
-				Routes:  []*route.Route{envoyRoute},
-			})
-		}
-	}
-
-	// only include the default virtual host if it's being used
-	if len(defaultVirtualHost.Routes) > 0 {
-		virtualHosts = append(virtualHosts, defaultVirtualHost)
-	}
-
-	// TODO: This is a bit of a hack to force simple prefixes like "/" to be pushed to the last place in the routes slice.
-	//		Doing this is important since you might have multiple services (routes) attached to a single host with
-	// 		one hosting a web-client with a prefix of "/" and others hosting APIs with prefixes like "/examples.crud.v1.CrudService/".
-	// 		This needs to be revisited with a proper pattern defined for enabling developers to define RouteMatch ordering.
-	//
-	// EXACT routes (compiled to route.RouteMatch_Path, not _Prefix) must sort before every PREFIX route regardless of
-	// path length: Envoy's route.RouteMatch.GetPrefix() returns "" for a _Path-specified match, so comparing raw
-	// GetPrefix() values (the previous version of this sort) silently treated every EXACT route as if it had the
-	// shortest possible prefix -- losing to a catch-all "/" PREFIX route instead of winning as the more specific
-	// match. Two EXACT routes never need ordering between each other: identical (host, EXACT, path) tuples are
-	// already rejected as a conflict in AddRoute, so within one virtual host at most one can match a given path.
-	for _, vh := range virtualHosts {
-		slices.SortFunc(vh.Routes, func(a, b *route.Route) int {
-			aExact := a.Match.GetPath() != ""
-			bExact := b.Match.GetPath() != ""
-			if aExact != bExact {
-				if aExact {
-					return -1
-				}
-				return 1
-			}
-			if aExact {
-				return 0
-			}
-			return len(b.Match.GetPrefix()) - len(a.Match.GetPrefix())
-		})
-	}
-
-	return &route.RouteConfiguration{
-		Name:         routeConfigName(),
-		VirtualHosts: virtualHosts,
-	}
-}
-
-func makeEndpoint(r *ntv1.Route) *endpoint.ClusterLoadAssignment {
-	return &endpoint.ClusterLoadAssignment{
-		ClusterName: clusterName(r),
-		Endpoints: []*endpoint.LocalityLbEndpoints{{
-			LbEndpoints: []*endpoint.LbEndpoint{{
-				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-					Endpoint: &endpoint.Endpoint{
-						Address: &core.Address{
-							Address: &core.Address_SocketAddress{
-								SocketAddress: &core.SocketAddress{
-									// defaulting to tcp, this can be changed but will also depend on the protocol
-									// the upstream is using. In this case it's http.
-									Protocol: core.SocketAddress_TCP,
-									Address:  r.Endpoint.Host,
-									PortSpecifier: &core.SocketAddress_PortValue{
-										PortValue: r.Endpoint.Port,
-									},
-								},
-							},
-						},
-					},
-				},
-			}},
-		}},
-	}
-}
-
-func makeConfigSource() *core.ConfigSource {
-	source := &core.ConfigSource{}
-	source.ResourceApiVersion = resource.DefaultAPIVersion
-	source.ConfigSourceSpecifier = &core.ConfigSource_ApiConfigSource{
-		ApiConfigSource: &core.ApiConfigSource{
-			TransportApiVersion:       resource.DefaultAPIVersion,
-			ApiType:                   core.ApiConfigSource_GRPC,
-			SetNodeOnFirstMessageOnly: true,
-			GrpcServices: []*core.GrpcService{{
-				TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-					EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: "xds_cluster"},
-				},
-			}},
-		},
-	}
-	return source
-}
-
-// `GenerateSnapshot` creates a snapshot with a cluster. This is only used to start the control plane.
-func GenerateSnapshot() *cache.Snapshot {
-	snap, _ := cache.NewSnapshot("1",
-		map[resource.Type][]types.Resource{
-			// resource.ClusterType: {makeCluster(DEFAULT_CLUSTER_NAME, &endpoint.ClusterLoadAssignment{})},
-		},
-	)
-	return snap
-}
-
-func routeConfigName() string {
-	return DEFAULT_ROUTE_CONFIG_NAME
-}
-
-func clusterName(r *ntv1.Route) string {
-	return r.Name
-}
-
-func parseAuthServiceURL(rawURL string) (host string, port uint32, err error) {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "", 0, err
-	}
-	host = u.Hostname()
-	portStr := u.Port()
-	if portStr == "" {
-		portStr = "80"
-	}
-	p, err := strconv.ParseUint(portStr, 10, 32)
-	if err != nil {
-		return "", 0, err
-	}
-	return host, uint32(p), nil
+	// Merge every raw registration into one logical route per name before
+	// handing it to the backend -- each becomes exactly one cluster/route
+	// (or native-backend table entry), instead of one per raw registration.
+	return cp.backend.Apply(mergeRoutes(raw))
 }

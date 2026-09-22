@@ -16,7 +16,11 @@ fn sparkline_points_str(data: &[f32]) -> String {
     }
     let min = data.iter().cloned().fold(f32::INFINITY, f32::min);
     let max = data.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-    let range = if (max - min).abs() < 0.01 { 1.0 } else { max - min };
+    let range = if (max - min).abs() < 0.01 {
+        1.0
+    } else {
+        max - min
+    };
     let last = (data.len() - 1) as f32;
     data.iter()
         .enumerate()

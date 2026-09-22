@@ -20,7 +20,7 @@
 # Deliberately not using a synthetic *.localhost subdomain here: that
 # resolution trick is a *browser* behavior (RFC 6761), not something Go's
 # (or the OS's) resolver does -- confirmed by hitting exactly this failure
-# with garage://http-call@v1 ("dial tcp: lookup ...localhost: no such
+# with foundry://http-call@v1 ("dial tcp: lookup ...localhost: no such
 # host"). Fixing it by adding a Host header wouldn't work either: Go's
 # net/http only honors the wire Host line from Request.Host, and http-call's
 # plugin only ever calls Header.Set (see services/tooling/http-call/rpc.go),
@@ -54,7 +54,7 @@ steps:
         code: { equals: "OK" }
 
   - name: call-echo-through-proxy
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [register-test-route]
     with:
       method: POST

@@ -33,15 +33,15 @@ type pluginRegistryStore interface {
 }
 
 // checkRegistryReachable calls List (page_size 1) against addr to confirm
-// something garage-compatible actually answers there before Bench trusts
+// something foundry-compatible actually answers there before Bench trusts
 // it -- the same "reject bad input at the boundary" discipline
 // loader.go's ParseWorkflow already applies to workflow YAML, applied here
 // so a broken address doesn't silently start failing every search and every
-// garage:// step that happens to resolve against it.
+// foundry:// step that happens to resolve against it.
 func checkRegistryReachable(ctx context.Context, httpClient connect.HTTPClient, address string) error {
 	client := plugincatalogv1connect.NewPluginCatalogServiceClient(httpClient, address, connect.WithGRPC())
 	if _, err := client.List(ctx, connect.NewRequest(&plugincatalogv1.ListPluginsRequest{PageSize: 1})); err != nil {
-		return fmt.Errorf("could not reach a garage-compatible plugin registry at %q: %w", address, err)
+		return fmt.Errorf("could not reach a foundry-compatible plugin registry at %q: %w", address, err)
 	}
 	return nil
 }

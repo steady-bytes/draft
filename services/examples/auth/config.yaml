@@ -9,11 +9,20 @@ service:
   network:
     bind_address: localhost
     bind_port: 9095
+    # internal.host is what WithRoute uses to auto-fill this service's registered endpoint
+    # (no separate route.host override here). localhost, not host.docker.internal: Fuse's
+    # native proxy backend runs on the host, like this process, not in Docker -- it can't
+    # resolve host.docker.internal at all (confirmed live, see
+    # docs/architecture/fuse-native-proxy-implementation-plan.md's Phase 9 notes). Only the
+    # envoy backend (a separate Docker container) needed that hostname; if a cluster runs
+    # Fuse with fuse.proxy_backend: envoy, this needs to go back to host.docker.internal.
     internal:
-      host: host.docker.internal
+      host: localhost
       port: 9095
     external:
       host: localhost:10000
 
 telemetry:
   enabled: true
+  wide_events:
+    enabled: true

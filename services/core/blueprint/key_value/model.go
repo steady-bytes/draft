@@ -3,6 +3,7 @@ package key_value
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/steady-bytes/draft/pkg/chassis"
@@ -30,12 +31,23 @@ type (
 		// List takes in a key prefix, and returns a map
 		// of all values that the key prefix matches
 		List(T) (map[Key]T, error)
+		// ListKinds returns every distinct type_url currently stored, each with how many keys
+		// are stored under it -- how a caller discovers what kinds exist before picking one to
+		// pass to List, which otherwise requires knowing the type_url ahead of time.
+		ListKinds() ([]KindSummary, error)
 		// Save a key, value to badger. If a key is the same as an existing
 		// key that has already been saved then the new value will overwrite the old.
 		Set(Key, T) error
 	}
 	model struct {
 		repository dbadger.Repository
+	}
+
+	// KindSummary is one distinct Any type_url found in the store, and how many keys are
+	// currently stored under it.
+	KindSummary struct {
+		TypeURL string
+		Count   uint32
 	}
 )
 
@@ -154,6 +166,42 @@ func (m *model) List(kind T) (map[string]T, error) {
 	}
 
 	return output, nil
+}
+
+// ListKinds scans every key in the store (no prefix -- this is precisely what makes it able to
+// discover kinds List can't: List already requires the caller to supply the type_url it's
+// looking for). Each physical key is "<type_url>-<key>" (see makeKey); type_urls are always
+// dotted proto package/message names ("type.googleapis.com/core.registry.key_value.v1.Value")
+// and never contain a hyphen, so splitting on the first "-" unambiguously recovers the type_url
+// with no schema knowledge needed. A key with no "-" at all is malformed/legacy data -- skipped
+// rather than failing discovery for everything else.
+func (m *model) ListKinds() ([]KindSummary, error) {
+	var (
+		txn    = m.Client().NewTransaction(false)
+		it     = txn.NewIterator(badger.DefaultIteratorOptions)
+		counts = make(map[string]uint32)
+	)
+	// defer order matters: defers run LIFO, and badger panics ("Unclosed iterator at time of
+	// Txn.Discard") if the transaction is discarded before its iterator is closed -- txn.Discard
+	// must be deferred first so it runs last, after it.Close.
+	defer txn.Discard()
+	defer it.Close()
+
+	for it.Rewind(); it.Valid(); it.Next() {
+		typeURL, _, found := strings.Cut(string(it.Item().Key()), "-")
+		if !found {
+			continue
+		}
+		counts[typeURL]++
+	}
+
+	kinds := make([]KindSummary, 0, len(counts))
+	for typeURL, count := range counts {
+		kinds = append(kinds, KindSummary{TypeURL: typeURL, Count: count})
+	}
+	sort.Slice(kinds, func(i, j int) bool { return kinds[i].TypeURL < kinds[j].TypeURL })
+
+	return kinds, nil
 }
 
 func (m *model) Set(k string, value T) error {

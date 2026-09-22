@@ -14,9 +14,70 @@ service:
 
 telemetry:
   enabled: true
+  # wide_events.enabled defaults to false cluster-wide (WideEvent volume is
+  # materially higher than tracing alone) -- explicitly on here since Fuse's
+  # native backend is the one process positioned to see every request in the
+  # cluster, and tracing every hop through the proxy (not just each
+  # service's own inbound RPC) is the whole point of running native instead
+  # of envoy. See README.md's "WideEvent logging (native backend only)"
+  # section. Only takes effect on the native backend -- see
+  # fuse.proxy_backend below.
+  wide_events:
+    enabled: true
 
 fuse:
   address: http://localhost:18000
+
+  # proxy_backend selects which ProxyBackend main.go constructs: "envoy"
+  # (configures a separate Envoy process over xDS) or "native" (Fuse
+  # terminates connections itself -- see
+  # docs/website/content/docs/architecture/fuse-native-proxy-implementation-plan.md).
+  # Defaults to "envoy" in code (control_plane/backend.go's proxyBackendDefault)
+  # if this key is omitted entirely, but this local dev config sets it to
+  # "native" explicitly: every other service's config.yaml in this repo now
+  # points its route.host/internal.host at "localhost" rather than
+  # "host.docker.internal", which only the envoy backend (a separate Docker
+  # container) could resolve -- see each config's own comment, and
+  # fuse-native-proxy-implementation-plan.md's Phase 9 notes for how that was
+  # found. Set this back to "envoy" (and revert those hostnames) to run
+  # against Envoy again.
+  proxy_backend: native
+
   listener:
     address: 0.0.0.0
-    port: 10000
+    port: 10000   # must differ from service.network.bind_port above -- see main.go's validatePortSeparation
+
+  # tls configures the native backend's own TLS termination -- ignored
+  # entirely on the envoy backend, which has its own separate (unbuilt)
+  # SDS-based TLS plan; see fuse-native-proxy.md's TLS section.
+  tls:
+    # off (default) | self-signed | operator | acme
+    mode: off
+    # operator:
+    #   cert_file: /path/to/fullchain.pem
+    #   key_file: /path/to/privkey.pem
+    #   client_ca_file: /path/to/client-ca-bundle.pem   # only needed if a route sets mtls.enabled
+    # acme:
+    #   # defaults to Let's Encrypt production if omitted; any RFC 8555-compatible
+    #   # CA's directory URL works here.
+    #   directory_url: https://acme-v02.api.letsencrypt.org/directory
+    #   cache_dir: /var/lib/fuse/acme-cache
+    #   # No domain allowlist to maintain here -- ACME issuance is authorized
+    #   # against whatever's currently in the route table (see NewACMEProvider's
+    #   # HostPolicy), so only a host with a real registered route can ever
+    #   # trigger a real ACME request.
+
+  # otlp_address points Envoy's native tracing (HttpConnectionManager.Tracing,
+  # see control_plane/controller.go's makeTracingCluster/makeTracingConfig)
+  # at Beacon's OTLP/gRPC listener (services/core/beacon/config.yaml's
+  # otlp.bind_address). Empty disables tracing entirely -- Fuse has no hard
+  # dependency on a collector existing. This is consumed only by the envoy
+  # backend's own Apply() (the native backend has no generic OTLP tracing --
+  # see fuse-native-proxy.md's WideEvent section for its own observability
+  # story instead), so it deliberately keeps host.docker.internal even
+  # though every other service's config.yaml in this repo has moved to
+  # localhost: Envoy itself still runs in Docker (scripts/run-local.sh)
+  # regardless of which ProxyBackend Fuse's own process selects, and
+  # Beacon runs natively on the host -- unrelated to fuse.proxy_backend above.
+  tracing:
+    otlp_address: http://host.docker.internal:4317

@@ -541,6 +541,12 @@ type ValidateRouteRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	Route *Route `protobuf:"bytes,1,opt,name=route,proto3" json:"route" bun:"route" csv:"route" pg:"route" yaml:"route"`
+	// The route's name before this edit, if the caller is validating a rename (route.name is the
+	// new name). Excluded from the conflict check alongside route.name itself, so a rename isn't
+	// flagged as conflicting with its own not-yet-deleted prior version — the client validates
+	// before deleting the old name and adding the new one. Leave empty when adding a new route or
+	// editing a route whose name isn't changing.
+	ExistingName string `protobuf:"bytes,2,opt,name=existing_name,json=existingName,proto3" json:"existing_name" bun:"existing_name" csv:"existing_name" pg:"existing_name" yaml:"existing_name"`
 }
 
 func (x *ValidateRouteRequest) Reset() {
@@ -580,6 +586,13 @@ func (x *ValidateRouteRequest) GetRoute() *Route {
 		return x.Route
 	}
 	return nil
+}
+
+func (x *ValidateRouteRequest) GetExistingName() string {
+	if x != nil {
+		return x.ExistingName
+	}
+	return ""
 }
 
 type ValidateRouteResponse struct {
@@ -742,6 +755,27 @@ type Route struct {
 	EnableHttp2 bool `protobuf:"varint,4,opt,name=enable_http2,json=enableHttp2,proto3" json:"enable_http_2" bun:"enable_http_2" csv:"enable_http_2" pg:"enable_http_2" yaml:"enable_http_2"`
 	// Auth declares the authentication policy for this route. Optional; defaults to bypass.
 	Auth *RouteAuth `protobuf:"bytes,5,opt,name=auth,proto3" json:"auth" bun:"auth" csv:"auth" pg:"auth" yaml:"auth"`
+	// Every backend registered under this route's (name, match) tuple, once fuse has merged all
+	// registrations that share it -- eg. every raft node in a Blueprint cluster registering the
+	// same UI route becomes one load-balanced Envoy cluster instead of one clobbering the next.
+	// Populated by fuse on read paths (ListRoutes; AddRouteRequest.route.endpoint is still all a
+	// caller needs to set when registering). Empty for a route with only the one `endpoint`.
+	Endpoints []*Endpoint `protobuf:"bytes,6,rep,name=endpoints,proto3" json:"endpoints" bun:"endpoints" csv:"endpoints" pg:"endpoints" yaml:"endpoints"`
+	// Opt out of per-request WideEvent production for this route on Fuse's native proxy
+	// backend (see docs/architecture/fuse-native-proxy.md). Ignored entirely on the envoy
+	// backend, which has no WideEvent production path yet. Unset (false) means "emit" --
+	// the inverse of the opt-in default every other WideEvent producer in the framework
+	// uses, since Fuse is the one process positioned to see every request in the cluster.
+	WideEventsDisabled bool `protobuf:"varint,7,opt,name=wide_events_disabled,json=wideEventsDisabled,proto3" json:"wide_events_disabled" bun:"wide_events_disabled" csv:"wide_events_disabled" pg:"wide_events_disabled" yaml:"wide_events_disabled"`
+	// Opt-in mutual TLS for this route, enforced only by a backend whose
+	// Capabilities().MTLS is true (Fuse's native backend, as of Phase 6 --
+	// see docs/architecture/fuse-native-proxy.md). A new field rather than
+	// folding into RouteAuth: mTLS is decided during the TLS handshake,
+	// before any HTTP request -- and therefore before any RouteAuth policy
+	// check -- exists, so it belongs on the transport side of the config,
+	// not the request-auth side. Optional; absent means no client
+	// certificate is required.
+	Mtls *MTLSPolicy `protobuf:"bytes,8,opt,name=mtls,proto3" json:"mtls" bun:"mtls" csv:"mtls" pg:"mtls" yaml:"mtls"`
 }
 
 func (x *Route) Reset() {
@@ -811,6 +845,97 @@ func (x *Route) GetAuth() *RouteAuth {
 	return nil
 }
 
+func (x *Route) GetEndpoints() []*Endpoint {
+	if x != nil {
+		return x.Endpoints
+	}
+	return nil
+}
+
+func (x *Route) GetWideEventsDisabled() bool {
+	if x != nil {
+		return x.WideEventsDisabled
+	}
+	return false
+}
+
+func (x *Route) GetMtls() *MTLSPolicy {
+	if x != nil {
+		return x.Mtls
+	}
+	return nil
+}
+
+// MTLSPolicy declares a route's mutual-TLS requirement. Enforcement is
+// necessarily connection-level, not per-request: a TLS ClientHello (and
+// therefore the ClientAuth decision) is processed once per connection,
+// before any HTTP path is known. A backend enforces this for every route
+// sharing the same host as one with mtls.enabled -- see the native
+// backend's routeForHost for the mechanics.
+type MTLSPolicy struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled" bun:"enabled" csv:"enabled" pg:"enabled" yaml:"enabled"`
+	// Identifies which trusted-CA bundle a client certificate must chain
+	// to, sourced from the same CertificateProvider as this route's own
+	// server certificate (eg. an operator-supplied CA bundle file, or --
+	// for the native backend's local self-signed provider -- the same
+	// local dev CA already used for server certs). Neither provider
+	// implemented as of Phase 6 supports more than one distinct
+	// trusted-CA bundle, so this name is not yet validated against
+	// anything; it exists so a future multi-CA provider doesn't need a
+	// proto change to be selectable.
+	TrustedCaSecretName string `protobuf:"bytes,2,opt,name=trusted_ca_secret_name,json=trustedCaSecretName,proto3" json:"trusted_ca_secret_name" bun:"trusted_ca_secret_name" csv:"trusted_ca_secret_name" pg:"trusted_ca_secret_name" yaml:"trusted_ca_secret_name"`
+}
+
+func (x *MTLSPolicy) Reset() {
+	*x = MTLSPolicy{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MTLSPolicy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MTLSPolicy) ProtoMessage() {}
+
+func (x *MTLSPolicy) ProtoReflect() protoreflect.Message {
+	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MTLSPolicy.ProtoReflect.Descriptor instead.
+func (*MTLSPolicy) Descriptor() ([]byte, []int) {
+	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *MTLSPolicy) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *MTLSPolicy) GetTrustedCaSecretName() string {
+	if x != nil {
+		return x.TrustedCaSecretName
+	}
+	return ""
+}
+
 // parameters for the endpoint a route will map to
 type Endpoint struct {
 	state         protoimpl.MessageState
@@ -826,7 +951,7 @@ type Endpoint struct {
 func (x *Endpoint) Reset() {
 	*x = Endpoint{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[10]
+		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -839,7 +964,7 @@ func (x *Endpoint) String() string {
 func (*Endpoint) ProtoMessage() {}
 
 func (x *Endpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[10]
+	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -852,7 +977,7 @@ func (x *Endpoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Endpoint.ProtoReflect.Descriptor instead.
 func (*Endpoint) Descriptor() ([]byte, []int) {
-	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{10}
+	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Endpoint) GetHost() string {
@@ -902,7 +1027,7 @@ type RouteMatch struct {
 func (x *RouteMatch) Reset() {
 	*x = RouteMatch{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[11]
+		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -915,7 +1040,7 @@ func (x *RouteMatch) String() string {
 func (*RouteMatch) ProtoMessage() {}
 
 func (x *RouteMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[11]
+	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -928,7 +1053,7 @@ func (x *RouteMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RouteMatch.ProtoReflect.Descriptor instead.
 func (*RouteMatch) Descriptor() ([]byte, []int) {
-	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{11}
+	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RouteMatch) GetPrefix() string {
@@ -987,7 +1112,7 @@ type HeaderMatchOptions struct {
 func (x *HeaderMatchOptions) Reset() {
 	*x = HeaderMatchOptions{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[12]
+		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1000,7 +1125,7 @@ func (x *HeaderMatchOptions) String() string {
 func (*HeaderMatchOptions) ProtoMessage() {}
 
 func (x *HeaderMatchOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[12]
+	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1013,7 +1138,7 @@ func (x *HeaderMatchOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeaderMatchOptions.ProtoReflect.Descriptor instead.
 func (*HeaderMatchOptions) Descriptor() ([]byte, []int) {
-	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{12}
+	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *HeaderMatchOptions) GetKey() string {
@@ -1042,7 +1167,7 @@ type GrpcMatchOptions struct {
 func (x *GrpcMatchOptions) Reset() {
 	*x = GrpcMatchOptions{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[13]
+		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1055,7 +1180,7 @@ func (x *GrpcMatchOptions) String() string {
 func (*GrpcMatchOptions) ProtoMessage() {}
 
 func (x *GrpcMatchOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[13]
+	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1068,7 +1193,7 @@ func (x *GrpcMatchOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GrpcMatchOptions.ProtoReflect.Descriptor instead.
 func (*GrpcMatchOptions) Descriptor() ([]byte, []int) {
-	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{13}
+	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{14}
 }
 
 // DynamicMetadata - Specifies a set of dynamic metadata that a route must match. Dynamic metadata can be used in a variety of ways
@@ -1083,7 +1208,7 @@ type DynamicMetadata struct {
 func (x *DynamicMetadata) Reset() {
 	*x = DynamicMetadata{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[14]
+		mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1096,7 +1221,7 @@ func (x *DynamicMetadata) String() string {
 func (*DynamicMetadata) ProtoMessage() {}
 
 func (x *DynamicMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[14]
+	mi := &file_core_control_plane_networking_v1_service_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1109,7 +1234,7 @@ func (x *DynamicMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DynamicMetadata.ProtoReflect.Descriptor instead.
 func (*DynamicMetadata) Descriptor() ([]byte, []int) {
-	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{14}
+	return file_core_control_plane_networking_v1_service_proto_rawDescGZIP(), []int{15}
 }
 
 var File_core_control_plane_networking_v1_service_proto protoreflect.FileDescriptor
@@ -1151,48 +1276,68 @@ var file_core_control_plane_networking_v1_service_proto_rawDesc = []byte{
 	0x2e, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x5f, 0x70, 0x6c, 0x61, 0x6e, 0x65, 0x2e, 0x6e,
 	0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x65, 0x6c,
 	0x65, 0x74, 0x65, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x43, 0x6f, 0x64, 0x65, 0x52, 0x04, 0x63, 0x6f,
-	0x64, 0x65, 0x22, 0x55, 0x0a, 0x14, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x52, 0x6f,
+	0x64, 0x65, 0x22, 0x7a, 0x0a, 0x14, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x52, 0x6f,
 	0x75, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x3d, 0x0a, 0x05, 0x72, 0x6f,
 	0x75, 0x74, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x27, 0x2e, 0x63, 0x6f, 0x72, 0x65,
 	0x2e, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x5f, 0x70, 0x6c, 0x61, 0x6e, 0x65, 0x2e, 0x6e,
 	0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x6f, 0x75,
-	0x74, 0x65, 0x52, 0x05, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x22, 0x76, 0x0a, 0x15, 0x56, 0x61, 0x6c,
-	0x69, 0x64, 0x61, 0x74, 0x65, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x08, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x12, 0x2d, 0x0a, 0x12, 0x63, 0x6f, 0x6e, 0x66,
-	0x6c, 0x69, 0x63, 0x74, 0x69, 0x6e, 0x67, 0x5f, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x73, 0x18, 0x02,
-	0x20, 0x03, 0x28, 0x09, 0x52, 0x11, 0x63, 0x6f, 0x6e, 0x66, 0x6c, 0x69, 0x63, 0x74, 0x69, 0x6e,
-	0x67, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61,
-	0x67, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67,
-	0x65, 0x22, 0xbd, 0x01, 0x0a, 0x09, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x41, 0x75, 0x74, 0x68, 0x12,
-	0x18, 0x0a, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08,
-	0x52, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x12, 0x44, 0x0a, 0x06, 0x70, 0x6f, 0x6c,
-	0x69, 0x63, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x2c, 0x2e, 0x63, 0x6f, 0x72, 0x65,
-	0x2e, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x5f, 0x70, 0x6c, 0x61, 0x6e, 0x65, 0x2e, 0x6e,
-	0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x76, 0x31, 0x2e, 0x41, 0x75, 0x74,
-	0x68, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x52, 0x06, 0x70, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x12,
-	0x27, 0x0a, 0x0f, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x5f, 0x67, 0x72, 0x6f, 0x75,
-	0x70, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0e, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72,
-	0x65, 0x64, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x73, 0x12, 0x27, 0x0a, 0x0f, 0x72, 0x65, 0x71, 0x75,
-	0x69, 0x72, 0x65, 0x64, 0x5f, 0x73, 0x63, 0x6f, 0x70, 0x65, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28,
-	0x09, 0x52, 0x0e, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x53, 0x63, 0x6f, 0x70, 0x65,
-	0x73, 0x22, 0x8b, 0x02, 0x0a, 0x05, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e,
-	0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12,
-	0x42, 0x0a, 0x05, 0x6d, 0x61, 0x74, 0x63, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2c,
+	0x74, 0x65, 0x52, 0x05, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x12, 0x23, 0x0a, 0x0d, 0x65, 0x78, 0x69,
+	0x73, 0x74, 0x69, 0x6e, 0x67, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x0c, 0x65, 0x78, 0x69, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0x76,
+	0x0a, 0x15, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x69, 0x64,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x12, 0x2d, 0x0a,
+	0x12, 0x63, 0x6f, 0x6e, 0x66, 0x6c, 0x69, 0x63, 0x74, 0x69, 0x6e, 0x67, 0x5f, 0x72, 0x6f, 0x75,
+	0x74, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x11, 0x63, 0x6f, 0x6e, 0x66, 0x6c,
+	0x69, 0x63, 0x74, 0x69, 0x6e, 0x67, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x73, 0x12, 0x18, 0x0a, 0x07,
+	0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d,
+	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x22, 0xbd, 0x01, 0x0a, 0x09, 0x52, 0x6f, 0x75, 0x74, 0x65,
+	0x41, 0x75, 0x74, 0x68, 0x12, 0x18, 0x0a, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x12, 0x44,
+	0x0a, 0x06, 0x70, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x2c,
 	0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x5f, 0x70, 0x6c,
 	0x61, 0x6e, 0x65, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x76,
-	0x31, 0x2e, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x4d, 0x61, 0x74, 0x63, 0x68, 0x52, 0x05, 0x6d, 0x61,
-	0x74, 0x63, 0x68, 0x12, 0x46, 0x0a, 0x08, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x18,
-	0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x63, 0x6f, 0x6e,
-	0x74, 0x72, 0x6f, 0x6c, 0x5f, 0x70, 0x6c, 0x61, 0x6e, 0x65, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f,
-	0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x76, 0x31, 0x2e, 0x45, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e,
-	0x74, 0x52, 0x08, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x12, 0x21, 0x0a, 0x0c, 0x65,
-	0x6e, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x68, 0x74, 0x74, 0x70, 0x32, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x08, 0x52, 0x0b, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x48, 0x74, 0x74, 0x70, 0x32, 0x12, 0x3f,
-	0x0a, 0x04, 0x61, 0x75, 0x74, 0x68, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2b, 0x2e, 0x63,
-	0x6f, 0x72, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x5f, 0x70, 0x6c, 0x61, 0x6e,
-	0x65, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x76, 0x31, 0x2e,
-	0x52, 0x6f, 0x75, 0x74, 0x65, 0x41, 0x75, 0x74, 0x68, 0x52, 0x04, 0x61, 0x75, 0x74, 0x68, 0x22,
+	0x31, 0x2e, 0x41, 0x75, 0x74, 0x68, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x52, 0x06, 0x70, 0x6f,
+	0x6c, 0x69, 0x63, 0x79, 0x12, 0x27, 0x0a, 0x0f, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64,
+	0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0e, 0x72,
+	0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x73, 0x12, 0x27, 0x0a,
+	0x0f, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x5f, 0x73, 0x63, 0x6f, 0x70, 0x65, 0x73,
+	0x18, 0x04, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0e, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64,
+	0x53, 0x63, 0x6f, 0x70, 0x65, 0x73, 0x22, 0xc9, 0x03, 0x0a, 0x05, 0x52, 0x6f, 0x75, 0x74, 0x65,
+	0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
+	0x6e, 0x61, 0x6d, 0x65, 0x12, 0x42, 0x0a, 0x05, 0x6d, 0x61, 0x74, 0x63, 0x68, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x2c, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x74, 0x72,
+	0x6f, 0x6c, 0x5f, 0x70, 0x6c, 0x61, 0x6e, 0x65, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b,
+	0x69, 0x6e, 0x67, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x4d, 0x61, 0x74, 0x63,
+	0x68, 0x52, 0x05, 0x6d, 0x61, 0x74, 0x63, 0x68, 0x12, 0x46, 0x0a, 0x08, 0x65, 0x6e, 0x64, 0x70,
+	0x6f, 0x69, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x63, 0x6f, 0x72,
+	0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x5f, 0x70, 0x6c, 0x61, 0x6e, 0x65, 0x2e,
+	0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x76, 0x31, 0x2e, 0x45, 0x6e,
+	0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x52, 0x08, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74,
+	0x12, 0x21, 0x0a, 0x0c, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x68, 0x74, 0x74, 0x70, 0x32,
+	0x18, 0x04, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0b, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x48, 0x74,
+	0x74, 0x70, 0x32, 0x12, 0x3f, 0x0a, 0x04, 0x61, 0x75, 0x74, 0x68, 0x18, 0x05, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x2b, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c,
+	0x5f, 0x70, 0x6c, 0x61, 0x6e, 0x65, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e,
+	0x67, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x6f, 0x75, 0x74, 0x65, 0x41, 0x75, 0x74, 0x68, 0x52, 0x04,
+	0x61, 0x75, 0x74, 0x68, 0x12, 0x48, 0x0a, 0x09, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74,
+	0x73, 0x18, 0x06, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x63,
+	0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x5f, 0x70, 0x6c, 0x61, 0x6e, 0x65, 0x2e, 0x6e, 0x65, 0x74,
+	0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x76, 0x31, 0x2e, 0x45, 0x6e, 0x64, 0x70, 0x6f,
+	0x69, 0x6e, 0x74, 0x52, 0x09, 0x65, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x73, 0x12, 0x30,
+	0x0a, 0x14, 0x77, 0x69, 0x64, 0x65, 0x5f, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x5f, 0x64, 0x69,
+	0x73, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x18, 0x07, 0x20, 0x01, 0x28, 0x08, 0x52, 0x12, 0x77, 0x69,
+	0x64, 0x65, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x73, 0x44, 0x69, 0x73, 0x61, 0x62, 0x6c, 0x65, 0x64,
+	0x12, 0x40, 0x0a, 0x04, 0x6d, 0x74, 0x6c, 0x73, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2c,
+	0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x5f, 0x70, 0x6c,
+	0x61, 0x6e, 0x65, 0x2e, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x2e, 0x76,
+	0x31, 0x2e, 0x4d, 0x54, 0x4c, 0x53, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x52, 0x04, 0x6d, 0x74,
+	0x6c, 0x73, 0x22, 0x5b, 0x0a, 0x0a, 0x4d, 0x54, 0x4c, 0x53, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79,
+	0x12, 0x18, 0x0a, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x08, 0x52, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64, 0x12, 0x33, 0x0a, 0x16, 0x74, 0x72,
+	0x75, 0x73, 0x74, 0x65, 0x64, 0x5f, 0x63, 0x61, 0x5f, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x5f,
+	0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x13, 0x74, 0x72, 0x75, 0x73,
+	0x74, 0x65, 0x64, 0x43, 0x61, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x22,
 	0x32, 0x0a, 0x08, 0x45, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x68,
 	0x6f, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x6f, 0x73, 0x74, 0x12,
 	0x12, 0x0a, 0x04, 0x70, 0x6f, 0x72, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x04, 0x70,
@@ -1311,7 +1456,7 @@ func file_core_control_plane_networking_v1_service_proto_rawDescGZIP() []byte {
 }
 
 var file_core_control_plane_networking_v1_service_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_core_control_plane_networking_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_core_control_plane_networking_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_core_control_plane_networking_v1_service_proto_goTypes = []any{
 	(AddRouteResponseCode)(0),     // 0: core.control_plane.networking.v1.AddRouteResponseCode
 	(DeleteRouteCode)(0),          // 1: core.control_plane.networking.v1.DeleteRouteCode
@@ -1327,11 +1472,12 @@ var file_core_control_plane_networking_v1_service_proto_goTypes = []any{
 	(*ValidateRouteResponse)(nil), // 11: core.control_plane.networking.v1.ValidateRouteResponse
 	(*RouteAuth)(nil),             // 12: core.control_plane.networking.v1.RouteAuth
 	(*Route)(nil),                 // 13: core.control_plane.networking.v1.Route
-	(*Endpoint)(nil),              // 14: core.control_plane.networking.v1.Endpoint
-	(*RouteMatch)(nil),            // 15: core.control_plane.networking.v1.RouteMatch
-	(*HeaderMatchOptions)(nil),    // 16: core.control_plane.networking.v1.HeaderMatchOptions
-	(*GrpcMatchOptions)(nil),      // 17: core.control_plane.networking.v1.GrpcMatchOptions
-	(*DynamicMetadata)(nil),       // 18: core.control_plane.networking.v1.DynamicMetadata
+	(*MTLSPolicy)(nil),            // 14: core.control_plane.networking.v1.MTLSPolicy
+	(*Endpoint)(nil),              // 15: core.control_plane.networking.v1.Endpoint
+	(*RouteMatch)(nil),            // 16: core.control_plane.networking.v1.RouteMatch
+	(*HeaderMatchOptions)(nil),    // 17: core.control_plane.networking.v1.HeaderMatchOptions
+	(*GrpcMatchOptions)(nil),      // 18: core.control_plane.networking.v1.GrpcMatchOptions
+	(*DynamicMetadata)(nil),       // 19: core.control_plane.networking.v1.DynamicMetadata
 }
 var file_core_control_plane_networking_v1_service_proto_depIdxs = []int32{
 	13, // 0: core.control_plane.networking.v1.AddRouteRequest.route:type_name -> core.control_plane.networking.v1.Route
@@ -1340,26 +1486,28 @@ var file_core_control_plane_networking_v1_service_proto_depIdxs = []int32{
 	1,  // 3: core.control_plane.networking.v1.DeleteRouteResponse.code:type_name -> core.control_plane.networking.v1.DeleteRouteCode
 	13, // 4: core.control_plane.networking.v1.ValidateRouteRequest.route:type_name -> core.control_plane.networking.v1.Route
 	2,  // 5: core.control_plane.networking.v1.RouteAuth.policy:type_name -> core.control_plane.networking.v1.AuthPolicy
-	15, // 6: core.control_plane.networking.v1.Route.match:type_name -> core.control_plane.networking.v1.RouteMatch
-	14, // 7: core.control_plane.networking.v1.Route.endpoint:type_name -> core.control_plane.networking.v1.Endpoint
+	16, // 6: core.control_plane.networking.v1.Route.match:type_name -> core.control_plane.networking.v1.RouteMatch
+	15, // 7: core.control_plane.networking.v1.Route.endpoint:type_name -> core.control_plane.networking.v1.Endpoint
 	12, // 8: core.control_plane.networking.v1.Route.auth:type_name -> core.control_plane.networking.v1.RouteAuth
-	16, // 9: core.control_plane.networking.v1.RouteMatch.headers:type_name -> core.control_plane.networking.v1.HeaderMatchOptions
-	17, // 10: core.control_plane.networking.v1.RouteMatch.grpc_match_options:type_name -> core.control_plane.networking.v1.GrpcMatchOptions
-	18, // 11: core.control_plane.networking.v1.RouteMatch.dynamic_metadata:type_name -> core.control_plane.networking.v1.DynamicMetadata
-	3,  // 12: core.control_plane.networking.v1.RouteMatch.match_type:type_name -> core.control_plane.networking.v1.MatchType
-	4,  // 13: core.control_plane.networking.v1.NetworkingService.AddRoute:input_type -> core.control_plane.networking.v1.AddRouteRequest
-	6,  // 14: core.control_plane.networking.v1.NetworkingService.ListRoutes:input_type -> core.control_plane.networking.v1.ListRoutesRequest
-	8,  // 15: core.control_plane.networking.v1.NetworkingService.DeleteRoute:input_type -> core.control_plane.networking.v1.DeleteRouteRequest
-	10, // 16: core.control_plane.networking.v1.NetworkingService.ValidateRoute:input_type -> core.control_plane.networking.v1.ValidateRouteRequest
-	5,  // 17: core.control_plane.networking.v1.NetworkingService.AddRoute:output_type -> core.control_plane.networking.v1.AddRouteResponse
-	7,  // 18: core.control_plane.networking.v1.NetworkingService.ListRoutes:output_type -> core.control_plane.networking.v1.ListRoutesResponse
-	9,  // 19: core.control_plane.networking.v1.NetworkingService.DeleteRoute:output_type -> core.control_plane.networking.v1.DeleteRouteResponse
-	11, // 20: core.control_plane.networking.v1.NetworkingService.ValidateRoute:output_type -> core.control_plane.networking.v1.ValidateRouteResponse
-	17, // [17:21] is the sub-list for method output_type
-	13, // [13:17] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	15, // 9: core.control_plane.networking.v1.Route.endpoints:type_name -> core.control_plane.networking.v1.Endpoint
+	14, // 10: core.control_plane.networking.v1.Route.mtls:type_name -> core.control_plane.networking.v1.MTLSPolicy
+	17, // 11: core.control_plane.networking.v1.RouteMatch.headers:type_name -> core.control_plane.networking.v1.HeaderMatchOptions
+	18, // 12: core.control_plane.networking.v1.RouteMatch.grpc_match_options:type_name -> core.control_plane.networking.v1.GrpcMatchOptions
+	19, // 13: core.control_plane.networking.v1.RouteMatch.dynamic_metadata:type_name -> core.control_plane.networking.v1.DynamicMetadata
+	3,  // 14: core.control_plane.networking.v1.RouteMatch.match_type:type_name -> core.control_plane.networking.v1.MatchType
+	4,  // 15: core.control_plane.networking.v1.NetworkingService.AddRoute:input_type -> core.control_plane.networking.v1.AddRouteRequest
+	6,  // 16: core.control_plane.networking.v1.NetworkingService.ListRoutes:input_type -> core.control_plane.networking.v1.ListRoutesRequest
+	8,  // 17: core.control_plane.networking.v1.NetworkingService.DeleteRoute:input_type -> core.control_plane.networking.v1.DeleteRouteRequest
+	10, // 18: core.control_plane.networking.v1.NetworkingService.ValidateRoute:input_type -> core.control_plane.networking.v1.ValidateRouteRequest
+	5,  // 19: core.control_plane.networking.v1.NetworkingService.AddRoute:output_type -> core.control_plane.networking.v1.AddRouteResponse
+	7,  // 20: core.control_plane.networking.v1.NetworkingService.ListRoutes:output_type -> core.control_plane.networking.v1.ListRoutesResponse
+	9,  // 21: core.control_plane.networking.v1.NetworkingService.DeleteRoute:output_type -> core.control_plane.networking.v1.DeleteRouteResponse
+	11, // 22: core.control_plane.networking.v1.NetworkingService.ValidateRoute:output_type -> core.control_plane.networking.v1.ValidateRouteResponse
+	19, // [19:23] is the sub-list for method output_type
+	15, // [15:19] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_core_control_plane_networking_v1_service_proto_init() }
@@ -1489,7 +1637,7 @@ func file_core_control_plane_networking_v1_service_proto_init() {
 			}
 		}
 		file_core_control_plane_networking_v1_service_proto_msgTypes[10].Exporter = func(v any, i int) any {
-			switch v := v.(*Endpoint); i {
+			switch v := v.(*MTLSPolicy); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1501,7 +1649,7 @@ func file_core_control_plane_networking_v1_service_proto_init() {
 			}
 		}
 		file_core_control_plane_networking_v1_service_proto_msgTypes[11].Exporter = func(v any, i int) any {
-			switch v := v.(*RouteMatch); i {
+			switch v := v.(*Endpoint); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1513,7 +1661,7 @@ func file_core_control_plane_networking_v1_service_proto_init() {
 			}
 		}
 		file_core_control_plane_networking_v1_service_proto_msgTypes[12].Exporter = func(v any, i int) any {
-			switch v := v.(*HeaderMatchOptions); i {
+			switch v := v.(*RouteMatch); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1525,7 +1673,7 @@ func file_core_control_plane_networking_v1_service_proto_init() {
 			}
 		}
 		file_core_control_plane_networking_v1_service_proto_msgTypes[13].Exporter = func(v any, i int) any {
-			switch v := v.(*GrpcMatchOptions); i {
+			switch v := v.(*HeaderMatchOptions); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1537,6 +1685,18 @@ func file_core_control_plane_networking_v1_service_proto_init() {
 			}
 		}
 		file_core_control_plane_networking_v1_service_proto_msgTypes[14].Exporter = func(v any, i int) any {
+			switch v := v.(*GrpcMatchOptions); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_core_control_plane_networking_v1_service_proto_msgTypes[15].Exporter = func(v any, i int) any {
 			switch v := v.(*DynamicMetadata); i {
 			case 0:
 				return &v.state
@@ -1549,14 +1709,14 @@ func file_core_control_plane_networking_v1_service_proto_init() {
 			}
 		}
 	}
-	file_core_control_plane_networking_v1_service_proto_msgTypes[11].OneofWrappers = []any{}
+	file_core_control_plane_networking_v1_service_proto_msgTypes[12].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_core_control_plane_networking_v1_service_proto_rawDesc,
 			NumEnums:      4,
-			NumMessages:   15,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

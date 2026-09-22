@@ -134,6 +134,11 @@ func (e *grpcCallExecutor) Execute(ctx context.Context, step *workflowv1.Step, w
 		"address":     addr,
 		"url":         url,
 		"http_status": resp.StatusCode,
+		// request_headers is what was actually sent on the wire -- Content-Type and
+		// (when this step's ctx carries a span) traceparent are both synthesized
+		// here, never part of the workflow author's own with: block, so they'd
+		// otherwise be invisible in the step's Request diagnostic entirely.
+		"request_headers": flattenHeader(httpReq.Header),
 	})
 	if detailErr != nil {
 		// Unreachable in practice (a string and an int always convert), but
@@ -250,6 +255,19 @@ func valuesEqual(actual, want interface{}) bool {
 		return false
 	}
 	return bytes.Equal(actualJSON, wantJSON)
+}
+
+// flattenHeader renders an http.Header (map[string][]string) as
+// map[string]string for structpb.NewStruct, which doesn't accept []string
+// values directly. Multi-value headers (none of this executor's own today,
+// but a future addition or a caller-supplied one could be) are joined with
+// ", ", matching how a raw HTTP request line would show repeated headers.
+func flattenHeader(h http.Header) map[string]interface{} {
+	out := make(map[string]interface{}, len(h))
+	for k, v := range h {
+		out[k] = strings.Join(v, ", ")
+	}
+	return out
 }
 
 func truncate(b []byte, n int) string {

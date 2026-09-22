@@ -1,7 +1,11 @@
 use dioxus::prelude::*;
 
 #[component]
-pub fn CesqlBar(expression: Signal<String>, on_run: EventHandler<()>, on_clear: EventHandler<()>) -> Element {
+pub fn CesqlBar(
+    expression: Signal<String>,
+    on_run: EventHandler<()>,
+    on_clear: EventHandler<()>,
+) -> Element {
     rsx! {
         div { class: "join w-full",
             input {

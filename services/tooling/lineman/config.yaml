@@ -1,0 +1,48 @@
+service:
+  name: lineman
+  domain: tooling
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9307
+    internal:
+      host: localhost
+      port: 9307
+    # route.host overrides internal.host for Fuse's route-endpoint auto-fill only (see
+    # pkg/chassis/networking.go's getConfigInternalHost). localhost, not host.docker.internal:
+    # Fuse's native proxy backend runs on the host, like this process, not in Docker -- it
+    # can't resolve host.docker.internal at all (confirmed live, see
+    # docs/architecture/fuse-native-proxy-implementation-plan.md's Phase 9 notes). Only the
+    # envoy backend (a separate Docker container) needed that hostname; if a cluster runs
+    # Fuse with fuse.proxy_backend: envoy, this needs to go back to host.docker.internal.
+    route:
+      host: localhost
+      port: 9307
+
+telemetry:
+  enabled: true
+  wide_events:
+    enabled: true
+
+# Address Lineman publishes state-change CloudEvents to (catalyst.go). Same
+# key/convention as every other Catalyst producer in this repo. Defaults to
+# http://localhost:2220 if unset.
+catalyst:
+  address: http://localhost:2220
+
+# Address of Foundry's PluginCatalogService, used to publish Lineman's own
+# plugin manifest at startup (foundry.go). Defaults to http://localhost:9301
+# if unset.
+foundry:
+  address: http://localhost:9301
+
+lineman:
+  # How often the Scheduler/Loops background ticker scans Blueprint for due
+  # entries (scheduler.go, loop.go). See the implementation plan's Open
+  # Questions -- 5s trades firing latency against Blueprint read load; tune
+  # once there's real usage to measure against.
+  ticker_interval: 5s

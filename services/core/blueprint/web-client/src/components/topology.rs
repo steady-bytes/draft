@@ -5,7 +5,7 @@
 
 #[derive(Clone, PartialEq)]
 pub struct TopologyNode {
-    pub id:   String,
+    pub id: String,
     pub name: String,
 }
 
@@ -13,15 +13,15 @@ pub struct TopologyNode {
 pub struct TopologyEdge {
     pub producer_id: String,
     pub consumer_id: String,
-    pub event_type:  String,
-    pub vol:         u32,
+    pub event_type: String,
+    pub vol: u32,
 }
 
 #[derive(Clone, PartialEq, Default)]
 pub struct TopologyData {
     pub producers: Vec<TopologyNode>,
     pub consumers: Vec<TopologyNode>,
-    pub edges:     Vec<TopologyEdge>,
+    pub edges: Vec<TopologyEdge>,
 }
 
 impl TopologyData {
@@ -39,14 +39,13 @@ impl TopologyData {
 
 pub fn event_color(event_type: &str) -> &'static str {
     match event_type {
-        "created"    => "#3b82f6",
-        "cancelled"  => "#ef4444",
-        "ok"         => "#22c55e",
-        "failed"     => "#f97316",
-        "reserved"   => "#a855f7",
-        "updated"    => "#14b8a6",
+        "created" => "#3b82f6",
+        "cancelled" => "#ef4444",
+        "ok" => "#22c55e",
+        "failed" => "#f97316",
+        "reserved" => "#a855f7",
+        "updated" => "#14b8a6",
         "registered" => "#eab308",
-        _            => "#6b7280",
+        _ => "#6b7280",
     }
 }
-

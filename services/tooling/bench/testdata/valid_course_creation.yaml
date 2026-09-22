@@ -1,6 +1,6 @@
 # The worked example from docs/website/content/docs/architecture/bench-workflow-engine.md's
 # "Primitives" section, verbatim. Phase 2 only loads/validates this — it doesn't
-# execute the garage://slack-notify@v2 step, so the fact that plugin doesn't exist
+# execute the foundry://slack-notify@v2 step, so the fact that plugin doesn't exist
 # yet is irrelevant here.
 apiVersion: bench/v1
 kind: Workflow
@@ -41,7 +41,7 @@ steps:
         name: { equals: "Pebble Beach" }
 
   - name: notify-slack-on-seed-data
-    uses: garage://slack-notify@v2
+    uses: foundry://slack-notify@v2
     with:
       channel: "#e2e-results"
       message: "Seeded a test course: {{ steps.create-course.result.id }}"

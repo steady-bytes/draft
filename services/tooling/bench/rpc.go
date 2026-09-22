@@ -1,6 +1,6 @@
 // This file implements Phase 5: WorkflowService's RPCs (TriggerRun, GetRun,
 // ListRuns, ListWorkflows) — see api/tooling/workflow/v1/service.proto — following
-// the exact same handler shape services/tooling/garage/rpc.go and
+// the exact same handler shape services/tooling/foundry/rpc.go and
 // services/examples/crud/service/rpc.go already establish: a struct implementing
 // both chassis.RPCRegistrar (so main.go can pass it to WithRPCHandler) and the
 // generated *ServiceHandler interface, backed by store.go's persistence layer.

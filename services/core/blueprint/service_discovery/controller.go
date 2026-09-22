@@ -155,7 +155,7 @@ func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, 
 		return nil, errors.New(ErrFailedTypeCast)
 	}
 
-	_, err = c.kvController.Set(log, process.Pid, pAny, 500*time.Millisecond)
+	_, err = c.kvController.Set(kv.WithCallerService(ctx, name), log, process.Pid, pAny, 500*time.Millisecond)
 	if err != nil {
 		return nil, errors.New(ErrFailedToSaveProcessDetails)
 	}
@@ -172,7 +172,19 @@ func (c *controller) Initialize(ctx context.Context, log chassis.Logger, nonce, 
 }
 
 // Synchronize - receive a message from an `Initialized` process and update it's state in the `SystemJournal`.
+//
+// Called once per heartbeat tick (chassis.SYNC_INTERVAL, 5s) for every registered process, for
+// the life of that process -- by a wide margin the most frequent write path in Blueprint (see the
+// investigation that prompted this instrumentation: sustained raft log growth from continuous
+// "forwarding set request to leader"/"value saved" churn). heartbeatSpan covers the whole
+// heartbeat -- lookup, mutation, and the eventual kvController.Set -- so its duration in Beacon
+// *is* the measured cost of one heartbeat; the nested "blueprint.kv.raft_apply" (or
+// "blueprint.kv.forward_to_leader" on a follower) span Set itself opens shows where within that
+// cost the time actually goes.
 func (c *controller) Synchronize(ctx context.Context, log chassis.Logger, details *sdv1.ClientDetails) {
+	ctx, heartbeatSpan := chassis.StartSpan(ctx, "blueprint.heartbeat_write")
+	heartbeatSpan.SetAttribute("pid", details.Pid)
+
 	var (
 		err     error
 		process = &sdv1.Process{}
@@ -182,6 +194,7 @@ func (c *controller) Synchronize(ctx context.Context, log chassis.Logger, detail
 	pAny, err = anypb.New(process)
 	if err != nil {
 		log.WithError(kv.ErrFailedAnyCast)
+		heartbeatSpan.End(err)
 		return
 	}
 
@@ -189,20 +202,27 @@ func (c *controller) Synchronize(ctx context.Context, log chassis.Logger, detail
 	pAny, err = c.kvController.Get(log, details.Pid, pAny)
 	if err != nil {
 		log.WithError(err)
+		heartbeatSpan.End(err)
 		return
 	}
 
 	if pAny.MessageIs(process) {
 		if err := anypb.UnmarshalTo(pAny, process, proto.UnmarshalOptions{}); err != nil {
 			log.WithError(err)
+			heartbeatSpan.End(err)
 			return
 		}
 	}
 
 	// ignore if the wrong token is sent
 	if process.Token.GetJwt() != details.Token {
+		heartbeatSpan.End(nil)
 		return
 	}
+
+	// process.Name is already known from Initialize (see above) -- no header/extra round trip
+	// needed to attribute this write to the service that's sending the heartbeat.
+	heartbeatSpan.SetBusinessAttribute("caller_service", process.Name)
 
 	process.HealthState = details.HealthState
 	process.Location = details.Location
@@ -216,15 +236,18 @@ func (c *controller) Synchronize(ctx context.Context, log chassis.Logger, detail
 	pAny, err = anypb.New(process)
 	if err != nil {
 		log.WithError(kv.ErrFailedAnyCast)
+		heartbeatSpan.End(err)
 		return
 	}
 
-	_, err = c.kvController.Set(log, process.Pid, pAny, 500*time.Millisecond)
+	_, err = c.kvController.Set(kv.WithCallerService(ctx, process.Name), log, process.Pid, pAny, 500*time.Millisecond)
 	if err != nil {
 		log.Error(ErrFailedToSaveProcessDetails)
+		heartbeatSpan.End(err)
 		return
 	}
 
+	heartbeatSpan.End(nil)
 	c.broadcaster.Publish(process)
 }
 
@@ -262,7 +285,7 @@ func (c *controller) Finalize(ctx context.Context, log chassis.Logger, pid strin
 		return errors.New(ErrFailedTypeCast)
 	}
 
-	if _, err = c.kvController.Set(log, pid, pAny, 500*time.Millisecond); err != nil {
+	if _, err = c.kvController.Set(kv.WithCallerService(ctx, process.Name), log, pid, pAny, 500*time.Millisecond); err != nil {
 		log.WithError(err)
 		return err
 	}
@@ -301,7 +324,7 @@ func (c *controller) Reap(ctx context.Context, log chassis.Logger) {
 				continue
 			}
 
-			if err := c.kvController.Delete(log, process.Pid, pAny, 500*time.Millisecond); err != nil {
+			if err := c.kvController.Delete(kv.WithCallerService(ctx, "blueprint"), log, process.Pid, pAny, 500*time.Millisecond); err != nil {
 				log.WithError(err).WithField("pid", process.Pid).Error("reaper: failed to deregister disconnected process")
 				continue
 			}
@@ -322,7 +345,7 @@ func (c *controller) Reap(ctx context.Context, log chassis.Logger) {
 				continue
 			}
 
-			if _, err := c.kvController.Set(log, process.Pid, pAny, 500*time.Millisecond); err != nil {
+			if _, err := c.kvController.Set(kv.WithCallerService(ctx, "blueprint"), log, process.Pid, pAny, 500*time.Millisecond); err != nil {
 				log.WithError(err).WithField("pid", process.Pid).Error("reaper: failed to update stale process")
 				continue
 			}
@@ -370,15 +393,22 @@ func (c *controller) Query(ctx context.Context, log chassis.Logger) (map[string]
 
 func (c *controller) GetClusterDetails() *sdv1.ClusterDetails {
 	cluster := c.raftController.GetClusterDetails()
+	leaderID, _ := c.raftController.Leader()
 
 	cd := &sdv1.ClusterDetails{
 		Nodes: []*sdv1.Node{},
 	}
 	for _, v := range cluster.Servers {
+		status := sdv1.LeadershipStatus_LEADERSHIP_STATUS_FOLLOWER
+		// leaderID is empty when this node doesn't currently know of a leader (e.g. mid-election)
+		// -- in that case every node reports FOLLOWER rather than one incorrectly matching "".
+		if leaderID != "" && string(v.ID) == leaderID {
+			status = sdv1.LeadershipStatus_LEADERSHIP_STATUS_LEADER
+		}
 		cd.Nodes = append(cd.Nodes, &sdv1.Node{
 			Id:               string(v.ID),
 			Address:          string(v.Address),
-			LeadershipStatus: 0,
+			LeadershipStatus: status,
 		})
 	}
 

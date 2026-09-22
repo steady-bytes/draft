@@ -1,0 +1,78 @@
+// Command foundry is the plugin catalog service described in
+// docs/website/content/docs/architecture/foundry-plugin-repository.md.
+//
+// Phase 1 (Scaffolding) proved the service starts, opens its Postgres
+// connection, and registers with Blueprint. Phase 2: PluginCatalogService's
+// RPCs (Publish/Retract/Get/List/Search — see rpc.go) are wired up and
+// backed by real Postgres persistence (store.go, and model.go's
+// createSchema filling the schema-creation gap Phase 1 deliberately left
+// open). Phase 4 (see ui.go) adds the server-side rendered Catalog and
+// Plugin detail pages alongside those RPCs, on the same mux/port.
+package main
+
+import (
+	"context"
+
+	ntv1 "github.com/steady-bytes/draft/api/core/control_plane/networking/v1"
+	"github.com/steady-bytes/draft/pkg/chassis"
+	"github.com/steady-bytes/draft/pkg/repositories/postgres/bun"
+)
+
+func main() {
+	chassis.NewMetricsReporter().Start()
+	var (
+		logger = chassis.NewOTelLogger()
+		db     = bun.New("")
+		st     = newStore(db)
+	)
+
+	defer chassis.New(logger).
+		WithRepository(db).
+		WithRunner(func() {
+			// Not required for RPCs to be registered, but proves the pluginRow
+			// mapping in model.go is valid against a real Postgres instance and
+			// creates the table Publish/Retract/Get/List/Search need. A missing
+			// local Postgres shouldn't block the rest of Foundry's startup, so
+			// failures here are logged, not fatal — same as Bench's Phase 1.
+			if err := createSchema(context.Background(), db); err != nil {
+				logger.WithError(err).Error("failed to create foundry schema")
+				return
+			}
+			logger.Info("foundry schema ready")
+		}).
+		WithRPCHandler(NewHandler(logger, st)).
+		// The UI (Phase 4, ui.go) is registered as a second RPCRegistrar
+		// rather than a second listener: both calls append handlers onto the
+		// same underlying mux (see chassis.Runtime.withRpc), so RPC traffic
+		// (/tooling.plugin_catalog.v1.PluginCatalogService/...) and page
+		// traffic (/, /plugins/..., /static/...) share one port. See ui.go's
+		// doc comment for the full rationale and the one known quirk of
+		// reusing AddHandler this way.
+		WithRPCHandler(NewUIHandler(logger, st)).
+		WithRoute(&ntv1.Route{
+			Match: &ntv1.RouteMatch{
+				Prefix: "/tooling.plugin_catalog.v1.PluginCatalogService/",
+			},
+		}).
+		// A second, distinctly-named route: exposes Foundry's UI (ui.go's
+		// Catalog/Plugin detail pages, on this same mux/port per the comment
+		// above) through Fuse on its own subdomain. Needs an explicit Name for
+		// the same reason as beacon/main.go's equivalent addition — an unset
+		// Route.Name would auto-derive to "tooling-foundry" again, colliding
+		// with the route above instead of adding a second one.
+		WithRoute(&ntv1.Route{
+			Name: "tooling-foundry-ui",
+			Match: &ntv1.RouteMatch{
+				Host:   "foundry.draft.localhost",
+				Prefix: "/",
+			},
+			// See blueprint/main.go's identical field for why: Fuse's grpc_web filter
+			// bridges browser grpc-web calls into plain (HTTP/2-only) gRPC, which
+			// breaks against an HTTP/1.1-only upstream cluster.
+			EnableHttp2: true,
+		}).
+		Register(chassis.RegistrationOptions{
+			Namespace: "tooling",
+		}).
+		Start()
+}

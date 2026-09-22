@@ -64,7 +64,7 @@ func (c *Runtime) withRoute(route *ntv1.Route) error {
 	// A rejection (eg. a conflict with an existing route) is a normal, successful RPC response
 	// with Code != OK, not a transport-level err above -- checking only err let a rejected
 	// AddRoute silently log "successfully added route" and continue, with the route actually
-	// never persisted. Found via a real conflict (services/tooling/garage's PluginCatalogService
+	// never persisted. Found via a real conflict (services/tooling/foundry's PluginCatalogService
 	// route silently losing to a stale, orphaned "tooling-bench" KV entry claiming the same
 	// prefix) that went undetected until this exact route stopped being reachable through Fuse.
 	if code := resp.Msg.GetCode(); code != ntv1.AddRouteResponseCode_OK {

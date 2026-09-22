@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
 # Builds and runs a local Draft cluster: the three core services (Blueprint,
-# Catalyst, Fuse) plus the E2E-testing tooling services (Bench, Garage,
+# Catalyst, Fuse) plus the E2E-testing tooling services (Bench, Foundry,
 # slack-notify, catalyst-consume, http-call, grpc-call, catalyst-produce),
 # backed by a throwaway local Postgres.
 #
-# Only Garage has a UI today (services/tooling/garage's Phase 4 — see
-# docs/website/content/docs/architecture/garage-plugin-repository.md). Bench's
+# Only Foundry has a UI today (services/tooling/foundry's Phase 4 — see
+# docs/website/content/docs/architecture/foundry-plugin-repository.md). Bench's
 # own UI is Phase 8 of its implementation plan and doesn't exist yet; Bench is
 # still started here since it's a real, working service (webhook + RPCs), just
 # not one you can browse to.
@@ -19,7 +19,7 @@
 # started and the Postgres container are torn down.
 #
 # URLs once running:
-#   Garage UI            http://localhost:9301/
+#   Foundry UI            http://localhost:9301/
 #   Blueprint web client  http://localhost:2221/
 #   Bench   (RPC/webhook only, no UI)  http://localhost:9300/
 #   slack-notify (RPC only)            http://localhost:9302/
@@ -112,7 +112,7 @@ command -v docker >/dev/null 2>&1 || die "docker is required (for the Postgres c
 docker info >/dev/null 2>&1 || die "docker daemon isn't running"
 
 # ---------------------------------------------------------------------------
-# Postgres — one instance, three databases: bench and garage (this script's
+# Postgres — one instance, three databases: bench and foundry (this script's
 # own managed services) plus draft, matching every services/examples/*
 # service's checked-in config.yaml (repositories.postgres.url) — e.g. crud,
 # which isn't started by this script but connects to this same local
@@ -134,13 +134,13 @@ done
 docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres >/dev/null 2>&1 \
   || die "postgres never became ready"
 
-log "Creating bench/garage/draft roles and databases"
+log "Creating bench/foundry/draft roles and databases"
 docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null \
-  || die "failed to create bench/garage/draft roles/databases"
+  || die "failed to create bench/foundry/draft roles/databases"
 CREATE ROLE bench LOGIN PASSWORD 'bench';
 CREATE DATABASE bench OWNER bench;
-CREATE ROLE garage LOGIN PASSWORD 'garage';
-CREATE DATABASE garage OWNER garage;
+CREATE ROLE foundry LOGIN PASSWORD 'foundry';
+CREATE DATABASE foundry OWNER foundry;
 CREATE ROLE draft LOGIN PASSWORD 'draft';
 CREATE DATABASE draft OWNER draft;
 SQL
@@ -157,7 +157,7 @@ log "Building core services"
 
 log "Building tooling services"
 (cd "$REPO_ROOT/services/tooling/bench" && go build -o "$BIN_DIR/bench" .) || die "bench build failed"
-(cd "$REPO_ROOT/services/tooling/garage" && go build -o "$BIN_DIR/garage" .) || die "garage build failed"
+(cd "$REPO_ROOT/services/tooling/foundry" && go build -o "$BIN_DIR/foundry" .) || die "foundry build failed"
 (cd "$REPO_ROOT/services/tooling/slack-notify" && go build -o "$BIN_DIR/slack-notify" .) || die "slack-notify build failed"
 (cd "$REPO_ROOT/services/tooling/catalyst-consume" && go build -o "$BIN_DIR/catalyst-consume" .) || die "catalyst-consume build failed"
 (cd "$REPO_ROOT/services/tooling/http-call" && go build -o "$BIN_DIR/http-call" .) || die "http-call build failed"
@@ -167,10 +167,10 @@ log "Building tooling services"
 # ---------------------------------------------------------------------------
 # Start order matters: Blueprint first (everything else registers with it),
 # then anything else can come up in any order except slack-notify, which
-# needs Garage's PluginCatalogService reachable before its own startup
+# needs Foundry's PluginCatalogService reachable before its own startup
 # Effect (a fatal one — see pkg/chassis/effect.go) tries to publish to it.
 #
-# service.network.internal.host in bench's and garage's checked-in
+# service.network.internal.host in bench's and foundry's checked-in
 # config.yaml is host.docker.internal (set for a container-networked
 # deployment); overridden to localhost here via chassis's DRAFT_ env-var
 # convention (pkg/chassis/config.go: SetEnvPrefix("DRAFT") +
@@ -189,33 +189,33 @@ log "Starting Fuse"
 start_bg fuse "$REPO_ROOT/services/core/fuse" "$BIN_DIR/fuse"
 wait_for_tcp localhost 18000 fuse
 
-log "Starting Garage"
-start_bg garage "$REPO_ROOT/services/tooling/garage" "$BIN_DIR/garage" \
+log "Starting Foundry"
+start_bg foundry "$REPO_ROOT/services/tooling/foundry" "$BIN_DIR/foundry" \
   DRAFT_SERVICE_NETWORK_INTERNAL_HOST=localhost
-wait_for_tcp localhost 9301 garage
+wait_for_tcp localhost 9301 foundry
 
 log "Starting Bench"
 start_bg bench "$REPO_ROOT/services/tooling/bench" "$BIN_DIR/bench" \
   DRAFT_SERVICE_NETWORK_INTERNAL_HOST=localhost
 wait_for_tcp localhost 9300 bench
 
-log "Starting slack-notify (publishes itself to Garage's catalog on startup)"
+log "Starting slack-notify (publishes itself to Foundry's catalog on startup)"
 start_bg slack-notify "$REPO_ROOT/services/tooling/slack-notify" "$BIN_DIR/slack-notify"
 wait_for_tcp localhost 9302 slack-notify
 
-log "Starting catalyst-consume (publishes itself to Garage's catalog on startup)"
+log "Starting catalyst-consume (publishes itself to Foundry's catalog on startup)"
 start_bg catalyst-consume "$REPO_ROOT/services/tooling/catalyst-consume" "$BIN_DIR/catalyst-consume"
 wait_for_tcp localhost 9303 catalyst-consume
 
-log "Starting http-call (publishes itself to Garage's catalog on startup)"
+log "Starting http-call (publishes itself to Foundry's catalog on startup)"
 start_bg http-call "$REPO_ROOT/services/tooling/http-call" "$BIN_DIR/http-call"
 wait_for_tcp localhost 9304 http-call
 
-log "Starting grpc-call (publishes itself to Garage's catalog on startup)"
+log "Starting grpc-call (publishes itself to Foundry's catalog on startup)"
 start_bg grpc-call "$REPO_ROOT/services/tooling/grpc-call" "$BIN_DIR/grpc-call"
 wait_for_tcp localhost 9305 grpc-call
 
-log "Starting catalyst-produce (publishes itself to Garage's catalog on startup)"
+log "Starting catalyst-produce (publishes itself to Foundry's catalog on startup)"
 start_bg catalyst-produce "$REPO_ROOT/services/tooling/catalyst-produce" "$BIN_DIR/catalyst-produce"
 wait_for_tcp localhost 9306 catalyst-produce
 
@@ -224,7 +224,7 @@ cat <<EOF
 --------------------------------------------------------------------
 Draft tooling stack is up.
 
-  Garage UI (catalog)        http://localhost:9301/
+  Foundry UI (catalog)        http://localhost:9301/
   Blueprint web client       http://localhost:2221/
   Bench   (RPC + webhook, no UI yet)   localhost:9300
   slack-notify (RPC only, reference plugin)  localhost:9302

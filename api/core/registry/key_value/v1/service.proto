@@ -22,6 +22,24 @@ service KeyValueService {
     // matching that type, if any are found they will all be returned
     // as a map.
     rpc List(ListRequest) returns (ListResponse) {}
+
+    // ListKinds returns every distinct value type currently stored, each with how many keys are
+    // stored under it. Unlike List, this requires no prior knowledge of what's in the store --
+    // it's how a caller discovers what kinds exist in the first place, before picking one to
+    // pass to List.
+    rpc ListKinds(ListKindsRequest) returns (ListKindsResponse) {}
+
+    // RegisterType tells Blueprint the schema for a proto type stored in this Key/Value store, so
+    // DecodeValues (and the web client's Key/Value browser) can decode it generically instead of
+    // treating it as an opaque byte blob. A caller registers its own message's descriptor once at
+    // startup (see chassis's WithRegisteredType); Blueprint does the rest.
+    rpc RegisterType(RegisterTypeRequest) returns (RegisterTypeResponse) {}
+
+    // DecodeValues decodes raw message bytes for a type_url that's been registered via
+    // RegisterType, returning JSON per key. A key is absent (or empty) whenever it couldn't be
+    // decoded -- no descriptor registered for type_url, corrupt bytes, or anything else going
+    // wrong for that one entry -- never as a whole-call error.
+    rpc DecodeValues(DecodeValuesRequest) returns (DecodeValuesResponse) {}
 }
 
 message SetRequest {
@@ -58,4 +76,70 @@ message ListRequest {
 
 message ListResponse {
     map<string, google.protobuf.Any> values = 2;
+}
+
+message ListKindsRequest {}
+
+message KindSummary {
+    // The Any type_url this kind is stored under, eg.
+    // "type.googleapis.com/core.registry.key_value.v1.Value".
+    string type_url = 1;
+    // How many keys are currently stored under this type_url.
+    uint32 count = 2;
+}
+
+message ListKindsResponse {
+    repeated KindSummary kinds = 1;
+}
+
+// TypeDescriptor is both the request payload for RegisterType and the shape persisted in the KV
+// store under its own type_url, mirroring how every other registration message in this repo (eg.
+// networking's Route) is used both as a wire request and as the thing that gets stored.
+message TypeDescriptor {
+    // The type_url values of this type are stored under (eg.
+    // "type.googleapis.com/tooling.workflow.v1.BenchWebhookSecret").
+    string type_url = 1;
+    // A serialized google.protobuf.FileDescriptorSet containing the message named by type_url and
+    // every file it transitively depends on.
+    bytes file_descriptor_set = 2;
+}
+
+message RegisterTypeRequest {
+    TypeDescriptor descriptor = 1;
+}
+
+message RegisterTypeResponse {}
+
+message DecodeValuesRequest {
+    string type_url = 1;
+    // Caller-chosen keys (eg. the same keys already returned by List for this type_url) mapped to
+    // the raw message bytes to decode.
+    map<string, bytes> values = 2;
+}
+
+message DecodeValuesResponse {
+    // Same keys as the request. A key is absent from this map, or maps to an empty string,
+    // whenever that specific entry couldn't be decoded -- no descriptor registered for type_url,
+    // corrupt bytes, or anything else going wrong for that one entry. Never fails the whole call.
+    map<string, string> json = 1;
+}
+
+// TypeMutation is the body of a Catalyst CloudEvent (type "core.registry.key_value.v1.TypeMutation")
+// that any process with a type already registered via RegisterType can produce instead of calling
+// Set/Delete directly. Blueprint runs one generic consumer for this -- see
+// docs/architecture/core-services.md's "Type Mutation Events" section. Fire-and-forget: there is
+// no response event correlating back to whoever produced it.
+message TypeMutation {
+    enum Action {
+        ACTION_UNSPECIFIED = 0;
+        ACTION_CREATE       = 1;
+        ACTION_UPDATE       = 2;
+        ACTION_DELETE       = 3;
+    }
+    Action action = 1;
+    string key = 2;
+    // The typed value, as a google.protobuf.Any -- required for CREATE/UPDATE (the value to
+    // store); for DELETE only its type_url matters (same convention as DeleteRequest.value), so
+    // it may carry a zero-value message of the type being deleted.
+    google.protobuf.Any value = 3;
 }

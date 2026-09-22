@@ -1,6 +1,9 @@
 mod key_value;
 pub use key_value::KeyValueView;
 
+mod key_value_detail;
+pub use key_value_detail::KeyValueDetail;
+
 mod service_registry;
 pub use service_registry::ServiceRegistry;
 
@@ -12,15 +15,6 @@ pub use gateway::Gateway;
 
 mod route_detail;
 pub use route_detail::{NewRoute, RouteDetail};
-
-mod agents;
-pub use agents::Agents;
-
-mod mcp;
-pub use mcp::Mcp;
-
-mod tools;
-pub use tools::Tools;
 
 mod store;
 pub use store::Store;

@@ -4,6 +4,8 @@ pub mod core_message_broker_actors_v1;
 pub mod core_registry_service_discovery_v1;
 #[path = "./core.observability.wide_events.v1.rs"]
 pub mod core_observability_wide_events_v1;
+#[path = "./tooling.lineman.v1.rs"]
+pub mod tooling_lineman_v1;
 #[path = "./core.control_plane.networking.v1.rs"]
 pub mod core_control_plane_networking_v1;
 #[path = "./core.observability.logs.v1.rs"]

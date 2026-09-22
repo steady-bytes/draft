@@ -39,10 +39,15 @@ pub fn RouteDetail(name: String) -> Element {
                     }
                 },
                 Some(Ok(None)) => rsx! {
+                    div { class: "breadcrumbs text-sm mb-4",
+                        ul {
+                            li { Link { to: AppRoute::Gateway {}, "Gateway" } }
+                            li { "{name}" }
+                        }
+                    }
                     div { class: "alert alert-warning",
                         span { "No route named \"{name}\" — it may have just been deleted." }
                     }
-                    Link { to: AppRoute::Gateway {}, class: "link mt-4 inline-block", "Back to Gateway" }
                 },
                 Some(Err(e)) => rsx! {
                     div { class: "alert alert-error", span { "Error: {e}" } }
@@ -208,6 +213,10 @@ fn RouteForm(existing: Option<Route>, original_name: Option<String>) -> Element 
                     host: ep_host,
                     port,
                 }),
+                // endpoints is populated by fuse when merging same-name registrations for
+                // load-balancing (ListRoutes reads); a caller registering/editing a route only
+                // ever needs to set its own `endpoint`.
+                endpoints: Vec::new(),
                 enable_http2: http2,
                 auth: if auth_enabled {
                     Some(RouteAuth {
@@ -219,6 +228,10 @@ fn RouteForm(existing: Option<Route>, original_name: Option<String>) -> Element 
                 } else {
                     None
                 },
+                // Not yet editable from this UI -- preserved as disabled/unset rather than
+                // exposing form controls for them here.
+                wide_events_disabled: false,
+                mtls: None,
             };
 
             let mut client = NetworkingServiceClient::new(Client::new(crate::FUSE_DOMAIN.clone()));
@@ -226,6 +239,10 @@ fn RouteForm(existing: Option<Route>, original_name: Option<String>) -> Element 
             match client
                 .validate_route(ValidateRouteRequest {
                     route: Some(route.clone()),
+                    // Excludes the route's pre-edit name from the conflict check — validation
+                    // runs before the rename's delete-old/add-new pair below, so without this a
+                    // rename always "conflicts" with its own not-yet-deleted prior name.
+                    existing_name: original.clone().unwrap_or_default(),
                 })
                 .await
             {
@@ -245,19 +262,23 @@ fn RouteForm(existing: Option<Route>, original_name: Option<String>) -> Element 
             }
             conflicts.set(Vec::new());
 
-            // A rename needs the old key removed — an unchanged name is a plain upsert (AddRoute
-            // sets by name), so no delete-then-add round trip is needed in the common case.
+            // Always delete the existing route (by its pre-edit name) before re-adding, even when
+            // the name is unchanged. Fuse now stores each registration keyed by name *and*
+            // endpoint (so that multiple processes can register the same route name and be
+            // load-balanced instead of clobbering each other) — editing this endpoint's host/port
+            // without deleting first would leave the old (name, old-endpoint) entry behind as a
+            // stale, permanently-orphaned extra backend on this route instead of actually moving
+            // it. An unchanged endpoint just re-deletes and re-adds the same slot, which is a
+            // harmless no-op either way.
             if let Some(old_name) = &original {
-                if old_name != &name {
-                    if let Err(e) = client
-                        .delete_route(DeleteRouteRequest {
-                            name: old_name.clone(),
-                        })
-                        .await
-                    {
-                        status.set(Some(format!("Error removing old route: {e}")));
-                        return;
-                    }
+                if let Err(e) = client
+                    .delete_route(DeleteRouteRequest {
+                        name: old_name.clone(),
+                    })
+                    .await
+                {
+                    status.set(Some(format!("Error removing old route: {e}")));
+                    return;
                 }
             }
 
@@ -289,16 +310,16 @@ fn RouteForm(existing: Option<Route>, original_name: Option<String>) -> Element 
         });
     };
 
-    let title = if is_editing {
-        "Edit Route"
-    } else {
-        "New Route"
-    };
+    let breadcrumb_leaf = original_name
+        .clone()
+        .unwrap_or_else(|| "New Route".to_string());
 
     rsx! {
-        div { class: "flex items-center justify-between mb-4",
-            h1 { class: "text-2xl font-bold", "{title}" }
-            Link { to: AppRoute::Gateway {}, class: "link", "Back to Gateway" }
+        div { class: "breadcrumbs text-sm mb-4",
+            ul {
+                li { Link { to: AppRoute::Gateway {}, "Gateway" } }
+                li { "{breadcrumb_leaf}" }
+            }
         }
 
         if let Some(msg) = status() {
@@ -308,6 +329,22 @@ fn RouteForm(existing: Option<Route>, original_name: Option<String>) -> Element 
         if !conflicts().is_empty() {
             div { class: "alert alert-error mb-4",
                 span { "Conflicts with existing route(s): {conflicts().join(\", \")}" }
+            }
+        }
+
+        if existing.as_ref().map(|r| r.endpoints.len()).unwrap_or(0) > 1 {
+            div { class: "alert alert-info mb-4 flex-col items-start gap-1",
+                span { class: "font-semibold",
+                    "Load-balanced across {existing.as_ref().unwrap().endpoints.len()} backends"
+                }
+                div { class: "flex flex-col gap-0.5",
+                    for backend in existing.as_ref().unwrap().endpoints.iter() {
+                        span { class: "font-mono text-xs", "{backend.host}:{backend.port}" }
+                    }
+                }
+                span { class: "text-xs text-base-content/70",
+                    "Saving here replaces all of them with a single endpoint — the other registered processes will re-add themselves the next time they start."
+                }
             }
         }
 

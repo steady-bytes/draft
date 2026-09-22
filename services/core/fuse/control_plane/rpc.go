@@ -125,7 +125,7 @@ func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRe
 		return nil, ErrInvalidRouteHost
 	}
 
-	conflicts, err := h.controlPlane.FindConflicts(ctx, msg.GetRoute())
+	conflicts, err := h.controlPlane.FindConflicts(ctx, msg.GetRoute(), "")
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -134,6 +134,13 @@ func (h *rpc) AddRoute(ctx context.Context, req *connect.Request[ntv1.AddRouteRe
 			Code:              ntv1.AddRouteResponseCode_INVALID_REQUEST,
 			Message:           fmt.Sprintf("conflicts with existing route(s): %s", strings.Join(conflicts, ", ")),
 			ConflictingRoutes: conflicts,
+		}), nil
+	}
+
+	if capMsg := h.controlPlane.checkCapabilities(msg.GetRoute()); capMsg != "" {
+		return connect.NewResponse(&ntv1.AddRouteResponse{
+			Code:    ntv1.AddRouteResponseCode_INVALID_REQUEST,
+			Message: capMsg,
 		}), nil
 	}
 
@@ -165,7 +172,7 @@ func (h *rpc) DeleteRoute(ctx context.Context, req *connect.Request[ntv1.DeleteR
 // ValidateRoute implements Rpc. It runs the same conflict check as AddRoute without persisting
 // anything, so callers (eg. the blueprint UI) can check before submitting.
 func (h *rpc) ValidateRoute(ctx context.Context, req *connect.Request[ntv1.ValidateRouteRequest]) (*connect.Response[ntv1.ValidateRouteResponse], error) {
-	conflicts, err := h.controlPlane.FindConflicts(ctx, req.Msg.GetRoute())
+	conflicts, err := h.controlPlane.FindConflicts(ctx, req.Msg.GetRoute(), req.Msg.GetExistingName())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -173,8 +180,14 @@ func (h *rpc) ValidateRoute(ctx context.Context, req *connect.Request[ntv1.Valid
 		Valid:             len(conflicts) == 0,
 		ConflictingRoutes: conflicts,
 	}
-	if len(conflicts) > 0 {
+	switch {
+	case len(conflicts) > 0:
 		resp.Message = fmt.Sprintf("conflicts with existing route(s): %s", strings.Join(conflicts, ", "))
+	default:
+		if capMsg := h.controlPlane.checkCapabilities(req.Msg.GetRoute()); capMsg != "" {
+			resp.Valid = false
+			resp.Message = capMsg
+		}
 	}
 	return connect.NewResponse(resp), nil
 }
@@ -198,16 +211,20 @@ type (
 	}
 
 	xDSRpc struct {
-		controlPlane *controlPlane
-		logger       chassis.Logger
+		backend *EnvoyBackend
+		logger  chassis.Logger
 	}
 )
 
-// rpc interface to envoy xDS server
-func NewXDSRpc(logger chassis.Logger, cp *controlPlane) XDSRpc {
+// NewXDSRpc registers the xDS/ADS surface that a separate Envoy process
+// connects back to. Only meaningful when the envoy ProxyBackend is active
+// -- main.go only calls this when backend, as constructed, is an
+// *EnvoyBackend; there is nothing for a native-backend cluster to consume
+// here, so it isn't registered in that case.
+func NewXDSRpc(logger chassis.Logger, backend *EnvoyBackend) XDSRpc {
 	return &xDSRpc{
-		logger:       logger,
-		controlPlane: cp,
+		logger:  logger,
+		backend: backend,
 	}
 }
 
@@ -215,18 +232,18 @@ func NewXDSRpc(logger chassis.Logger, cp *controlPlane) XDSRpc {
 // the chassis to the application level.
 func (c *xDSRpc) RegisterRPC(server chassis.Rpcer) {
 	grpcServer := server.GetGrpcServer()
-	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, c.controlPlane.xDSServer)
+	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, c.backend.xDSServer)
 	server.AddHandler("/envoy.service.discovery.v3.AggregatedDiscoveryService/", grpcServer, false)
-	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, c.controlPlane.xDSServer)
+	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, c.backend.xDSServer)
 	server.AddHandler("/envoy.service.endpoint.v3.EndpointDiscoveryService/", grpcServer, false)
-	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, c.controlPlane.xDSServer)
+	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, c.backend.xDSServer)
 	server.AddHandler("/envoy.service.cluster.v3.ClusterDiscoveryService/", grpcServer, false)
-	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, c.controlPlane.xDSServer)
+	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, c.backend.xDSServer)
 	server.AddHandler("/envoy.service.route.v3.RouteDiscoveryService/", grpcServer, false)
-	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, c.controlPlane.xDSServer)
+	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, c.backend.xDSServer)
 	server.AddHandler("/envoy.service.listener.v3.ListenerDiscoveryService/", grpcServer, false)
-	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, c.controlPlane.xDSServer)
+	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, c.backend.xDSServer)
 	server.AddHandler("/envoy.service.secret.v3.SecretDiscoveryService/", grpcServer, false)
-	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, c.controlPlane.xDSServer)
+	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, c.backend.xDSServer)
 	server.AddHandler("/envoy.service.runtime.v3.RuntimeDiscoveryService/", grpcServer, false)
 }

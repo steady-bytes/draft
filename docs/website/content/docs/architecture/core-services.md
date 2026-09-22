@@ -53,9 +53,15 @@ See below for a diagram of the process registration flow:
 
 {{< alert context="info" text="Once a process is registered, other services can use the metadata to lookup services they might want to communicate with. For example, the default behavior is to register the RPC service definitions of a process. So if process B needs to talk to process A via an RPC, then process B can establish a connection with A by looking it up in the registry." />}}
 
+### Type Mutation Events
+
+A process that has already registered a proto type with Blueprint's Key/Value store (`KeyValueService.RegisterType`, `chassis.WithRegisteredType` — used today so Blueprint's own KV browser UI can decode a stored value instead of showing an opaque byte count) can go one step further and mutate values of that type over Catalyst instead of a direct `KeyValueService.Set`/`Delete` RPC call. Blueprint runs one generic Catalyst consumer, subscribed to a single CloudEvent type (`core.registry.key_value.v1.TypeMutation`) carrying a `type_url`, an `action` (`CREATE`/`UPDATE`/`DELETE`), a key, and — for `CREATE`/`UPDATE` — the typed value itself as a `google.protobuf.Any`. Blueprint applies the mutation to its own store the same way the equivalent direct RPC would, regardless of which registered type it's for — the consumer has no per-type logic, only the generic `type_url`-keyed dispatch its `RegisterType`/`DecodeValues` machinery already does.
+
+This is deliberately one-way: producing a `TypeMutation` is fire-and-forget, matching Catalyst's own broadcast nature — there's no request/response correlation back to the producer confirming the mutation landed (a malformed or unregistered `type_url` is logged and dropped, not surfaced to whoever produced it). Reads (`Get`/`List`) are unaffected and stay direct RPCs, since a one-way event bus has no natural way to hand a value back to a specific caller. See [Beacon — Observability](/docs/architecture/beacon-observability#persisting-a-graph) for a full worked example (a saved Metrics Graph Builder configuration) and the exact proto shapes.
+
 ## Fuse
 
-Fuse is the [control plane](https://en.wikipedia.org/wiki/Control_plane) for a draft cluster. When a service/process would like to expose routes to the outside world then a route can be registered with Fuse. Currently we only support [envy](https://www.envoyproxy.io/) as the ingress proxy, however we are considering supporting various proxies in the future. Below is how a route is established in the control plane.
+Fuse is the [control plane](https://en.wikipedia.org/wiki/Control_plane) for a draft cluster. When a service/process would like to expose routes to the outside world then a route can be registered with Fuse. Currently we only support [envy](https://www.envoyproxy.io/) as the ingress proxy, however we are considering supporting various proxies in the future. *(Under review — see [Fuse — Pluggable Proxy Backends](/docs/architecture/fuse-native-proxy), which proposes a `ProxyBackend` abstraction: Envoy stays the default, a native Go backend becomes a configurable second option, and the interface is shaped to admit further backends later.)* Below is how a route is established in the control plane.
 
 1. Once a process has [registered](#process-registration) to Blueprint, the Fuse address is looked up and routing details are sent to Fuse.
 2. Fuse will update envoy with the new route table
@@ -63,7 +69,7 @@ Fuse is the [control plane](https://en.wikipedia.org/wiki/Control_plane) for a d
 
 *Expansion into a full dynamic API gateway — conflict validation, subdomain matching, gRPC-Web, request tracing, automatic TLS/mTLS, and a Blueprint UI — is in progress. See [Fuse — API Gateway](/docs/architecture/fuse-api-gateway) for the system design and phased plan.*
 
-Every core service's own UI (Blueprint, Beacon, Bench, Garage) is now reachable through Fuse this way too, each on its own subdomain (`blueprint.draft.localhost`, etc.) rather than only on its own bind port — see [Service UIs via Subdomains](/docs/architecture/service-ui-subdomains).
+Every core service's own UI (Blueprint, Beacon, Bench, Foundry) is now reachable through Fuse this way too, each on its own subdomain (`blueprint.draft.localhost`, etc.) rather than only on its own bind port — see [Service UIs via Subdomains](/docs/architecture/service-ui-subdomains).
 
 </br>
 <img src="/images/docs/fuse-route-registration.png" alt="Blueprint process registration diagram" style="border-radius: 1%; display: block; margin-left: auto; margin-right: auto; width: 80%;"/>

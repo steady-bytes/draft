@@ -17,6 +17,8 @@ service:
 
 telemetry:
   enabled: true
+  wide_events:
+    enabled: true
 
 catalyst:
   address: http://localhost:2220

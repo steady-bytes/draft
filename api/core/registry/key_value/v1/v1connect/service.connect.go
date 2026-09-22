@@ -41,15 +41,27 @@ const (
 	KeyValueServiceDeleteProcedure = "/core.registry.key_value.v1.KeyValueService/Delete"
 	// KeyValueServiceListProcedure is the fully-qualified name of the KeyValueService's List RPC.
 	KeyValueServiceListProcedure = "/core.registry.key_value.v1.KeyValueService/List"
+	// KeyValueServiceListKindsProcedure is the fully-qualified name of the KeyValueService's ListKinds
+	// RPC.
+	KeyValueServiceListKindsProcedure = "/core.registry.key_value.v1.KeyValueService/ListKinds"
+	// KeyValueServiceRegisterTypeProcedure is the fully-qualified name of the KeyValueService's
+	// RegisterType RPC.
+	KeyValueServiceRegisterTypeProcedure = "/core.registry.key_value.v1.KeyValueService/RegisterType"
+	// KeyValueServiceDecodeValuesProcedure is the fully-qualified name of the KeyValueService's
+	// DecodeValues RPC.
+	KeyValueServiceDecodeValuesProcedure = "/core.registry.key_value.v1.KeyValueService/DecodeValues"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	keyValueServiceServiceDescriptor      = v1.File_core_registry_key_value_v1_service_proto.Services().ByName("KeyValueService")
-	keyValueServiceSetMethodDescriptor    = keyValueServiceServiceDescriptor.Methods().ByName("Set")
-	keyValueServiceGetMethodDescriptor    = keyValueServiceServiceDescriptor.Methods().ByName("Get")
-	keyValueServiceDeleteMethodDescriptor = keyValueServiceServiceDescriptor.Methods().ByName("Delete")
-	keyValueServiceListMethodDescriptor   = keyValueServiceServiceDescriptor.Methods().ByName("List")
+	keyValueServiceServiceDescriptor            = v1.File_core_registry_key_value_v1_service_proto.Services().ByName("KeyValueService")
+	keyValueServiceSetMethodDescriptor          = keyValueServiceServiceDescriptor.Methods().ByName("Set")
+	keyValueServiceGetMethodDescriptor          = keyValueServiceServiceDescriptor.Methods().ByName("Get")
+	keyValueServiceDeleteMethodDescriptor       = keyValueServiceServiceDescriptor.Methods().ByName("Delete")
+	keyValueServiceListMethodDescriptor         = keyValueServiceServiceDescriptor.Methods().ByName("List")
+	keyValueServiceListKindsMethodDescriptor    = keyValueServiceServiceDescriptor.Methods().ByName("ListKinds")
+	keyValueServiceRegisterTypeMethodDescriptor = keyValueServiceServiceDescriptor.Methods().ByName("RegisterType")
+	keyValueServiceDecodeValuesMethodDescriptor = keyValueServiceServiceDescriptor.Methods().ByName("DecodeValues")
 )
 
 // KeyValueServiceClient is a client for the core.registry.key_value.v1.KeyValueService service.
@@ -64,6 +76,21 @@ type KeyValueServiceClient interface {
 	// matching that type, if any are found they will all be returned
 	// as a map.
 	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
+	// ListKinds returns every distinct value type currently stored, each with how many keys are
+	// stored under it. Unlike List, this requires no prior knowledge of what's in the store --
+	// it's how a caller discovers what kinds exist in the first place, before picking one to
+	// pass to List.
+	ListKinds(context.Context, *connect.Request[v1.ListKindsRequest]) (*connect.Response[v1.ListKindsResponse], error)
+	// RegisterType tells Blueprint the schema for a proto type stored in this Key/Value store, so
+	// DecodeValues (and the web client's Key/Value browser) can decode it generically instead of
+	// treating it as an opaque byte blob. A caller registers its own message's descriptor once at
+	// startup (see chassis's WithRegisteredType); Blueprint does the rest.
+	RegisterType(context.Context, *connect.Request[v1.RegisterTypeRequest]) (*connect.Response[v1.RegisterTypeResponse], error)
+	// DecodeValues decodes raw message bytes for a type_url that's been registered via
+	// RegisterType, returning JSON per key. A key is absent (or empty) whenever it couldn't be
+	// decoded -- no descriptor registered for type_url, corrupt bytes, or anything else going
+	// wrong for that one entry -- never as a whole-call error.
+	DecodeValues(context.Context, *connect.Request[v1.DecodeValuesRequest]) (*connect.Response[v1.DecodeValuesResponse], error)
 }
 
 // NewKeyValueServiceClient constructs a client for the core.registry.key_value.v1.KeyValueService
@@ -100,15 +127,36 @@ func NewKeyValueServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(keyValueServiceListMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		listKinds: connect.NewClient[v1.ListKindsRequest, v1.ListKindsResponse](
+			httpClient,
+			baseURL+KeyValueServiceListKindsProcedure,
+			connect.WithSchema(keyValueServiceListKindsMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		registerType: connect.NewClient[v1.RegisterTypeRequest, v1.RegisterTypeResponse](
+			httpClient,
+			baseURL+KeyValueServiceRegisterTypeProcedure,
+			connect.WithSchema(keyValueServiceRegisterTypeMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		decodeValues: connect.NewClient[v1.DecodeValuesRequest, v1.DecodeValuesResponse](
+			httpClient,
+			baseURL+KeyValueServiceDecodeValuesProcedure,
+			connect.WithSchema(keyValueServiceDecodeValuesMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // keyValueServiceClient implements KeyValueServiceClient.
 type keyValueServiceClient struct {
-	set    *connect.Client[v1.SetRequest, v1.SetResponse]
-	get    *connect.Client[v1.GetRequest, v1.GetResponse]
-	delete *connect.Client[v1.DeleteRequest, v1.DeleteResponse]
-	list   *connect.Client[v1.ListRequest, v1.ListResponse]
+	set          *connect.Client[v1.SetRequest, v1.SetResponse]
+	get          *connect.Client[v1.GetRequest, v1.GetResponse]
+	delete       *connect.Client[v1.DeleteRequest, v1.DeleteResponse]
+	list         *connect.Client[v1.ListRequest, v1.ListResponse]
+	listKinds    *connect.Client[v1.ListKindsRequest, v1.ListKindsResponse]
+	registerType *connect.Client[v1.RegisterTypeRequest, v1.RegisterTypeResponse]
+	decodeValues *connect.Client[v1.DecodeValuesRequest, v1.DecodeValuesResponse]
 }
 
 // Set calls core.registry.key_value.v1.KeyValueService.Set.
@@ -131,6 +179,21 @@ func (c *keyValueServiceClient) List(ctx context.Context, req *connect.Request[v
 	return c.list.CallUnary(ctx, req)
 }
 
+// ListKinds calls core.registry.key_value.v1.KeyValueService.ListKinds.
+func (c *keyValueServiceClient) ListKinds(ctx context.Context, req *connect.Request[v1.ListKindsRequest]) (*connect.Response[v1.ListKindsResponse], error) {
+	return c.listKinds.CallUnary(ctx, req)
+}
+
+// RegisterType calls core.registry.key_value.v1.KeyValueService.RegisterType.
+func (c *keyValueServiceClient) RegisterType(ctx context.Context, req *connect.Request[v1.RegisterTypeRequest]) (*connect.Response[v1.RegisterTypeResponse], error) {
+	return c.registerType.CallUnary(ctx, req)
+}
+
+// DecodeValues calls core.registry.key_value.v1.KeyValueService.DecodeValues.
+func (c *keyValueServiceClient) DecodeValues(ctx context.Context, req *connect.Request[v1.DecodeValuesRequest]) (*connect.Response[v1.DecodeValuesResponse], error) {
+	return c.decodeValues.CallUnary(ctx, req)
+}
+
 // KeyValueServiceHandler is an implementation of the core.registry.key_value.v1.KeyValueService
 // service.
 type KeyValueServiceHandler interface {
@@ -144,6 +207,21 @@ type KeyValueServiceHandler interface {
 	// matching that type, if any are found they will all be returned
 	// as a map.
 	List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error)
+	// ListKinds returns every distinct value type currently stored, each with how many keys are
+	// stored under it. Unlike List, this requires no prior knowledge of what's in the store --
+	// it's how a caller discovers what kinds exist in the first place, before picking one to
+	// pass to List.
+	ListKinds(context.Context, *connect.Request[v1.ListKindsRequest]) (*connect.Response[v1.ListKindsResponse], error)
+	// RegisterType tells Blueprint the schema for a proto type stored in this Key/Value store, so
+	// DecodeValues (and the web client's Key/Value browser) can decode it generically instead of
+	// treating it as an opaque byte blob. A caller registers its own message's descriptor once at
+	// startup (see chassis's WithRegisteredType); Blueprint does the rest.
+	RegisterType(context.Context, *connect.Request[v1.RegisterTypeRequest]) (*connect.Response[v1.RegisterTypeResponse], error)
+	// DecodeValues decodes raw message bytes for a type_url that's been registered via
+	// RegisterType, returning JSON per key. A key is absent (or empty) whenever it couldn't be
+	// decoded -- no descriptor registered for type_url, corrupt bytes, or anything else going
+	// wrong for that one entry -- never as a whole-call error.
+	DecodeValues(context.Context, *connect.Request[v1.DecodeValuesRequest]) (*connect.Response[v1.DecodeValuesResponse], error)
 }
 
 // NewKeyValueServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -176,6 +254,24 @@ func NewKeyValueServiceHandler(svc KeyValueServiceHandler, opts ...connect.Handl
 		connect.WithSchema(keyValueServiceListMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	keyValueServiceListKindsHandler := connect.NewUnaryHandler(
+		KeyValueServiceListKindsProcedure,
+		svc.ListKinds,
+		connect.WithSchema(keyValueServiceListKindsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	keyValueServiceRegisterTypeHandler := connect.NewUnaryHandler(
+		KeyValueServiceRegisterTypeProcedure,
+		svc.RegisterType,
+		connect.WithSchema(keyValueServiceRegisterTypeMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	keyValueServiceDecodeValuesHandler := connect.NewUnaryHandler(
+		KeyValueServiceDecodeValuesProcedure,
+		svc.DecodeValues,
+		connect.WithSchema(keyValueServiceDecodeValuesMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/core.registry.key_value.v1.KeyValueService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case KeyValueServiceSetProcedure:
@@ -186,6 +282,12 @@ func NewKeyValueServiceHandler(svc KeyValueServiceHandler, opts ...connect.Handl
 			keyValueServiceDeleteHandler.ServeHTTP(w, r)
 		case KeyValueServiceListProcedure:
 			keyValueServiceListHandler.ServeHTTP(w, r)
+		case KeyValueServiceListKindsProcedure:
+			keyValueServiceListKindsHandler.ServeHTTP(w, r)
+		case KeyValueServiceRegisterTypeProcedure:
+			keyValueServiceRegisterTypeHandler.ServeHTTP(w, r)
+		case KeyValueServiceDecodeValuesProcedure:
+			keyValueServiceDecodeValuesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -209,4 +311,16 @@ func (UnimplementedKeyValueServiceHandler) Delete(context.Context, *connect.Requ
 
 func (UnimplementedKeyValueServiceHandler) List(context.Context, *connect.Request[v1.ListRequest]) (*connect.Response[v1.ListResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.key_value.v1.KeyValueService.List is not implemented"))
+}
+
+func (UnimplementedKeyValueServiceHandler) ListKinds(context.Context, *connect.Request[v1.ListKindsRequest]) (*connect.Response[v1.ListKindsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.key_value.v1.KeyValueService.ListKinds is not implemented"))
+}
+
+func (UnimplementedKeyValueServiceHandler) RegisterType(context.Context, *connect.Request[v1.RegisterTypeRequest]) (*connect.Response[v1.RegisterTypeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.key_value.v1.KeyValueService.RegisterType is not implemented"))
+}
+
+func (UnimplementedKeyValueServiceHandler) DecodeValues(context.Context, *connect.Request[v1.DecodeValuesRequest]) (*connect.Response[v1.DecodeValuesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.key_value.v1.KeyValueService.DecodeValues is not implemented"))
 }

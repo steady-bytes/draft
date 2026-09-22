@@ -37,6 +37,13 @@ service ServiceDiscoveryService {
   rpc Query(QueryRequest) returns (QueryResponse) {}
   // Watch the registry for process state changes
   rpc Watch(WatchRequest) returns (stream WatchResponse) {}
+
+  // GetClusterDetails returns every raft node in this Blueprint cluster and which one is
+  // currently leader -- unlike Synchronize's per-connection ClusterDetails push (which only ever
+  // reports the single leader address a client should send state to), this returns the full
+  // node roster with a real per-node LeadershipStatus, for callers that want to show the whole
+  // cluster (e.g. the web client's Service Registry detail page for "blueprint").
+  rpc GetClusterDetails(GetClusterDetailsRequest) returns (ClusterDetails) {}
 }
 
 // ProcessDetails - Messages that are sent from the `Process` to the registry.
@@ -55,6 +62,8 @@ message ClientDetails {
   repeated Metadata metadata = 8;
   string advertise_address = 9;
 }
+
+message GetClusterDetailsRequest {}
 
 message ClusterDetails {
   repeated Node nodes = 1;

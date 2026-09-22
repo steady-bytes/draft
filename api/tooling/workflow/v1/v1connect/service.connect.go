@@ -55,18 +55,6 @@ const (
 	WorkflowServiceDeleteWorkflowProcedure = "/tooling.workflow.v1.WorkflowService/DeleteWorkflow"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	workflowServiceServiceDescriptor              = v1.File_tooling_workflow_v1_service_proto.Services().ByName("WorkflowService")
-	workflowServiceTriggerRunMethodDescriptor     = workflowServiceServiceDescriptor.Methods().ByName("TriggerRun")
-	workflowServiceGetRunMethodDescriptor         = workflowServiceServiceDescriptor.Methods().ByName("GetRun")
-	workflowServiceListRunsMethodDescriptor       = workflowServiceServiceDescriptor.Methods().ByName("ListRuns")
-	workflowServiceListWorkflowsMethodDescriptor  = workflowServiceServiceDescriptor.Methods().ByName("ListWorkflows")
-	workflowServiceCreateWorkflowMethodDescriptor = workflowServiceServiceDescriptor.Methods().ByName("CreateWorkflow")
-	workflowServiceUpdateWorkflowMethodDescriptor = workflowServiceServiceDescriptor.Methods().ByName("UpdateWorkflow")
-	workflowServiceDeleteWorkflowMethodDescriptor = workflowServiceServiceDescriptor.Methods().ByName("DeleteWorkflow")
-)
-
 // WorkflowServiceClient is a client for the tooling.workflow.v1.WorkflowService service.
 type WorkflowServiceClient interface {
 	// TriggerRun starts a run of a workflow manually (the UI's "run now"
@@ -105,47 +93,48 @@ type WorkflowServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewWorkflowServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) WorkflowServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	workflowServiceMethods := v1.File_tooling_workflow_v1_service_proto.Services().ByName("WorkflowService").Methods()
 	return &workflowServiceClient{
 		triggerRun: connect.NewClient[v1.TriggerRunRequest, v1.TriggerRunResponse](
 			httpClient,
 			baseURL+WorkflowServiceTriggerRunProcedure,
-			connect.WithSchema(workflowServiceTriggerRunMethodDescriptor),
+			connect.WithSchema(workflowServiceMethods.ByName("TriggerRun")),
 			connect.WithClientOptions(opts...),
 		),
 		getRun: connect.NewClient[v1.GetRunRequest, v1.Run](
 			httpClient,
 			baseURL+WorkflowServiceGetRunProcedure,
-			connect.WithSchema(workflowServiceGetRunMethodDescriptor),
+			connect.WithSchema(workflowServiceMethods.ByName("GetRun")),
 			connect.WithClientOptions(opts...),
 		),
 		listRuns: connect.NewClient[v1.ListRunsRequest, v1.ListRunsResponse](
 			httpClient,
 			baseURL+WorkflowServiceListRunsProcedure,
-			connect.WithSchema(workflowServiceListRunsMethodDescriptor),
+			connect.WithSchema(workflowServiceMethods.ByName("ListRuns")),
 			connect.WithClientOptions(opts...),
 		),
 		listWorkflows: connect.NewClient[v1.ListWorkflowsRequest, v1.ListWorkflowsResponse](
 			httpClient,
 			baseURL+WorkflowServiceListWorkflowsProcedure,
-			connect.WithSchema(workflowServiceListWorkflowsMethodDescriptor),
+			connect.WithSchema(workflowServiceMethods.ByName("ListWorkflows")),
 			connect.WithClientOptions(opts...),
 		),
 		createWorkflow: connect.NewClient[v1.CreateWorkflowRequest, v1.CreateWorkflowResponse](
 			httpClient,
 			baseURL+WorkflowServiceCreateWorkflowProcedure,
-			connect.WithSchema(workflowServiceCreateWorkflowMethodDescriptor),
+			connect.WithSchema(workflowServiceMethods.ByName("CreateWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
 		updateWorkflow: connect.NewClient[v1.UpdateWorkflowRequest, v1.UpdateWorkflowResponse](
 			httpClient,
 			baseURL+WorkflowServiceUpdateWorkflowProcedure,
-			connect.WithSchema(workflowServiceUpdateWorkflowMethodDescriptor),
+			connect.WithSchema(workflowServiceMethods.ByName("UpdateWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
 		deleteWorkflow: connect.NewClient[v1.DeleteWorkflowRequest, v1.DeleteWorkflowResponse](
 			httpClient,
 			baseURL+WorkflowServiceDeleteWorkflowProcedure,
-			connect.WithSchema(workflowServiceDeleteWorkflowMethodDescriptor),
+			connect.WithSchema(workflowServiceMethods.ByName("DeleteWorkflow")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -232,46 +221,47 @@ type WorkflowServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewWorkflowServiceHandler(svc WorkflowServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	workflowServiceMethods := v1.File_tooling_workflow_v1_service_proto.Services().ByName("WorkflowService").Methods()
 	workflowServiceTriggerRunHandler := connect.NewUnaryHandler(
 		WorkflowServiceTriggerRunProcedure,
 		svc.TriggerRun,
-		connect.WithSchema(workflowServiceTriggerRunMethodDescriptor),
+		connect.WithSchema(workflowServiceMethods.ByName("TriggerRun")),
 		connect.WithHandlerOptions(opts...),
 	)
 	workflowServiceGetRunHandler := connect.NewUnaryHandler(
 		WorkflowServiceGetRunProcedure,
 		svc.GetRun,
-		connect.WithSchema(workflowServiceGetRunMethodDescriptor),
+		connect.WithSchema(workflowServiceMethods.ByName("GetRun")),
 		connect.WithHandlerOptions(opts...),
 	)
 	workflowServiceListRunsHandler := connect.NewUnaryHandler(
 		WorkflowServiceListRunsProcedure,
 		svc.ListRuns,
-		connect.WithSchema(workflowServiceListRunsMethodDescriptor),
+		connect.WithSchema(workflowServiceMethods.ByName("ListRuns")),
 		connect.WithHandlerOptions(opts...),
 	)
 	workflowServiceListWorkflowsHandler := connect.NewUnaryHandler(
 		WorkflowServiceListWorkflowsProcedure,
 		svc.ListWorkflows,
-		connect.WithSchema(workflowServiceListWorkflowsMethodDescriptor),
+		connect.WithSchema(workflowServiceMethods.ByName("ListWorkflows")),
 		connect.WithHandlerOptions(opts...),
 	)
 	workflowServiceCreateWorkflowHandler := connect.NewUnaryHandler(
 		WorkflowServiceCreateWorkflowProcedure,
 		svc.CreateWorkflow,
-		connect.WithSchema(workflowServiceCreateWorkflowMethodDescriptor),
+		connect.WithSchema(workflowServiceMethods.ByName("CreateWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
 	workflowServiceUpdateWorkflowHandler := connect.NewUnaryHandler(
 		WorkflowServiceUpdateWorkflowProcedure,
 		svc.UpdateWorkflow,
-		connect.WithSchema(workflowServiceUpdateWorkflowMethodDescriptor),
+		connect.WithSchema(workflowServiceMethods.ByName("UpdateWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
 	workflowServiceDeleteWorkflowHandler := connect.NewUnaryHandler(
 		WorkflowServiceDeleteWorkflowProcedure,
 		svc.DeleteWorkflow,
-		connect.WithSchema(workflowServiceDeleteWorkflowMethodDescriptor),
+		connect.WithSchema(workflowServiceMethods.ByName("DeleteWorkflow")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/tooling.workflow.v1.WorkflowService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

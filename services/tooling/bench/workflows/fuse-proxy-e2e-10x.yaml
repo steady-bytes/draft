@@ -35,7 +35,7 @@ steps:
         code: { equals: "OK" }
 
   - name: call-1
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [register-test-route]
     with:
       method: POST
@@ -52,7 +52,7 @@ steps:
     with: { duration: 5s }
 
   - name: call-2
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [wait-1]
     with:
       method: POST
@@ -69,7 +69,7 @@ steps:
     with: { duration: 5s }
 
   - name: call-3
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [wait-2]
     with:
       method: POST
@@ -86,7 +86,7 @@ steps:
     with: { duration: 5s }
 
   - name: call-4
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [wait-3]
     with:
       method: POST
@@ -103,7 +103,7 @@ steps:
     with: { duration: 5s }
 
   - name: call-5
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [wait-4]
     with:
       method: POST
@@ -120,7 +120,7 @@ steps:
     with: { duration: 5s }
 
   - name: call-6
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [wait-5]
     with:
       method: POST
@@ -137,7 +137,7 @@ steps:
     with: { duration: 5s }
 
   - name: call-7
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [wait-6]
     with:
       method: POST
@@ -154,7 +154,7 @@ steps:
     with: { duration: 5s }
 
   - name: call-8
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [wait-7]
     with:
       method: POST
@@ -171,7 +171,7 @@ steps:
     with: { duration: 5s }
 
   - name: call-9
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [wait-8]
     with:
       method: POST
@@ -188,7 +188,7 @@ steps:
     with: { duration: 5s }
 
   - name: call-10
-    uses: garage://http-call@v1
+    uses: foundry://http-call@v1
     depends_on: [wait-9]
     with:
       method: POST

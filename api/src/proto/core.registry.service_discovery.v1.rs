@@ -212,6 +212,8 @@ pub struct ClientDetails {
     #[prost(string, tag = "9")]
     pub advertise_address: ::prost::alloc::string::String,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetClusterDetailsRequest {}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ClusterDetails {
     #[prost(message, repeated, tag = "1")]
@@ -606,6 +608,37 @@ pub mod service_discovery_service_client {
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
+        }
+        /// GetClusterDetails returns every raft node in this Blueprint cluster and which one is
+        /// currently leader -- unlike Synchronize's per-connection ClusterDetails push (which only ever
+        /// reports the single leader address a client should send state to), this returns the full
+        /// node roster with a real per-node LeadershipStatus, for callers that want to show the whole
+        /// cluster (e.g. the web client's Service Registry detail page for "blueprint").
+        pub async fn get_cluster_details(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetClusterDetailsRequest>,
+        ) -> std::result::Result<tonic::Response<super::ClusterDetails>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.registry.service_discovery.v1.ServiceDiscoveryService/GetClusterDetails",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.registry.service_discovery.v1.ServiceDiscoveryService",
+                        "GetClusterDetails",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }

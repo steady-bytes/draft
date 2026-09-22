@@ -16,8 +16,8 @@ import (
 
 // This file implements StepExecutor.Execute (see
 // api/tooling/step_executor/v1/service.proto) — the fixed, minimal contract
-// every Garage plugin implements, called directly by whatever resolved this
-// plugin (Bench, once its own Phase 6 garage:// resolution exists).
+// every Foundry plugin implements, called directly by whatever resolved this
+// plugin (Bench, once its own Phase 6 foundry:// resolution exists).
 //
 // Execute expects req.Msg.Config to already be fully resolved/templated —
 // the step's `with:` block after any `{{ steps.X.result }}`-style

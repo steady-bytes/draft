@@ -1,19 +1,13 @@
 use dioxus::prelude::*;
-use tonic_web_wasm_client::Client as WasmClient;
 use draft_api::proto::core_message_broker_actors_v1::{
-    metrics_client::MetricsClient,
-    resource_metrics_client::ResourceMetricsClient,
-    topology_client::TopologyClient,
-    EdgeVolume,
-    GetMetricsRequest,
-    GetResourceMetricsRequest,
-    GetTopologyRequest,
-    TopologyEdge,
+    metrics_client::MetricsClient, resource_metrics_client::ResourceMetricsClient,
+    topology_client::TopologyClient, EdgeVolume, GetMetricsRequest, GetResourceMetricsRequest,
+    GetTopologyRequest, TopologyEdge,
 };
+use tonic_web_wasm_client::Client as WasmClient;
 
+use crate::components::{event_color, MetricCard, MetricIcon, WaveLoader};
 use gloo_timers::callback::Interval;
-use crate::components::{MetricCard, MetricIcon, WaveLoader, event_color};
-
 
 #[derive(Clone, PartialEq, Copy)]
 enum TimeRange {
@@ -27,9 +21,9 @@ enum TimeRange {
 impl TimeRange {
     fn label(self) -> &'static str {
         match self {
-            TimeRange::Min15  => "15m",
-            TimeRange::Hour1  => "1h",
-            TimeRange::Hour3  => "3h",
+            TimeRange::Min15 => "15m",
+            TimeRange::Hour1 => "1h",
+            TimeRange::Hour3 => "3h",
             TimeRange::Hour24 => "24h",
             TimeRange::AllTime => "all",
         }
@@ -37,9 +31,9 @@ impl TimeRange {
 
     fn description(self) -> &'static str {
         match self {
-            TimeRange::Min15  => "last 15 minutes",
-            TimeRange::Hour1  => "last 1 hour",
-            TimeRange::Hour3  => "last 3 hours",
+            TimeRange::Min15 => "last 15 minutes",
+            TimeRange::Hour1 => "last 1 hour",
+            TimeRange::Hour3 => "last 3 hours",
             TimeRange::Hour24 => "last 24 hours",
             TimeRange::AllTime => "all time",
         }
@@ -48,9 +42,9 @@ impl TimeRange {
     /// Returns the window in seconds. -1 means no time filter (all stored events).
     fn window_seconds(self) -> i32 {
         match self {
-            TimeRange::Min15  => 900,
-            TimeRange::Hour1  => 3_600,
-            TimeRange::Hour3  => 10_800,
+            TimeRange::Min15 => 900,
+            TimeRange::Hour1 => 3_600,
+            TimeRange::Hour3 => 10_800,
             TimeRange::Hour24 => 86_400,
             TimeRange::AllTime => -1,
         }
@@ -59,33 +53,33 @@ impl TimeRange {
 
 #[derive(Clone, Default)]
 struct MetricsData {
-    msgs_per_min:   u32,
-    median_ms:      f64,
-    p95_ms:         f64,
-    edge_volumes:   Vec<EdgeVolume>,
+    msgs_per_min: u32,
+    median_ms: f64,
+    p95_ms: f64,
+    edge_volumes: Vec<EdgeVolume>,
     topology_edges: Vec<TopologyEdge>,
-    loaded:         bool,
+    loaded: bool,
 }
 
 #[derive(Clone, Default)]
 struct ResourceData {
-    published_total:  u64,
-    dropped_total:    u64,
-    queue_depth:      u32,
-    queue_capacity:   u32,
+    published_total: u64,
+    dropped_total: u64,
+    queue_depth: u32,
+    queue_capacity: u32,
     active_consumers: u32,
     active_producers: u32,
-    flush_p95_ms:     f64,
-    flush_count:      u32,
-    loaded:           bool,
+    flush_p95_ms: f64,
+    flush_count: u32,
+    loaded: bool,
 }
 
 #[component]
 pub fn Metrics() -> Element {
-    let mut time_range      = use_signal(|| TimeRange::Hour3);
-    let mut metrics         = use_signal(MetricsData::default);
-    let mut resource        = use_signal(ResourceData::default);
-    let mut updated_ago     = use_signal(|| "loading…".to_string());
+    let mut time_range = use_signal(|| TimeRange::Hour3);
+    let mut metrics = use_signal(MetricsData::default);
+    let mut resource = use_signal(ResourceData::default);
+    let mut updated_ago = use_signal(|| "loading…".to_string());
     let mut tick = use_signal(|| 0u32);
 
     // Increment tick every 5 s — effects that read tick() re-run automatically.
@@ -96,17 +90,23 @@ pub fn Metrics() -> Element {
     });
 
     use_effect(move || {
-        let _ = tick();   // re-run on every 5 s tick
+        let _ = tick(); // re-run on every 5 s tick
         let range = time_range();
-        let host  = crate::CATALYST_DOMAIN.clone();
+        let host = crate::CATALYST_DOMAIN.clone();
         spawn(async move {
             let metrics_res = {
                 let mut client = MetricsClient::new(WasmClient::new(host.clone()));
-                client.get_metrics(GetMetricsRequest { window_seconds: range.window_seconds() }).await
+                client
+                    .get_metrics(GetMetricsRequest {
+                        window_seconds: range.window_seconds(),
+                    })
+                    .await
             };
             let topo_edges = {
                 let mut client = TopologyClient::new(WasmClient::new(host));
-                client.get_topology(GetTopologyRequest {}).await
+                client
+                    .get_topology(GetTopologyRequest {})
+                    .await
                     .ok()
                     .map(|t| t.into_inner().edges)
                     .unwrap_or_default()
@@ -115,12 +115,12 @@ pub fn Metrics() -> Element {
                 Ok(resp) => {
                     let r = resp.into_inner();
                     metrics.set(MetricsData {
-                        msgs_per_min:   r.total_messages_per_min,
-                        median_ms:      r.median_latency_ms,
-                        p95_ms:         r.p95_latency_ms,
-                        edge_volumes:   r.edge_volumes,
+                        msgs_per_min: r.total_messages_per_min,
+                        median_ms: r.median_latency_ms,
+                        p95_ms: r.p95_latency_ms,
+                        edge_volumes: r.edge_volumes,
                         topology_edges: topo_edges,
-                        loaded:         true,
+                        loaded: true,
                     });
                     updated_ago.set("just now".to_string());
                 }
@@ -134,27 +134,33 @@ pub fn Metrics() -> Element {
         let host = crate::CATALYST_DOMAIN.clone();
         spawn(async move {
             let mut client = ResourceMetricsClient::new(WasmClient::new(host));
-            if let Ok(resp) = client.get_resource_metrics(GetResourceMetricsRequest {}).await {
+            if let Ok(resp) = client
+                .get_resource_metrics(GetResourceMetricsRequest {})
+                .await
+            {
                 let r = resp.into_inner();
                 resource.set(ResourceData {
-                    published_total:  r.messages_published_total,
-                    dropped_total:    r.messages_dropped_total,
-                    queue_depth:      r.queue_depth,
-                    queue_capacity:   r.queue_capacity,
+                    published_total: r.messages_published_total,
+                    dropped_total: r.messages_dropped_total,
+                    queue_depth: r.queue_depth,
+                    queue_capacity: r.queue_capacity,
                     active_consumers: r.active_consumers,
                     active_producers: r.active_producers,
-                    flush_p95_ms:     r.store_flush_p95_ms,
-                    flush_count:      r.store_flush_count,
-                    loaded:           true,
+                    flush_p95_ms: r.store_flush_p95_ms,
+                    flush_count: r.store_flush_count,
+                    loaded: true,
                 });
             }
         });
     });
 
-
     let m = metrics();
     let res = resource();
-    let flush_p95_str = if res.loaded { format!("{:.1}", res.flush_p95_ms) } else { "—".to_string() };
+    let flush_p95_str = if res.loaded {
+        format!("{:.1}", res.flush_p95_ms)
+    } else {
+        "—".to_string()
+    };
 
     // Consumers per event_type from live topology edges.
     let consumer_idx: std::collections::HashMap<String, std::collections::HashSet<String>> = {
@@ -170,7 +176,11 @@ pub fn Metrics() -> Element {
 
     let is_all_time = time_range() == TimeRange::AllTime;
     // Aggregate edge_volumes by event_type: sum counts and count distinct producer sources.
-    let window_mins = if is_all_time { 0.0 } else { time_range().window_seconds() as f64 / 60.0 };
+    let window_mins = if is_all_time {
+        0.0
+    } else {
+        time_range().window_seconds() as f64 / 60.0
+    };
     // rows: (event_type, total_count, producer_count, consumer_count)
     let topic_rows: Vec<(String, u32, u32, u32)> = {
         let mut map: std::collections::HashMap<String, (u32, std::collections::HashSet<String>)> =
@@ -180,7 +190,8 @@ pub fn Metrics() -> Element {
             entry.0 += ev.count;
             entry.1.insert(ev.source.clone());
         }
-        let mut rows: Vec<(String, u32, u32, u32)> = map.into_iter()
+        let mut rows: Vec<(String, u32, u32, u32)> = map
+            .into_iter()
             .map(|(typ, (count, srcs))| {
                 let consumers = consumer_idx.get(&typ).map(|s| s.len() as u32).unwrap_or(0);
                 (typ, count, srcs.len() as u32, consumers)
@@ -192,10 +203,18 @@ pub fn Metrics() -> Element {
     let max_count = topic_rows.first().map(|r| r.1).unwrap_or(1).max(1);
 
     // Sparklines are placeholders — a time-series endpoint would provide real buckets.
-    let msgs_data   = vec![280.0f32, 295.0, 310.0, 290.0, 305.0, 298.0, m.msgs_per_min as f32];
-    let median_data = vec![32.0f32,  30.0,  28.0,  31.0,  27.0,  29.0,  m.median_ms as f32];
-    let p95_data    = vec![80.0f32,  85.0,  88.0,  90.0,  92.0,  91.0,  m.p95_ms as f32];
-    let error_data  = vec![1.8f32,   1.6,   1.5,   1.7,   1.4,   1.5,   1.4];
+    let msgs_data = vec![
+        280.0f32,
+        295.0,
+        310.0,
+        290.0,
+        305.0,
+        298.0,
+        m.msgs_per_min as f32,
+    ];
+    let median_data = vec![32.0f32, 30.0, 28.0, 31.0, 27.0, 29.0, m.median_ms as f32];
+    let p95_data = vec![80.0f32, 85.0, 88.0, 90.0, 92.0, 91.0, m.p95_ms as f32];
+    let error_data = vec![1.8f32, 1.6, 1.5, 1.7, 1.4, 1.5, 1.4];
 
     rsx! {
         div { class: "p-6 flex flex-col gap-6",

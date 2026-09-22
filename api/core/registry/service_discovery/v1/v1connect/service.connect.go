@@ -51,17 +51,21 @@ const (
 	// ServiceDiscoveryServiceWatchProcedure is the fully-qualified name of the
 	// ServiceDiscoveryService's Watch RPC.
 	ServiceDiscoveryServiceWatchProcedure = "/core.registry.service_discovery.v1.ServiceDiscoveryService/Watch"
+	// ServiceDiscoveryServiceGetClusterDetailsProcedure is the fully-qualified name of the
+	// ServiceDiscoveryService's GetClusterDetails RPC.
+	ServiceDiscoveryServiceGetClusterDetailsProcedure = "/core.registry.service_discovery.v1.ServiceDiscoveryService/GetClusterDetails"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	serviceDiscoveryServiceServiceDescriptor            = v1.File_core_registry_service_discovery_v1_service_proto.Services().ByName("ServiceDiscoveryService")
-	serviceDiscoveryServiceInitializeMethodDescriptor   = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Initialize")
-	serviceDiscoveryServiceSynchronizeMethodDescriptor  = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Synchronize")
-	serviceDiscoveryServiceFinalizeMethodDescriptor     = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Finalize")
-	serviceDiscoveryServiceReportHealthMethodDescriptor = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("ReportHealth")
-	serviceDiscoveryServiceQueryMethodDescriptor        = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Query")
-	serviceDiscoveryServiceWatchMethodDescriptor        = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Watch")
+	serviceDiscoveryServiceServiceDescriptor                 = v1.File_core_registry_service_discovery_v1_service_proto.Services().ByName("ServiceDiscoveryService")
+	serviceDiscoveryServiceInitializeMethodDescriptor        = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Initialize")
+	serviceDiscoveryServiceSynchronizeMethodDescriptor       = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Synchronize")
+	serviceDiscoveryServiceFinalizeMethodDescriptor          = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Finalize")
+	serviceDiscoveryServiceReportHealthMethodDescriptor      = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("ReportHealth")
+	serviceDiscoveryServiceQueryMethodDescriptor             = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Query")
+	serviceDiscoveryServiceWatchMethodDescriptor             = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("Watch")
+	serviceDiscoveryServiceGetClusterDetailsMethodDescriptor = serviceDiscoveryServiceServiceDescriptor.Methods().ByName("GetClusterDetails")
 )
 
 // ServiceDiscoveryServiceClient is a client for the
@@ -79,6 +83,12 @@ type ServiceDiscoveryServiceClient interface {
 	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
 	// Watch the registry for process state changes
 	Watch(context.Context, *connect.Request[v1.WatchRequest]) (*connect.ServerStreamForClient[v1.WatchResponse], error)
+	// GetClusterDetails returns every raft node in this Blueprint cluster and which one is
+	// currently leader -- unlike Synchronize's per-connection ClusterDetails push (which only ever
+	// reports the single leader address a client should send state to), this returns the full
+	// node roster with a real per-node LeadershipStatus, for callers that want to show the whole
+	// cluster (e.g. the web client's Service Registry detail page for "blueprint").
+	GetClusterDetails(context.Context, *connect.Request[v1.GetClusterDetailsRequest]) (*connect.Response[v1.ClusterDetails], error)
 }
 
 // NewServiceDiscoveryServiceClient constructs a client for the
@@ -128,17 +138,24 @@ func NewServiceDiscoveryServiceClient(httpClient connect.HTTPClient, baseURL str
 			connect.WithSchema(serviceDiscoveryServiceWatchMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		getClusterDetails: connect.NewClient[v1.GetClusterDetailsRequest, v1.ClusterDetails](
+			httpClient,
+			baseURL+ServiceDiscoveryServiceGetClusterDetailsProcedure,
+			connect.WithSchema(serviceDiscoveryServiceGetClusterDetailsMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // serviceDiscoveryServiceClient implements ServiceDiscoveryServiceClient.
 type serviceDiscoveryServiceClient struct {
-	initialize   *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
-	synchronize  *connect.Client[v1.ClientDetails, v1.ClusterDetails]
-	finalize     *connect.Client[v1.FinalizeRequest, v1.FinalizeResponse]
-	reportHealth *connect.Client[v1.ReportHealthRequest, v1.ReportHealthResponse]
-	query        *connect.Client[v1.QueryRequest, v1.QueryResponse]
-	watch        *connect.Client[v1.WatchRequest, v1.WatchResponse]
+	initialize        *connect.Client[v1.InitializeRequest, v1.InitializeResponse]
+	synchronize       *connect.Client[v1.ClientDetails, v1.ClusterDetails]
+	finalize          *connect.Client[v1.FinalizeRequest, v1.FinalizeResponse]
+	reportHealth      *connect.Client[v1.ReportHealthRequest, v1.ReportHealthResponse]
+	query             *connect.Client[v1.QueryRequest, v1.QueryResponse]
+	watch             *connect.Client[v1.WatchRequest, v1.WatchResponse]
+	getClusterDetails *connect.Client[v1.GetClusterDetailsRequest, v1.ClusterDetails]
 }
 
 // Initialize calls core.registry.service_discovery.v1.ServiceDiscoveryService.Initialize.
@@ -171,6 +188,12 @@ func (c *serviceDiscoveryServiceClient) Watch(ctx context.Context, req *connect.
 	return c.watch.CallServerStream(ctx, req)
 }
 
+// GetClusterDetails calls
+// core.registry.service_discovery.v1.ServiceDiscoveryService.GetClusterDetails.
+func (c *serviceDiscoveryServiceClient) GetClusterDetails(ctx context.Context, req *connect.Request[v1.GetClusterDetailsRequest]) (*connect.Response[v1.ClusterDetails], error) {
+	return c.getClusterDetails.CallUnary(ctx, req)
+}
+
 // ServiceDiscoveryServiceHandler is an implementation of the
 // core.registry.service_discovery.v1.ServiceDiscoveryService service.
 type ServiceDiscoveryServiceHandler interface {
@@ -186,6 +209,12 @@ type ServiceDiscoveryServiceHandler interface {
 	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
 	// Watch the registry for process state changes
 	Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error
+	// GetClusterDetails returns every raft node in this Blueprint cluster and which one is
+	// currently leader -- unlike Synchronize's per-connection ClusterDetails push (which only ever
+	// reports the single leader address a client should send state to), this returns the full
+	// node roster with a real per-node LeadershipStatus, for callers that want to show the whole
+	// cluster (e.g. the web client's Service Registry detail page for "blueprint").
+	GetClusterDetails(context.Context, *connect.Request[v1.GetClusterDetailsRequest]) (*connect.Response[v1.ClusterDetails], error)
 }
 
 // NewServiceDiscoveryServiceHandler builds an HTTP handler from the service implementation. It
@@ -230,6 +259,12 @@ func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts 
 		connect.WithSchema(serviceDiscoveryServiceWatchMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	serviceDiscoveryServiceGetClusterDetailsHandler := connect.NewUnaryHandler(
+		ServiceDiscoveryServiceGetClusterDetailsProcedure,
+		svc.GetClusterDetails,
+		connect.WithSchema(serviceDiscoveryServiceGetClusterDetailsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/core.registry.service_discovery.v1.ServiceDiscoveryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ServiceDiscoveryServiceInitializeProcedure:
@@ -244,6 +279,8 @@ func NewServiceDiscoveryServiceHandler(svc ServiceDiscoveryServiceHandler, opts 
 			serviceDiscoveryServiceQueryHandler.ServeHTTP(w, r)
 		case ServiceDiscoveryServiceWatchProcedure:
 			serviceDiscoveryServiceWatchHandler.ServeHTTP(w, r)
+		case ServiceDiscoveryServiceGetClusterDetailsProcedure:
+			serviceDiscoveryServiceGetClusterDetailsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -275,4 +312,8 @@ func (UnimplementedServiceDiscoveryServiceHandler) Query(context.Context, *conne
 
 func (UnimplementedServiceDiscoveryServiceHandler) Watch(context.Context, *connect.Request[v1.WatchRequest], *connect.ServerStream[v1.WatchResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.service_discovery.v1.ServiceDiscoveryService.Watch is not implemented"))
+}
+
+func (UnimplementedServiceDiscoveryServiceHandler) GetClusterDetails(context.Context, *connect.Request[v1.GetClusterDetailsRequest]) (*connect.Response[v1.ClusterDetails], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("core.registry.service_discovery.v1.ServiceDiscoveryService.GetClusterDetails is not implemented"))
 }

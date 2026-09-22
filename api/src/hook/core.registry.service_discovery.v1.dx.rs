@@ -39,4 +39,11 @@ impl ServiceDiscoveryServiceServiceHook {
             async move { client.query(req()).await.map(|resp| resp.into_inner()) }
         })
     }
+    pub fn get_cluster_details(&self, req: Signal<proto::GetClusterDetailsRequest>) -> Resource<Result<proto::ClusterDetails, tonic::Status>> {
+        let client = self.0.to_owned();
+        use_resource(move || {
+            let mut client = client.clone();
+            async move { client.get_cluster_details(req()).await.map(|resp| resp.into_inner()) }
+        })
+    }
 }

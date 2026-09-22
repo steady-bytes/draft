@@ -16,9 +16,9 @@ import (
 	"github.com/steady-bytes/draft/pkg/chassis"
 )
 
-// defaultRegistryName is seeded from the legacy garage.address config value
+// defaultRegistryName is seeded from the legacy foundry.address config value
 // when bench.plugin_registries is unset entirely -- backward compatible with
-// every config.yaml and every garage:// reference (including
+// every config.yaml and every foundry:// reference (including
 // catalyst-consume-e2e.yaml, proven live in Phase 6) written before Phase 11
 // existed, none of which need to change.
 const defaultRegistryName = "default"
@@ -33,7 +33,7 @@ type pluginRegistryConfig struct {
 }
 
 // loadPluginRegistries seeds bench.plugin_registries (or, if unset, one
-// "default" registry from the legacy garage.address key) into the database,
+// "default" registry from the legacy foundry.address key) into the database,
 // skipping any name that already exists there. Returns how many were newly
 // seeded this run.
 func loadPluginRegistries(ctx context.Context, cfg chassis.Config, store *pgResultStore, logger chassis.Logger) (int, error) {
@@ -43,7 +43,7 @@ func loadPluginRegistries(ctx context.Context, cfg chassis.Config, store *pgResu
 	}
 
 	if len(configured) == 0 {
-		if addr := cfg.GetString("garage.address"); addr != "" {
+		if addr := cfg.GetString("foundry.address"); addr != "" {
 			configured = []pluginRegistryConfig{{Name: defaultRegistryName, Address: addr}}
 		} else {
 			return 0, nil

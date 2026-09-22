@@ -70,6 +70,7 @@ pub fn Gateway() -> Element {
                         tr {
                             th { "Name" }
                             th { "Match" }
+                            th { "Prefix" }
                             th { "Protocols" }
                             th { "Target" }
                             th { "Auth" }
@@ -83,7 +84,7 @@ pub fn Gateway() -> Element {
                                 if all_routes.is_empty() {
                                     rsx! {
                                         tr {
-                                            td { colspan: "6", class: "text-center text-base-content/50",
+                                            td { colspan: "7", class: "text-center text-base-content/50",
                                                 "No routes registered"
                                             }
                                         }
@@ -96,11 +97,15 @@ pub fn Gateway() -> Element {
                                                 let host = route.r#match.as_ref().map(|m| m.host.clone()).unwrap_or_default();
                                                 let prefix = route.r#match.as_ref().map(|m| m.prefix.clone()).unwrap_or_default();
                                                 let match_type = route.r#match.as_ref().map(|m| m.match_type).unwrap_or(0);
-                                                let target = route
-                                                    .endpoint
-                                                    .as_ref()
-                                                    .map(|e| format!("{}:{}", e.host, e.port))
-                                                    .unwrap_or_else(|| "—".to_string());
+                                                let target = if route.endpoints.len() > 1 {
+                                                    format!("{} backends", route.endpoints.len())
+                                                } else {
+                                                    route
+                                                        .endpoint
+                                                        .as_ref()
+                                                        .map(|e| format!("{}:{}", e.host, e.port))
+                                                        .unwrap_or_else(|| "—".to_string())
+                                                };
                                                 let is_conflicting = conflicts_with_any(&route, &all_routes);
 
                                                 rsx! {
@@ -113,10 +118,10 @@ pub fn Gateway() -> Element {
                                                                 if !host.is_empty() {
                                                                     span { class: "font-mono text-xs", "{host}" }
                                                                 }
-                                                                span { class: "font-mono text-xs text-base-content/70", "{prefix}" }
                                                                 span { class: "text-[10px] text-base-content/50", "{match_type_label(match_type)}" }
                                                             }
                                                         }
+                                                        td { class: "font-mono text-xs", "{prefix}" }
                                                         td { ProtocolBadges { enable_http2: route.enable_http2 } }
                                                         td { class: "font-mono text-xs", "{target}" }
                                                         td { AuthBadge { auth: route.auth.clone() } }
@@ -130,12 +135,12 @@ pub fn Gateway() -> Element {
                             }
                             Some(Err(e)) => rsx! {
                                 tr {
-                                    td { colspan: "6", class: "text-center text-error", "Error: {e}" }
+                                    td { colspan: "7", class: "text-center text-error", "Error: {e}" }
                                 }
                             },
                             None => rsx! {
                                 tr {
-                                    td { colspan: "6", class: "text-center", "Loading..." }
+                                    td { colspan: "7", class: "text-center", "Loading..." }
                                 }
                             },
                         }

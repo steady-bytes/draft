@@ -2,7 +2,7 @@
 // but wait for a configured duration before succeeding. It exists for pacing a
 // workflow's own steps out over real time (eg. spacing repeated requests through
 // Fuse's proxy 5s apart to observe behavior over time) — grpc-call and http-call
-// have no delay of their own, and the one plugin that does (garage://catalyst-
+// have no delay of their own, and the one plugin that does (foundry://catalyst-
 // produce@v1's own `delay` field) is specific to publishing an event, not a
 // general-purpose primitive worth repurposing for unrelated steps.
 package main

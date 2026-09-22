@@ -1,48 +1,157 @@
-use dioxus::prelude::*;
 use dioxus::html::input_data::MouseButton;
+use dioxus::prelude::*;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
+
+use gloo_timers::future::TimeoutFuture;
+use tonic_web_wasm_client::Client as WasmClient;
+
+use draft_api::hook::core_registry_key_value_v1::key_value_service_client::KeyValueServiceClient;
+use draft_api::hook::core_registry_service_discovery_v1::{
+    filter, use_service_discovery_service_service, Filter, QueryRequest,
+};
+use draft_api::proto::core_control_plane_networking_v1::{
+    networking_service_client::NetworkingServiceClient, ListRoutesRequest, Route as GwRoute,
+};
+use draft_api::proto::core_message_broker_actors_v1::{
+    topology_client::TopologyClient, GetTopologyRequest, GetTopologyResponse, WatchTopologyRequest,
+};
+use draft_api::proto::core_registry_key_value_v1::{GetRequest, SetRequest, Value as KvValue};
+use draft_api::proto::core_registry_service_discovery_v1::{
+    service_discovery_service_client::ServiceDiscoveryServiceClient, Process, ProcessHealthState,
+    ProcessRunningState, WatchRequest,
+};
+use prost::Message as _;
+use prost_types::Any;
+
+use crate::components::{TopologyData, TopologyEdge, TopologyNode};
+
+/// The KV key layout positions are persisted under — a plain JSON-encoded
+/// `LayoutBlob`, using the same generic `Value{data: string}` shape
+/// `leader`/`fuse_address` already use elsewhere in this store (see
+/// docs/architecture/cluster-live-topology-implementation-plan.md's
+/// "no new proto messages" non-goal).
+const LAYOUT_KV_KEY: &str = "cluster/layout";
+const LAYOUT_LOCAL_STORAGE_KEY: &str = "cluster_layout";
+const LAYOUT_VALUE_TYPE_URL: &str = "type.googleapis.com/core.registry.key_value.v1.Value";
+/// How often Gateway routes are re-polled — ListRoutes has no Watch RPC, and
+/// routes change far less often than process health or event volume.
+const GATEWAY_POLL_MS: u32 = 10_000;
 
 // ── ID generator ─────────────────────────────────────────────────────────────
 
 static UID: AtomicU64 = AtomicU64::new(1);
-fn next_id() -> String { format!("n{}", UID.fetch_add(1, Ordering::Relaxed)) }
-fn uid_val()  -> u64   { UID.load(Ordering::Relaxed) }
+fn next_id() -> String {
+    format!("n{}", UID.fetch_add(1, Ordering::Relaxed))
+}
+fn uid_val() -> u64 {
+    UID.load(Ordering::Relaxed)
+}
 
 // ── Node kind ─────────────────────────────────────────────────────────────────
 
 #[derive(Clone, Debug, PartialEq)]
-enum NodeKind { Catalyst, Blueprint, Fuse, Service }
+enum NodeKind {
+    Catalyst,
+    Blueprint,
+    Fuse,
+    Service,
+}
 
 impl NodeKind {
-    fn sym(&self)   -> &'static str { match self { Self::Catalyst=>"Ca", Self::Blueprint=>"Bp", Self::Fuse=>"Fs", Self::Service=>"Sv" } }
-    fn el(&self)    -> &'static str { match self { Self::Catalyst=>"CATALYST", Self::Blueprint=>"BLUEPRINT", Self::Fuse=>"FUSE", Self::Service=>"SERVICE" } }
-    fn num(&self)   -> &'static str { match self { Self::Catalyst=>"01", Self::Blueprint=>"02", Self::Fuse=>"03", Self::Service=>"··" } }
-    fn role(&self)  -> &'static str { match self { Self::Catalyst=>"EVENT BUS", Self::Blueprint=>"SERVICE REGISTRY", Self::Fuse=>"API GATEWAY", Self::Service=>"WORKLOAD" } }
-    fn color(&self) -> &'static str { match self { Self::Catalyst=>"#58a6ff", Self::Blueprint=>"#b48cff", Self::Fuse=>"#ffb454", Self::Service=>"#9fb3c2" } }
+    fn sym(&self) -> &'static str {
+        match self {
+            Self::Catalyst => "Ca",
+            Self::Blueprint => "Bp",
+            Self::Fuse => "Fs",
+            Self::Service => "Sv",
+        }
+    }
+    fn el(&self) -> &'static str {
+        match self {
+            Self::Catalyst => "CATALYST",
+            Self::Blueprint => "BLUEPRINT",
+            Self::Fuse => "FUSE",
+            Self::Service => "SERVICE",
+        }
+    }
+    fn num(&self) -> &'static str {
+        match self {
+            Self::Catalyst => "01",
+            Self::Blueprint => "02",
+            Self::Fuse => "03",
+            Self::Service => "··",
+        }
+    }
+    fn role(&self) -> &'static str {
+        match self {
+            Self::Catalyst => "EVENT BUS",
+            Self::Blueprint => "SERVICE REGISTRY",
+            Self::Fuse => "API GATEWAY",
+            Self::Service => "WORKLOAD",
+        }
+    }
+    fn color(&self) -> &'static str {
+        match self {
+            Self::Catalyst => "#58a6ff",
+            Self::Blueprint => "#b48cff",
+            Self::Fuse => "#ffb454",
+            Self::Service => "#9fb3c2",
+        }
+    }
 }
 
 // ── Data model ────────────────────────────────────────────────────────────────
 
 #[derive(Clone, Debug, PartialEq)]
-struct RoutingRule { method: String, path: String, target: String }
+struct RoutingRule {
+    method: String,
+    path: String,
+    target: String,
+}
 
 #[derive(Clone, Debug, PartialEq)]
-struct Topic { name: String, retention: String, partitions: u32 }
+struct Topic {
+    name: String,
+    retention: String,
+    partitions: u32,
+}
+
+/// Live nodes are derived from real cluster data (Registry/Gateway/Topology)
+/// on every refresh and can't be deleted/toggled from the canvas — deleting
+/// the row on screen doesn't stop the real process. Manual nodes are the
+/// original hand-authored kind: fully editable, never touched by a live
+/// refresh. See docs/architecture/cluster-live-topology-implementation-plan.md.
+#[derive(Clone, Debug, PartialEq)]
+enum NodeOrigin {
+    Live,
+    Manual,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 struct ClNode {
-    id:       String,
-    kind:     NodeKind,
-    name:     String,
-    x:        f64,
-    y:        f64,
-    online:   bool,
-    rules:    Vec<RoutingRule>,
-    topics:   Vec<Topic>,
-    host:     String,
-    port:     u16,
+    id: String,
+    kind: NodeKind,
+    name: String,
+    x: f64,
+    y: f64,
+    online: bool,
+    rules: Vec<RoutingRule>,
+    topics: Vec<Topic>,
+    host: String,
+    port: u16,
     protocol: String,
-    ttl:      String,
+    ttl: String,
+    origin: NodeOrigin,
+}
+
+/// live_node_id is a stable, content-addressed id for a live node — always
+/// `live:<name>`, the same on every re-derivation, so drag positions and
+/// wires attached to it survive a live-data refresh instead of being
+/// recreated (and re-randomized) every time. Never collides with a manual
+/// node's `next_id()`-generated `n<N>` id.
+fn live_node_id(name: &str) -> String {
+    format!("live:{name}")
 }
 
 impl ClNode {
@@ -50,52 +159,175 @@ impl ClNode {
         let (rules, topics, host, port, ttl) = match &kind {
             NodeKind::Fuse => (
                 vec![
-                    RoutingRule { method: "GET".into(),  path: "/api/auth/*".into(),    target: "auth-svc".into() },
-                    RoutingRule { method: "POST".into(), path: "/api/billing/*".into(), target: "billing-svc".into() },
+                    RoutingRule {
+                        method: "GET".into(),
+                        path: "/api/auth/*".into(),
+                        target: "auth-svc".into(),
+                    },
+                    RoutingRule {
+                        method: "POST".into(),
+                        path: "/api/billing/*".into(),
+                        target: "billing-svc".into(),
+                    },
                 ],
-                vec![], String::new(), 8080u16, String::new(),
+                vec![],
+                String::new(),
+                8080u16,
+                String::new(),
             ),
-            NodeKind::Catalyst => (vec![], vec![
-                Topic { name: "agent.events".into(), retention: "72h".into(), partitions: 6 },
-                Topic { name: "billing.tx".into(),   retention: "30d".into(), partitions: 3 },
-            ], String::new(), 8080, String::new()),
+            NodeKind::Catalyst => (
+                vec![],
+                vec![
+                    Topic {
+                        name: "agent.events".into(),
+                        retention: "72h".into(),
+                        partitions: 6,
+                    },
+                    Topic {
+                        name: "billing.tx".into(),
+                        retention: "30d".into(),
+                        partitions: 3,
+                    },
+                ],
+                String::new(),
+                8080,
+                String::new(),
+            ),
             NodeKind::Blueprint => (vec![], vec![], String::new(), 8080, "15s".into()),
-            NodeKind::Service   => (vec![], vec![], format!("{name}.cluster.local"), 8080, String::new()),
+            NodeKind::Service => (
+                vec![],
+                vec![],
+                format!("{name}.cluster.local"),
+                8080,
+                String::new(),
+            ),
         };
-        Self { id: next_id(), kind, name: name.into(), x, y, online: true,
-               rules, topics, host, port, protocol: "grpc".into(), ttl }
+        Self {
+            id: next_id(),
+            kind,
+            name: name.into(),
+            x,
+            y,
+            online: true,
+            rules,
+            topics,
+            host,
+            port,
+            protocol: "grpc".into(),
+            ttl,
+            origin: NodeOrigin::Manual,
+        }
     }
-    fn cx(&self) -> f64 { self.x + NW / 2.0 }
-    fn wire_count(&self, ts: &[ClTrace])  -> usize { ts.iter().filter(|t| t.kind == TraceKind::Wire  && (t.from == self.id || t.to == self.id)).count() }
-    fn event_count(&self, ts: &[ClTrace]) -> usize { ts.iter().filter(|t| t.kind == TraceKind::Event && (t.from == self.id || t.to == self.id)).count() }
+    /// A node derived from real cluster data — see `derive_nodes`.
+    fn new_live(kind: NodeKind, name: &str, x: f64, y: f64) -> Self {
+        Self {
+            id: live_node_id(name),
+            kind,
+            name: name.into(),
+            x,
+            y,
+            online: false,
+            rules: vec![],
+            topics: vec![],
+            host: String::new(),
+            port: 0,
+            protocol: "grpc".into(),
+            ttl: String::new(),
+            origin: NodeOrigin::Live,
+        }
+    }
+    fn cx(&self) -> f64 {
+        self.x + NW / 2.0
+    }
+    fn wire_count(&self, ts: &[ClTrace]) -> usize {
+        ts.iter()
+            .filter(|t| t.kind == TraceKind::Wire && (t.from == self.id || t.to == self.id))
+            .count()
+    }
+    fn event_count(&self, ts: &[ClTrace]) -> usize {
+        ts.iter()
+            .filter(|t| t.kind == TraceKind::Event && (t.from == self.id || t.to == self.id))
+            .count()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum TraceKind { Wire, Event }
+enum TraceKind {
+    Wire,
+    Event,
+}
 
 #[derive(Clone, Debug, PartialEq)]
-struct ClTrace { id: String, from: String, to: String, kind: TraceKind, topic: Option<String> }
+struct ClTrace {
+    id: String,
+    from: String,
+    to: String,
+    kind: TraceKind,
+    topic: Option<String>,
+}
 
 impl ClTrace {
-    fn wire(a: &str, b: &str) -> Self { Self { id: next_id(), from: a.into(), to: b.into(), kind: TraceKind::Wire, topic: None } }
-    fn event(f: &str, t: &str, tp: &str) -> Self { Self { id: next_id(), from: f.into(), to: t.into(), kind: TraceKind::Event, topic: Some(tp.into()) } }
+    fn wire(a: &str, b: &str) -> Self {
+        Self {
+            id: next_id(),
+            from: a.into(),
+            to: b.into(),
+            kind: TraceKind::Wire,
+            topic: None,
+        }
+    }
+    fn event(f: &str, t: &str, tp: &str) -> Self {
+        Self {
+            id: next_id(),
+            from: f.into(),
+            to: t.into(),
+            kind: TraceKind::Event,
+            topic: Some(tp.into()),
+        }
+    }
 }
 
 // ── Interaction state ──────────────────────────────────────────────────────────
 
 #[derive(Clone, Debug, Default, PartialEq)]
 enum Drag {
-    #[default] None,
-    Pan  { sx: f64, sy: f64, px: f64, py: f64 },
-    Node { id: String, sx: f64, sy: f64, nx: f64, ny: f64 },
-    Pad  { from_id: String, fx: f64, fy: f64, fd: i32, tx: f64, ty: f64 },
+    #[default]
+    None,
+    Pan {
+        sx: f64,
+        sy: f64,
+        px: f64,
+        py: f64,
+    },
+    Node {
+        id: String,
+        sx: f64,
+        sy: f64,
+        nx: f64,
+        ny: f64,
+    },
+    Pad {
+        from_id: String,
+        fx: f64,
+        fy: f64,
+        fd: i32,
+        tx: f64,
+        ty: f64,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum MenuFor { Canvas { wx: f64, wy: f64 }, Node(String) }
+enum MenuFor {
+    Canvas { wx: f64, wy: f64 },
+    Node(String),
+}
 
 #[derive(Clone, Debug, PartialEq)]
-struct Menu { x: f64, y: f64, for_: MenuFor }
+struct Menu {
+    x: f64,
+    y: f64,
+    for_: MenuFor,
+}
 
 // ── Geometry ──────────────────────────────────────────────────────────────────
 
@@ -103,8 +335,11 @@ const NW: f64 = 178.0;
 const NH: f64 = 84.0;
 
 fn port_of(nx: f64, ny: f64, other_cx: f64) -> (f64, f64, i32) {
-    if other_cx >= nx + NW / 2.0 { (nx + NW, ny + NH / 2.0, 1) }
-    else { (nx, ny + NH / 2.0, -1) }
+    if other_cx >= nx + NW / 2.0 {
+        (nx + NW, ny + NH / 2.0, 1)
+    } else {
+        (nx, ny + NH / 2.0, -1)
+    }
 }
 
 fn route_pts(sx: f64, sy: f64, sd: i32, ex: f64, ey: f64, ed: i32) -> Vec<(f64, f64)> {
@@ -112,43 +347,71 @@ fn route_pts(sx: f64, sy: f64, sd: i32, ex: f64, ey: f64, ed: i32) -> Vec<(f64, 
     let (p1x, p1y) = (sx + sd as f64 * STUB, sy);
     let (p4x, p4y) = (ex + ed as f64 * STUB, ey);
     let mut pts = vec![(sx, sy), (p1x, p1y)];
-    let (dx, dy)   = (p4x - p1x, p4y - p1y);
+    let (dx, dy) = (p4x - p1x, p4y - p1y);
     let (adx, ady) = (dx.abs(), dy.abs());
-    let sgx: f64   = if dx >= 0.0 { 1.0 } else { -1.0 };
-    let sgy: f64   = if dy >= 0.0 { 1.0 } else { -1.0 };
+    let sgx: f64 = if dx >= 0.0 { 1.0 } else { -1.0 };
+    let sgy: f64 = if dy >= 0.0 { 1.0 } else { -1.0 };
     if ady < 0.5 {
     } else if sgx == sd as f64 && adx >= ady {
-        pts.push((p1x + sgx*(adx-ady), p1y));
+        pts.push((p1x + sgx * (adx - ady), p1y));
     } else if sgx == sd as f64 && ady > adx {
-        pts.push((p1x + sgx*adx, p1y + sgy*adx));
+        pts.push((p1x + sgx * adx, p1y + sgy * adx));
     } else {
-        let mid_y = p1y + sgy*(ady/2.0).max(40.0);
-        pts.push((p1x, mid_y)); pts.push((p4x, mid_y));
+        let mid_y = p1y + sgy * (ady / 2.0).max(40.0);
+        pts.push((p1x, mid_y));
+        pts.push((p4x, mid_y));
     }
-    pts.push((p4x, p4y)); pts.push((ex, ey));
-    let mut out: Vec<(f64,f64)> = Vec::new();
+    pts.push((p4x, p4y));
+    pts.push((ex, ey));
+    let mut out: Vec<(f64, f64)> = Vec::new();
     for &p in &pts {
-        if out.last().map_or(true, |&q: &(f64,f64)| (p.0-q.0).abs()>0.25 || (p.1-q.1).abs()>0.25) { out.push(p); }
+        if out.last().map_or(true, |&q: &(f64, f64)| {
+            (p.0 - q.0).abs() > 0.25 || (p.1 - q.1).abs() > 0.25
+        }) {
+            out.push(p);
+        }
     }
     out
 }
 
-fn pts_path(pts: &[(f64,f64)]) -> String {
-    pts.iter().enumerate().map(|(i,(x,y))| if i==0 { format!("M {x:.1} {y:.1}") } else { format!("L {x:.1} {y:.1}") }).collect::<Vec<_>>().join(" ")
+fn pts_path(pts: &[(f64, f64)]) -> String {
+    pts.iter()
+        .enumerate()
+        .map(|(i, (x, y))| {
+            if i == 0 {
+                format!("M {x:.1} {y:.1}")
+            } else {
+                format!("L {x:.1} {y:.1}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
-fn poly_len(pts: &[(f64,f64)]) -> f64 {
-    pts.windows(2).map(|w| { let ((x0,y0),(x1,y1))=(w[0],w[1]); ((x1-x0).powi(2)+(y1-y0).powi(2)).sqrt() }).sum()
+fn poly_len(pts: &[(f64, f64)]) -> f64 {
+    pts.windows(2)
+        .map(|w| {
+            let ((x0, y0), (x1, y1)) = (w[0], w[1]);
+            ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt()
+        })
+        .sum()
 }
 
-fn point_at(pts: &[(f64,f64)], mut d: f64) -> (f64,f64,f64) {
+fn point_at(pts: &[(f64, f64)], mut d: f64) -> (f64, f64, f64) {
     for w in pts.windows(2) {
-        let ((x0,y0),(x1,y1)) = (w[0],w[1]);
-        let seg = ((x1-x0).powi(2)+(y1-y0).powi(2)).sqrt();
-        if d <= seg { let t=if seg>0.0{d/seg}else{0.0}; return (x0+(x1-x0)*t, y0+(y1-y0)*t, (y1-y0).atan2(x1-x0)); }
+        let ((x0, y0), (x1, y1)) = (w[0], w[1]);
+        let seg = ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt();
+        if d <= seg {
+            let t = if seg > 0.0 { d / seg } else { 0.0 };
+            return (
+                x0 + (x1 - x0) * t,
+                y0 + (y1 - y0) * t,
+                (y1 - y0).atan2(x1 - x0),
+            );
+        }
         d -= seg;
     }
-    let &(lx,ly) = pts.last().unwrap_or(&(0.0,0.0));
+    let &(lx, ly) = pts.last().unwrap_or(&(0.0, 0.0));
     (lx, ly, 0.0)
 }
 
@@ -160,31 +423,352 @@ fn hex_alpha(hex: &str, a: f64) -> String {
     format!("rgba({r},{g},{b},{a:.3})")
 }
 
-fn snap8(v: f64) -> f64 { (v / 8.0).round() * 8.0 }
-
-// ── Seed scene ────────────────────────────────────────────────────────────────
-
-fn seed_nodes() -> Vec<ClNode> {
-    vec![
-        ClNode::new(NodeKind::Blueprint, "blueprint-00",  470.0, 110.0),
-        ClNode::new(NodeKind::Fuse,      "fuse-00",       120.0, 330.0),
-        ClNode::new(NodeKind::Service,   "auth-svc",      470.0, 280.0),
-        ClNode::new(NodeKind::Service,   "billing-svc",   470.0, 440.0),
-        ClNode::new(NodeKind::Catalyst,  "catalyst-00",   830.0, 360.0),
-        ClNode::new(NodeKind::Service,   "ledger-svc",   1150.0, 480.0),
-    ]
+fn snap8(v: f64) -> f64 {
+    (v / 8.0).round() * 8.0
 }
 
-fn seed_traces(nodes: &[ClNode]) -> Vec<ClTrace> {
-    let id = |name: &str| nodes.iter().find(|n| n.name == name).map(|n| n.id.clone()).unwrap_or_default();
-    vec![
-        ClTrace::wire(&id("fuse-00"),    &id("auth-svc")),
-        ClTrace::wire(&id("fuse-00"),    &id("billing-svc")),
-        ClTrace::wire(&id("blueprint-00"), &id("auth-svc")),
-        ClTrace::event(&id("auth-svc"),    &id("catalyst-00"), "agent.events"),
-        ClTrace::event(&id("billing-svc"), &id("catalyst-00"), "billing.tx"),
-        ClTrace::event(&id("catalyst-00"), &id("ledger-svc"),  "billing.tx"),
-    ]
+// ── Live data → graph derivation ────────────────────────────────────────────
+// See docs/architecture/cluster-live-topology-implementation-plan.md for the
+// full rationale behind the identity join and edge derivation below.
+
+/// Recovers a logical service name from a CloudEvent `source` string (e.g.
+/// `/services/bench` -> `bench`), the convention documented in
+/// docs/architecture/wide-events.md and used by every real producer in this
+/// repo. Falls back to the raw source when it doesn't match the convention,
+/// so an unresolved topology node is still shown rather than dropped.
+fn service_name_from_source(source: &str) -> &str {
+    source
+        .strip_prefix("/services/")
+        .or_else(|| source.strip_prefix("/plugins/"))
+        .unwrap_or(source)
+}
+
+fn kind_for_name(name: &str) -> NodeKind {
+    match name {
+        "blueprint" => NodeKind::Blueprint,
+        "catalyst" => NodeKind::Catalyst,
+        "fuse" => NodeKind::Fuse,
+        _ => NodeKind::Service,
+    }
+}
+
+/// Deterministic lane-based placement for a node with no known position yet
+/// (not a full force-directed layout — a ~15-node cluster diagram doesn't
+/// need one; revisit only if this reads poorly in practice). Core services
+/// get fixed anchor points; everything else fills a grid.
+fn auto_position(kind: &NodeKind, service_index: usize) -> (f64, f64) {
+    match kind {
+        NodeKind::Blueprint => (470.0, 40.0),
+        NodeKind::Fuse => (120.0, 280.0),
+        NodeKind::Catalyst => (830.0, 280.0),
+        NodeKind::Service => {
+            let col = (service_index % 3) as f64;
+            let row = (service_index / 3) as f64;
+            (120.0 + col * 220.0, 460.0 + row * 120.0)
+        }
+    }
+}
+
+/// Builds the full node list from Registry (`processes`, the authoritative
+/// "what's actually running" list) plus any Topology producer/consumer that
+/// doesn't resolve to a registered process. `existing` is the current
+/// on-screen node list — a node found there (by id) keeps its position and
+/// other user-editable fields; only genuinely new nodes get auto-placed.
+/// `saved_positions` seeds a brand-new node's position from a persisted
+/// layout before falling back to `auto_position`. Manual nodes in `existing`
+/// pass through untouched.
+fn derive_nodes(
+    processes: &HashMap<String, Process>,
+    topology: &TopologyData,
+    existing: &[ClNode],
+    saved_positions: &HashMap<String, (f64, f64)>,
+) -> Vec<ClNode> {
+    let by_id: HashMap<&str, &ClNode> = existing.iter().map(|n| (n.id.as_str(), n)).collect();
+
+    let mut by_name: HashMap<String, Vec<&Process>> = HashMap::new();
+    for p in processes.values() {
+        by_name.entry(p.name.clone()).or_default().push(p);
+    }
+
+    let mut result: Vec<ClNode> = Vec::new();
+    let mut seen_names: HashSet<String> = HashSet::new();
+    let mut service_idx = 0usize;
+
+    let mut names: Vec<&String> = by_name.keys().collect();
+    names.sort();
+    for name in names {
+        let instances = &by_name[name];
+        let id = live_node_id(name);
+        seen_names.insert(name.clone());
+        let online = instances
+            .iter()
+            .any(|p| p.running_state == ProcessRunningState::ProcessRunning as i32)
+            && instances
+                .iter()
+                .any(|p| p.health_state == ProcessHealthState::ProcessHealthy as i32);
+        let ip = instances
+            .first()
+            .map(|p| p.ip_address.clone())
+            .unwrap_or_default();
+        let kind = kind_for_name(name);
+
+        let is_new = by_id.get(id.as_str()).is_none();
+        let mut node = match by_id.get(id.as_str()) {
+            Some(existing_node) => (*existing_node).clone(),
+            None => {
+                let (x, y) = saved_positions
+                    .get(&id)
+                    .copied()
+                    .unwrap_or_else(|| auto_position(&kind, service_idx));
+                ClNode::new_live(kind.clone(), name, x, y)
+            }
+        };
+        if matches!(kind, NodeKind::Service) && is_new {
+            service_idx += 1;
+        }
+        node.online = online;
+        node.host = ip;
+        result.push(node);
+    }
+
+    for tn in topology.producers.iter().chain(topology.consumers.iter()) {
+        let name = service_name_from_source(&tn.id).to_string();
+        if seen_names.contains(&name) {
+            continue;
+        }
+        seen_names.insert(name.clone());
+        let id = live_node_id(&name);
+        let kind = kind_for_name(&name);
+        let node = match by_id.get(id.as_str()) {
+            Some(existing_node) => (*existing_node).clone(),
+            None => {
+                let (x, y) = saved_positions
+                    .get(&id)
+                    .copied()
+                    .unwrap_or_else(|| auto_position(&kind, service_idx));
+                if matches!(kind, NodeKind::Service) {
+                    service_idx += 1;
+                }
+                ClNode::new_live(kind, &name, x, y)
+            }
+        };
+        result.push(node);
+    }
+
+    for n in existing.iter().filter(|n| n.origin == NodeOrigin::Manual) {
+        result.push(n.clone());
+    }
+
+    result
+}
+
+/// Builds wires (from Gateway routes) and animated event traces (from
+/// Topology edges) against the just-derived `nodes` list. Wires run
+/// Fuse -> resolved route target, matching `Route.endpoint.host:port`
+/// against `Process.ip_address` (== `advertise_address`, see
+/// docs/architecture/service-registry-identity.md) to find the target.
+/// Event traces run two hops per Topology edge, `producer -> Catalyst` and
+/// `Catalyst -> consumer` — correct by construction, since every Topology
+/// edge is by definition two CloudEvents through Catalyst, never a direct
+/// call. Manual wires/events (attached to a Manual-origin node on either
+/// end) are preserved from `existing`.
+fn derive_traces(
+    nodes: &[ClNode],
+    routes: &[GwRoute],
+    processes: &HashMap<String, Process>,
+    topology: &TopologyData,
+    existing: &[ClTrace],
+) -> Vec<ClTrace> {
+    let live_by_name: HashMap<&str, &str> = nodes
+        .iter()
+        .filter(|n| n.origin == NodeOrigin::Live)
+        .map(|n| (n.name.as_str(), n.id.as_str()))
+        .collect();
+
+    let mut traces: Vec<ClTrace> = Vec::new();
+
+    if let Some(&fuse_id) = live_by_name.get("fuse") {
+        for route in routes {
+            let Some(endpoint) = &route.endpoint else {
+                continue;
+            };
+            let target_addr = format!("{}:{}", endpoint.host, endpoint.port);
+            let Some(target_process) = processes.values().find(|p| p.ip_address == target_addr)
+            else {
+                continue;
+            };
+            let Some(&target_id) = live_by_name.get(target_process.name.as_str()) else {
+                continue;
+            };
+            if target_id == fuse_id {
+                continue;
+            }
+            traces.push(ClTrace::wire(fuse_id, target_id));
+        }
+    }
+
+    if let Some(&catalyst_id) = live_by_name.get("catalyst") {
+        for edge in &topology.edges {
+            let producer_name = service_name_from_source(&edge.producer_id);
+            let consumer_name = service_name_from_source(&edge.consumer_id);
+            let Some(&producer_id) = live_by_name.get(producer_name) else {
+                continue;
+            };
+            let Some(&consumer_id) = live_by_name.get(consumer_name) else {
+                continue;
+            };
+            traces.push(ClTrace::event(producer_id, catalyst_id, &edge.event_type));
+            traces.push(ClTrace::event(catalyst_id, consumer_id, &edge.event_type));
+        }
+    }
+
+    // Manual traces (either endpoint a Manual node) pass through untouched.
+    let manual_ids: HashSet<&str> = nodes
+        .iter()
+        .filter(|n| n.origin == NodeOrigin::Manual)
+        .map(|n| n.id.as_str())
+        .collect();
+    for t in existing {
+        if manual_ids.contains(t.from.as_str()) || manual_ids.contains(t.to.as_str()) {
+            traces.push(t.clone());
+        }
+    }
+
+    traces
+}
+
+/// Maps Catalyst's `GetTopology`/`WatchTopology` response onto the shared
+/// `TopologyData` shape `views/topology.rs` already renders from — kept as a
+/// small local copy rather than a shared export, since it's just a field
+/// mapping and not worth a cross-module visibility change.
+fn topology_from_response(resp: GetTopologyResponse) -> TopologyData {
+    let producers = resp
+        .producers
+        .into_iter()
+        .map(|n| TopologyNode {
+            id: n.id.clone(),
+            name: if n.name.is_empty() { n.id } else { n.name },
+        })
+        .collect();
+    let consumers = resp
+        .consumers
+        .into_iter()
+        .map(|n| TopologyNode {
+            id: n.id.clone(),
+            name: if n.name.is_empty() { n.id } else { n.name },
+        })
+        .collect();
+    let edges = resp
+        .edges
+        .into_iter()
+        .map(|e| TopologyEdge {
+            producer_id: e.producer_source,
+            consumer_id: e.consumer_source,
+            event_type: e.event_type,
+            vol: e.vol,
+        })
+        .collect();
+    TopologyData {
+        producers,
+        consumers,
+        edges,
+    }
+}
+
+/// Re-derives `nodes`/`traces` from the latest snapshot of the three live
+/// sources, merging against whatever's currently on screen (see
+/// `derive_nodes`/`derive_traces`) so drag positions and manual nodes/wires
+/// survive. A plain function (not a closure) so every fetch-completion site
+/// can call it the same way without capture/`Copy` gymnastics — Dioxus
+/// signals are `Copy`, so passing them by value here is cheap.
+fn recompute(
+    mut nodes: Signal<Vec<ClNode>>,
+    mut traces: Signal<Vec<ClTrace>>,
+    processes: &HashMap<String, Process>,
+    routes: &[GwRoute],
+    topology: &TopologyData,
+    saved_positions: &HashMap<String, (f64, f64)>,
+) {
+    let existing_nodes = nodes.peek().clone();
+    let existing_traces = traces.peek().clone();
+    let new_nodes = derive_nodes(processes, topology, &existing_nodes, saved_positions);
+    let new_traces = derive_traces(&new_nodes, routes, processes, topology, &existing_traces);
+    nodes.set(new_nodes);
+    traces.set(new_traces);
+}
+
+// ── Layout persistence (localStorage + Blueprint KV) ────────────────────────
+// Finishes what docs/architecture/cluster-graph-persistence.md started but
+// never wired up against this (later, pure-Dioxus) renderer — see
+// docs/architecture/cluster-live-topology-implementation-plan.md Phase 5.
+// Reuses the existing generic `Value{data: string}` KV shape (JSON-encoded)
+// rather than adding a new proto message.
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+struct LayoutBlob {
+    positions: HashMap<String, (f64, f64)>,
+    pan_x: f64,
+    pan_y: f64,
+    zoom: f64,
+}
+
+fn local_storage() -> Option<web_sys::Storage> {
+    web_sys::window()?.local_storage().ok()?
+}
+
+fn load_layout_from_local_storage() -> Option<LayoutBlob> {
+    let raw = local_storage()?.get_item(LAYOUT_LOCAL_STORAGE_KEY).ok()??;
+    serde_json::from_str(&raw).ok()
+}
+
+fn save_layout_to_local_storage(layout: &LayoutBlob) {
+    if let (Some(storage), Ok(raw)) = (local_storage(), serde_json::to_string(layout)) {
+        let _ = storage.set_item(LAYOUT_LOCAL_STORAGE_KEY, &raw);
+    }
+}
+
+async fn load_layout_from_kv() -> Option<LayoutBlob> {
+    let mut client = KeyValueServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()));
+    let resp = client
+        .get(GetRequest {
+            key: LAYOUT_KV_KEY.to_string(),
+            value: Some(Any {
+                type_url: LAYOUT_VALUE_TYPE_URL.to_string(),
+                value: vec![],
+            }),
+        })
+        .await
+        .ok()?;
+    let any = resp.into_inner().value?;
+    let val = KvValue::decode(any.value.as_slice()).ok()?;
+    serde_json::from_str(&val.data).ok()
+}
+
+async fn save_layout_to_kv(layout: &LayoutBlob) {
+    let Ok(raw) = serde_json::to_string(layout) else {
+        return;
+    };
+    let mut client = KeyValueServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()));
+    let any = Any {
+        type_url: LAYOUT_VALUE_TYPE_URL.to_string(),
+        value: KvValue { data: raw }.encode_to_vec(),
+    };
+    let _ = client
+        .set(SetRequest {
+            key: LAYOUT_KV_KEY.to_string(),
+            value: Some(any),
+        })
+        .await;
+}
+
+/// localStorage is written first (fast, always available) then Blueprint KV
+/// (source of truth across browsers/sessions) — if the KV call fails
+/// (Blueprint down, network error), the localStorage write still landed.
+fn persist_layout(layout: LayoutBlob) {
+    save_layout_to_local_storage(&layout);
+    spawn(async move {
+        save_layout_to_kv(&layout).await;
+    });
 }
 
 // ── CSS for animations + helpers ──────────────────────────────────────────────
@@ -209,21 +793,164 @@ const CLUSTER_CSS: &str = r#"
 
 #[component]
 pub fn Cluster() -> Element {
-    let ns0 = seed_nodes();
-    let ts0 = seed_traces(&ns0);
-    let mut nodes   = use_signal(|| ns0);
-    let mut traces  = use_signal(|| ts0);
-    let mut pan_x   = use_signal(|| 0.0_f64);
-    let mut pan_y   = use_signal(|| 0.0_f64);
-    let mut zoom    = use_signal(|| 1.0_f64);
-    let mut snap    = use_signal(|| true);
-    let mut flow    = use_signal(|| true);
+    let mut nodes = use_signal(Vec::<ClNode>::new);
+    let mut traces = use_signal(Vec::<ClTrace>::new);
+    let mut pan_x = use_signal(|| 0.0_f64);
+    let mut pan_y = use_signal(|| 0.0_f64);
+    let mut zoom = use_signal(|| 1.0_f64);
+    let mut snap = use_signal(|| true);
+    let mut flow = use_signal(|| true);
     let mut primary = use_signal(|| "#3ddc97".to_string());
-    let mut drag    = use_signal(Drag::default);
-    let mut menu    = use_signal(|| Option::<Menu>::None);
-    let mut drawer  = use_signal(|| Option::<String>::None);
-    let mut coord   = use_signal(|| (0.0_f64, 0.0_f64));
+    let mut drag = use_signal(Drag::default);
+    let mut menu = use_signal(|| Option::<Menu>::None);
+    let mut drawer = use_signal(|| Option::<String>::None);
+    let mut coord = use_signal(|| (0.0_f64, 0.0_f64));
     let mut stg_off = use_signal(|| (0.0_f64, 0.0_f64)); // (left, top)
+    // Edge labels (eg. an Event trace's topic) render as a hover tooltip
+    // instead of always-on text, revealed by hovering either endpoint node
+    // -- see TraceSvg's show_tip comment for why hovering the edge line
+    // itself isn't also wired up.
+    let mut hovered_node = use_signal(|| Option::<String>::None);
+
+    // ── Live data (Registry, Gateway, Topology) ──────────────────────────────
+    let mut processes: Signal<HashMap<String, Process>> = use_signal(HashMap::new);
+    let mut routes: Signal<Vec<GwRoute>> = use_signal(Vec::new);
+    let mut topology_data: Signal<TopologyData> = use_signal(TopologyData::default);
+    let mut saved_positions: Signal<HashMap<String, (f64, f64)>> = use_signal(HashMap::new);
+    let mut layout_loaded = use_signal(|| false);
+
+    // Load the persisted layout once on mount — Blueprint KV first (source of
+    // truth across browsers/sessions), localStorage as a fallback that still
+    // works if Blueprint is unreachable. Position lookups in derive_nodes
+    // only matter for a node's very first appearance this session, so this
+    // must land before the first live-data-driven recompute; layout_loaded
+    // gates that first recompute below.
+    use_effect(move || {
+        spawn(async move {
+            let layout = load_layout_from_kv()
+                .await
+                .or_else(load_layout_from_local_storage);
+            if let Some(layout) = layout {
+                saved_positions.set(layout.positions);
+                pan_x.set(layout.pan_x);
+                pan_y.set(layout.pan_y);
+                if layout.zoom > 0.0 {
+                    zoom.set(layout.zoom);
+                }
+            }
+            layout_loaded.set(true);
+        });
+    });
+
+    // ── Registry: Query + Watch (mirrors views/service_registry.rs) ─────────
+    let sd_service = use_service_discovery_service_service();
+    let sd_query_request = use_signal(|| QueryRequest {
+        filter: Some(Filter {
+            attribute: Some(filter::Attribute::All(String::new())),
+        }),
+    });
+    let sd_query_result = sd_service.query(sd_query_request);
+
+    // Each block below only *updates* its own raw-data signal — recomputation
+    // of nodes/traces happens exclusively in the single reactive effect after
+    // this section. Keeping those two responsibilities separate avoids a
+    // subtle self-triggering loop: this effect both reads and writes
+    // `processes`, so if it also reactively read `processes()` again (e.g. to
+    // call `recompute` directly) it would re-run itself on every write,
+    // forever — `nodes`/`traces` are the only signals the recompute effect
+    // writes, and it deliberately never reads them back (see `recompute`'s
+    // use of `.peek()`), which is what keeps that effect's dependency set
+    // (the raw data signals) disjoint from what it writes.
+    use_effect(move || {
+        if let Some(Ok(ref resp)) = *sd_query_result.read() {
+            processes.set(resp.data.clone());
+        }
+    });
+
+    let grpc_config = use_context::<dioxus_grpc::GrpcConfig>();
+    use_coroutine(move |_rx: UnboundedReceiver<()>| {
+        let host = grpc_config.host.clone();
+        async move {
+            let mut client = ServiceDiscoveryServiceClient::new(WasmClient::new(host));
+            let Ok(response) = client.watch(WatchRequest {}).await else {
+                return;
+            };
+            let mut stream = response.into_inner();
+            loop {
+                match stream.message().await {
+                    Ok(Some(msg)) => {
+                        if msg.removed {
+                            if let Some(process) = msg.process {
+                                processes.with_mut(|m| {
+                                    m.remove(&process.pid);
+                                });
+                            }
+                        } else if let Some(process) = msg.process {
+                            processes.with_mut(|m| {
+                                m.insert(process.pid.clone(), process);
+                            });
+                        }
+                    }
+                    Ok(None) | Err(_) => break,
+                }
+            }
+        }
+    });
+
+    // ── Gateway: polled — ListRoutes has no Watch RPC ────────────────────────
+    use_coroutine(move |_rx: UnboundedReceiver<()>| async move {
+        loop {
+            let mut client =
+                NetworkingServiceClient::new(WasmClient::new(crate::FUSE_DOMAIN.clone()));
+            if let Ok(resp) = client.list_routes(ListRoutesRequest {}).await {
+                routes.set(resp.into_inner().routes);
+            }
+            TimeoutFuture::new(GATEWAY_POLL_MS).await;
+        }
+    });
+
+    // ── Event topology: GetTopology + WatchTopology (mirrors views/topology.rs) ─
+    use_effect(move || {
+        let host = crate::CATALYST_DOMAIN.clone();
+        spawn(async move {
+            let mut client = TopologyClient::new(WasmClient::new(host.clone()));
+            if let Ok(resp) = client.get_topology(GetTopologyRequest {}).await {
+                topology_data.set(topology_from_response(resp.into_inner()));
+            }
+            let Ok(resp) = client.watch_topology(WatchTopologyRequest {}).await else {
+                return;
+            };
+            let mut stream = resp.into_inner();
+            loop {
+                match stream.message().await {
+                    Ok(Some(_)) => {
+                        let mut refresh = TopologyClient::new(WasmClient::new(host.clone()));
+                        if let Ok(r) = refresh.get_topology(GetTopologyRequest {}).await {
+                            topology_data.set(topology_from_response(r.into_inner()));
+                        }
+                    }
+                    Ok(None) | Err(_) => break,
+                }
+            }
+        });
+    });
+
+    // The single place nodes/traces get recomputed — reactively depends on
+    // every raw-data signal above (and `layout_loaded`) but deliberately
+    // never reads `nodes`/`traces` themselves (recompute uses `.peek()` for
+    // those), so writing to them here can't re-trigger this same effect.
+    use_effect(move || {
+        if layout_loaded() {
+            recompute(
+                nodes,
+                traces,
+                &processes(),
+                &routes(),
+                &topology_data(),
+                &saved_positions(),
+            );
+        }
+    });
 
     use_effect(move || {
         use wasm_bindgen::closure::Closure;
@@ -233,10 +960,13 @@ pub fn Cluster() -> Element {
                 if let Some(el) = doc.get_element_by_id("cv-stage") {
                     let r = el.get_bounding_client_rect();
                     stg_off.set((r.left(), r.top()));
-                    let cb = Closure::<dyn FnMut(web_sys::MouseEvent)>::new(|ev: web_sys::MouseEvent| {
-                        ev.prevent_default();
-                    });
-                    el.add_event_listener_with_callback("contextmenu", cb.as_ref().unchecked_ref()).ok();
+                    let cb = Closure::<dyn FnMut(web_sys::MouseEvent)>::new(
+                        |ev: web_sys::MouseEvent| {
+                            ev.prevent_default();
+                        },
+                    );
+                    el.add_event_listener_with_callback("contextmenu", cb.as_ref().unchecked_ref())
+                        .ok();
                     cb.forget();
                 }
             }
@@ -244,20 +974,27 @@ pub fn Cluster() -> Element {
     });
 
     // ── Derived ────────────────────────────────────────────────────────────
-    let px = pan_x(); let py = pan_y(); let zk = zoom();
-    let snap_on = snap(); let flow_on = flow(); let pri = primary();
+    let px = pan_x();
+    let py = pan_y();
+    let zk = zoom();
+    let snap_on = snap();
+    let flow_on = flow();
+    let pri = primary();
     let (cx, cy) = coord();
-    let node_ct  = nodes.read().len();
+    let node_ct = nodes.read().len();
     let trace_ct = traces.read().len();
     let zoom_pct = (zk * 100.0).round() as i32;
 
     // ── Grid background ───────────────────────────────────────────────────
-    let cell = 16.0 * zk; let major = 80.0 * zk;
-    let gx = ((px % cell) + cell) % cell;   let gy = ((py % cell) + cell) % cell;
-    let gX = ((px % major) + major) % major; let gY = ((py % major) + major) % major;
+    let cell = 16.0 * zk;
+    let major = 80.0 * zk;
+    let gx = ((px % cell) + cell) % cell;
+    let gy = ((py % cell) + cell) % cell;
+    let gX = ((px % major) + major) % major;
+    let gY = ((py % major) + major) % major;
     // Neutral gray grid — no color tint
-    let fc = "rgba(255,255,255,0.035)".to_string();  // minor lines
-    let mc = "rgba(255,255,255,0.09)".to_string();   // major lines
+    let fc = "rgba(255,255,255,0.035)".to_string(); // minor lines
+    let mc = "rgba(255,255,255,0.09)".to_string(); // major lines
     let grid_bg = format!(
         "background-color:#0a0d10;\
          background-image:repeating-linear-gradient({mc} 0 1px,transparent 1px 100%),\
@@ -274,14 +1011,25 @@ pub fn Cluster() -> Element {
         ((sx - ol - pan_x()) / zoom(), (sy - ot - pan_y()) / zoom())
     };
     let node_at = move |wx: f64, wy: f64| -> Option<String> {
-        nodes.read().iter().find(|n| wx>=n.x && wx<=n.x+NW && wy>=n.y && wy<=n.y+NH).map(|n| n.id.clone())
+        nodes
+            .read()
+            .iter()
+            .find(|n| wx >= n.x && wx <= n.x + NW && wy >= n.y && wy <= n.y + NH)
+            .map(|n| n.id.clone())
     };
 
     // ── Stage pointer handlers ─────────────────────────────────────────────
     let on_stage_down = move |ev: Event<PointerData>| {
-        if ev.data().trigger_button() != Some(MouseButton::Primary) { return; }
+        if ev.data().trigger_button() != Some(MouseButton::Primary) {
+            return;
+        }
         let c = ev.data().client_coordinates();
-        drag.set(Drag::Pan { sx: c.x, sy: c.y, px: pan_x(), py: pan_y() });
+        drag.set(Drag::Pan {
+            sx: c.x,
+            sy: c.y,
+            px: pan_x(),
+            py: pan_y(),
+        });
         menu.set(None);
     };
 
@@ -291,62 +1039,156 @@ pub fn Cluster() -> Element {
         let (wx, wy) = to_world(sx, sy);
         coord.set((wx, wy));
         match drag() {
-            Drag::Pan { sx: s0x, sy: s0y, px: p0x, py: p0y } => {
-                pan_x.set(p0x + sx - s0x); pan_y.set(p0y + sy - s0y);
+            Drag::Pan {
+                sx: s0x,
+                sy: s0y,
+                px: p0x,
+                py: p0y,
+            } => {
+                pan_x.set(p0x + sx - s0x);
+                pan_y.set(p0y + sy - s0y);
             }
-            Drag::Node { id, sx: s0x, sy: s0y, nx: n0x, ny: n0y } => {
+            Drag::Node {
+                id,
+                sx: s0x,
+                sy: s0y,
+                nx: n0x,
+                ny: n0y,
+            } => {
                 let zk = zoom();
                 let mut nx = n0x + (sx - s0x) / zk;
                 let mut ny = n0y + (sy - s0y) / zk;
-                if snap() { nx = snap8(nx); ny = snap8(ny); }
-                nodes.with_mut(|ns| { if let Some(n) = ns.iter_mut().find(|n| n.id == id) { n.x = nx; n.y = ny; } });
+                if snap() {
+                    nx = snap8(nx);
+                    ny = snap8(ny);
+                }
+                nodes.with_mut(|ns| {
+                    if let Some(n) = ns.iter_mut().find(|n| n.id == id) {
+                        n.x = nx;
+                        n.y = ny;
+                    }
+                });
             }
-            Drag::Pad { from_id, fx, fy, fd, .. } => {
-                drag.set(Drag::Pad { from_id, fx, fy, fd, tx: wx, ty: wy });
+            Drag::Pad {
+                from_id,
+                fx,
+                fy,
+                fd,
+                ..
+            } => {
+                drag.set(Drag::Pad {
+                    from_id,
+                    fx,
+                    fy,
+                    fd,
+                    tx: wx,
+                    ty: wy,
+                });
             }
             Drag::None => {}
         }
     };
 
     let on_up = move |_ev: Event<PointerData>| {
-        if let Drag::Pad { ref from_id, tx, ty, .. } = drag() {
+        if let Drag::Pad {
+            ref from_id,
+            tx,
+            ty,
+            ..
+        } = drag()
+        {
             let from_id = from_id.clone();
             if let Some(to_id) = node_at(tx, ty) {
                 if to_id != from_id {
-                    let dup = traces.read().iter().any(|t| t.kind == TraceKind::Wire && ((t.from==from_id && t.to==to_id)||(t.from==to_id && t.to==from_id)));
-                    if !dup { traces.with_mut(|ts| ts.push(ClTrace::wire(&from_id, &to_id))); }
+                    let dup = traces.read().iter().any(|t| {
+                        t.kind == TraceKind::Wire
+                            && ((t.from == from_id && t.to == to_id)
+                                || (t.from == to_id && t.to == from_id))
+                    });
+                    if !dup {
+                        traces.with_mut(|ts| ts.push(ClTrace::wire(&from_id, &to_id)));
+                    }
                 }
             }
         }
+        // Persist layout on drag-end for either a node move or a pan — this
+        // is the only place positions/pan are considered "settled" rather
+        // than mid-gesture. Zoom (wheel) isn't persisted on every tick to
+        // avoid write-spam; it rides along whenever a drag next settles.
+        if matches!(drag(), Drag::Node { .. } | Drag::Pan { .. }) {
+            let positions: HashMap<String, (f64, f64)> = nodes
+                .read()
+                .iter()
+                .map(|n| (n.id.clone(), (n.x, n.y)))
+                .collect();
+            persist_layout(LayoutBlob {
+                positions,
+                pan_x: pan_x(),
+                pan_y: pan_y(),
+                zoom: zoom(),
+            });
+        }
         drag.set(Drag::None);
-        if let Some(w) = web_sys::window() { if let Some(d) = w.document() {
-            if let Some(el) = d.get_element_by_id("cv-stage") {
-                let r = el.get_bounding_client_rect(); stg_off.set((r.left(), r.top()));
+        if let Some(w) = web_sys::window() {
+            if let Some(d) = w.document() {
+                if let Some(el) = d.get_element_by_id("cv-stage") {
+                    let r = el.get_bounding_client_rect();
+                    stg_off.set((r.left(), r.top()));
+                }
             }
-        }}
+        }
     };
 
     let on_wheel = move |ev: Event<WheelData>| {
         let dy = ev.data().delta().strip_units().y;
-        let f = if dy < 0.0 { 1.1 } else { 1.0/1.1 };
-        let nk = (zoom()*f).clamp(0.25, 3.0);
+        // Scale the zoom factor by how far this event actually moved rather
+        // than a flat ±10% per event regardless of magnitude — a trackpad
+        // fires many more, smaller-delta events per physical scroll gesture
+        // than a mouse wheel does, so a flat per-event factor compounded
+        // into a much faster-feeling zoom on trackpad. Clamped so a single
+        // large mouse-wheel notch still can't jump too far either.
+        const ZOOM_SENSITIVITY: f64 = 0.0012;
+        let f = (1.0 - dy * ZOOM_SENSITIVITY).clamp(0.9, 1.1);
+        let nk = (zoom() * f).clamp(0.25, 3.0);
         let c = ev.data().client_coordinates();
         let (ol, ot) = stg_off();
-        let (wx, wy) = ((c.x - ol - pan_x())/zoom(), (c.y - ot - pan_y())/zoom());
-        pan_x.set(c.x - ol - wx*nk); pan_y.set(c.y - ot - wy*nk); zoom.set(nk);
+        let (wx, wy) = ((c.x - ol - pan_x()) / zoom(), (c.y - ot - pan_y()) / zoom());
+        pan_x.set(c.x - ol - wx * nk);
+        pan_y.set(c.y - ot - wy * nk);
+        zoom.set(nk);
     };
 
     let on_ctx = move |ev: Event<MouseData>| {
         let c = ev.data().client_coordinates();
         let (wx, wy) = to_world(c.x, c.y);
-        menu.set(Some(Menu { x: c.x, y: c.y, for_: MenuFor::Canvas { wx, wy } }));
+        menu.set(Some(Menu {
+            x: c.x,
+            y: c.y,
+            for_: MenuFor::Canvas { wx, wy },
+        }));
     };
 
-    let snap_bdr = if snap_on { format!("color-mix(in srgb,{pri} 45%,transparent)") } else { "rgba(255,255,255,.07)".to_string() };
-    let snap_col = if snap_on { pri.clone() } else { "#5d6a76".to_string() };
+    let snap_bdr = if snap_on {
+        format!("color-mix(in srgb,{pri} 45%,transparent)")
+    } else {
+        "rgba(255,255,255,.07)".to_string()
+    };
+    let snap_col = if snap_on {
+        pri.clone()
+    } else {
+        "#5d6a76".to_string()
+    };
     let snap_lbl = if snap_on { "SNAP: ON" } else { "SNAP: OFF" };
-    let flow_bdr = if flow_on { format!("color-mix(in srgb,{pri} 45%,transparent)") } else { "rgba(255,255,255,.07)".to_string() };
-    let flow_col = if flow_on { pri.clone() } else { "#5d6a76".to_string() };
+    let flow_bdr = if flow_on {
+        format!("color-mix(in srgb,{pri} 45%,transparent)")
+    } else {
+        "rgba(255,255,255,.07)".to_string()
+    };
+    let flow_col = if flow_on {
+        pri.clone()
+    } else {
+        "#5d6a76".to_string()
+    };
     let flow_lbl = if flow_on { "FLOW: ON" } else { "FLOW: OFF" };
 
     rsx! {
@@ -420,7 +1262,10 @@ pub fn Cluster() -> Element {
                         width: "1",
                         height: "1",
                         overflow: "visible",
-                        TraceSvg { nodes: nodes(), traces: traces(), primary: pri.clone(), flow_on, drag: drag() }
+                        TraceSvg {
+                            nodes: nodes(), traces: traces(), primary: pri.clone(), flow_on, drag: drag(),
+                            hovered_node: hovered_node(),
+                        }
                     }
 
                     // Node cards
@@ -431,6 +1276,7 @@ pub fn Cluster() -> Element {
                             let nid_cfg  = node.id.clone();
                             let nid_del  = node.id.clone();
                             let nid_pad  = node.id.clone();
+                            let nid_hov  = node.id.clone();
                             let wc  = node.wire_count(&traces());
                             let ec  = node.event_count(&traces());
                             let nx0 = node.x;
@@ -462,6 +1308,13 @@ pub fn Cluster() -> Element {
                                             .unwrap_or((0.0,0.0,1));
                                         drag.set(Drag::Pad { from_id: id, fx, fy, fd, tx: fx, ty: fy });
                                         let _ = (sx, sy);
+                                    },
+                                    on_hover: move |entering: bool| {
+                                        if entering {
+                                            hovered_node.set(Some(nid_hov.clone()));
+                                        } else if hovered_node() == Some(nid_hov.clone()) {
+                                            hovered_node.set(None);
+                                        }
                                     },
                                 }
                             }
@@ -580,7 +1433,14 @@ pub fn Cluster() -> Element {
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[component]
-fn TraceSvg(nodes: Vec<ClNode>, traces: Vec<ClTrace>, primary: String, flow_on: bool, drag: Drag) -> Element {
+fn TraceSvg(
+    nodes: Vec<ClNode>,
+    traces: Vec<ClTrace>,
+    primary: String,
+    flow_on: bool,
+    drag: Drag,
+    hovered_node: Option<String>,
+) -> Element {
     rsx! {
         for tr in &traces {
             {
@@ -612,6 +1472,18 @@ fn TraceSvg(nodes: Vec<ClNode>, traces: Vec<ClTrace>, primary: String, flow_on: 
                             let last  = *pts.last().unwrap_or(&(0.0,0.0));
                             let first = pts[0];
                             let mid   = if len > 0.0 { point_at(&pts, len/2.0) } else { (0.0,0.0,0.0) };
+                            // Shown as a hover tooltip, not always-on text -- reveal it when the
+                            // pointer is over either endpoint node. Hovering the edge line itself
+                            // was attempted (an invisible hit overlay, both as raw SVG shapes and
+                            // as absolutely-positioned divs, matching NodeCard's own working
+                            // pattern) and dropped: no event type ever reached it despite
+                            // confirmed-correct geometry and hit-testing (elementFromPoint agreed
+                            // every time) -- an unresolved Dioxus-web limitation for this kind of
+                            // dynamically-generated element, not a geometry or code bug. Every
+                            // edge has two endpoint nodes, so hovering either one already reveals
+                            // it.
+                            let show_tip = hovered_node.as_deref() == Some(tr.from.as_str())
+                                || hovered_node.as_deref() == Some(tr.to.as_str());
                             rsx! {
                                 path { d: "{d}", stroke: "{gc}", stroke_width: "4.5", fill: "none", stroke_linecap: "round", stroke_linejoin: "round" }
                                 path { d: "{d}", stroke: "{lc}", stroke_width: "1.3", fill: "none", stroke_dasharray: "6 5", stroke_linecap: "round" }
@@ -623,7 +1495,7 @@ fn TraceSvg(nodes: Vec<ClNode>, traces: Vec<ClTrace>, primary: String, flow_on: 
                                 // Consumer pad (open ring)
                                 circle { cx: "{last.0:.1}", cy: "{last.1:.1}", r: "3.5", stroke: "{col}", stroke_width: "1.5", fill: "none", opacity: "0.95" }
                                 // Topic label
-                                if !topic.is_empty() {
+                                if !topic.is_empty() && show_tip {
                                     rect { x: "{mid.0-30.0:.1}", y: "{mid.1-7.0:.1}", width: "60", height: "13", fill: "#0a0d10" }
                                     rect { x: "{mid.0-29.5:.1}", y: "{mid.1-6.5:.1}", width: "59", height: "12", fill: "none", stroke: "{hex_alpha(col,0.4)}", stroke_width: "1" }
                                     text {
@@ -653,8 +1525,10 @@ fn TraceSvg(nodes: Vec<ClNode>, traces: Vec<ClTrace>, primary: String, flow_on: 
 }
 
 #[component]
-fn WirePads(pts: Vec<(f64,f64)>, color: String) -> Element {
-    if pts.len() < 2 { return rsx! {}; }
+fn WirePads(pts: Vec<(f64, f64)>, color: String) -> Element {
+    if pts.len() < 2 {
+        return rsx! {};
+    }
     let (s, e) = (pts[0], *pts.last().unwrap());
     rsx! {
         rect { x: "{s.0-3.5:.1}", y: "{s.1-3.5:.1}", width: "7", height: "7", fill: "{color}" }
@@ -663,9 +1537,11 @@ fn WirePads(pts: Vec<(f64,f64)>, color: String) -> Element {
 }
 
 #[component]
-fn ViaDots(pts: Vec<(f64,f64)>, color: String) -> Element {
+fn ViaDots(pts: Vec<(f64, f64)>, color: String) -> Element {
     let outer = hex_alpha(&color, 0.95);
-    if pts.len() < 3 { return rsx! {}; }
+    if pts.len() < 3 {
+        return rsx! {};
+    }
     rsx! {
         for &(vx,vy) in pts[1..pts.len()-1].iter() {
             circle { cx: "{vx:.1}", cy: "{vy:.1}", r: "2.6", fill: "{outer}" }
@@ -675,11 +1551,14 @@ fn ViaDots(pts: Vec<(f64,f64)>, color: String) -> Element {
 }
 
 #[component]
-fn Chevrons(pts: Vec<(f64,f64)>, color: String) -> Element {
+fn Chevrons(pts: Vec<(f64, f64)>, color: String) -> Element {
     let len = poly_len(&pts);
-    let mut positions: Vec<(f64,f64,f64)> = Vec::new();
+    let mut positions: Vec<(f64, f64, f64)> = Vec::new();
     let mut d = 34.0;
-    while d < len - 26.0 { positions.push(point_at(&pts, d)); d += 64.0; }
+    while d < len - 26.0 {
+        positions.push(point_at(&pts, d));
+        d += 64.0;
+    }
     rsx! {
         for (cx, cy, angle) in positions {
             { let deg = angle.to_degrees();
@@ -695,40 +1574,66 @@ fn Chevrons(pts: Vec<(f64,f64)>, color: String) -> Element {
 
 #[component]
 fn NodeCard(
-    node:         ClNode,
-    wire_count:   usize,
-    event_count:  usize,
-    on_node_down: EventHandler<(f64,f64)>,
-    on_context:   EventHandler<(f64,f64)>,
-    on_config:    EventHandler<()>,
-    on_delete:    EventHandler<()>,
-    on_pad_down:  EventHandler<(i32,f64,f64)>,
+    node: ClNode,
+    wire_count: usize,
+    event_count: usize,
+    on_node_down: EventHandler<(f64, f64)>,
+    on_context: EventHandler<(f64, f64)>,
+    on_config: EventHandler<()>,
+    on_delete: EventHandler<()>,
+    on_pad_down: EventHandler<(i32, f64, f64)>,
+    on_hover: EventHandler<bool>,
 ) -> Element {
-    let col  = node.kind.color();
-    let sym  = node.kind.sym();
-    let el   = node.kind.el();
-    let num  = node.kind.num();
+    let col = node.kind.color();
+    let sym = node.kind.sym();
+    let el = node.kind.el();
+    let num = node.kind.num();
     let role = node.kind.role();
     let name = node.name.to_uppercase();
-    let led_style = if node.online { "background:#3ddc97;box-shadow:0 0 6px #3ddc97;" } else { "background:#e5534b;box-shadow:0 0 6px #e5534b;" };
+    let led_style = if node.online {
+        "background:#3ddc97;box-shadow:0 0 6px #3ddc97;"
+    } else {
+        "background:#e5534b;box-shadow:0 0 6px #e5534b;"
+    };
     let st = if node.online { "ONLINE" } else { "OFFLINE" };
     let links = {
         let mut p = Vec::new();
-        if wire_count  > 0 { p.push(format!("{wire_count} LINK{}", if wire_count>1{"S"}else{""})); }
-        if event_count > 0 { p.push(format!("{event_count} EVT")); }
-        if p.is_empty() { "NO LINKS".into() } else { p.join(" · ") }
+        if wire_count > 0 {
+            p.push(format!(
+                "{wire_count} LINK{}",
+                if wire_count > 1 { "S" } else { "" }
+            ));
+        }
+        if event_count > 0 {
+            p.push(format!("{event_count} EVT"));
+        }
+        if p.is_empty() {
+            "NO LINKS".into()
+        } else {
+            p.join(" · ")
+        }
     };
     let bk_base = format!("position:absolute;width:9px;height:9px;border-color:{col};opacity:.9;");
     let bk_tl = format!("{bk_base}top:-1px;left:-1px;border-top:2px solid;border-left:2px solid;");
-    let bk_tr = format!("{bk_base}top:-1px;right:-1px;border-top:2px solid;border-right:2px solid;");
-    let bk_bl = format!("{bk_base}bottom:-1px;left:-1px;border-bottom:2px solid;border-left:2px solid;");
-    let bk_br = format!("{bk_base}bottom:-1px;right:-1px;border-bottom:2px solid;border-right:2px solid;");
+    let bk_tr =
+        format!("{bk_base}top:-1px;right:-1px;border-top:2px solid;border-right:2px solid;");
+    let bk_bl =
+        format!("{bk_base}bottom:-1px;left:-1px;border-bottom:2px solid;border-left:2px solid;");
+    let bk_br =
+        format!("{bk_base}bottom:-1px;right:-1px;border-bottom:2px solid;border-right:2px solid;");
+    // Manual nodes get a dashed border so it's obvious at a glance which
+    // nodes on screen are real (solid) vs. hand-added annotations (dashed).
+    let border = if node.origin == NodeOrigin::Manual {
+        "border:1px dashed rgba(255,255,255,.22);"
+    } else {
+        "border:1px solid rgba(255,255,255,.07);"
+    };
 
     rsx! {
         div {
             class: "cv-node",
             style: "position:absolute;left:{node.x}px;top:{node.y}px;width:{NW}px;min-height:{NH}px;\
-                    background:linear-gradient(180deg,#10161c,#0e1318);border:1px solid rgba(255,255,255,.07);\
+                    background:linear-gradient(180deg,#10161c,#0e1318);{border}\
                     padding:10px 12px 8px;box-sizing:border-box;pointer-events:auto;",
             prevent_default: "oncontextmenu",
             onpointerdown: move |ev| {
@@ -743,6 +1648,8 @@ fn NodeCard(
                 let c = ev.data().client_coordinates();
                 on_context.call((c.x, c.y));
             },
+            onmouseenter: move |_| on_hover.call(true),
+            onmouseleave: move |_| on_hover.call(false),
 
             // Bracket corners
             div { style: "{bk_tl}" }
@@ -825,22 +1732,22 @@ fn NodeCard(
 
 #[component]
 fn CtxMenu(
-    m:               Menu,
-    nodes:           Vec<ClNode>,
-    traces:          Vec<ClTrace>,
-    snap_on:         bool,
-    primary:         String,
-    on_close:        EventHandler<()>,
-    on_add:          EventHandler<(NodeKind, String, f64, f64)>,
-    on_drawer:       EventHandler<String>,
-    on_snap:         EventHandler<()>,
-    on_reset:        EventHandler<()>,
-    on_delete:       EventHandler<String>,
+    m: Menu,
+    nodes: Vec<ClNode>,
+    traces: Vec<ClTrace>,
+    snap_on: bool,
+    primary: String,
+    on_close: EventHandler<()>,
+    on_add: EventHandler<(NodeKind, String, f64, f64)>,
+    on_drawer: EventHandler<String>,
+    on_snap: EventHandler<()>,
+    on_reset: EventHandler<()>,
+    on_delete: EventHandler<String>,
     on_toggle_online: EventHandler<String>,
-    on_disconnect:   EventHandler<String>,
-    on_reg_bp:       EventHandler<String>,
-    on_pub:          EventHandler<(String, String, String)>,
-    on_sub:          EventHandler<(String, String, String)>,
+    on_disconnect: EventHandler<String>,
+    on_reg_bp: EventHandler<String>,
+    on_pub: EventHandler<(String, String, String)>,
+    on_sub: EventHandler<(String, String, String)>,
 ) -> Element {
     let (mx, my) = (m.x, m.y);
     let mi = "display:flex;align-items:center;gap:10px;padding:6px 12px;cursor:pointer;color:#d7e0e8;font-size:11px;letter-spacing:.06em;";
@@ -851,10 +1758,14 @@ fn CtxMenu(
         MenuFor::Canvas { wx, wy } => {
             let n = uid_val();
             let cat_name = format!("catalyst-{n:02}");
-            let bp_name  = format!("blueprint-{n:02}");
+            let bp_name = format!("blueprint-{n:02}");
             let fuse_name = format!("fuse-{n:02}");
-            let svc_name  = format!("svc-{n:02}");
-            let snap_lbl  = if snap_on { "SNAP TO GRID · ON" } else { "SNAP TO GRID · OFF" };
+            let svc_name = format!("svc-{n:02}");
+            let snap_lbl = if snap_on {
+                "SNAP TO GRID · ON"
+            } else {
+                "SNAP TO GRID · OFF"
+            };
             rsx! {
                 div { style: "{hd}", span { style: "color:{primary};font-weight:700;", "◈" } span { "CANVAS" } }
                 div { class: "cv-mi", style: "{mi}", onclick: move |_| on_add.call((NodeKind::Catalyst,  cat_name.clone(),  wx, wy)), "ADD · CATALYST" }
@@ -868,39 +1779,57 @@ fn CtxMenu(
         }
         MenuFor::Node(ref nid) => {
             if let Some(node) = nodes.iter().find(|n| &n.id == nid).cloned() {
-                let col   = node.kind.color();
-                let sym   = node.kind.sym();
+                let col = node.kind.color();
+                let sym = node.kind.sym();
                 let title = format!("{} · {}", node.name.to_uppercase(), node.kind.role());
-                let nid   = nid.clone();
-                let nid1  = nid.clone(); let nid2 = nid.clone();
-                let nid3  = nid.clone();
-                let online_lbl = if node.online { "MARK OFFLINE" } else { "MARK ONLINE" };
+                let nid = nid.clone();
+                let nid1 = nid.clone();
+                let nid2 = nid.clone();
+                let nid3 = nid.clone();
+                let online_lbl = if node.online {
+                    "MARK OFFLINE"
+                } else {
+                    "MARK ONLINE"
+                };
 
                 let type_items: Element = match node.kind {
-                    NodeKind::Fuse => { let rc=node.rules.len(); let id=nid.clone();
+                    NodeKind::Fuse => {
+                        let rc = node.rules.len();
+                        let id = nid.clone();
                         rsx! {
                             div { class: "cv-mi", style: "{mi}", onclick: move |_| on_drawer.call(id.clone()),
                                 "ROUTING RULES…" span { style: "margin-left:auto;color:#5d6a76;font-size:9px;", "{rc}" }
                             }
                         }
                     }
-                    NodeKind::Catalyst => { let tc=node.topics.len(); let id=nid.clone();
+                    NodeKind::Catalyst => {
+                        let tc = node.topics.len();
+                        let id = nid.clone();
                         rsx! {
                             div { class: "cv-mi", style: "{mi}", onclick: move |_| on_drawer.call(id.clone()),
                                 "TOPICS…" span { style: "margin-left:auto;color:#5d6a76;font-size:9px;", "{tc}" }
                             }
                         }
                     }
-                    NodeKind::Blueprint => { let id=nid.clone();
+                    NodeKind::Blueprint => {
+                        let id = nid.clone();
                         rsx! { div { class: "cv-mi", style: "{mi}", onclick: move |_| on_drawer.call(id.clone()), "SERVICE REGISTRY…" } }
                     }
                     NodeKind::Service => {
-                        let cats: Vec<(String, Vec<String>)> = nodes.iter()
+                        let cats: Vec<(String, Vec<String>)> = nodes
+                            .iter()
                             .filter(|n| n.kind == NodeKind::Catalyst)
-                            .map(|c| (c.id.clone(), c.topics.iter().map(|t| t.name.clone()).collect()))
+                            .map(|c| {
+                                (
+                                    c.id.clone(),
+                                    c.topics.iter().map(|t| t.name.clone()).collect(),
+                                )
+                            })
                             .collect();
                         let has_bp = nodes.iter().any(|n| n.kind == NodeKind::Blueprint);
-                        let id = nid.clone(); let id_ep = nid.clone(); let id_bp = nid.clone();
+                        let id = nid.clone();
+                        let id_ep = nid.clone();
+                        let id_bp = nid.clone();
                         rsx! {
                             div { class: "cv-mi", style: "{mi}", onclick: move |_| on_drawer.call(id_ep.clone()), "ENDPOINT CONFIG…" }
                             for (cat_id, topics) in cats.clone() {
@@ -928,18 +1857,29 @@ fn CtxMenu(
                     }
                 };
 
+                let is_live = node.origin == NodeOrigin::Live;
                 rsx! {
                     div { style: "{hd}", span { style: "color:{col};font-weight:700;", "{sym}" } span { "{title}" } }
                     {type_items}
                     div { style: "{dv}" }
-                    div { class: "cv-mi", style: "{mi}", onclick: move |_| on_toggle_online.call(nid1.clone()), "{online_lbl}" }
-                    div { class: "cv-mi", style: "{mi}", onclick: move |_| on_disconnect.call(nid2.clone()), "DISCONNECT ALL" }
-                    div { style: "{dv}" }
-                    div { class: "cv-mi cv-mi-danger", style: "{mi}color:#e5534b;",
-                        onclick: move |_| on_delete.call(nid3.clone()), "REMOVE NODE"
+                    if is_live {
+                        // Live nodes reflect real cluster state — their existence and
+                        // online/offline status come from the Registry, not the canvas.
+                        div { style: "padding:6px 12px;font-size:9px;letter-spacing:.1em;color:#5d6a76;line-height:1.6;",
+                            "LIVE NODE · TRACKS THE SERVICE REGISTRY"
+                        }
+                    } else {
+                        div { class: "cv-mi", style: "{mi}", onclick: move |_| on_toggle_online.call(nid1.clone()), "{online_lbl}" }
+                        div { class: "cv-mi", style: "{mi}", onclick: move |_| on_disconnect.call(nid2.clone()), "DISCONNECT ALL" }
+                        div { style: "{dv}" }
+                        div { class: "cv-mi cv-mi-danger", style: "{mi}color:#e5534b;",
+                            onclick: move |_| on_delete.call(nid3.clone()), "REMOVE NODE"
+                        }
                     }
                 }
-            } else { rsx! {} }
+            } else {
+                rsx! {}
+            }
         }
     };
 
@@ -961,34 +1901,39 @@ fn CtxMenu(
 
 #[component]
 fn ConfigDrawer(
-    node:       ClNode,
-    nodes:      Vec<ClNode>,
-    traces:     Vec<ClTrace>,
-    on_close:   EventHandler<()>,
-    on_rules:   EventHandler<Vec<RoutingRule>>,
-    on_topics:  EventHandler<Vec<Topic>>,
-    on_endpoint: EventHandler<(String,u16,String)>,
-    on_ttl:     EventHandler<String>,
+    node: ClNode,
+    nodes: Vec<ClNode>,
+    traces: Vec<ClTrace>,
+    on_close: EventHandler<()>,
+    on_rules: EventHandler<Vec<RoutingRule>>,
+    on_topics: EventHandler<Vec<Topic>>,
+    on_endpoint: EventHandler<(String, u16, String)>,
+    on_ttl: EventHandler<String>,
     on_rm_trace: EventHandler<String>,
 ) -> Element {
-    let col  = node.kind.color();
-    let sym  = node.kind.sym();
+    let col = node.kind.color();
+    let sym = node.kind.sym();
     let role = format!("{} · {}", node.kind.el(), node.kind.role());
     let name = node.name.to_uppercase();
 
     let fld  = "width:100%;background:#0a0f13;border:1px solid rgba(255,255,255,.07);color:#d7e0e8;font:inherit;font-size:10px;padding:5px 6px;outline:none;box-sizing:border-box;";
-    let sec  = "font-size:9px;letter-spacing:.22em;color:#5d6a76;margin:14px 0 8px;display:block;";
+    let sec = "font-size:9px;letter-spacing:.22em;color:#5d6a76;margin:14px 0 8px;display:block;";
     let note = format!("margin-top:14px;padding:9px 10px;border-left:2px solid {col};background:rgba(255,255,255,.025);font-size:9px;line-height:1.6;letter-spacing:.06em;color:#5d6a76;");
     let add  = "width:100%;margin-top:10px;background:none;cursor:pointer;font:inherit;border:1px dashed rgba(61,220,151,.45);color:#3ddc97;font-size:10px;letter-spacing:.14em;padding:7px;";
-    let kv   = "display:grid;grid-template-columns:86px 1fr;gap:8px;align-items:center;margin-bottom:8px;";
-    let lbl  = "font-size:9px;letter-spacing:.16em;color:#5d6a76;";
+    let kv =
+        "display:grid;grid-template-columns:86px 1fr;gap:8px;align-items:center;margin-bottom:8px;";
+    let lbl = "font-size:9px;letter-spacing:.16em;color:#5d6a76;";
     let th   = "font-size:8px;letter-spacing:.18em;color:#5d6a76;text-align:left;padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.07);font-weight:500;";
-    let td   = "padding:4px 3px;border-bottom:1px solid rgba(255,255,255,.04);";
+    let td = "padding:4px 3px;border-bottom:1px solid rgba(255,255,255,.04);";
 
     let body: Element = match node.kind {
         NodeKind::Fuse => {
-            let rules   = node.rules.clone();
-            let targets: Vec<String> = nodes.iter().filter(|n| n.id!=node.id && n.kind!=NodeKind::Fuse).map(|n| n.name.clone()).collect();
+            let rules = node.rules.clone();
+            let targets: Vec<String> = nodes
+                .iter()
+                .filter(|n| n.id != node.id && n.kind != NodeKind::Fuse)
+                .map(|n| n.name.clone())
+                .collect();
             rsx! {
                 span { style: "{sec}", "ROUTING RULES" }
                 table { style: "width:100%;border-collapse:collapse;",
@@ -1035,7 +1980,11 @@ fn ConfigDrawer(
         }
         NodeKind::Catalyst => {
             let topics = node.topics.clone();
-            let evs: Vec<ClTrace> = traces.iter().filter(|t| t.kind==TraceKind::Event && (t.from==node.id||t.to==node.id)).cloned().collect();
+            let evs: Vec<ClTrace> = traces
+                .iter()
+                .filter(|t| t.kind == TraceKind::Event && (t.from == node.id || t.to == node.id))
+                .cloned()
+                .collect();
             let nid = node.id.clone();
             rsx! {
                 span { style: "{sec}", "TOPICS" }

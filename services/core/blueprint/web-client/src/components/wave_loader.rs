@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 const BAR_DURATIONS: [f32; 7] = [0.9, 0.7, 1.1, 0.6, 1.3, 0.8, 1.0];
-const BAR_DELAYS:    [f32; 7] = [0.0, 0.15, 0.3, 0.45, 0.2, 0.35, 0.1];
+const BAR_DELAYS: [f32; 7] = [0.0, 0.15, 0.3, 0.45, 0.2, 0.35, 0.1];
 
 // Embedded so the component has no external CSS dependency.
 const KEYFRAMES: &str = "@keyframes wave-bar {\

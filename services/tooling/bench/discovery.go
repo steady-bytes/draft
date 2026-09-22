@@ -7,14 +7,14 @@
 //   - ServiceResolver.Resolve, used by the grpc-call executor, resolves a
 //     `with.service` name (e.g. "golf-app.app.v1.CourseCreator") — the
 //     fully-qualified RPC service a step wants to call.
-//   - PluginResolver.ResolveByProcessName, used by the garage-plugin
-//     executor (garage_plugin.go, Phase 6), resolves a plugin's own
+//   - PluginResolver.ResolveByProcessName, used by the foundry-plugin
+//     executor (foundry_plugin.go, Phase 6), resolves a plugin's own
 //     `service.name` (e.g. "slack-notify") to that specific instance's
-//     address. This can't reuse ServiceResolver.Resolve: every garage
+//     address. This can't reuse ServiceResolver.Resolve: every foundry
 //     plugin implements the exact same RPC service
 //     (tooling.step_executor.v1.StepExecutor), so looking up by RPC service
 //     name the way grpc-call does would match *some* plugin, not
-//     necessarily the one `garage://<name>@<version>` actually asked for.
+//     necessarily the one `foundry://<name>@<version>` actually asked for.
 //     Process.name (distinct from the RPC-service-keyed Metadata below) is
 //     what disambiguates: it's the process's own service.name config value,
 //     set once at Initialize and not required to be unique cluster-wide in
@@ -54,7 +54,7 @@ type ServiceResolver interface {
 	Resolve(ctx context.Context, service string) (string, error)
 }
 
-// PluginResolver resolves a garage plugin's own process name (its
+// PluginResolver resolves a foundry plugin's own process name (its
 // service.name config value, e.g. "slack-notify") to a "host:port" address —
 // see the file comment for why this can't just be ServiceResolver.Resolve
 // against tooling.step_executor.v1.StepExecutor.
@@ -88,7 +88,7 @@ type blueprintResolver struct {
 	// — see PluginResolver's doc comment. Only PROCESS_RUNNING processes are
 	// included: unlike addresses above (unfiltered, an existing and
 	// documented staleness gap — see the "Found, but did not fix" note in
-	// bench-workflow-engine.md's Phase 8 checkbox), a garage plugin is far
+	// bench-workflow-engine.md's Phase 8 checkbox), a foundry plugin is far
 	// more likely to have multiple stale entries sharing the same Name after
 	// a few local restarts during development, so filtering here is worth
 	// the small extra check.

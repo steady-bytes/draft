@@ -6,7 +6,7 @@ import (
 )
 
 // templatesFS embeds the html/template sources under templates/ into the
-// compiled binary — mirrors services/tooling/garage/templates.go exactly,
+// compiled binary — mirrors services/tooling/foundry/templates.go exactly,
 // including the reasoning in its doc comment for why each page is its own
 // *template.Template rather than one shared set (base.html's "content"
 // block, and each page's "title" block, are deliberately reused names

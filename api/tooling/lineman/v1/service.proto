@@ -1,0 +1,203 @@
+syntax = "proto3";
+
+package tooling.lineman.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/tooling/lineman/v1";
+
+import "google/protobuf/timestamp.proto";
+import "tooling/lineman/v1/models.proto";
+
+// LinemanService is Lineman's whole API surface -- objectives, tasks,
+// agents, the Scheduler and Loops primitives, and a live-update stream. See
+// docs/architecture/lineman-implementation-plan.md.
+service LinemanService {
+    // Objectives
+    rpc CreateObjective(CreateObjectiveRequest) returns (Objective) {}
+    rpc GetObjective(GetObjectiveRequest) returns (Objective) {}
+    rpc ListObjectives(ListObjectivesRequest) returns (ListObjectivesResponse) {}
+
+    // Tasks
+    rpc CreateTask(CreateTaskRequest) returns (Task) {}
+    rpc GetTask(GetTaskRequest) returns (Task) {}
+    rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {}
+    rpc UpdateTaskState(UpdateTaskStateRequest) returns (Task) {}
+    rpc ReorderTask(ReorderTaskRequest) returns (Task) {}
+    rpc AssignAgent(AssignAgentRequest) returns (Task) {}
+
+    // Agents -- called by whatever is doing the work (human tooling, a
+    // script, or an AI agent run), not by Lineman's own UI.
+    rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
+    rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse) {}
+
+    // Needs Input -- the recommended human-in-the-loop convention.
+    rpc RequestInput(RequestInputRequest) returns (Task) {}
+    rpc ProvideGuidance(ProvideGuidanceRequest) returns (Task) {}
+
+    // Scheduler
+    rpc CreateScheduledTask(CreateScheduledTaskRequest) returns (ScheduledTask) {}
+    rpc ListScheduledTasks(ListScheduledTasksRequest) returns (ListScheduledTasksResponse) {}
+    rpc CancelScheduledTask(CancelScheduledTaskRequest) returns (CancelScheduledTaskResponse) {}
+
+    // Loops
+    rpc CreateLoop(CreateLoopRequest) returns (Loop) {}
+    rpc ListLoops(ListLoopsRequest) returns (ListLoopsResponse) {}
+    rpc PauseLoop(PauseLoopRequest) returns (Loop) {}
+    rpc ResumeLoop(ResumeLoopRequest) returns (Loop) {}
+    rpc DeleteLoop(DeleteLoopRequest) returns (DeleteLoopResponse) {}
+
+    // Live board updates -- mirrors ServiceDiscoveryService.Watch, not a
+    // Catalyst Consume subscription (see Decisions: fan-out bug).
+    rpc Watch(WatchRequest) returns (stream WatchResponse) {}
+}
+
+message CreateObjectiveRequest {
+    string name        = 1;
+    string description = 2;
+    // Left empty to default to ["Queued", "In Flight", "Done"].
+    repeated string states = 3;
+}
+
+message GetObjectiveRequest {
+    string id = 1;
+}
+
+message ListObjectivesRequest {}
+
+message ListObjectivesResponse {
+    repeated Objective objectives = 1;
+}
+
+message CreateTaskRequest {
+    string objective_id = 1; // empty for a standalone task
+    string name          = 2;
+    Priority priority    = 3;
+    // Left empty to default to the objective's first state (or "Queued" for
+    // a standalone task).
+    string state         = 4;
+    // Everything needed to complete the task -- optional.
+    string details        = 5;
+}
+
+message GetTaskRequest {
+    string id = 1;
+}
+
+message ListTasksRequest {
+    // All filters optional; an unset field means "no filter on this field."
+    string objective_id = 1;
+    string state         = 2;
+    string agent_id      = 3;
+}
+
+message ListTasksResponse {
+    repeated Task tasks = 1;
+}
+
+message UpdateTaskStateRequest {
+    string task_id   = 1;
+    string new_state  = 2;
+}
+
+message ReorderTaskRequest {
+    string task_id = 1;
+    // The task's new order value is computed server-side as the midpoint
+    // between before_task_id's and after_task_id's current order (either
+    // may be empty to mean "start"/"end" of the list).
+    string before_task_id = 2;
+    string after_task_id  = 3;
+}
+
+message AssignAgentRequest {
+    string task_id  = 1;
+    string agent_id = 2; // empty to unassign
+}
+
+message HeartbeatRequest {
+    string agent_id       = 1;
+    string agent_display_name = 2; // used only the first time agent_id is seen
+    AgentKind agent_kind   = 3;    // used only the first time agent_id is seen
+    string task_id         = 4;
+    string current_action  = 5;
+}
+
+message HeartbeatResponse {}
+
+message ListAgentsRequest {}
+
+message ListAgentsResponse {
+    repeated Agent agents = 1;
+}
+
+message RequestInputRequest {
+    string task_id   = 1;
+    string question  = 2;
+    repeated string options = 3;
+}
+
+message ProvideGuidanceRequest {
+    string task_id    = 1;
+    string response     = 2;
+    string next_state    = 3;
+}
+
+message CreateScheduledTaskRequest {
+    string objective_id = 1;
+    string description  = 2;
+    Priority priority     = 3;
+    google.protobuf.Timestamp fire_at = 4;
+}
+
+message ListScheduledTasksRequest {
+    string objective_id = 1; // optional filter
+}
+
+message ListScheduledTasksResponse {
+    repeated ScheduledTask scheduled_tasks = 1;
+}
+
+message CancelScheduledTaskRequest {
+    string id = 1;
+}
+
+message CancelScheduledTaskResponse {}
+
+message CreateLoopRequest {
+    string objective_id  = 1;
+    string description   = 2;
+    Priority priority      = 3;
+    Recurrence recurrence  = 4;
+}
+
+message ListLoopsRequest {
+    string objective_id = 1; // optional filter
+}
+
+message ListLoopsResponse {
+    repeated Loop loops = 1;
+}
+
+message PauseLoopRequest {
+    string id = 1;
+}
+
+message ResumeLoopRequest {
+    string id = 1;
+}
+
+message DeleteLoopRequest {
+    string id = 1;
+}
+
+message DeleteLoopResponse {}
+
+message WatchRequest {}
+
+message WatchResponse {
+    oneof item {
+        Task task = 1;
+        Agent agent = 2;
+        ScheduledTask scheduled_task = 3;
+        Loop loop = 4;
+    }
+    bool removed = 5;
+}

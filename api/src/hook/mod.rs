@@ -14,3 +14,5 @@ pub mod core_observability_metrics_v1;
 pub mod core_message_broker_actors_v1;
 #[path = "./core.control_plane.networking.v1.dx.rs"]
 pub mod core_control_plane_networking_v1;
+#[path = "./tooling.lineman.v1.dx.rs"]
+pub mod tooling_lineman_v1;

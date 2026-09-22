@@ -29,7 +29,7 @@ import (
 
 // Sentinel errors rpc.go/webhook.go map onto the right connect.Code /HTTP status —
 // the same "distinguishable expected case, not a raw driver error" discipline
-// services/tooling/garage/store.go's ErrNotFound/ErrAlreadyPublished establish for
+// services/tooling/foundry/store.go's ErrNotFound/ErrAlreadyPublished establish for
 // PluginCatalogService.
 var (
 	ErrRunNotFound            = errors.New("run not found")
@@ -39,7 +39,7 @@ var (
 )
 
 // defaultRunPageSize is used when ListRunsRequest.page_size is unset or
-// non-positive — see services/tooling/garage/store.go's defaultListPageSize for the
+// non-positive — see services/tooling/foundry/store.go's defaultListPageSize for the
 // same convention.
 const defaultRunPageSize = 50
 
@@ -161,7 +161,7 @@ func (s *pgResultStore) stepResultsFor(ctx context.Context, runID string) ([]*st
 
 // ListRuns returns runs ordered most-recent-first, optionally filtered to one
 // workflow, keyset-paginated on (started_at, run_id) — the same cursor shape
-// services/tooling/garage/store.go's list uses for (published_at, id), descending
+// services/tooling/foundry/store.go's list uses for (published_at, id), descending
 // instead of ascending since "most recent first" is what a run history view wants.
 func (s *pgResultStore) ListRuns(ctx context.Context, workflowName string, pageSize int32, pageToken string) ([]*workflowv1.Run, string, error) {
 	cursor, err := decodeRunPageToken(pageToken)
@@ -334,7 +334,7 @@ func (s *pgResultStore) DeleteWorkflow(ctx context.Context, name string) error {
 }
 
 // ListPluginRegistries returns every configured plugin registry, ordered by
-// created_at -- the order garage_plugin.go's federated resolution checks
+// created_at -- the order foundry_plugin.go's federated resolution checks
 // them in (oldest/first-added first, see the design doc's "Federated
 // search, first-match execution").
 func (s *pgResultStore) ListPluginRegistries(ctx context.Context) ([]*settingsv1.PluginRegistry, error) {

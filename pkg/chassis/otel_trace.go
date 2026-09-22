@@ -229,6 +229,25 @@ func TraceParentHeader(ctx context.Context) (string, bool) {
 	return formatTraceParent(traceIDHex, spanIDHex), true
 }
 
+// ContinueTraceFromHeader is the inbound counterpart to TraceParentHeader,
+// for a handler with no connect-go NewTraceInterceptor to extract an inbound
+// traceparent header automatically — chiefly Fuse's native proxy backend,
+// which terminates and forwards plain net/http requests, not connect-go
+// RPCs. Pass the result to StartSpan to continue h's trace as a child span
+// instead of starting a new, disconnected one (StartSpan already does this
+// correctly for a NewTraceInterceptor-wrapped handler or a nested StartSpan
+// call — this just gives a plain net/http caller the same entry point). If h
+// carries no valid traceparent header, ctx is returned unchanged, and the
+// next StartSpan call begins a new trace exactly as if this function were
+// never called.
+func ContinueTraceFromHeader(ctx context.Context, h interface{ Get(string) string }) context.Context {
+	traceID, parentID, ok := parseTraceParent(h.Get(traceParentHeaderName))
+	if !ok {
+		return ctx
+	}
+	return withSpanContext(ctx, traceID, parentID, newSpanLogBuffer())
+}
+
 // encodeStatus encodes a Status message. Field numbers (trace.pb.go):
 // message=2 (string), code=3 (varint enum) — field 1 (deprecated_code) no
 // longer exists in the v1.7.0 generated struct and is never written.

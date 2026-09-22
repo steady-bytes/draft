@@ -14,7 +14,7 @@
 //     request.
 //   - A field whose value *contains* a template expression alongside other text
 //     (e.g. `message: "Seeded a test course: {{ steps.create-course.result.id }}"`,
-//     from the doc's garage:// example) gets the matched portion(s) replaced with the
+//     from the doc's foundry:// example) gets the matched portion(s) replaced with the
 //     referenced value's string representation, leaving the rest of the string
 //     intact.
 //

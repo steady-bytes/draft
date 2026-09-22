@@ -1,4 +1,4 @@
-# uses: has no valid scheme (http:// isn't bench:// or garage://).
+# uses: has no valid scheme (http:// isn't bench:// or foundry://).
 apiVersion: bench/v1
 kind: Workflow
 metadata:

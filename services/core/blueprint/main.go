@@ -53,6 +53,20 @@ func main() {
 				serviceDiscoveryController.Reap(context.Background(), logger)
 			}
 		}).
+		// Blueprint doesn't register itself anywhere else, unlike every other service in this
+		// repo -- it's the registry, not a client of it. Registering here (under the shared
+		// "blueprint" name every raft node's config.yaml already sets) is what makes it show up
+		// in its own Service Registry at all, one row per raft node (see
+		// docs/architecture/service-registry-identity.md's deterministic-identity work for why
+		// that grouping is safe across restarts). Same WithRunner-after-Start() reasoning as
+		// registerBlueprintUIRoute below: Register's own Initialize call targets this process's
+		// own entrypoint, which can't be reached before Start() is listening. Unlike
+		// registerBlueprintUIRoute, no custom retry wrapper is needed here -- Register already
+		// retries internally (5 attempts, 5s apart) before panicking, a longer budget than
+		// registerBlueprintUIRoute's proven-sufficient one for the identical race.
+		WithRunner(func() {
+			c.Register(chassis.RegistrationOptions{Namespace: "core"})
+		}).
 		// Exposes Blueprint's own UI (and, since it shares the same mux/port,
 		// its RPC handlers) through Fuse on a dedicated subdomain, rather than
 		// only being reachable directly on its bind port. Unlike every other
@@ -67,6 +81,12 @@ func main() {
 		// backoff until that race resolves in our favor.
 		WithRunner(func() {
 			registerBlueprintUIRoute(c, logger)
+		}).
+		// Blueprint's first-ever dependency on Catalyst -- see "Type Mutation Events" in
+		// docs/website/content/docs/architecture/core-services.md. One-way: Blueprint reads
+		// from Catalyst here, Catalyst has no reciprocal dependency on Blueprint's KV.
+		WithRunner(func() {
+			kv.StartTypeMutationConsumer(logger, keyValueController)
 		})
 
 	defer c.Start()
@@ -84,7 +104,20 @@ func main() {
 // slower to start than Blueprint's own mux init is the expected common case here, not a bug.
 func registerBlueprintUIRoute(c *chassis.Runtime, logger chassis.Logger) {
 	const (
-		maxAttempts = 20
+		// 60s total. Originally 20*500ms=10s, which assumed Fuse would be one of the first
+		// things up after Blueprint. That stopped holding once run-local-watch.sh started
+		// Catalyst before Fuse (needed so the 4 extra raft nodes' own startup+join sequence
+		// doesn't delay Fuse past this budget -- see that script's ordering comment) --
+		// Catalyst's own startup (build + Postgres/ClickHouse-backed init) can alone take
+		// several seconds, before Fuse even begins. Found live: this process panicking here
+		// after only 10s -- before Fuse had even started -- killed Blueprint entirely, which
+		// then cascaded into Catalyst's own Register() call failing ("failed to connect to
+		// blueprint") since the Blueprint it was registering with no longer existed. A slower
+		// machine, a cold build cache, or anything else ahead of Fuse in the startup sequence
+		// taking longer than expected all hit this same failure mode. 60s gives real headroom
+		// without being unbounded -- a Fuse that's still unreachable after a full minute is a
+		// real problem worth panicking loudly for, not a case to retry forever.
+		maxAttempts = 120
 		retryDelay  = 500 * time.Millisecond
 	)
 

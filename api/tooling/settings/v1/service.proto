@@ -8,8 +8,8 @@ option go_package = "github.com/steady-bytes/draft/api/tooling/settings/v1";
 // resource today is plugin registries -- see
 // docs/website/content/docs/architecture/bench-workflow-engine.md's
 // "Connecting a plugin registry" section. A registry is anything speaking
-// tooling.plugin_catalog.v1.PluginCatalogService (Garage's own contract);
-// Bench never assumes it's talking to Garage specifically.
+// tooling.plugin_catalog.v1.PluginCatalogService (Foundry's own contract);
+// Bench never assumes it's talking to Foundry specifically.
 service SettingsService {
     // ListPluginRegistries returns every configured registry -- seeded from
     // bench.plugin_registries config at startup, or added/edited/removed

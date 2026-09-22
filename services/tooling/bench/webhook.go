@@ -99,8 +99,14 @@ type secretResolver interface {
 // services/core/auth and services/core/fuse's control_plane package already use for
 // their own Blueprint KV lookups (see pkg/chassis/networking.go's withRoute and
 // services/core/fuse/control_plane/controller.go's getAuthServiceAddress, which
-// this mirrors field-for-field: an empty *kvv1.Value wrapped in an Any as the Get
-// request's type witness, the response's Any unmarshaled back into a *kvv1.Value).
+// this mirrors field-for-field: an empty *workflowv1.BenchWebhookSecret wrapped in
+// an Any as the Get request's type witness, the response's Any unmarshaled back
+// into a *workflowv1.BenchWebhookSecret). Previously stored/read as a generic
+// kvv1.Value{data: "<secret>"} -- migrated to this dedicated message, registered
+// with Blueprint's type registry (see main.go's WithRegisteredType call), so the
+// secret renders properly in the Key/Value browser instead of as an opaque byte
+// count. See docs/website/content/docs/architecture/kv-type-registry-implementation-plan.md's
+// Phase 6.
 type blueprintSecretResolver struct {
 	client kvv1Connect.KeyValueServiceClient
 }
@@ -117,7 +123,7 @@ func (r *blueprintSecretResolver) Resolve(ctx context.Context, secretRef string)
 		return "", fmt.Errorf("secret_ref %q resolved to an empty blueprint key", secretRef)
 	}
 
-	witness, err := anypb.New(&kvv1.Value{})
+	witness, err := anypb.New(&workflowv1.BenchWebhookSecret{})
 	if err != nil {
 		return "", fmt.Errorf("failed to build KV lookup value: %w", err)
 	}
@@ -130,14 +136,14 @@ func (r *blueprintSecretResolver) Resolve(ctx context.Context, secretRef string)
 		return "", fmt.Errorf("failed to resolve secret %q from blueprint: %w", secretRef, err)
 	}
 
-	value := &kvv1.Value{}
+	value := &workflowv1.BenchWebhookSecret{}
 	if err := resp.Msg.GetValue().UnmarshalTo(value); err != nil {
 		return "", fmt.Errorf("failed to unmarshal secret %q: %w", secretRef, err)
 	}
-	if value.GetData() == "" {
+	if value.GetSecret() == "" {
 		return "", fmt.Errorf("secret %q resolved to an empty value", secretRef)
 	}
-	return value.GetData(), nil
+	return value.GetSecret(), nil
 }
 
 // webhookHandler is the http.Handler behind POST /webhooks/{slug}.

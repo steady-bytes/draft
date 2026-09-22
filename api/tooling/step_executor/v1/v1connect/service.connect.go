@@ -37,12 +37,6 @@ const (
 	StepExecutorExecuteProcedure = "/tooling.step_executor.v1.StepExecutor/Execute"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	stepExecutorServiceDescriptor       = v1.File_tooling_step_executor_v1_service_proto.Services().ByName("StepExecutor")
-	stepExecutorExecuteMethodDescriptor = stepExecutorServiceDescriptor.Methods().ByName("Execute")
-)
-
 // StepExecutorClient is a client for the tooling.step_executor.v1.StepExecutor service.
 type StepExecutorClient interface {
 	Execute(context.Context, *connect.Request[v1.StepRequest]) (*connect.Response[v1.StepResponse], error)
@@ -57,11 +51,12 @@ type StepExecutorClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewStepExecutorClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) StepExecutorClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	stepExecutorMethods := v1.File_tooling_step_executor_v1_service_proto.Services().ByName("StepExecutor").Methods()
 	return &stepExecutorClient{
 		execute: connect.NewClient[v1.StepRequest, v1.StepResponse](
 			httpClient,
 			baseURL+StepExecutorExecuteProcedure,
-			connect.WithSchema(stepExecutorExecuteMethodDescriptor),
+			connect.WithSchema(stepExecutorMethods.ByName("Execute")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -88,10 +83,11 @@ type StepExecutorHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewStepExecutorHandler(svc StepExecutorHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	stepExecutorMethods := v1.File_tooling_step_executor_v1_service_proto.Services().ByName("StepExecutor").Methods()
 	stepExecutorExecuteHandler := connect.NewUnaryHandler(
 		StepExecutorExecuteProcedure,
 		svc.Execute,
-		connect.WithSchema(stepExecutorExecuteMethodDescriptor),
+		connect.WithSchema(stepExecutorMethods.ByName("Execute")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/tooling.step_executor.v1.StepExecutor/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

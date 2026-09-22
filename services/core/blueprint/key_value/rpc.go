@@ -34,10 +34,12 @@ func NewRPC(logger chassis.Logger, controller Controller) Rpc {
 }
 
 var (
-	ErrFailedSet    = errors.New("failed to set key/value pair")
-	ErrFailedList   = errors.New("failed to list all values for provided kind")
-	ErrFailedDelete = errors.New("failed to delete by key for provided kind")
-	ErrFailedGet    = errors.New("failed to get value for key")
+	ErrFailedSet         = errors.New("failed to set key/value pair")
+	ErrFailedList        = errors.New("failed to list all values for provided kind")
+	ErrFailedListKinds   = errors.New("failed to list kinds")
+	ErrFailedDelete      = errors.New("failed to delete by key for provided kind")
+	ErrFailedGet         = errors.New("failed to get value for key")
+	ErrInvalidDescriptor = errors.New("invalid type descriptor")
 )
 
 func (h *rpc) RegisterRPC(server chassis.Rpcer) {
@@ -47,18 +49,20 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 
 func (h *rpc) Set(ctx context.Context, req *connect.Request[kvv1.SetRequest]) (*connect.Response[kvv1.SetResponse], error) {
 	var (
-		log   = h.logger.WithContext(ctx)
-		key   = strings.TrimSpace(req.Msg.GetKey())
-		value = req.Msg.GetValue()
+		callerService = chassis.CallerServiceFromHeader(req.Header())
+		log           = h.logger.WithContext(ctx)
+		key           = strings.TrimSpace(req.Msg.GetKey())
+		value         = req.Msg.GetValue()
 	)
+	ctx = WithCallerService(ctx, callerService)
 
-	_, err := h.controller.Set(log, key, value, 500*time.Millisecond)
+	_, err := h.controller.Set(ctx, log, key, value, 500*time.Millisecond)
 	if err != nil {
 		log.WithError(err).Error(ErrFailedSet.Error())
 		return nil, connect.NewError(connect.CodeInternal, ErrFailedSet)
 	}
 
-	log.WithField("key", key).Debug("value saved")
+	log.WithField("key", key).WithField("caller_service", callerService).Debug("value saved")
 
 	return connect.NewResponse(&kvv1.SetResponse{
 		Key: key,
@@ -85,12 +89,14 @@ func (h *rpc) Get(ctx context.Context, req *connect.Request[kvv1.GetRequest]) (*
 
 func (h *rpc) Delete(ctx context.Context, req *connect.Request[kvv1.DeleteRequest]) (*connect.Response[kvv1.DeleteResponse], error) {
 	var (
-		log   = h.logger.WithContext(ctx)
-		key   = strings.TrimSpace(req.Msg.GetKey())
-		value = req.Msg.GetValue()
+		callerService = chassis.CallerServiceFromHeader(req.Header())
+		log           = h.logger.WithContext(ctx)
+		key           = strings.TrimSpace(req.Msg.GetKey())
+		value         = req.Msg.GetValue()
 	)
+	ctx = WithCallerService(ctx, callerService)
 
-	err := h.controller.Delete(log, key, value, 500*time.Millisecond)
+	err := h.controller.Delete(ctx, log, key, value, 500*time.Millisecond)
 	if err != nil {
 		h.logger.WithError(err).Error(ErrFailedDelete.Error())
 		return nil, connect.NewError(connect.CodeInternal, ErrFailedDelete)
@@ -115,5 +121,52 @@ func (h *rpc) List(ctx context.Context, req *connect.Request[kvv1.ListRequest]) 
 
 	return connect.NewResponse(&kvv1.ListResponse{
 		Values: valuesMap,
+	}), nil
+}
+
+func (h *rpc) ListKinds(ctx context.Context, req *connect.Request[kvv1.ListKindsRequest]) (*connect.Response[kvv1.ListKindsResponse], error) {
+	log := h.logger.WithContext(ctx)
+
+	kinds, err := h.controller.ListKinds(log)
+	if err != nil {
+		log.WithError(err).Error(ErrFailedListKinds.Error())
+		return nil, connect.NewError(connect.CodeInternal, ErrFailedListKinds)
+	}
+
+	pbKinds := make([]*kvv1.KindSummary, len(kinds))
+	for i, k := range kinds {
+		pbKinds[i] = &kvv1.KindSummary{TypeUrl: k.TypeURL, Count: k.Count}
+	}
+
+	return connect.NewResponse(&kvv1.ListKindsResponse{
+		Kinds: pbKinds,
+	}), nil
+}
+
+func (h *rpc) RegisterType(ctx context.Context, req *connect.Request[kvv1.RegisterTypeRequest]) (*connect.Response[kvv1.RegisterTypeResponse], error) {
+	var (
+		log        = h.logger.WithContext(ctx)
+		descriptor = req.Msg.GetDescriptor_()
+	)
+
+	if descriptor.GetTypeUrl() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, ErrInvalidDescriptor)
+	}
+
+	if err := h.controller.RegisterType(ctx, log, descriptor); err != nil {
+		log.WithError(err).Error(ErrFailedRegisterType.Error())
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	return connect.NewResponse(&kvv1.RegisterTypeResponse{}), nil
+}
+
+func (h *rpc) DecodeValues(ctx context.Context, req *connect.Request[kvv1.DecodeValuesRequest]) (*connect.Response[kvv1.DecodeValuesResponse], error) {
+	log := h.logger.WithContext(ctx)
+
+	decoded := h.controller.DecodeValues(log, req.Msg.GetTypeUrl(), req.Msg.GetValues())
+
+	return connect.NewResponse(&kvv1.DecodeValuesResponse{
+		Json: decoded,
 	}), nil
 }

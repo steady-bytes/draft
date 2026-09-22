@@ -18,7 +18,7 @@ import (
 )
 
 // fakePluginCatalog is a minimal plugincatalogv1connect.PluginCatalogServiceHandler
-// standing in for a real garage-compatible registry in tests -- List always
+// standing in for a real foundry-compatible registry in tests -- List always
 // succeeds (so it can double as the "reachable" check every add/update goes
 // through), Get succeeds only for names in plugins.
 type fakePluginCatalog struct {
@@ -39,7 +39,7 @@ func (f *fakePluginCatalog) Get(ctx context.Context, req *connect.Request[plugin
 }
 
 // newFakeRegistryServer starts an httptest.Server behaving like a
-// garage-compatible registry, h2c'd the same way grpc_call_test.go's
+// foundry-compatible registry, h2c'd the same way grpc_call_test.go's
 // newConnectJSONServer is for the same underlying reason (Connect over gRPC
 // needs HTTP/2).
 func newFakeRegistryServer(t *testing.T, plugins map[string]bool) *httptest.Server {

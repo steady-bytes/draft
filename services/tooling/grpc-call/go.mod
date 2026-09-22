@@ -5,7 +5,7 @@ go 1.25.3
 replace github.com/steady-bytes/draft/api => ../../../api
 
 // Local chassis is used (not a published version) because this service depends on
-// chassis.Runtime.Effect (see pkg/chassis/effect.go) for the Garage catalog
+// chassis.Runtime.Effect (see pkg/chassis/effect.go) for the Foundry catalog
 // publish/retract pair — Effect hasn't been tagged in a published pkg/chassis
 // release yet (confirmed against the latest tag, pkg/chassis/v0.6.1, which does not
 // contain effect.go). Mirrors services/tooling/slack-notify/go.mod, which depends

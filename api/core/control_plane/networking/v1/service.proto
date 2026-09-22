@@ -79,6 +79,12 @@ message DeleteRouteResponse {
 // without persisting it.
 message ValidateRouteRequest {
     Route route = 1;
+    // The route's name before this edit, if the caller is validating a rename (route.name is the
+    // new name). Excluded from the conflict check alongside route.name itself, so a rename isn't
+    // flagged as conflicting with its own not-yet-deleted prior version — the client validates
+    // before deleting the old name and adding the new one. Leave empty when adding a new route or
+    // editing a route whose name isn't changing.
+    string existing_name = 2;
 }
 
 message ValidateRouteResponse {
@@ -130,6 +136,47 @@ message Route {
     bool enable_http2 = 4;
     // Auth declares the authentication policy for this route. Optional; defaults to bypass.
     RouteAuth auth = 5;
+    // Every backend registered under this route's (name, match) tuple, once fuse has merged all
+    // registrations that share it -- eg. every raft node in a Blueprint cluster registering the
+    // same UI route becomes one load-balanced Envoy cluster instead of one clobbering the next.
+    // Populated by fuse on read paths (ListRoutes; AddRouteRequest.route.endpoint is still all a
+    // caller needs to set when registering). Empty for a route with only the one `endpoint`.
+    repeated Endpoint endpoints = 6;
+    // Opt out of per-request WideEvent production for this route on Fuse's native proxy
+    // backend (see docs/architecture/fuse-native-proxy.md). Ignored entirely on the envoy
+    // backend, which has no WideEvent production path yet. Unset (false) means "emit" --
+    // the inverse of the opt-in default every other WideEvent producer in the framework
+    // uses, since Fuse is the one process positioned to see every request in the cluster.
+    bool wide_events_disabled = 7;
+    // Opt-in mutual TLS for this route, enforced only by a backend whose
+    // Capabilities().MTLS is true (Fuse's native backend, as of Phase 6 --
+    // see docs/architecture/fuse-native-proxy.md). A new field rather than
+    // folding into RouteAuth: mTLS is decided during the TLS handshake,
+    // before any HTTP request -- and therefore before any RouteAuth policy
+    // check -- exists, so it belongs on the transport side of the config,
+    // not the request-auth side. Optional; absent means no client
+    // certificate is required.
+    MTLSPolicy mtls = 8;
+}
+
+// MTLSPolicy declares a route's mutual-TLS requirement. Enforcement is
+// necessarily connection-level, not per-request: a TLS ClientHello (and
+// therefore the ClientAuth decision) is processed once per connection,
+// before any HTTP path is known. A backend enforces this for every route
+// sharing the same host as one with mtls.enabled -- see the native
+// backend's routeForHost for the mechanics.
+message MTLSPolicy {
+    bool enabled = 1;
+    // Identifies which trusted-CA bundle a client certificate must chain
+    // to, sourced from the same CertificateProvider as this route's own
+    // server certificate (eg. an operator-supplied CA bundle file, or --
+    // for the native backend's local self-signed provider -- the same
+    // local dev CA already used for server certs). Neither provider
+    // implemented as of Phase 6 supports more than one distinct
+    // trusted-CA bundle, so this name is not yet validated against
+    // anything; it exists so a future multi-CA provider doesn't need a
+    // proto change to be selectable.
+    string trusted_ca_secret_name = 2;
 }
 
 // parameters for the endpoint a route will map to

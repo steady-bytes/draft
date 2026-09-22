@@ -9,9 +9,9 @@ const COLORS: [&str; 5] = [
 ];
 
 fn badge_color(event_type: &str) -> &'static str {
-    let hash = event_type
-        .bytes()
-        .fold(0usize, |acc, b| acc.wrapping_mul(31).wrapping_add(b as usize));
+    let hash = event_type.bytes().fold(0usize, |acc, b| {
+        acc.wrapping_mul(31).wrapping_add(b as usize)
+    });
     COLORS[hash % COLORS.len()]
 }
 

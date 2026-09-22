@@ -1,7 +1,7 @@
 // This file implements StepExecutor.Execute (see
 // api/tooling/step_executor/v1/service.proto) — the fixed, minimal contract
-// every Garage plugin implements, called directly by whatever resolved this
-// plugin (Bench's garage:// executor, garage_plugin.go).
+// every Foundry plugin implements, called directly by whatever resolved this
+// plugin (Bench's foundry:// executor, foundry_plugin.go).
 //
 // What Execute does: opens a Consume stream against Catalyst (the same raw
 // Connect client services/examples/consumer/main.go demonstrates — see
@@ -203,7 +203,7 @@ func buildResult(event *acv1.CloudEvent, fields map[string]string) (*structpb.St
 			"subject": attrString(event, "subject"),
 			// Surfaced for correlation, not auto-applied to this step's own
 			// span: catalyst-consume's Execute is already correctly parented
-			// to whatever called it (bench, via garage_plugin.go's
+			// to whatever called it (bench, via foundry_plugin.go's
 			// NewTraceClientInterceptor) — that's a real, useful relationship
 			// in its own right ("which workflow step triggered this"),
 			// distinct from "who originally produced the event," which this

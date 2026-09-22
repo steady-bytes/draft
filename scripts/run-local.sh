@@ -4,19 +4,26 @@
 # Catalyst, Fuse, Beacon), every example service Bench's own workflows/
 # actually exercise as a real backend (examples/crud for crud-e2e.yaml,
 # examples/echo for fuse-proxy-e2e.yaml and fuse-proxy-e2e-10x.yaml), and
-# every tooling service (Bench, Garage, slack-notify, catalyst-consume,
+# every tooling service (Bench, Foundry, slack-notify, catalyst-consume,
 # http-call, grpc-call, catalyst-produce), plus Draft's own documentation
 # site (docs/website, a Hugo-modules site -- distinct from the
 # steady-bytes.com marketing site living outside this repo), and every
 # infra dependency the cluster needs to actually work end to end — Postgres
-# (Bench/Garage/crud), ClickHouse (Catalyst's optional event store and
-# Beacon's log/trace/metric store), and Envoy (Fuse's data-plane proxy,
-# which Fuse itself never starts — it only runs an xDS control-plane server
-# that a separately-running Envoy connects to). Every workflow under
-# services/tooling/bench/workflows/ (Bench's own seed directory) passes
-# against this stack — verified live. The other examples/* services
-# (auth, consumer, consumer2, producer, producer2, file_host) aren't
-# referenced by any workflow there, so they're deliberately left out.
+# (Bench/Foundry/crud) and ClickHouse (Catalyst's optional event store and
+# Beacon's log/trace/metric store). Fuse itself is the reverse proxy
+# (fuse.proxy_backend: native, services/core/fuse/config.yaml) -- no
+# separate Envoy process, and no xDS control-plane server for one to pull
+# config from. Every workflow under services/tooling/bench/workflows/
+# (Bench's own seed directory) passes against this stack EXCEPT
+# fuse-proxy-e2e.yaml and fuse-proxy-e2e-10x.yaml, which are deliberately
+# Envoy-specific fixtures (they register a route with a literal
+# host.docker.internal endpoint and exercise Envoy's own xDS-pushed data
+# plane by design, per their own doc comments) -- run those against
+# services/tooling/bench/workflows/fuse-proxy-e2e.yaml's own instructions
+# with Envoy started separately, not against this script. The other
+# examples/* services (auth, consumer, consumer2, producer, producer2,
+# file_host) aren't referenced by any workflow there, so they're
+# deliberately left out.
 #
 # This is a broader sibling of scripts/run-tooling-stack.sh, not a
 # replacement for it: that script stays as the lighter tooling-only stack
@@ -29,20 +36,19 @@
 # On exit (Ctrl+C, or any error after infra is up), every process this
 # script started and every container it started are torn down.
 #
-# Proxying through Envoy's data plane (port 10000) to these native host
-# processes does work, despite Envoy running in Docker: each service's
-# checked-in config.yaml sets a route.host of "host.docker.internal"
-# specifically for Fuse's route-endpoint auto-fill (distinct from
-# internal.host, "localhost", used for every native-process-to-native-process
-# call), and Docker Desktop for macOS resolves that back to the host from
-# inside the Envoy container. Verified live: blueprint.draft.localhost,
-# garage.draft.localhost, bench.draft.localhost, and beacon.draft.localhost
+# Proxying through Fuse's native data plane (port 10000) to these processes
+# works because every service's checked-in config.yaml sets route.host to
+# "localhost" (this script, this repo's checked-in configs, and Fuse's own
+# native backend are all plain host processes now -- no Docker-to-host
+# hostname to bridge, unlike the old Envoy-in-Docker setup this replaced).
+# Verified live under this script's hot-reloading sibling
+# (run-local-watch.sh, identical services/configs): blueprint.draft.localhost,
+# foundry.draft.localhost, bench.draft.localhost, and beacon.draft.localhost
 # (plus Beacon's /core.observability. Connect-RPC prefix) all proxy through
-# port 10000 successfully with real x-envoy-upstream-service-time headers,
-# not something Envoy served itself.
+# port 10000 successfully.
 #
 # URLs once running:
-#   Garage UI                          http://localhost:9301/
+#   Foundry UI                          http://localhost:9301/
 #   Bench UI                           http://localhost:9300/
 #   Blueprint web client                http://localhost:2221/
 #   Beacon web client                   http://localhost:2222/
@@ -54,8 +60,7 @@
 #   crud (examples, RPC only)           http://localhost:9090/
 #   echo (examples, RPC only)           http://localhost:9091/
 #   Documentation site (Hugo)           http://localhost:1313/
-#   Envoy admin                         http://localhost:19000/
-#   Envoy data plane (proxies blueprint/garage/bench/beacon.draft.localhost + Beacon's RPC prefix) http://localhost:10000/
+#   Fuse data plane (native reverse proxy; proxies blueprint/foundry/bench/beacon.draft.localhost + Beacon's RPC prefix) http://localhost:10000/
 #   ClickHouse HTTP (catalyst events + beacon logs/traces/metrics) http://localhost:8123/
 #
 set -uo pipefail
@@ -70,12 +75,6 @@ POSTGRES_PORT=5432
 CLICKHOUSE_CONTAINER="draft-local-clickhouse"
 CLICKHOUSE_NATIVE_PORT=9000
 CLICKHOUSE_HTTP_PORT=8123
-ENVOY_CONTAINER="draft-local-envoy"
-ENVOY_IMAGE="envoyproxy/envoy:v1.31.2"
-ENVOY_DATA_PLANE_PORT=10000
-ENVOY_ADMIN_PORT=19000
-ENVOY_ALS_PORT=18090
-ENVOY_BOOTSTRAP="$RUN_DIR/envoy-bootstrap.yaml"
 DOCS_PORT=1313
 
 mkdir -p "$BIN_DIR" "$LOG_DIR"
@@ -143,21 +142,23 @@ start_bg() {
 # something else, rather than producing a confusing bind error buried in a
 # log file.
 # ---------------------------------------------------------------------------
+# 10000 is Fuse's own native-backend data-plane listener (fuse.listener.port,
+# services/core/fuse/config.yaml) -- a plain host process, not a separate
+# Envoy container, now that Fuse is the reverse proxy directly.
 for p in 2221 2220 18000 2222 4317 9090 9091 9300 9301 9302 9303 9304 9305 9306 \
-         "$DOCS_PORT" \
-         "$POSTGRES_PORT" "$CLICKHOUSE_NATIVE_PORT" "$CLICKHOUSE_HTTP_PORT" \
-         "$ENVOY_DATA_PLANE_PORT" "$ENVOY_ADMIN_PORT" "$ENVOY_ALS_PORT"; do
+         10000 "$DOCS_PORT" \
+         "$POSTGRES_PORT" "$CLICKHOUSE_NATIVE_PORT" "$CLICKHOUSE_HTTP_PORT"; do
   if port_in_use "$p"; then
     die "port $p is already in use — stop whatever's using it (or a previous run of this script, or run-tooling-stack.sh, that didn't get torn down) before retrying"
   fi
 done
 
-command -v docker >/dev/null 2>&1 || die "docker is required (for Postgres/ClickHouse/Envoy) but isn't on PATH"
+command -v docker >/dev/null 2>&1 || die "docker is required (for Postgres/ClickHouse) but isn't on PATH"
 docker info >/dev/null 2>&1 || die "docker daemon isn't running"
 command -v hugo >/dev/null 2>&1 || die "hugo is required (for the docs site — brew install hugo) but isn't on PATH"
 
 # ---------------------------------------------------------------------------
-# Postgres — one instance, two databases (bench, garage), matching each
+# Postgres — one instance, two databases (bench, foundry), matching each
 # tooling service's checked-in config.yaml (repositories.postgres.url).
 # Same setup as run-tooling-stack.sh.
 # ---------------------------------------------------------------------------
@@ -176,16 +177,16 @@ done
 docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres >/dev/null 2>&1 \
   || die "postgres never became ready"
 
-log "Creating bench/garage/crud roles and databases"
+log "Creating bench/foundry/crud roles and databases"
 docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null \
-  || die "failed to create bench/garage/crud roles/databases"
+  || die "failed to create bench/foundry/crud roles/databases"
 CREATE ROLE bench LOGIN PASSWORD 'bench';
 CREATE DATABASE bench OWNER bench;
-CREATE ROLE garage LOGIN PASSWORD 'garage';
-CREATE DATABASE garage OWNER garage;
+CREATE ROLE foundry LOGIN PASSWORD 'foundry';
+CREATE DATABASE foundry OWNER foundry;
 -- examples/crud's checked-in config.yaml (repositories.postgres.url) points at
 -- role/database "draft" specifically, not "crud" -- matching that exactly
--- rather than overriding it via DRAFT_ env vars like bench/garage's
+-- rather than overriding it via DRAFT_ env vars like bench/foundry's
 -- internal.host, since nothing else on this stack needs that name.
 CREATE ROLE draft LOGIN PASSWORD 'draft';
 CREATE DATABASE draft OWNER draft;
@@ -261,7 +262,7 @@ log "Building example services"
 
 log "Building tooling services"
 (cd "$REPO_ROOT/services/tooling/bench" && go build -o "$BIN_DIR/bench" .) || die "bench build failed"
-(cd "$REPO_ROOT/services/tooling/garage" && go build -o "$BIN_DIR/garage" .) || die "garage build failed"
+(cd "$REPO_ROOT/services/tooling/foundry" && go build -o "$BIN_DIR/foundry" .) || die "foundry build failed"
 (cd "$REPO_ROOT/services/tooling/slack-notify" && go build -o "$BIN_DIR/slack-notify" .) || die "slack-notify build failed"
 (cd "$REPO_ROOT/services/tooling/catalyst-consume" && go build -o "$BIN_DIR/catalyst-consume" .) || die "catalyst-consume build failed"
 (cd "$REPO_ROOT/services/tooling/http-call" && go build -o "$BIN_DIR/http-call" .) || die "http-call build failed"
@@ -270,18 +271,19 @@ log "Building tooling services"
 
 # ---------------------------------------------------------------------------
 # Start order: Blueprint first (everything else registers with it), then
-# Catalyst (now that ClickHouse is up for it to connect to), then Fuse, then
-# Envoy (needs Fuse's xDS server already listening on 18000 before it can
-# pull config), then the tooling services — slack-notify last since it needs
-# Garage's PluginCatalogService reachable before its own startup Effect (a
-# fatal one — see pkg/chassis/effect.go) tries to publish to it.
+# Catalyst (now that ClickHouse is up for it to connect to), then Fuse (its
+# own native backend terminates the data plane directly -- see this script's
+# header -- so nothing further needs to come up before the tooling services
+# can reach it), then the tooling services — slack-notify last since it
+# needs Foundry's PluginCatalogService reachable before its own startup
+# Effect (a fatal one — see pkg/chassis/effect.go) tries to publish to it.
 #
-# service.network.internal.host in bench's and garage's checked-in
-# config.yaml is host.docker.internal (set for a container-networked
-# deployment); overridden to localhost here via chassis's DRAFT_ env-var
-# convention (pkg/chassis/config.go: SetEnvPrefix("DRAFT") +
-# SetEnvKeyReplacer(".", "_")) since these are plain native binaries on the
-# host, not containerized.
+# Every checked-in config.yaml in this repo (bench's, foundry's, and every
+# other service's) already points route.host/internal.host at "localhost"
+# -- these are plain host processes, and Fuse's own native backend is too,
+# so there's no Docker-to-host hostname to bridge the way the old
+# Envoy-in-Docker setup needed (host.docker.internal, resolvable only from
+# inside a container). No DRAFT_ env-var override needed for this anymore.
 # ---------------------------------------------------------------------------
 log "Starting Blueprint"
 start_bg blueprint "$REPO_ROOT/services/core/blueprint" "$BIN_DIR/blueprint"
@@ -292,15 +294,7 @@ start_bg catalyst "$REPO_ROOT/services/core/catalyst" "$BIN_DIR/catalyst"
 wait_for_tcp localhost 2220 catalyst
 
 log "Starting Fuse"
-# fuse.listener.address overridden to 0.0.0.0 for the same reason
-# deployments/compose/fuse.yaml sets it that way and services/core/fuse's own
-# checked-in config.yaml (listener.address: localhost) doesn't: this is the
-# bind address Fuse hands Envoy in the Listener resource it pushes over xDS,
-# and Envoy's socket_address rejects a hostname there ("malformed IP
-# address: localhost") — confirmed live, every listener push was rejected
-# and Envoy stayed at 0 listeners until this was overridden.
-start_bg fuse "$REPO_ROOT/services/core/fuse" "$BIN_DIR/fuse" \
-  DRAFT_FUSE_LISTENER_ADDRESS=0.0.0.0
+start_bg fuse "$REPO_ROOT/services/core/fuse" "$BIN_DIR/fuse"
 wait_for_tcp localhost 18000 fuse
 
 # Beacon registers its UI and Connect-RPC routes with Fuse synchronously,
@@ -322,146 +316,38 @@ wait_for_tcp localhost 9090 crud
 
 # echo's own WithRoute call is synchronous too, same reasoning as crud/beacon
 # above -- needs Fuse already up. Required for Bench's fuse-proxy-e2e and
-# fuse-proxy-e2e-10x workflows, which call it through Envoy's real data
-# plane to prove Fuse's dynamic routing end to end.
+# fuse-proxy-e2e-10x workflows -- though per this script's header, those two
+# are Envoy-specific fixtures that won't pass against this script anymore;
+# echo itself is still a normal example service other workflows may use.
 log "Starting echo (examples)"
 start_bg echo "$REPO_ROOT/services/examples/echo" "$BIN_DIR/echo"
 wait_for_tcp localhost 9091 echo
 
-# ---------------------------------------------------------------------------
-# Envoy — Fuse never starts this itself, it only runs the xDS control-plane
-# server Envoy pulls config from (services/core/fuse/main.go). The bootstrap
-# below is structurally deployments/compose/envoy.yaml's (the proven,
-# already-working Docker-Compose version — STRICT_DNS'd, unlike
-# services/core/fuse/envoy-xds-config.yaml's own copy, which targets a bare
-# 0.0.0.0 and isn't meant to be used standalone), written out directly
-# (rather than sed-patched from that file) so dns_lookup_family: V4_ONLY can
-# be baked in from the start: Docker Desktop's host.docker.internal resolves
-# to *both* an A and a AAAA record, and Envoy's STRICT_DNS cluster picking
-# the IPv6 one first fails to connect (confirmed live — every xds_cluster
-# connection attempt failed until this was pinned to V4_ONLY), since Fuse
-# only listens on 0.0.0.0 (IPv4). `address: host.docker.internal` (in place
-# of Compose's service-name DNS, since Envoy and Fuse are sibling containers
-# there but Fuse here is a native process on the host, not a container on
-# the same network) is otherwise the only change from that file.
-# Linux Docker Engine users: host.docker.internal isn't automatic there —
-# add `--add-host=host.docker.internal:host-gateway` to the `docker run`
-# below if this doesn't resolve.
-# ---------------------------------------------------------------------------
-log "Generating Envoy bootstrap config ($ENVOY_BOOTSTRAP)"
-cat > "$ENVOY_BOOTSTRAP" <<EOF
-node:
-  cluster: fuse-proxy
-  id: fuse-proxy-1
-
-admin:
-  access_log_path: /dev/null
-  address:
-    socket_address:
-      address: 0.0.0.0
-      port_value: $ENVOY_ADMIN_PORT
-
-dynamic_resources:
-  cds_config:
-    resource_api_version: V3
-    api_config_source:
-      api_type: GRPC
-      transport_api_version: V3
-      grpc_services:
-        - envoy_grpc:
-            cluster_name: xds_cluster
-      set_node_on_first_message_only: true
-  lds_config:
-    resource_api_version: V3
-    api_config_source:
-      api_type: GRPC
-      transport_api_version: V3
-      grpc_services:
-        - envoy_grpc:
-            cluster_name: xds_cluster
-      set_node_on_first_message_only: true
-
-static_resources:
-  clusters:
-    - name: xds_cluster
-      connect_timeout: 1s
-      type: STRICT_DNS
-      dns_lookup_family: V4_ONLY
-      load_assignment:
-        cluster_name: xds_cluster
-        endpoints:
-          - lb_endpoints:
-              - endpoint:
-                  address:
-                    socket_address:
-                      address: host.docker.internal
-                      port_value: 18000
-      http2_protocol_options: {}
-    - name: als_cluster
-      connect_timeout: 1s
-      load_assignment:
-        cluster_name: als_cluster
-        endpoints:
-          - lb_endpoints:
-              - endpoint:
-                  address:
-                    socket_address:
-                      address: 0.0.0.0
-                      port_value: $ENVOY_ALS_PORT
-      http2_protocol_options: {}
-
-layered_runtime:
-  layers:
-    - name: runtime-0
-      rtds_layer:
-        rtds_config:
-          resource_api_version: V3
-          api_config_source:
-            transport_api_version: V3
-            api_type: GRPC
-            grpc_services:
-              envoy_grpc:
-                cluster_name: xds_cluster
-        name: runtime-0
-EOF
-
-log "Starting Envoy"
-docker run -d --name "$ENVOY_CONTAINER" \
-  -p "$ENVOY_DATA_PLANE_PORT:10000" \
-  -p "$ENVOY_ADMIN_PORT:19000" \
-  -p "$ENVOY_ALS_PORT:18090" \
-  -v "$ENVOY_BOOTSTRAP:/etc/envoy/envoy.yaml" \
-  "$ENVOY_IMAGE" >/dev/null
-CONTAINERS+=("$ENVOY_CONTAINER")
-wait_for_tcp localhost "$ENVOY_ADMIN_PORT" envoy
-
-log "Starting Garage"
-start_bg garage "$REPO_ROOT/services/tooling/garage" "$BIN_DIR/garage" \
-  DRAFT_SERVICE_NETWORK_INTERNAL_HOST=localhost
-wait_for_tcp localhost 9301 garage
+log "Starting Foundry"
+start_bg foundry "$REPO_ROOT/services/tooling/foundry" "$BIN_DIR/foundry"
+wait_for_tcp localhost 9301 foundry
 
 log "Starting Bench"
-start_bg bench "$REPO_ROOT/services/tooling/bench" "$BIN_DIR/bench" \
-  DRAFT_SERVICE_NETWORK_INTERNAL_HOST=localhost
+start_bg bench "$REPO_ROOT/services/tooling/bench" "$BIN_DIR/bench"
 wait_for_tcp localhost 9300 bench
 
-log "Starting slack-notify (publishes itself to Garage's catalog on startup)"
+log "Starting slack-notify (publishes itself to Foundry's catalog on startup)"
 start_bg slack-notify "$REPO_ROOT/services/tooling/slack-notify" "$BIN_DIR/slack-notify"
 wait_for_tcp localhost 9302 slack-notify
 
-log "Starting catalyst-consume (publishes itself to Garage's catalog on startup)"
+log "Starting catalyst-consume (publishes itself to Foundry's catalog on startup)"
 start_bg catalyst-consume "$REPO_ROOT/services/tooling/catalyst-consume" "$BIN_DIR/catalyst-consume"
 wait_for_tcp localhost 9303 catalyst-consume
 
-log "Starting http-call (publishes itself to Garage's catalog on startup)"
+log "Starting http-call (publishes itself to Foundry's catalog on startup)"
 start_bg http-call "$REPO_ROOT/services/tooling/http-call" "$BIN_DIR/http-call"
 wait_for_tcp localhost 9304 http-call
 
-log "Starting grpc-call (publishes itself to Garage's catalog on startup)"
+log "Starting grpc-call (publishes itself to Foundry's catalog on startup)"
 start_bg grpc-call "$REPO_ROOT/services/tooling/grpc-call" "$BIN_DIR/grpc-call"
 wait_for_tcp localhost 9305 grpc-call
 
-log "Starting catalyst-produce (publishes itself to Garage's catalog on startup)"
+log "Starting catalyst-produce (publishes itself to Foundry's catalog on startup)"
 start_bg catalyst-produce "$REPO_ROOT/services/tooling/catalyst-produce" "$BIN_DIR/catalyst-produce"
 wait_for_tcp localhost 9306 catalyst-produce
 
@@ -470,7 +356,7 @@ cat <<EOF
 --------------------------------------------------------------------
 Full local Draft cluster is up.
 
-  Garage UI                    http://localhost:9301/
+  Foundry UI                    http://localhost:9301/
   Bench UI                     http://localhost:9300/
   Blueprint web client          http://localhost:2221/
   Beacon web client             http://localhost:2222/
@@ -482,8 +368,7 @@ Full local Draft cluster is up.
   crud (examples, RPC only)     localhost:9090
   echo (examples, RPC only)     localhost:9091
   Documentation site (Hugo)     http://localhost:1313/
-  Envoy admin                   http://localhost:19000/
-  Envoy data plane               localhost:10000  (proxies blueprint/garage/bench/beacon.draft.localhost + Beacon's RPC prefix — see this script's header)
+  Fuse data plane (native reverse proxy)  localhost:10000  (proxies blueprint/foundry/bench/beacon.draft.localhost + Beacon's RPC prefix — see this script's header)
   ClickHouse HTTP (catalyst events + beacon logs/traces/metrics) http://localhost:8123/
 
 Logs: $LOG_DIR/<service>.log

@@ -74,6 +74,129 @@ pub struct ListResponse {
         ::prost_types::Any,
     >,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListKindsRequest {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KindSummary {
+    /// The Any type_url this kind is stored under, eg.
+    /// "type.googleapis.com/core.registry.key_value.v1.Value".
+    #[prost(string, tag = "1")]
+    pub type_url: ::prost::alloc::string::String,
+    /// How many keys are currently stored under this type_url.
+    #[prost(uint32, tag = "2")]
+    pub count: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListKindsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub kinds: ::prost::alloc::vec::Vec<KindSummary>,
+}
+/// TypeDescriptor is both the request payload for RegisterType and the shape persisted in the KV
+/// store under its own type_url, mirroring how every other registration message in this repo (eg.
+/// networking's Route) is used both as a wire request and as the thing that gets stored.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TypeDescriptor {
+    /// The type_url values of this type are stored under (eg.
+    /// "type.googleapis.com/tooling.workflow.v1.BenchWebhookSecret").
+    #[prost(string, tag = "1")]
+    pub type_url: ::prost::alloc::string::String,
+    /// A serialized google.protobuf.FileDescriptorSet containing the message named by type_url and
+    /// every file it transitively depends on.
+    #[prost(bytes = "vec", tag = "2")]
+    pub file_descriptor_set: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RegisterTypeRequest {
+    #[prost(message, optional, tag = "1")]
+    pub descriptor: ::core::option::Option<TypeDescriptor>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RegisterTypeResponse {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DecodeValuesRequest {
+    #[prost(string, tag = "1")]
+    pub type_url: ::prost::alloc::string::String,
+    /// Caller-chosen keys (eg. the same keys already returned by List for this type_url) mapped to
+    /// the raw message bytes to decode.
+    #[prost(map = "string, bytes", tag = "2")]
+    pub values: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::vec::Vec<u8>,
+    >,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DecodeValuesResponse {
+    /// Same keys as the request. A key is absent from this map, or maps to an empty string,
+    /// whenever that specific entry couldn't be decoded -- no descriptor registered for type_url,
+    /// corrupt bytes, or anything else going wrong for that one entry. Never fails the whole call.
+    #[prost(map = "string, string", tag = "1")]
+    pub json: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+/// TypeMutation is the body of a Catalyst CloudEvent (type "core.registry.key_value.v1.TypeMutation")
+/// that any process with a type already registered via RegisterType can produce instead of calling
+/// Set/Delete directly. Blueprint runs one generic consumer for this -- see
+/// docs/architecture/core-services.md's "Type Mutation Events" section. Fire-and-forget: there is
+/// no response event correlating back to whoever produced it.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TypeMutation {
+    #[prost(enumeration = "type_mutation::Action", tag = "1")]
+    pub action: i32,
+    #[prost(string, tag = "2")]
+    pub key: ::prost::alloc::string::String,
+    /// The typed value, as a google.protobuf.Any -- required for CREATE/UPDATE (the value to
+    /// store); for DELETE only its type_url matters (same convention as DeleteRequest.value), so
+    /// it may carry a zero-value message of the type being deleted.
+    #[prost(message, optional, tag = "3")]
+    pub value: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `TypeMutation`.
+pub mod type_mutation {
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Action {
+        Unspecified = 0,
+        Create = 1,
+        Update = 2,
+        Delete = 3,
+    }
+    impl Action {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "ACTION_UNSPECIFIED",
+                Self::Create => "ACTION_CREATE",
+                Self::Update => "ACTION_UPDATE",
+                Self::Delete => "ACTION_DELETE",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "ACTION_UNSPECIFIED" => Some(Self::Unspecified),
+                "ACTION_CREATE" => Some(Self::Create),
+                "ACTION_UPDATE" => Some(Self::Update),
+                "ACTION_DELETE" => Some(Self::Delete),
+                _ => None,
+            }
+        }
+    }
+}
 /// Generated client implementations.
 pub mod key_value_service_client {
     #![allow(
@@ -252,6 +375,105 @@ pub mod key_value_service_client {
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new("core.registry.key_value.v1.KeyValueService", "List"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// ListKinds returns every distinct value type currently stored, each with how many keys are
+        /// stored under it. Unlike List, this requires no prior knowledge of what's in the store --
+        /// it's how a caller discovers what kinds exist in the first place, before picking one to
+        /// pass to List.
+        pub async fn list_kinds(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListKindsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListKindsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.registry.key_value.v1.KeyValueService/ListKinds",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.registry.key_value.v1.KeyValueService",
+                        "ListKinds",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// RegisterType tells Blueprint the schema for a proto type stored in this Key/Value store, so
+        /// DecodeValues (and the web client's Key/Value browser) can decode it generically instead of
+        /// treating it as an opaque byte blob. A caller registers its own message's descriptor once at
+        /// startup (see chassis's WithRegisteredType); Blueprint does the rest.
+        pub async fn register_type(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RegisterTypeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RegisterTypeResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.registry.key_value.v1.KeyValueService/RegisterType",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.registry.key_value.v1.KeyValueService",
+                        "RegisterType",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// DecodeValues decodes raw message bytes for a type_url that's been registered via
+        /// RegisterType, returning JSON per key. A key is absent (or empty) whenever it couldn't be
+        /// decoded -- no descriptor registered for type_url, corrupt bytes, or anything else going
+        /// wrong for that one entry -- never as a whole-call error.
+        pub async fn decode_values(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DecodeValuesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DecodeValuesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/core.registry.key_value.v1.KeyValueService/DecodeValues",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "core.registry.key_value.v1.KeyValueService",
+                        "DecodeValues",
+                    ),
                 );
             self.inner.unary(req, path, codec).await
         }

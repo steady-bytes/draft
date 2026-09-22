@@ -12,7 +12,7 @@ import (
 )
 
 // noopLogger is a minimal chassis.Logger for tests: it satisfies the interface
-// without writing anything anywhere, matching services/tooling/garage/rpc_test.go's
+// without writing anything anywhere, matching services/tooling/foundry/rpc_test.go's
 // own noopLogger.
 type noopLogger struct{}
 

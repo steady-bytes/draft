@@ -1,10 +1,11 @@
 use dioxus::prelude::*;
-use gloo_timers::future::TimeoutFuture;
-use draft_api::proto::core_registry_key_value_v1::{NavigationConfig, NavigationSection, NavigationItem};
 use draft_api::hook::core_registry_key_value_v1::{
-    key_value_service_client::KeyValueServiceClient,
-    SetRequest,
+    key_value_service_client::KeyValueServiceClient, SetRequest,
 };
+use draft_api::proto::core_registry_key_value_v1::{
+    NavigationConfig, NavigationItem, NavigationSection,
+};
+use gloo_timers::future::TimeoutFuture;
 use prost::Message as _;
 use prost_types::Any;
 use tonic_web_wasm_client::Client as WasmClient;
@@ -40,10 +41,13 @@ pub fn Settings() -> Element {
                 type_url: crate::NAV_CONFIG_TYPE_URL.to_string(),
                 value: config.clone().encode_to_vec(),
             };
-            match client.set(SetRequest {
-                key: crate::NAV_CONFIG_KV_KEY.to_string(),
-                value: Some(any),
-            }).await {
+            match client
+                .set(SetRequest {
+                    key: crate::NAV_CONFIG_KV_KEY.to_string(),
+                    value: Some(any),
+                })
+                .await
+            {
                 Ok(_) => {
                     // Update the shared signal so the drawer reflects the new config immediately.
                     nav_config_ctx.set(Some(config));

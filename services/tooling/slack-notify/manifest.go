@@ -17,9 +17,9 @@ const (
 	pluginVersion = "v2"
 )
 
-// buildManifest constructs the PublishRequest slack-notify sends to Garage's
+// buildManifest constructs the PublishRequest slack-notify sends to Foundry's
 // PluginCatalogService on startup, matching the example manifest in
-// docs/website/content/docs/architecture/garage-plugin-repository.md's "The
+// docs/website/content/docs/architecture/foundry-plugin-repository.md's "The
 // catalog" section exactly: the same name, version, description, maintainer,
 // source, config_schema, and result_schema.
 func buildManifest() (*plugincatalogv1.PublishRequest, error) {

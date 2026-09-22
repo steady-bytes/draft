@@ -16,9 +16,14 @@ service:
       host: localhost
       port: 9091
     # route.host overrides internal.host for Fuse's route-endpoint auto-fill only (see
-    # pkg/chassis/networking.go's getConfigInternalHost).
+    # pkg/chassis/networking.go's getConfigInternalHost). localhost, not host.docker.internal:
+    # Fuse's native proxy backend runs on the host, like this process, not in Docker -- it
+    # can't resolve host.docker.internal at all (confirmed live, see
+    # docs/architecture/fuse-native-proxy-implementation-plan.md's Phase 9 notes). Only the
+    # envoy backend (a separate Docker container) needed that hostname; if a cluster runs
+    # Fuse with fuse.proxy_backend: envoy, this needs to go back to host.docker.internal.
     route:
-      host: host.docker.internal
+      host: localhost
       port: 9091
     external:
       host: localhost:10000

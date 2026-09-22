@@ -1,6 +1,6 @@
-// Command catalyst-consume is a Garage plugin: a small, separate Draft
+// Command catalyst-consume is a Foundry plugin: a small, separate Draft
 // service that implements StepExecutor.Execute (see rpc.go) and publishes
-// itself to Garage's PluginCatalogService on startup via the chassis.Effect
+// itself to Foundry's PluginCatalogService on startup via the chassis.Effect
 // pattern — retracting the catalog entry again on graceful shutdown. Mirrors
 // services/tooling/slack-notify's main.go exactly; see that file for the
 // fuller rationale behind each piece (the "two separate registrations"
@@ -43,8 +43,8 @@ func main() {
 			Namespace: "plugins",
 		})
 
-	garageClient := newGarageClient(chassis.GetConfig().GetString("garage.address"))
-	c.Effect("garage-catalog-entry", garageCatalogEffectSetup(logger, garageClient, manifest))
+	foundryClient := newFoundryClient(chassis.GetConfig().GetString("foundry.address"))
+	c.Effect("foundry-catalog-entry", foundryCatalogEffectSetup(logger, foundryClient, manifest))
 
 	defer c.Start()
 }

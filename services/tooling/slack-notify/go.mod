@@ -5,15 +5,15 @@ go 1.25.3
 replace github.com/steady-bytes/draft/api => ../../../api
 
 // Local chassis is used (not a published version) because this service depends on
-// chassis.Runtime.Effect (see pkg/chassis/effect.go) for the Garage catalog
+// chassis.Runtime.Effect (see pkg/chassis/effect.go) for the Foundry catalog
 // publish/retract pair — Effect hasn't been tagged in a published pkg/chassis
 // release yet (confirmed against the latest tag, pkg/chassis/v0.6.1, which does not
 // contain effect.go). Mirrors services/core/heartbeat/go.mod and
-// services/tooling/{bench,garage}/go.mod, which depend on it for the same reason.
+// services/tooling/{bench,foundry}/go.mod, which depend on it for the same reason.
 replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 
 // Local chassis's Logger interface (WithCallDepth) has to be matched by the local
-// loggers implementation too — mirrors services/tooling/garage/go.mod.
+// loggers implementation too — mirrors services/tooling/foundry/go.mod.
 replace github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
 
 require (

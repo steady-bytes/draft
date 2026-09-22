@@ -118,8 +118,18 @@ func ConsumeWideEvents(ctx context.Context, logger chassis.Logger, catalystAddr 
 			return
 		}
 
+		// Message.Source here is Beacon's own declared identity for the
+		// cluster topology graph (see broker/controller.go's consume: a
+		// Consume caller's Message.Source becomes the consumer node's id via
+		// NotifyConsumerConnected) -- it must match the "/services/<name>"
+		// convention service_name_from_source (cluster.rs) parses, and
+		// <name> must be this service's actual registered name ("beacon"),
+		// or the graph shows a second, phantom node receiving every event
+		// instead of the real "beacon" node. Previously wrong ("core-beacon",
+		// no such registered service) -- found via the cluster view visibly
+		// routing events to a node beacon never actually was.
 		req := connect.NewRequest(&acv1.ConsumeRequest{
-			Message: &acv1.CloudEvent{Source: "/services/core-beacon", Type: wideEventType},
+			Message: &acv1.CloudEvent{Source: "/services/beacon", Type: wideEventType},
 		})
 
 		stream, err := client.Consume(ctx, req)

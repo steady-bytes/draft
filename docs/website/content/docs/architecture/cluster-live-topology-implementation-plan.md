@@ -74,7 +74,7 @@ Reuse the existing four `NodeKind` variants (`Catalyst`/`Blueprint`/`Fuse`/
 `Service`) — no new kind needed for this pass. Kind is derived by name:
 `"blueprint"` → `Blueprint`, `"catalyst"` → `Catalyst`, `"fuse"` → `Fuse`,
 everything else → `Service`. Finer-grained kinds (e.g. distinguishing
-tooling plugins like `bench`/`garage` from example services) are a future
+tooling plugins like `bench`/`foundry` from example services) are a future
 enhancement, not required for a correct live model.
 
 ### Edge derivation
@@ -156,7 +156,7 @@ their contents) with nothing else in the view changed yet — `seed_nodes()`/
 
 **Artifact:** loading the Cluster page against the real `run-local` stack
 shows a node for every actually-running service (`blueprint`, `catalyst`,
-`fuse`, `beacon`, `bench`, `garage`, `echo`, `crud`, ...) with correct kind
+`fuse`, `beacon`, `bench`, `foundry`, `echo`, `crud`, ...) with correct kind
 coloring — verify by cross-checking against the Service Registry page's
 grouped list.
 

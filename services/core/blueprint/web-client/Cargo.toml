@@ -13,7 +13,7 @@ dioxus-logger = "0.7.4"
 dotenv = "0.15.0"
 once_cell = "1.21.3"
 serde = { version = "1.0.219", features = ["derive"] }
-web-sys = "0.3.77"
+web-sys = { version = "0.3.77", features = ["Storage"] }
 draft-api = { path = "../../../../api", features = ["web"] }
 dioxus-grpc = { path = "../../../../tools/dioxus-grpc", default-features = false }
 tonic-web-wasm-client = "0.9.1"

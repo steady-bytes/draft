@@ -2,7 +2,7 @@
 // outcome shape a step's Execute call reports back to the scheduler. See grpc_call.go
 // for the one executor Phase 3 actually ships (bench://grpc-call@v1); scheduler.go
 // resolves a step's `uses:` string to an Executor (or a clear "not implemented"
-// error for anything else, including every garage:// reference — Garage resolution
+// error for anything else, including every foundry:// reference — Foundry resolution
 // is explicitly Phase 6, out of scope here).
 package main
 
@@ -19,7 +19,7 @@ import (
 type Executor interface {
 	// Execute performs the step's work and evaluates its `expect:` assertions
 	// (step.GetExpect()) itself — Bench doesn't interpret assertion vocabulary,
-	// per the doc's "Built-in executors vs. Garage plugins" section: each
+	// per the doc's "Built-in executors vs. Foundry plugins" section: each
 	// executor defines what its own `expect:` block means.
 	//
 	// A non-nil error indicates an infrastructure-level failure (couldn't resolve

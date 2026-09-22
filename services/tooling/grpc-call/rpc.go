@@ -1,7 +1,7 @@
 // This file implements StepExecutor.Execute (see
 // api/tooling/step_executor/v1/service.proto) — the fixed, minimal contract
-// every Garage plugin implements, called directly by whatever resolved this
-// plugin (Bench's garage:// executor, garage_plugin.go).
+// every Foundry plugin implements, called directly by whatever resolved this
+// plugin (Bench's foundry:// executor, foundry_plugin.go).
 //
 // What Execute does, and why this plugin exists at all alongside Bench's
 // own built-in bench://grpc-call@v1 (services/tooling/bench/grpc_call.go):
@@ -15,7 +15,7 @@
 // server's own reflection service (google.golang.org/grpc/reflection) —
 // no generated Go client for the target service is available or assumed.
 // This needs a dynamic-protobuf client, which is why this plugin (uniquely
-// among this repo's Garage plugins) depends on
+// among this repo's Foundry plugins) depends on
 // github.com/jhump/protoreflect: hand-rolling FileDescriptor dependency
 // resolution over the raw reflection RPC correctly (transitive imports,
 // well-known types, diamond deps) is exactly what that library (also what
@@ -197,7 +197,7 @@ func parseConfig(config *structpb.Struct) (*grpcCall, error) {
 // return) rather than pooled/cached — a plugin call's target address is
 // per-step config and can point at a different server on every run, so
 // there's no meaningful "the same address" case to cache across calls the
-// way, say, garage_plugin.go's registry list is.
+// way, say, foundry_plugin.go's registry list is.
 func invoke(ctx context.Context, call *grpcCall) (map[string]interface{}, error) {
 	var creds credentials.TransportCredentials
 	if call.useTLS {

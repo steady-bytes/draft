@@ -9,7 +9,22 @@ service:
   network:
     bind_address: localhost
     bind_port: 9090
+    # internal.host is advertised to peers (service discovery, OTel export target resolution)
+    # and must be reachable from other host-native processes -- see route.host below for the
+    # one caller (Envoy, which runs in Docker) that needs a different address.
     internal:
+      host: localhost
+      port: 9090
+    # route.host overrides internal.host for Fuse's route-endpoint auto-fill only (see
+    # pkg/chassis/networking.go's getConfigInternalHost) -- without this, CrudService's own
+    # self-registered route (main.go's WithRoute) resolves to 127.0.0.1:9090 in Envoy's cluster
+    # config, which is Envoy's own container, not this host-native process; confirmed live as
+    # "upstream connect error ... Connection refused" when crud-e2e.yaml was changed to call
+    # through the proxy instead of directly. That was host.docker.internal; now localhost,
+    # because Fuse's native proxy backend runs on the host, not in Docker, and can't resolve
+    # host.docker.internal at all (confirmed live, see fuse-native-proxy-implementation-plan.md's
+    # Phase 9 notes). Back to host.docker.internal if this cluster runs fuse.proxy_backend: envoy.
+    route:
       host: localhost
       port: 9090
     external:
@@ -17,6 +32,8 @@ service:
 
 telemetry:
   enabled: true
+  wide_events:
+    enabled: true
 
 repositories:
   postgres:

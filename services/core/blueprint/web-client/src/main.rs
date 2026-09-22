@@ -20,8 +20,8 @@ mod views;
 
 use components::{navbar_icon, navbar_menu_button, navbar_secondary_menu_button};
 use views::{
-    Agents, Cluster, Gateway, KeyValueView, Mcp, Metrics, NewRoute, PageNotFound, RouteDetail,
-    ServiceDetail, ServiceRegistry, Settings, Store, Tools, Topology,
+    Cluster, Gateway, KeyValueDetail, KeyValueView, Metrics, NewRoute, PageNotFound, RouteDetail,
+    ServiceDetail, ServiceRegistry, Settings, Store, Topology,
 };
 
 pub const NAV_CONFIG_KV_KEY: &str = "ui/navigation";
@@ -32,9 +32,6 @@ pub const KNOWN_ROUTES: &[(&str, &str)] = &[
     ("/", "Key/Value"),
     ("/service-registry", "Service Registry"),
     ("/gateway", "Gateway"),
-    ("/agents", "Agents"),
-    ("/mcp", "MCP"),
-    ("/tools", "Tools"),
     ("/query", "Query"),
     ("/topology", "Topology"),
     ("/cluster", "Cluster"),
@@ -47,6 +44,8 @@ enum Route {
     #[layout(dashboard_layout)]
         #[route("/")]
         KeyValueView {},
+        #[route("/kv/:..kv_key_parts")]
+        KeyValueDetail { kv_key_parts: Vec<String> },
         #[route("/service-registry")]
         ServiceRegistry{},
         #[route("/service-registry/:name")]
@@ -57,12 +56,6 @@ enum Route {
         NewRoute{},
         #[route("/gateway/:name")]
         RouteDetail { name: String },
-        #[route("/agents")]
-        Agents{},
-        #[route("/mcp")]
-        Mcp{},
-        #[route("/tools")]
-        Tools{},
         #[route("/query")]
         Store{},
         #[route("/topology")]
@@ -86,9 +79,6 @@ pub fn path_to_route(path: &str) -> Option<Route> {
         "/" => Some(Route::KeyValueView {}),
         "/service-registry" => Some(Route::ServiceRegistry {}),
         "/gateway" => Some(Route::Gateway {}),
-        "/agents" => Some(Route::Agents {}),
-        "/mcp" => Some(Route::Mcp {}),
-        "/tools" => Some(Route::Tools {}),
         "/query" => Some(Route::Store {}),
         "/topology" => Some(Route::Topology {}),
         "/cluster" => Some(Route::Cluster {}),
@@ -118,23 +108,6 @@ pub fn default_nav_config() -> NavigationConfig {
                     NavigationItem {
                         label: "Cluster".to_string(),
                         path: "/cluster".to_string(),
-                    },
-                ],
-            },
-            NavigationSection {
-                label: "Automations".to_string(),
-                items: vec![
-                    NavigationItem {
-                        label: "Agents".to_string(),
-                        path: "/agents".to_string(),
-                    },
-                    NavigationItem {
-                        label: "MCP".to_string(),
-                        path: "/mcp".to_string(),
-                    },
-                    NavigationItem {
-                        label: "Tools".to_string(),
-                        path: "/tools".to_string(),
                     },
                 ],
             },
@@ -231,6 +204,16 @@ pub static FUSE_DOMAIN: Lazy<String> = Lazy::new(|| {
     }
     "http://localhost:18000".to_string()
 });
+
+/// The Key/Value list → detail hand-off channel: a row click needs to tell the detail page which
+/// *kind* (type_url) it's looking at, since `Get`'s `value.type_url` determines the physical key
+/// to fetch (see `key_value/model.go`'s `makeKey`) -- passing the wrong one for a non-`Value` kind
+/// would look up a key that doesn't exist. There's no existing precedent for a Dioxus Router query
+/// param in this codebase, and a type_url contains its own literal `/`
+/// ("type.googleapis.com/...") which would collide with a path segment anyway, so this mirrors
+/// Beacon's own `PENDING_TRACE_ID` GlobalSignal for exactly this shape of one-shot cross-view
+/// hand-off. Read once and cleared on the detail page's mount.
+pub static PENDING_KV_KIND: GlobalSignal<Option<String>> = Signal::global(|| None);
 
 fn main() {
     dioxus::logger::init(Level::INFO).expect("logger failed to init");

@@ -1,6 +1,6 @@
-// Command grpc-call is a Garage plugin: a small, separate Draft service
+// Command grpc-call is a Foundry plugin: a small, separate Draft service
 // that implements StepExecutor.Execute (see rpc.go) and publishes itself
-// to Garage's PluginCatalogService on startup via the chassis.Effect
+// to Foundry's PluginCatalogService on startup via the chassis.Effect
 // pattern — retracting the catalog entry again on graceful shutdown.
 // Mirrors services/tooling/catalyst-consume/main.go exactly; see
 // services/tooling/slack-notify/main.go for the fuller rationale behind
@@ -39,8 +39,8 @@ func main() {
 			Namespace: "plugins",
 		})
 
-	garageClient := newGarageClient(chassis.GetConfig().GetString("garage.address"))
-	c.Effect("garage-catalog-entry", garageCatalogEffectSetup(logger, garageClient, manifest))
+	foundryClient := newFoundryClient(chassis.GetConfig().GetString("foundry.address"))
+	c.Effect("foundry-catalog-entry", foundryCatalogEffectSetup(logger, foundryClient, manifest))
 
 	defer c.Start()
 }

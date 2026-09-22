@@ -14,11 +14,11 @@ import (
 
 // fakeCatalogClient is a plugincatalogv1connect.PluginCatalogServiceClient
 // test double that records Publish/Retract calls without needing a real
-// Garage instance — used to prove garageCatalogEffectSetup's setup/dispose
+// Foundry instance — used to prove foundryCatalogEffectSetup's setup/dispose
 // wiring is correct in isolation. The real Publish/Retract flow against a
-// live Garage is proved separately (manually, and by
-// TestGarageCatalogEffect_Integration below, gated behind an env var since
-// it needs Garage actually running).
+// live Foundry is proved separately (manually, and by
+// TestFoundryCatalogEffect_Integration below, gated behind an env var since
+// it needs Foundry actually running).
 type fakeCatalogClient struct {
 	publishReq  *plugincatalogv1.PublishRequest
 	publishErr  error
@@ -62,14 +62,14 @@ func (f *fakeCatalogClient) Search(context.Context, *connect.Request[plugincatal
 
 var _ plugincatalogv1connect.PluginCatalogServiceClient = (*fakeCatalogClient)(nil)
 
-func TestGarageCatalogEffectSetup_PublishesThenDisposeRetracts(t *testing.T) {
+func TestFoundryCatalogEffectSetup_PublishesThenDisposeRetracts(t *testing.T) {
 	fake := &fakeCatalogClient{}
 	manifest, err := buildManifest()
 	if err != nil {
 		t.Fatalf("buildManifest returned unexpected error: %v", err)
 	}
 
-	setup := garageCatalogEffectSetup(noopLogger{}, fake, manifest)
+	setup := foundryCatalogEffectSetup(noopLogger{}, fake, manifest)
 
 	dispose, err := setup()
 	if err != nil {
@@ -96,14 +96,14 @@ func TestGarageCatalogEffectSetup_PublishesThenDisposeRetracts(t *testing.T) {
 	}
 }
 
-func TestGarageCatalogEffectSetup_PublishFailurePropagates(t *testing.T) {
+func TestFoundryCatalogEffectSetup_PublishFailurePropagates(t *testing.T) {
 	fake := &fakeCatalogClient{publishErr: errors.New("boom")}
 	manifest, err := buildManifest()
 	if err != nil {
 		t.Fatalf("buildManifest returned unexpected error: %v", err)
 	}
 
-	setup := garageCatalogEffectSetup(noopLogger{}, fake, manifest)
+	setup := foundryCatalogEffectSetup(noopLogger{}, fake, manifest)
 
 	_, err = setup()
 	if err == nil {
@@ -111,33 +111,33 @@ func TestGarageCatalogEffectSetup_PublishFailurePropagates(t *testing.T) {
 	}
 }
 
-// TestGarageCatalogEffect_Integration proves the publish/retract flow for
-// real against a live Garage instance (see the Phase 3 brief's testing
-// section). It's skipped unless SLACK_NOTIFY_GARAGE_INTEGRATION=1 is set,
-// since it requires Garage (and its Postgres) actually running at
-// garage.address — go test ./... stays green without any infra by default.
+// TestFoundryCatalogEffect_Integration proves the publish/retract flow for
+// real against a live Foundry instance (see the Phase 3 brief's testing
+// section). It's skipped unless SLACK_NOTIFY_FOUNDRY_INTEGRATION=1 is set,
+// since it requires Foundry (and its Postgres) actually running at
+// foundry.address — go test ./... stays green without any infra by default.
 //
-// Manual run instructions: start Postgres + a real `garage` binary per
-// services/tooling/garage's own Phase 1/2 notes, then:
+// Manual run instructions: start Postgres + a real `foundry` binary per
+// services/tooling/foundry's own Phase 1/2 notes, then:
 //
-//	SLACK_NOTIFY_GARAGE_INTEGRATION=1 GARAGE_ADDRESS=http://localhost:9301 \
-//	    go test ./... -run TestGarageCatalogEffect_Integration -v
-func TestGarageCatalogEffect_Integration(t *testing.T) {
-	if os.Getenv("SLACK_NOTIFY_GARAGE_INTEGRATION") != "1" {
-		t.Skip("set SLACK_NOTIFY_GARAGE_INTEGRATION=1 to run against a real, running Garage instance")
+//	SLACK_NOTIFY_FOUNDRY_INTEGRATION=1 FOUNDRY_ADDRESS=http://localhost:9301 \
+//	    go test ./... -run TestFoundryCatalogEffect_Integration -v
+func TestFoundryCatalogEffect_Integration(t *testing.T) {
+	if os.Getenv("SLACK_NOTIFY_FOUNDRY_INTEGRATION") != "1" {
+		t.Skip("set SLACK_NOTIFY_FOUNDRY_INTEGRATION=1 to run against a real, running Foundry instance")
 	}
 
-	addr := os.Getenv("GARAGE_ADDRESS")
+	addr := os.Getenv("FOUNDRY_ADDRESS")
 	if addr == "" {
 		addr = "http://localhost:9301"
 	}
 
-	client := newGarageClient(addr)
+	client := newFoundryClient(addr)
 	manifest, err := buildManifest()
 	if err != nil {
 		t.Fatalf("buildManifest returned unexpected error: %v", err)
 	}
-	// Use a throwaway version so a run against a real Garage doesn't collide
+	// Use a throwaway version so a run against a real Foundry doesn't collide
 	// with (or get confused for) the actual slack-notify@v2 entry a running
 	// instance of this service would itself publish.
 	manifest.Version = "integration-test"
@@ -149,7 +149,7 @@ func TestGarageCatalogEffect_Integration(t *testing.T) {
 		Name: manifest.GetName(), Version: manifest.GetVersion(),
 	}))
 
-	setup := garageCatalogEffectSetup(noopLogger{}, client, manifest)
+	setup := foundryCatalogEffectSetup(noopLogger{}, client, manifest)
 	dispose, err := setup()
 	if err != nil {
 		t.Fatalf("setup (Publish) returned unexpected error: %v", err)
@@ -181,11 +181,11 @@ func TestGarageCatalogEffect_Integration(t *testing.T) {
 	}
 }
 
-// TestNewGarageClient proves newGarageClient builds a usable client (doesn't
+// TestNewFoundryClient proves newFoundryClient builds a usable client (doesn't
 // panic on a garbage address, etc.) without needing anything running.
-func TestNewGarageClient(t *testing.T) {
-	client := newGarageClient("http://localhost:9301")
+func TestNewFoundryClient(t *testing.T) {
+	client := newFoundryClient("http://localhost:9301")
 	if client == nil {
-		t.Fatal("newGarageClient returned nil")
+		t.Fatal("newFoundryClient returned nil")
 	}
 }

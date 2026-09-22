@@ -133,7 +133,7 @@ up, uptime spanning several days of prior sessions):
   5 restarts into a single upserted row, confirming the fix's central claim.
 - **Organic cleanup of pre-existing duplicates:** at the moment this fix
   deployed, 11 other services (`beacon`, `bench`, `catalyst`,
-  `catalyst-consume`, `catalyst-produce`, `crud`, `fuse`, `garage`,
+  `catalyst-consume`, `catalyst-produce`, `crud`, `fuse`, `foundry`,
   `grpc-call`, `http-call`, `slack-notify`) each had a leftover
   random-UUID-keyed `DISCONNECTED` row from before this change, alongside a
   live `RUNNING` row. Within one `ReapInterval` (30s) of Blueprint restarting

@@ -1,7 +1,7 @@
 // This file is Bench's Phase 8 (The UI): the Dashboard, Workflow list, Workflow
 // detail, and Run detail pages from docs/website/content/docs/architecture/
-// bench-workflow-engine.md's "The UI" section, sharing services/tooling/garage's
-// "workshop" DaisyUI theme and html/template + htmx stack (see garage's base.html
+// bench-workflow-engine.md's "The UI" section, sharing services/tooling/foundry's
+// "workshop" DaisyUI theme and html/template + htmx stack (see foundry's base.html
 // for the CDN-loading rationale, duplicated verbatim in templates/base.html here).
 //
 // Phase 10 (see the doc's "Authoring workflows without a file") adds the
@@ -39,7 +39,7 @@ const (
 	// dashboardRunSample and workflowRunHistorySize both cap how many runs a
 	// page pulls back to compute its view — reasonable for a run history
 	// expected to stay small for a long time (the same scale assumption
-	// services/tooling/garage's store.go documents for its own catalog),
+	// services/tooling/foundry's store.go documents for its own catalog),
 	// not tuned against any real load. Revisit if either page's query ever
 	// shows up as a real cost.
 	dashboardRunSample     = 200
@@ -57,9 +57,9 @@ type uiHandler struct {
 // same instances main.go already constructed for the RPC/webhook handlers —
 // the UI reads/writes through them directly rather than looping back through
 // its own Connect RPC surface over the network, the same choice
-// services/tooling/garage/ui.go makes for its own store. httpClient is used
+// services/tooling/foundry/ui.go makes for its own store. httpClient is used
 // by the Settings page's live registry-reachability check
-// (registry_write.go) and the search sidebar's federated Garage queries
+// (registry_write.go) and the search sidebar's federated Foundry queries
 // (Phase 11).
 func NewUIHandler(logger chassis.Logger, store *pgResultStore, scheduler workflowRunner, httpClient connect.HTTPClient) chassis.RPCRegistrar {
 	return &uiHandler{logger: logger, store: store, scheduler: scheduler, httpClient: httpClient}
@@ -84,7 +84,7 @@ func (h *uiHandler) RegisterRPC(server chassis.Rpcer) {
 	mux.HandleFunc("POST /settings/{name}/delete", h.deleteRegistry)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(staticFS)))
 
-	// enableReflection is false for the same reason garage/ui.go's is: these
+	// enableReflection is false for the same reason foundry/ui.go's is: these
 	// are plain HTML/static routes, not a Connect/gRPC service.
 	server.AddHandler("/", mux, false)
 }
@@ -270,7 +270,7 @@ func (h *uiHandler) workflowList(w http.ResponseWriter, r *http.Request) {
 			WebhookSlug: wf.GetTrigger().GetWebhook().GetSlug(),
 			StepCount:   len(wf.GetSteps()),
 		}
-		// One ListRuns call per workflow, matching services/tooling/garage's
+		// One ListRuns call per workflow, matching services/tooling/foundry's
 		// listVersions-per-name pattern in its own list views — acceptable
 		// for the same "stays small for a long time" reason, not something
 		// worth a dedicated aggregate query yet.
@@ -712,7 +712,7 @@ func (h *uiHandler) settings(w http.ResponseWriter, r *http.Request) {
 
 // addRegistry handles the Settings page's Add-registry form POST. On a
 // validation failure (missing fields, or address doesn't answer as a
-// garage-compatible registry — see registry_write.go's checkRegistryReachable),
+// foundry-compatible registry — see registry_write.go's checkRegistryReachable),
 // the page re-renders with the submitted name/address preserved and the
 // error shown, the same "server does the real work, re-render with an
 // error" shape createWorkflow/updateWorkflow already established.
@@ -757,7 +757,7 @@ func (h *uiHandler) deleteRegistry(w http.ResponseWriter, r *http.Request) {
 // pluginResultView is one search result card: the plugin itself plus which
 // registry it came from (see the design doc's "Federated search, first-match
 // execution" — a human picking a result needs to see the source even though
-// garage:// resolution picks silently) and a ready-to-paste step snippet.
+// foundry:// resolution picks silently) and a ready-to-paste step snippet.
 type pluginResultView struct {
 	Name         string
 	Version      string
@@ -776,8 +776,8 @@ type pluginSearchPageData struct {
 // pluginSearch is the htmx target behind the New/Edit workflow page's search
 // sidebar: federates Search (or List, for an empty query) across every
 // configured registry and merges the results — see the design doc for why
-// this needs no new Bench-side RPC, it's just Bench calling Garage's already
-// -real PluginCatalogService like garage_plugin.go already does for
+// this needs no new Bench-side RPC, it's just Bench calling Foundry's already
+// -real PluginCatalogService like foundry_plugin.go already does for
 // execution.
 func (h *uiHandler) pluginSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -828,8 +828,8 @@ func (h *uiHandler) pluginSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 // pluginUsesSnippet builds a ready-to-paste step block from a plugin's
-// published config_schema -- Bench's own small reimplementation of Garage's
-// own private usesSnippet (services/tooling/garage/ui.go), not a
+// published config_schema -- Bench's own small reimplementation of Foundry's
+// own private usesSnippet (services/tooling/foundry/ui.go), not a
 // cross-service call; see the design doc's "The snippet itself is a small,
 // deliberate duplication" for why.
 // pluginUsesSnippet builds a step block indented to match a `steps:` list
@@ -843,7 +843,7 @@ func (h *uiHandler) pluginSearch(w http.ResponseWriter, r *http.Request) {
 func pluginUsesSnippet(p *plugincatalogv1.Plugin) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "  - name: use-%s\n", p.GetName())
-	fmt.Fprintf(&b, "    uses: garage://%s@%s\n", p.GetName(), p.GetVersion())
+	fmt.Fprintf(&b, "    uses: foundry://%s@%s\n", p.GetName(), p.GetVersion())
 
 	schema := p.GetConfigSchema().AsMap()
 	required, _ := schema["required"].([]interface{})
@@ -891,7 +891,7 @@ type notFoundPageData struct {
 	Message string
 }
 
-// render mirrors services/tooling/garage/ui.go's render exactly, including
+// render mirrors services/tooling/foundry/ui.go's render exactly, including
 // its reasoning: html/template only partially writes on an execution error
 // (headers are already sent by the time a template error can happen), so a
 // failure here is logged rather than turned into an http.Error.

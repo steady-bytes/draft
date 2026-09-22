@@ -180,7 +180,12 @@ func (c *Runtime) newBlueprintClient(useEntrypoint bool) {
 		},
 	}
 
-	c.blueprintClient = sdv1Cnt.NewServiceDiscoveryServiceClient(httpClient, entrypoint)
+	// NewCallerServiceClientInterceptor stamps every Synchronize heartbeat (and Initialize/
+	// Finalize call) on this stream with this process's own service name, so Blueprint's
+	// key_value writes on the other end of it can attribute "who's pushing this update" --
+	// see key_value/rpc.go's Set/Delete handlers and CallerServiceFromHeader.
+	c.blueprintClient = sdv1Cnt.NewServiceDiscoveryServiceClient(httpClient, entrypoint,
+		connect.WithInterceptors(NewCallerServiceClientInterceptor()))
 }
 
 func (c *Runtime) Register(options RegistrationOptions) *Runtime {

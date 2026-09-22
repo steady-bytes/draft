@@ -73,7 +73,16 @@ fn main() {
     });
 }
 
+/// Active/inactive nav link class, matching the same btn-neutral/btn-ghost
+/// convention the List/Flame Graph toggle in `views/wide_events.rs` already
+/// uses for "which of these is the current one" styling.
+fn nav_link_class(active: bool) -> &'static str {
+    if active { "btn btn-sm btn-neutral" } else { "btn btn-sm btn-ghost" }
+}
+
 fn dashboard_layout() -> Element {
+    let route = use_route::<Route>();
+
     rsx! {
         div { class: "flex flex-col h-screen bg-base-100",
             div { class: "navbar bg-base-300 shadow-sm w-full shrink-0",
@@ -83,22 +92,22 @@ fn dashboard_layout() -> Element {
                 div { class: "px-2 flex gap-1",
                     Link {
                         to: Route::WideEvents {},
-                        class: "btn btn-sm btn-ghost",
+                        class: nav_link_class(route == Route::WideEvents {}),
                         "Events"
                     }
                     Link {
                         to: Route::Stream {},
-                        class: "btn btn-sm btn-ghost",
+                        class: nav_link_class(route == Route::Stream {}),
                         "Logs"
                     }
                     Link {
                         to: Route::Traces {},
-                        class: "btn btn-sm btn-ghost",
+                        class: nav_link_class(route == Route::Traces {}),
                         "Traces"
                     }
                     Link {
                         to: Route::Metrics {},
-                        class: "btn btn-sm btn-ghost",
+                        class: nav_link_class(route == Route::Metrics {}),
                         "Metrics"
                     }
                 }

@@ -15,8 +15,10 @@ service:
 
 telemetry:
   enabled: true
+  wide_events:
+    enabled: true
 
-# Garage is a fixed, known dependency for this plugin, the same way
+# Foundry is a fixed, known dependency for this plugin, the same way
 # services/tooling/catalyst-consume's own config.yaml documents.
-garage:
+foundry:
   address: http://localhost:9301

@@ -267,22 +267,11 @@ No change is needed in `makeRouterConfig` — `r.Match.Host` already flows strai
 
 ## Phase 4 — Request ID & Trace ID Propagation
 
-**Dependency check before writing code:** the OpenTelemetry tracer's Go bindings (`envoy.extensions.tracers.opentelemetry.v3.OpenTelemetryConfig`) are **not present** in `go-control-plane` — confirmed absent in the currently pinned `v0.12.0` and still absent in `v0.13.4` and `v0.14.0`. `go-control-plane` only generates bindings for a curated subset of Envoy extensions, and this tracer isn't in it yet. Two options, in order of preference:
+**Done (2026-09-11).** This phase's own "dependency check" above was wrong and blocked nothing — it looked for `envoy.extensions.tracers.opentelemetry.v3.OpenTelemetryConfig`, which genuinely doesn't exist, but the real typed-config message the `Tracing_Http` provider actually wants is `envoy.config.trace.v3.OpenTelemetryConfig` (a different package — Envoy consolidated tracer configs into `config/trace/v3` for this tracer), which **was already present** in the pinned `go-control-plane v0.12.0` the whole time (`envoy/config/trace/v3/opentelemetry.pb.go`). No vendoring, no Zipkin fallback needed — implemented directly against the existing dependency.
 
-1. **Vendor the single proto file.** Pull `envoy/extensions/tracers/opentelemetry/v3/opentelemetry.proto` (and its `resource_detectors`/`samplers` dependencies) from the upstream `envoyproxy/envoy` API repo into a small local package (e.g. `services/core/fuse/internal/envoytrace/`), and generate Go bindings for just that file with the same `buf`/`protoc` toolchain Draft already uses for its own `api/` directory. This keeps full type safety and is a few hours of one-time work.
-2. **Fall back to Zipkin.** `go-control-plane` does ship `envoy.config.trace.v3.ZipkinConfig` bindings. If OTLP-native tracing isn't needed immediately, configure the Zipkin tracer pointed at an OTLP-compatible collector's Zipkin-ingest port (both `docker-otel-lgtm` and the eventual Beacon can expose one) as an interim step, and swap to native OTLP once option 1 is done.
+Implementation: `control_plane/controller.go`'s `makeTracingCluster` (a static Envoy cluster pointed at Beacon's OTLP/gRPC port, HTTP/2 upstream protocol options set — mirrors `makeAuthCluster` plus the HTTP/2 options `makeCluster` sets for `EnableHttp2` routes) and `makeTracingConfig` (builds the `HttpConnectionManager_Tracing` block, `Provider.Name = "envoy.tracers.opentelemetry"`, `ServiceName: "fuse"`). Gated exactly as this doc originally specified — `fuse.tracing.otlp_address` config key (`config.yaml`, defaults to `http://host.docker.internal:4317` for this Envoy-in-Docker/Beacon-on-host local topology), empty means tracing is skipped entirely, same empty-means-off convention as `getAuthServiceAddress`/`authEnabled`.
 
-Once a typed config is available, configure it on the `HttpConnectionManager` in `controller.go` — the field already exists (`HttpConnectionManager.Tracing`, confirmed in the pinned version):
-
-```go
-provider := &trace.Tracing_Http{
-	Name:       "envoy.tracers.opentelemetry",
-	ConfigType: &trace.Tracing_Http_TypedConfig{TypedConfig: otelConfigAny},
-}
-manager.Tracing = &hcm.HttpConnectionManager_Tracing{Provider: provider}
-```
-
-Gate this the same way auth is already gated (`getAuthServiceAddress`, `controller.go:333`): read a `fuse.tracing.otlp_endpoint` config key, and skip setting `Tracing` entirely if it's empty. This keeps trace propagation optional and avoids a hard dependency on Beacon (or any collector) existing. Once enabled, Envoy generates and forwards `x-request-id`/`traceparent` automatically — no per-route configuration needed. Correlating traces against service logs is out of scope until [Beacon](/docs/architecture/beacon-observability) exists to ingest them; until then, IDs still land in Fuse's own access logs, which covers the logging/auditing half of the requirement on its own.
+**Live-verified**, not just config-accepted: Envoy's log confirmed `cds: added/updated 1 cluster(s)` and `instantiating a new tracer: envoy.tracers.opentelemetry` with no NACK; every request proxied through Envoy afterward produced a real `service_name = "fuse", span_name = "ingress"` row in Beacon (`TracesService.SearchTraces`); and — the actual payoff — a request's `trace_id` from that Fuse `ingress` span was confirmed identical to the `trace_id` on the downstream chassis service's own span for the same request (checked via Lineman, `WideEventsService.SearchWideEvents`), proving Envoy's injected `traceparent` is genuinely continued by chassis's own `NewTraceInterceptor`, not just present on Envoy's own span in isolation. Envoy's `ingress` spans land in Beacon's OTLP `spans`/`traces` table; chassis services' own automatic-interceptor spans for a plain unary call currently only surface via `WideEventsService.SearchWideEvents`, not `TracesService.SearchTraces` — both are real Beacon signals, just two different query surfaces for now (see [WideEvent](/docs/architecture/wide-events)'s own scope notes).
 
 ---
 
@@ -411,7 +400,7 @@ Using the `run` pattern already established for this repo: start Blueprint → F
 | 1 | `DeleteRoute` implemented, `MatchType`, conflict validation, `ValidateRoute` | Phases 7, 8; fixes Blueprint's already-shipped Delete/Edit buttons |
 | 2 | gRPC-Web filter in the chain | Browser clients of gRPC/Connect services routed through Fuse |
 | 3 | Wildcard `host` validation | Phase 7's subdomain examples; documented `*.draft.localhost` convention |
-| 4 | Request/trace ID propagation (pending OTel binding decision) | Future correlation with Beacon |
+| 4 | Request/trace ID propagation via Envoy's native OTel tracer | Done — correlation with Beacon, confirmed by matching trace_id across Fuse and a downstream chassis service |
 | 5 | SDS-backed TLS | Phase 6 |
 | 6 | Per-route mTLS | — |
 | 7 | Blueprint `Gateway` view split into Routing List + Route Detail | Operator-visible route management |

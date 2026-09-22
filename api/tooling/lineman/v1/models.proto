@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package tooling.lineman.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/tooling/lineman/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// Objective is a goal a set of tasks count toward. It owns its own ordered
+// list of valid task states -- states are not a global enum shared by every
+// objective (see docs/architecture/lineman-implementation-plan.md's
+// Decisions).
+message Objective {
+    string id          = 1;
+    string name        = 2;
+    string description = 3;
+    // Ordered; e.g. ["Queued", "In Flight", "Verifying", "Done"]. A Task's
+    // state must be a member of its own objective's states.
+    repeated string states = 4;
+    google.protobuf.Timestamp created_at = 5;
+}
+
+enum Priority {
+    PRIORITY_UNSPECIFIED = 0;
+    PRIORITY_LOW    = 1;
+    PRIORITY_MEDIUM = 2;
+    PRIORITY_HIGH   = 3;
+}
+
+// NeedsInput is set on a Task only while it's in the objective's
+// "Needs Input"-convention state -- a recommendation, not a hardcoded state
+// name (see the implementation plan's Decisions).
+message NeedsInput {
+    string question   = 1;
+    repeated string options = 2;
+    google.protobuf.Timestamp requested_at = 3;
+}
+
+// Task is a unit of work belonging to exactly one objective, or none
+// (standalone -- objective_id left empty).
+message Task {
+    string id           = 1;
+    string objective_id = 2;
+    // Short label -- what shows on a board card. Was "description" (same
+    // wire tag 3, renamed in place -- see the implementation plan's
+    // Decisions for why this was wire-compatible rather than a fresh tag).
+    string name          = 3;
+    string state        = 4;
+    Priority priority    = 5;
+    // Sparse ordering within (objective_id, state) -- see Decisions.
+    int64  order         = 6;
+    string agent_id      = 7;
+    string current_action = 8;
+    NeedsInput needs_input = 9;
+    google.protobuf.Timestamp created_at = 10;
+    google.protobuf.Timestamp updated_at = 11;
+    // Everything needed to actually complete the task -- free-text
+    // instructions, the primary content a human or agent reads. Optional:
+    // may be empty (e.g. for a task spawned by a ScheduledTask/Loop, which
+    // only ever supply a name -- see Decisions).
+    string details       = 12;
+}
+
+enum AgentKind {
+    AGENT_KIND_UNSPECIFIED = 0;
+    AGENT_KIND_HUMAN  = 1;
+    AGENT_KIND_SCRIPT = 2;
+    AGENT_KIND_AI     = 3;
+}
+
+// Agent is a loose, assignable-worker identity -- a human, a script, or an
+// AI agent instance/run. Not a handle into any other system.
+message Agent {
+    string id           = 1;
+    string display_name = 2;
+    AgentKind kind       = 3;
+    google.protobuf.Timestamp last_seen_at = 4;
+}
+
+enum ScheduledTaskStatus {
+    SCHEDULED_TASK_STATUS_UNSPECIFIED = 0;
+    SCHEDULED_TASK_STATUS_PENDING   = 1;
+    SCHEDULED_TASK_STATUS_FIRED     = 2;
+    SCHEDULED_TASK_STATUS_CANCELLED = 3;
+}
+
+// ScheduledTask is the Scheduler primitive: fire a single task once, at a
+// specific future time.
+message ScheduledTask {
+    string id           = 1;
+    string objective_id = 2;
+    string description  = 3;
+    Priority priority    = 4;
+    google.protobuf.Timestamp fire_at = 5;
+    ScheduledTaskStatus status = 6;
+    string created_task_id     = 7;
+}
+
+message Recurrence {
+    // "daily" | "weekly" | "every_n_days" | "cron" -- matches the Loops
+    // create-form mockup's Repeats options.
+    string kind          = 1;
+    int32  interval_days = 2;
+    string cron           = 3;
+    string at             = 4; // "HH:MM", local to the Lineman process
+    google.protobuf.Timestamp starts_at = 5;
+    // Zero value = "Never". Mutually exclusive with ends_after_occurrences.
+    google.protobuf.Timestamp ends_at = 6;
+    int32 ends_after_occurrences = 7;
+}
+
+enum LoopStatus {
+    LOOP_STATUS_UNSPECIFIED = 0;
+    LOOP_STATUS_ACTIVE   = 1;
+    LOOP_STATUS_PAUSED   = 2;
+    LOOP_STATUS_FINISHED = 3;
+}
+
+// Loop is the recurring primitive: one definition spawns a new Task instance
+// every time it fires.
+message Loop {
+    string id           = 1;
+    string objective_id = 2;
+    string description  = 3;
+    Priority priority    = 4;
+    Recurrence recurrence = 5;
+    LoopStatus status      = 6;
+    google.protobuf.Timestamp next_fire_at = 7;
+    int64 occurrence_count  = 8;
+}

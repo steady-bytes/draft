@@ -1,14 +1,17 @@
 use dioxus::prelude::*;
 
 const PRESETS: &[(&str, &str)] = &[
-    ("type = order.created",   "type = 'order.created'"),
-    ("source LIKE %shop%",     "source LIKE '%shop%'"),
-    ("failed OR cancelled",    "type = 'failed' OR type = 'cancelled'"),
-    ("EXISTS correlationid",   "EXISTS correlationid"),
-    ("no correlation",         "NOT EXISTS correlationid"),
-    ("paid or succeeded",      "type = 'paid' OR type = 'succeeded'"),
-    ("inventory events",       "source LIKE '%inventory%'"),
-    ("late events (>2s)",      "subject LIKE '%timeout%'"),
+    ("type = order.created", "type = 'order.created'"),
+    ("source LIKE %shop%", "source LIKE '%shop%'"),
+    (
+        "failed OR cancelled",
+        "type = 'failed' OR type = 'cancelled'",
+    ),
+    ("EXISTS correlationid", "EXISTS correlationid"),
+    ("no correlation", "NOT EXISTS correlationid"),
+    ("paid or succeeded", "type = 'paid' OR type = 'succeeded'"),
+    ("inventory events", "source LIKE '%inventory%'"),
+    ("late events (>2s)", "subject LIKE '%timeout%'"),
 ];
 
 #[component]

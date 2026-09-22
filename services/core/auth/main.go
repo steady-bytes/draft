@@ -30,6 +30,18 @@ func main() {
 		Register(chassis.RegistrationOptions{
 			Namespace: "core",
 		}).
+		// This service runs its own bare HTTP server on service.network.bind_port
+		// (serveCheckEndpoint) instead of registering handlers through chassis's
+		// RPC mux -- DisableMux is required here, or chassis's own Runtime.Start
+		// also binds that same port with an empty *http.ServeMux (since nothing
+		// ever calls WithRPCHandler/AddHandler), and the two race for the
+		// listener. Found live: with both racing, chassis's empty mux won every
+		// time in this environment, meaning Envoy's ext_authz check request never
+		// reached checkHandler at all -- it hit an unhandled empty ServeMux, whose
+		// findHandler/matchOrRedirect panics on Go's 1.22+ mux when zero patterns
+		// are registered, closing the connection and making Envoy deny the
+		// request via FailureModeAllow: false.
+		DisableMux().
 		WithRunner(func() {
 			writeAuthAddress(logger)
 			serveCheckEndpoint(handler, logger)

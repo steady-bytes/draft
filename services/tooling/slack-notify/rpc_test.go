@@ -17,7 +17,7 @@ import (
 
 // noopLogger is a minimal chassis.Logger for tests: it satisfies the
 // interface without writing anything anywhere. Mirrors
-// services/tooling/garage/rpc_test.go's noopLogger.
+// services/tooling/foundry/rpc_test.go's noopLogger.
 type noopLogger struct{}
 
 func (noopLogger) Start(chassis.Config)                         {}

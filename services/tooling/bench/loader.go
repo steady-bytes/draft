@@ -207,7 +207,7 @@ func (ys *yamlStep) toProto() (*workflowv1.Step, error) {
 
 // Validate checks a converted workflow against the load-time rules described in the
 // doc's Phase 2 deliverable: required fields, a uses: scheme of bench:// or
-// garage://, no dangling depends_on references, and no cycle in the *effective*
+// foundry://, no dangling depends_on references, and no cycle in the *effective*
 // depends_on graph (after applying the "defaults to the previous step" rule). Returns
 // the first problem found, with enough detail to act on (the offending step/value),
 // rather than a generic "invalid workflow" error.
@@ -233,8 +233,8 @@ func Validate(w *workflowv1.Workflow) error {
 			return fmt.Errorf("step %q: uses is required", s.GetName())
 		}
 		scheme, _, hasScheme := strings.Cut(s.GetUses(), "://")
-		if !hasScheme || (scheme != "bench" && scheme != "garage") {
-			return fmt.Errorf("step %q: uses %q must have scheme bench:// or garage://", s.GetName(), s.GetUses())
+		if !hasScheme || (scheme != "bench" && scheme != "foundry") {
+			return fmt.Errorf("step %q: uses %q must have scheme bench:// or foundry://", s.GetName(), s.GetUses())
 		}
 	}
 

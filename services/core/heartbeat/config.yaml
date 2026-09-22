@@ -15,3 +15,5 @@ service:
 
 telemetry:
   enabled: true
+  wide_events:
+    enabled: true

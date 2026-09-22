@@ -79,6 +79,16 @@ message Trigger {
     WebhookTrigger webhook = 1;
 }
 
+// BenchWebhookSecret is the KV-stored value a WebhookTrigger's secret_ref resolves to. Registered
+// with Blueprint's type registry (see chassis's WithRegisteredType) so it renders properly in the
+// Key/Value browser instead of as an opaque byte count.
+message BenchWebhookSecret {
+    string secret = 1;
+    // When this secret was last rotated. Optional -- zero/unset for a secret that predates
+    // rotation tracking.
+    google.protobuf.Timestamp rotated_at = 2;
+}
+
 message RetryPolicy {
     int32 attempts = 1;
     // backoff is a Go duration string, e.g. "2s".
@@ -91,7 +101,7 @@ message RetryPolicy {
 message Step {
     string name = 1;
     // uses is a plugin reference, scheme://name@version — "bench://" for
-    // built-in executors, "garage://" for a plugin resolved through Garage's
+    // built-in executors, "foundry://" for a plugin resolved through Foundry's
     // PluginCatalogService.
     string uses = 2;
     // with is the step's configuration, passed opaquely to the executor.

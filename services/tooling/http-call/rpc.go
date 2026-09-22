@@ -1,7 +1,7 @@
 // This file implements StepExecutor.Execute (see
 // api/tooling/step_executor/v1/service.proto) — the fixed, minimal contract
-// every Garage plugin implements, called directly by whatever resolved this
-// plugin (Bench's garage:// executor, garage_plugin.go).
+// every Foundry plugin implements, called directly by whatever resolved this
+// plugin (Bench's foundry:// executor, foundry_plugin.go).
 //
 // What Execute does: makes one plain HTTP request from config
 // (method/url/headers/body/timeout), returns status/headers/body as the
@@ -15,7 +15,7 @@
 // field — only config and context are passed to a plugin — and extending
 // that shared contract for one plugin's benefit would break the doc's own
 // framing of it as fixed and minimal
-// (docs/website/content/docs/architecture/garage-plugin-repository.md,
+// (docs/website/content/docs/architecture/foundry-plugin-repository.md,
 // "What a plugin is"). Scoping assertions under this plugin's own with:
 // block instead keeps that contract untouched and matches "everything else
 // is up to the plugin" — the cost is that an http-call step's assertions

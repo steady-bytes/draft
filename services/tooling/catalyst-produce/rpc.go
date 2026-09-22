@@ -1,7 +1,7 @@
 // This file implements StepExecutor.Execute (see
 // api/tooling/step_executor/v1/service.proto) — the fixed, minimal contract
-// every Garage plugin implements, called directly by whatever resolved this
-// plugin (Bench's garage:// executor, garage_plugin.go).
+// every Foundry plugin implements, called directly by whatever resolved this
+// plugin (Bench's foundry:// executor, foundry_plugin.go).
 //
 // What Execute does: builds a CloudEvent from config.event_type/source/
 // subject/data and sends it on a single long-lived Produce stream to
@@ -98,7 +98,7 @@ func (h *handler) Execute(ctx context.Context, req *connect.Request[stepexecutor
 
 	// config.delay exists for exactly one reason: Catalyst's Consume has no
 	// event replay (see docs/website/content/docs/architecture/
-	// garage-plugin-repository.md's note on this same plugin's design) — a
+	// foundry-plugin-repository.md's note on this same plugin's design) — a
 	// subscriber that opens its stream even a moment after this event was
 	// sent has permanently missed it, no buffering or re-delivery. A
 	// workflow that produces and consumes the same event in one run can

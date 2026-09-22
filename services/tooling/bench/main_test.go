@@ -20,7 +20,7 @@ import (
 // This file spins up a real, throwaway Postgres container (via `docker run`) for
 // the store-level tests in store_test.go (and any RPC-level tests in rpc_test.go
 // that need real persistence) to run against, rather than mocking the database —
-// the same approach services/tooling/garage/main_test.go already establishes for
+// the same approach services/tooling/foundry/main_test.go already establishes for
 // exactly this reason: a real backing store is the more convincing test of
 // store.go's queries (jsonb round-tripping, keyset pagination, upsert-on-conflict)
 // than a fake ever would be. The container is always torn down, including on a
@@ -28,7 +28,7 @@ import (
 
 const (
 	testContainerName = "bench-workflow-test-postgres"
-	testPostgresPort  = "55438" // distinct from garage's 55437, so both suites' containers can run concurrently
+	testPostgresPort  = "55438" // distinct from foundry's 55437, so both suites' containers can run concurrently
 	testDSN           = "postgres://bench_test:bench_test@localhost:" + testPostgresPort + "/bench_test?sslmode=disable"
 )
 

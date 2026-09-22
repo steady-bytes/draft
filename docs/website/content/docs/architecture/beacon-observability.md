@@ -13,7 +13,7 @@ Draft currently has no first-party story for logs, traces, or metrics. `pkg/chas
 
 **Beacon** is a new core service that closes this gap: an [OpenTelemetry](https://opentelemetry.io/docs/)-native ingestion point for logs, traces, and metrics, backed by [ClickHouse](https://github.com/ClickHouse/ClickHouse), with a Dioxus web client served the same way Blueprint serves its own UI. It joins Blueprint, Catalyst, and Fuse as a fourth core service — see [Core Services](/docs/architecture/core-services).
 
-This document is the system design and phased implementation plan. A companion visual design brief — wireframes for the three primary views, competitive positioning, and an architecture diagram — lives at [`assets/beacon-design-brief.html`](https://github.com/steady-bytes/draft/tree/main/assets/beacon-design-brief.html); open it directly in a browser to view.
+This document is the system design and phased implementation plan. A companion visual design brief — wireframes for the four primary views, competitive positioning, and an architecture diagram — lives at [`assets/beacon-design-brief.html`](https://github.com/steady-bytes/draft/tree/main/assets/beacon-design-brief.html); open it directly in a browser to view.
 
 ### Why a new service instead of extending Catalyst
 
@@ -26,11 +26,17 @@ Beacon therefore owns its own ingestion path, its own ClickHouse database, and i
 
 ---
 
-## The Three Views
+## The Four Views
+
+Beacon shipped with three views (Stream, Traces, Metrics); a fourth — Events — was added once `chassis.StartSpan`/WideEvent production (Phase 18, and the Fuse native-proxy work that consumes it) gave the cluster a canonical-log-line-style record worth its own browsing surface, distinct from raw log lines. All four share one visual language — DaisyUI semantic surfaces, a monospace query bar, `MetricCard`-style stat tiles — so Beacon reads as one product across signal types, not four bolted-together tools.
+
+### Events — WideEvent browser
+
+A searchable table of [WideEvents](/docs/architecture/wide-events) (`services/core/beacon/web-client/src/views/wide_events.rs`) — one row per span, with `business_attributes`/`runtime_attributes` alongside the standard OTel fields. A `WideEventQueryBuilder` (`components/wide_event_query_builder.rs`) builds BeaconQL-shaped filters (`business_attributes["run_id"] = "..."`) from toggles rather than hand-typed expressions. Selecting a row opens a detail panel; a List/FlameGraph `ViewMode` toggle switches between the searchable table and a full-width, single-trace flame graph rendering of the same underlying data (`FlameGraph`, shared with the Traces view) — two ways to look at one data set, not two data sets. A `WideEventHistogram` gives the same "spike shape before reading rows" glance Stream's `SeverityHistogram` does.
 
 ### Stream — live log tailing
 
-A real-time log stream with line-by-line filtering. A query bar sits at the top of the page in both raw-expression and toggle/chip form (see [Query Language](#query-language) below), backed by a server-streaming RPC so new lines append live without polling. Filtering by `service_name`, `severity`, or any attribute added at log time narrows the stream without restarting it — the client re-issues the stream with the new filter and the server continues from the same cursor.
+A real-time log stream with line-by-line filtering (`views/stream.rs`). A query bar sits at the top of the page in both raw-expression and toggle/chip form (`QueryBuilder`, see [Query Language](#query-language) below), backed by a server-streaming RPC so new lines append live without polling. Filtering by `service_name`, `severity`, or any attribute added at log time narrows the stream without restarting it — the client re-issues the stream with the new filter and the server continues from the same cursor. A `TimeRangePicker` bounds historical queries, a `TracePill` cross-links a log line's `trace_id` into the Traces view, a `LogDetailDrawer` gives full-row detail (Overview/JSON/Context tabs) with click-to-filter on any attribute value, and a `SeverityHistogram` shows volume/severity shape above the table (Phases 12–17, all done — see [Implementation Plan](#implementation-plan)).
 
 ### Traces — flame graph
 
@@ -38,7 +44,9 @@ A query bar to locate traces (by service, span name, duration, status, or attrib
 
 ### Metrics — system resources
 
-Host and process resource usage (CPU, memory, disk, network, goroutine/GC stats for Go services) alongside the same throughput/latency style metrics Catalyst already derives for its own bus. Built from `MetricCard`-style stat tiles with sparklines — the same visual language already shipped in Blueprint's web client (`services/core/blueprint/web-client/src/components/metric_card.rs`) — plus larger time-series charts for drill-down.
+Host and process resource usage (CPU, memory, disk, network, goroutine/GC stats for Go services) alongside the same throughput/latency style metrics Catalyst already derives for its own bus. Built from `MetricCard`-style stat tiles with sparklines — the same visual language already shipped in Blueprint's web client (`services/core/blueprint/web-client/src/components/metric_card.rs`) — plus a `TimeSeriesChart` for drill-down.
+
+**Current state (v1, shipped in Phase 9) is deliberately minimal**: one raw-PromQL-subset text field (no click-to-build, unlike Stream's `QueryBuilder` or Events' `WideEventQueryBuilder`), one one-shot query per click of "run" (no auto-refresh), and one implicit chart shape (`TimeSeriesChart` renders every returned series as overlaid lines — there is no chart-type choice). This is the gap [Metrics Graph Builder](#metrics-graph-builder) below closes.
 
 ---
 
@@ -232,6 +240,182 @@ The differentiator is not the storage engine (ClickHouse is a well-worn choice, 
 
 ---
 
+## Metrics Graph Builder
+
+The [Metrics view](#metrics--system-resources) shipped in Phase 9 with exactly enough to prove `QueryMetrics`/the PromQL-subset parser end to end: one raw-expression query bar, one one-shot query, one implicit chart shape. That was the right scope for Phase 9 — it is not a graph-building tool. This section designs the gap closed: **chart-type selection, a click-to-build query bar (matching the pattern Stream and Events already established for their own grammars), and a configurable polling interval**, so a single query result can be shaped and kept live the way an operator actually wants to watch it.
+
+### Scope for v1
+
+- **One graph at a time, not a multi-panel dashboard.** The ask is a builder for *a* graph — chart type, query, polling — not a Grafana-style canvas of many saved panels. A dashboard of several saved graphs is a natural v2 (see below), but building the multi-panel layout, drag-to-resize, and cross-panel time-range sync *before* the single-graph experience is solid would be building the harder problem first for no immediate benefit.
+- **Persisted, in Blueprint, as a typed proto message — written via a Catalyst event, not a direct KV call.** A graph's configuration (query, chart type, window, refresh interval) is worth surviving a page refresh and being nameable/reloadable — this is genuinely in scope, not deferred. It's *config*, not *data*: the same category as Fuse's route table, Bench's workflow schedules, and everything else this framework already keeps in Blueprint's KV rather than each service inventing its own settings store. See [Persisting a graph](#persisting-a-graph) below for the concrete design — a real proto message (`BeaconMetricsGraphConfiguration`), mutated through a new generic mechanism ([Type Mutation Events](/docs/architecture/core-services#type-mutation-events)) any process with a registered type can reuse, not something bespoke to this one feature.
+- **Chart types: Line, Bar, Area, Single Stat.** Covers the shapes PromQL-subset results actually take — a rate/gauge over time (Line, today's only option), a counter-ish quantity better read as discrete bars (Bar), a stacked contribution view for multiple label sets of one metric (Area), and "I just want the current number, big" (Single Stat, which is a `MetricCard` alone with no chart beneath it — already half-built, since `MetricStatTile` in `metrics.rs` already adapts a `TimeSeries` into a `MetricCard`).
+
+### Why the query builder needs a new backend capability
+
+Stream's `QueryBuilder` and Events' `WideEventQueryBuilder` both build a filter by letting the operator click a value that's *already on screen* — a log line's attribute, a WideEvent's JSON body field (see the Blueprint client's equivalent for CloudEvents, `services/core/blueprint/web-client/src/views/store.rs`'s `JsonTree`). There's no equivalent "already loaded object" for metrics: PromQL selectors are built from a metric *name* and *label keys/values*, and until a query has already run, nothing has loaded any of those into the browser to click on. A metrics query builder therefore needs the one thing Prometheus's own HTTP API provides for exactly this reason — label/metric discovery endpoints — which `MetricsService` doesn't have yet:
+
+```protobuf
+// ListMetricNames returns every distinct metric_name currently in metric_points
+// (bounded by a server-side cap + optional prefix filter, the same shape
+// Prometheus's own /api/v1/label/__name__/values serves).
+rpc ListMetricNames(ListMetricNamesRequest) returns (ListMetricNamesResponse) {}
+
+// ListLabelValues returns every distinct value seen for `label_name`, optionally
+// narrowed to rows matching `metric_name` -- the same shape Prometheus's
+// /api/v1/label/<name>/values serves, and how Grafana's own PromQL query
+// builder populates its label/value dropdowns.
+rpc ListLabelValues(ListLabelValuesRequest) returns (ListLabelValuesResponse) {}
+```
+
+Both compile to a bounded `SELECT DISTINCT ... FROM metric_points [WHERE metric_name = ?] LIMIT N` — cheap, and the same query shape ClickHouse already serves well for `LowCardinality` columns. No new table, no new ingestion path.
+
+### `MetricQueryBuilder`
+
+A new component, `services/core/beacon/web-client/src/components/metric_query_builder.rs`, matching `WideEventQueryBuilder`'s shape (field/operator/value pickers + AND/OR connector chips + live fragment preview, see `wide_event_query_builder.rs`'s `combine`/`format_fragment`) but sourcing its choices from discovery instead of a loaded object:
+
+1. A metric-name `<select>` (or type-to-filter combobox once the list is large), populated from `ListMetricNames` on mount.
+2. Once a metric is chosen, zero or more label filters (`label = "value"`), each a key `<select>` (populated from `ListLabelValues` scoped to that metric — Beacon doesn't have a "list label *keys*" endpoint yet either; simplest v1 is folding key discovery into `ListLabelValues`'s response, returning `map<string, LabelValues>` keyed by label name rather than a flat list, one query covering both) and a value `<select>`.
+3. An optional aggregation wrapper (`rate(...)`, `sum by (...)`, bare selector) — a `<select>` over the small fixed set the PromQL-subset parser actually supports (`query/promql.go`'s own grammar is the source of truth here, not a hand-maintained duplicate list).
+4. The usual live fragment preview + "Add to query" button, wired to the same `on_add: EventHandler<String>` shape every other query builder in this codebase already uses.
+
+### `ChartTypeSelector` + `Chart` dispatcher
+
+A `ChartType` enum (`Line | Bar | Area | SingleStat`) and a `Chart { chart_type: ChartType, series: Vec<TimeSeries> }` component that dispatches to a per-type renderer:
+
+- **Line** — today's `TimeSeriesChart`, unchanged, just renamed/wrapped as the `Line` arm.
+- **Bar** — new, generalizing the bucket/bar-rendering approach `SeverityHistogram`/`WideEventHistogram` already implement (stacked, proportional-height bars in a flex row) from "count per time bucket, colored by severity" to "value per sample, colored by series."
+- **Area** — new: `Line`'s existing point-to-path SVG logic, with the region under each series' path filled at low opacity instead of (or in addition to) stroked — the smallest addition of the three, since it reuses `Line`'s own coordinate math wholesale.
+- **SingleStat** — new, but not really: it's `MetricStatTile`'s existing `MetricCard` adaptation, just used *alone* (no `TimeSeriesChart`/`Chart` beneath it) when there's exactly one series and the operator has picked this chart type.
+
+`ChartTypeSelector` itself is a small icon-button group (matching `ViewMode`'s List/FlameGraph toggle in `wide_events.rs` for the interaction pattern), stored as a `ChartType` signal the parent view reads when choosing which `Chart` arm to render.
+
+### `PollingIntervalSelector`
+
+A `<select>` (Off / 5s / 10s / 30s / 1m / 5m) driving the same polling mechanism Blueprint's own Metrics view already uses live today (`services/core/blueprint/web-client/src/views/metrics.rs`): a `gloo_timers::callback::Interval`, held in a `use_signal` so it isn't dropped at the end of the render function, incrementing a `tick: Signal<u32>` that a `use_effect` depends on to re-issue the query. Beacon's web client doesn't have `gloo-timers` as a dependency yet (Blueprint's does — `web-client/Cargo.toml`'s `gloo-timers = { version = "0.3", features = ["futures"] }`); add the same line to Beacon's own `Cargo.toml` rather than inventing a second timer mechanism.
+
+No backend change is needed for polling itself: `QueryMetricsRequest` already carries `start`/`end`/`step` (Phase 8), so each tick re-issues `QueryMetrics` with a sliding window (`end = now`, `start = now - window`) rather than the server needing any notion of a standing subscription — metrics are polled, not streamed, in every comparable system (Prometheus, Grafana) for the same reason: a range query is cheap and idempotent, so there's no product benefit to the added complexity of a push-based `StreamMetrics` RPC.
+
+### Correlating a graph with Events
+
+A worked, real example, not a hypothetical: Fuse's native proxy backend tags every WideEvent it produces with `attributes["http.path"]` and `attributes["route.name"]` (`services/core/fuse/control_plane/native/backend.go`, `span.SetAttribute("http.path", r.URL.Path)` — already shipped, see [Wide Events](/docs/architecture/wide-events)). Say the graph builder is watching `rate(http_requests_total{service="fuse"}[5m])` (still the illustrative metric name used throughout this doc — no service emits it yet, see [Query Language](#query-language)) and it spikes. `service="fuse"` is as specific as that metric's labels get; `http.path` isn't one of them, deliberately — a raw request path is exactly the kind of high-cardinality value Prometheus/OTel convention keeps *off* metric labels (one time series per distinct path, forever, is how a metrics store falls over), which is precisely why Beacon has a separate, per-request WideEvent stream in the first place. The question "which path is causing this" is a real one the metric alone cannot answer — it has to be answered by pivoting into Events, not by trying to make PromQL join across two ClickHouse tables at query time.
+
+Two mechanisms, one already-real and one proposed, cover this without inventing a cross-table query language:
+
+- **Exemplars (proposed, Phase 24).** OTLP's wire format already lets a histogram/sum data point carry one or more `Exemplar`s — a sample value plus the `trace_id`/`span_id` that produced it — precisely so a metrics backend can link an aggregate back to one concrete request. `services/core/beacon/ingest/metrics.go` doesn't capture this today; it flattens data points into `(metric_name, labels, timestamp, value)` and drops the exemplar. Add nullable `exemplar_trace_id`/`exemplar_span_id` columns to `metric_points` (empty when the exporter sends none, which is most exporters today — chassis's own `otel_metrics.go` reporter doesn't emit exemplars yet either, so this is groundwork more than an immediate payoff), and `QueryMetrics`'s `Sample` message gains the same two optional fields. When present, a chart point is clickable straight through to `GetWideEvent(trace_id)` — the same "jump to the exact request" interaction Grafana's own exemplar support gives Prometheus users.
+- **"View correlated events" (v1, no exemplar needed).** Always available, regardless of whether the metric source ever emits exemplars: a button beside the graph that opens the Events view with `service_name = "<metric's service label>"` pre-filled as a BeaconQL fragment (translated from whichever label the PromQL selector already scoped by) and the time range set to the graph's current `start`/`end` window. `WideEventQueryBuilder` already supports filtering by any `attributes[...]` key — the operator adds `attributes["http.path"] = "..."` themselves once there, the same click-to-build motion described under [`MetricQueryBuilder`](#metricquerybuilder) above, just on the Events side. This is the same cross-view pivot Stream's `TracePill` already does today (log row → Traces view by `trace_id`) — one more instance of an established pattern, not a new one.
+
+Exemplars answer "show me the *exact* request behind this one point"; "View correlated events" answers "show me *every* request in this window and let me slice by whatever attribute turns out to matter" — a graph without any exemplar data yet still gets the second one for free, since it only depends on the metric's own labels and time range, both already known to the graph.
+
+### Putting it together — `GraphConfig`
+
+The `Metrics` view's state grows from two signals (`expression`, `query_req`) to one struct:
+
+```rust
+#[derive(Clone, PartialEq, Default)]
+struct GraphConfig {
+    id: Option<String>,      // None until saved once -- see Persisting a graph below
+    name: String,            // operator-given display name, empty until saved
+    query: String,           // PromQL-subset expression, built by MetricQueryBuilder or typed directly
+    chart_type: ChartType,   // Line | Bar | Area | SingleStat
+    window: Duration,        // lookback window for each poll's start/end
+    refresh: Option<Duration>, // None = off, matching PollingIntervalSelector's "Off" option
+}
+```
+
+`Metrics`'s existing `run_query` closure becomes the tick handler: on a manual "run" click *or* every `refresh` interval (when set), rebuild `QueryMetricsRequest{ query, start: now - window, end: now, step: <window/N> }` and re-fetch, exactly as today's one-shot version already does — the only change is *what* triggers that rebuild, and that the query string can now arrive from a click instead of only the keyboard. `id`/`name` are the only fields not already covered above — they exist purely for the save/load flow next.
+
+### Persisting a graph
+
+A `GraphConfig` is worth saving under a name and reloading later — the same "worth surviving a refresh" bar every other piece of cluster *configuration* in this framework already clears by living in Blueprint's KV (Fuse's route table, Bench's workflow schedules, the KV browser's own UI state), rather than each service growing its own settings store. It is emphatically not a place for the queried *data* — `metric_points`/ClickHouse stays exactly where it is; only the graph's own definition (query, chart type, window, refresh) is config.
+
+**Written via a Catalyst event, not a direct `KeyValueService` RPC.** Rather than Beacon calling `Set`/`Delete` on Blueprint's KV directly, Beacon produces a CloudEvent describing the mutation and Blueprint consumes it — a generic mechanism, [Type Mutation Events](/docs/architecture/core-services#type-mutation-events), that *any* process with a type already registered via `RegisterType`/`WithRegisteredType` can use, not something specific to this one type. Reads stay exactly as direct `Get`/`List` RPCs (see that doc for why: Catalyst is one-way, and reads need a response back to a specific caller); only mutation goes through the event.
+
+**A real proto message, not an untyped blob** — `api/core/observability/metrics/v1/metrics.proto` gains:
+
+```protobuf
+enum ChartType {
+    CHART_TYPE_UNSPECIFIED = 0;
+    CHART_TYPE_LINE        = 1;
+    CHART_TYPE_BAR         = 2;
+    CHART_TYPE_AREA        = 3;
+    CHART_TYPE_SINGLE_STAT = 4;
+}
+
+// BeaconMetricsGraphConfiguration is a Metrics Graph Builder configuration,
+// persisted in Blueprint's Key/Value store the same way
+// core.control_plane.networking.v1.Route is -- the type lives with its
+// semantic owner (Beacon, here) even though Blueprint is where it's actually
+// stored; Blueprint's KV store is deliberately schema-agnostic and doesn't
+// define types for what it holds. Mutated via a TypeMutation CloudEvent (see
+// core.registry.key_value.v1.TypeMutation), not a direct KeyValueService
+// call -- see this doc's "Persisting a graph" section.
+message BeaconMetricsGraphConfiguration {
+    string id   = 1; // stable identity, generated at creation, used as the KV key
+    string name = 2; // operator-given display name, e.g. "Fuse error rate"
+
+    string query            = 3; // PromQL-subset expression
+    ChartType chart_type    = 4;
+    string window           = 5; // Go-duration string, e.g. "15m" -- same string-duration
+    string refresh_interval = 6; // convention QueryMetricsRequest's own start/end/step already use;
+                                  // empty string means refresh is off
+
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+}
+```
+
+This mirrors `Route`'s own placement: a `Route` is defined in `core.control_plane.networking.v1` (Fuse's package, since Fuse owns what a route *means*) despite being stored generically in Blueprint's KV. `BeaconMetricsGraphConfiguration` follows the identical convention — defined in Beacon's own `metrics/v1` package, stored generically in Blueprint's KV, keyed by `"beacon_metrics_graph_configuration_" + id`.
+
+**The generic event envelope** — new, in `api/core/registry/key_value/v1/service.proto` (alongside `TypeDescriptor`/`RegisterType`, the schema-registration mechanism this builds on):
+
+```protobuf
+message TypeMutation {
+    enum Action {
+        ACTION_UNSPECIFIED = 0;
+        ACTION_CREATE       = 1;
+        ACTION_UPDATE       = 2;
+        ACTION_DELETE       = 3;
+    }
+    Action action = 1;
+    // The KV key this mutation applies to -- same string Get/Set/Delete already take.
+    string key = 2;
+    // The typed value to store, for CREATE/UPDATE. Absent for DELETE -- only
+    // `key` matters then. Blueprint decodes this using the same
+    // RegisterType-backed descriptor DecodeValues already uses for
+    // value.type_url; an unregistered type_url is logged and dropped, not
+    // applied.
+    google.protobuf.Any value = 3;
+}
+```
+
+Produced as a CloudEvent of type `"core.registry.key_value.v1.TypeMutation"` (matching WideEvent's own CloudEvent-type-string convention). Blueprint runs exactly one consumer for this type, generic across every registered proto message — see [Type Mutation Events](/docs/architecture/core-services#type-mutation-events) for the consumer side; this doc covers Beacon's own use of it.
+
+**A new chassis producer helper**, since this is a framework capability, not Beacon-specific plumbing — `pkg/chassis/type_mutation.go`:
+
+```go
+// PublishTypeMutation produces a TypeMutation CloudEvent for Blueprint's generic consumer to
+// apply. Fire-and-forget, matching Catalyst's own broadcast nature (see Type Mutation Events) --
+// a successful return means the event was handed to Catalyst, not that Blueprint has applied it
+// yet. msg is nil for ACTION_DELETE.
+func PublishTypeMutation(action kvv1.TypeMutation_Action, key string, msg proto.Message) error
+```
+
+Mirrors `wide_event.go`'s own shape almost exactly: a lazy, `sync.Once`-initialized `BidiStreamForClient` held for the process's lifetime (opening a fresh producer stream per call would be wasteful for something a UI action can trigger repeatedly), the same "stream doesn't reconnect if Catalyst restarts" caveat already documented for WideEvents applies here too, and the same fire-and-forget error-handling convention (log and drop, never propagate to the caller's own request path) — reusing a known, understood limitation rather than introducing a new one.
+
+**Beacon's own wiring:**
+
+```go
+c := chassis.New(logger).
+    WithRegisteredType(&metricsv1.BeaconMetricsGraphConfiguration{}).
+    // ...
+```
+
+registers the schema once at startup (`KeyValueService.RegisterType`, purely so Blueprint's own KV browser UI can decode and display these values instead of showing an opaque byte count — has no effect on whether saving/loading actually works). Beacon's web client has never called another service's backend before (`API_DOMAIN`, `services/core/beacon/web-client/src/main.rs`, is same-origin only), so it gets one new unary RPC on Beacon's own backend, `MetricsService.SaveGraphConfiguration`/`DeleteGraphConfiguration` — the web client calls these (same-origin, no new cross-service web-client wiring needed at all), and the Go handler behind them is what actually calls `chassis.PublishTypeMutation`. Reads still go directly to Blueprint's `KeyValueService.List`/`Get`, which needs the same cross-origin path `CATALYST_DOMAIN` already established for Blueprint's own web client (a plain `option_env!`-overridable constant, cross-origin, no Fuse routing — every chassis service already wires in permissive CORS by default, `pkg/chassis/builder.go`'s `buildCors`): Beacon's web client gains `BLUEPRINT_DOMAIN` (default `http://localhost:2221`) for exactly this.
+
+**Save/Load UI**, alongside `ChartTypeSelector`/`PollingIntervalSelector`: a "Save" button (prompts for a name if `GraphConfig.name` is empty, calls `SaveGraphConfiguration` with the current config — Beacon's backend fills in `id`/`created_at` on first save or preserves them on a re-save before publishing the mutation) and a "Load" dropdown (`List`s Blueprint directly by `BeaconMetricsGraphConfiguration`'s type URL on mount, matching how Fuse's own `listRawRoutes` lists routes by type URL) that replaces the current `GraphConfig` wholesale when a saved graph is picked. Per the fire-and-forget model, "Save" shows success as soon as Beacon's own RPC returns (confirming the event reached Catalyst) — not confirmation that Blueprint has applied it yet; a save that's somehow rejected (malformed payload, an unregistered type) surfaces only in Blueprint's own logs, not back to the button.
+
+---
+
 ## Implementation Plan
 
 Phases are ordered so each is independently shippable and the earliest phases deliver a usable Stream view before Traces or Metrics exist at all.
@@ -256,8 +440,18 @@ Phases are ordered so each is independently shippable and the earliest phases de
 | 15 | Web client **Logs** view: log detail panel (Overview / JSON / Context tabs) | Full row detail, `resource_attributes`, and chronological context are visible without leaving the row |
 | 16 | Web client **Logs** view: click-to-filter on attribute values | Turning a value into a filter is a click, not hand-typed BeaconQL |
 | 17 | Web client **Logs** view: volume/severity histogram | A quiet visual sense of spike shape before reading rows |
+| 18 | `chassis.StartSpan` + cross-process `traceparent` propagation; Bench end-to-end workflow tracing | Background work outliving its inbound handler gets real spans; any two chassis services can hand a trace across a network call |
+| 19 | `ListMetricNames`/`ListLabelValues` RPCs `[Go]` | Metrics gain the discovery surface a click-to-build query bar needs |
+| 20 | Web client **Metrics** view: `MetricQueryBuilder` `[Rust/Dioxus]` | Building a PromQL-subset query is a series of clicks, not hand-typed syntax |
+| 21 | Web client **Metrics** view: `ChartTypeSelector` + `Chart` dispatcher (Line/Bar/Area/SingleStat) `[Rust/Dioxus]` | A query result can be shaped as the chart that actually fits it |
+| 22 | Web client **Metrics** view: `PollingIntervalSelector` `[Rust/Dioxus]` | A graph stays live at an operator-chosen cadence instead of one manual "run" per look |
+| 23 | Web client **Metrics** view: "View correlated events" pivot `[Rust/Dioxus]` | A metric spike answers "which requests" by pivoting into Events, pre-filled by label and time window |
+| 24 | OTLP exemplar capture + `QueryMetrics` exemplar fields `[Go]` | A single chart point can link straight to the exact WideEvent that produced it |
+| 25 | Blueprint: generic `TypeMutation` Catalyst consumer `[Go]` | Any process with a registered type can mutate it over Catalyst instead of a direct KV RPC — a framework capability, not Beacon-specific |
+| 26 | `BeaconMetricsGraphConfiguration` proto + `chassis.PublishTypeMutation` + Beacon's Save/Delete RPCs `[Go]` | A graph's config has a real, typed shape, and Beacon can persist one via Phase 25's new mechanism |
+| 27 | Web client Metrics view: Save/Load a graph configuration `[Rust/Dioxus]` | A graph survives a page refresh and is nameable/reloadable, stored in Blueprint like every other piece of cluster config |
 
-Phases 12&ndash;15 were a follow-up pass scoped to the three **high**-priority gaps identified against SigNoz's Logs Explorer (`assets/beacon-logs-redesign.html` has the full gap analysis and wireframes). Phase 16 begins the **medium**-priority items from that same analysis (click-to-filter, volume histogram, pause/resume, query-bar autocomplete), taken up one at a time rather than batched.
+Phases 12&ndash;15 were a follow-up pass scoped to the three **high**-priority gaps identified against SigNoz's Logs Explorer (`assets/beacon-logs-redesign.html` has the full gap analysis and wireframes). Phase 16 begins the **medium**-priority items from that same analysis (click-to-filter, volume histogram, pause/resume, query-bar autocomplete), taken up one at a time rather than batched. Phases 19&ndash;27 are the [Metrics Graph Builder](#metrics-graph-builder) work: chart-type selection, a click-to-build query bar, configurable polling, [correlation with Events](#correlating-a-graph-with-events), and [persistence](#persisting-a-graph) for the Metrics view, mirroring the click-to-build/live-refresh/cross-view-pivot conveniences Stream and Events already have. Phase 25 is the one piece that isn't Metrics-specific at all — see [Type Mutation Events](/docs/architecture/core-services#type-mutation-events) — everything from Phase 26 on is Beacon's own use of it.
 
 ### Phase 0 — Scaffold `[Go]`
 
@@ -518,7 +712,7 @@ Adding `otlp/beacon` alongside the existing exporters (rather than replacing the
   - A process-wide `*OTelExporter` singleton (`sync.Once`) backs `StartSpan`/`Span.End` — `newOTelExporter` starts a background send-loop goroutine and its own HTTP client per call, so `StartSpan` must not repeat that per span the way `NewTraceInterceptor`/`NewOTelLogger` each do once at their own construction time.
 - `services/tooling/bench/scheduler.go` — `Scheduler.execute` opens a root span (`workflow:<name>`, attributes `workflow_name`/`run_id`) around the whole DAG walk, ended OK/ERROR based on `runFailed` — this is the span `TriggerRun`'s own short-lived interceptor span was never long enough to be. `Scheduler.runStep` opens a child span (`step:<name>`, attributes `step_name`/`uses`) per step, ended OK/ERROR based on that step's pass/fail outcome, and passes its span-carrying `ctx` into `exec.Execute` so an executor can propagate the trace onward.
 - `services/tooling/bench/grpc_call.go` — sets the `traceparent` header directly via `chassis.TraceParentHeader(ctx)` on its outbound `*http.Request` (a plain `net/http` call, not a connect-go client, so there's no interceptor chain to attach to).
-- `services/tooling/bench/garage_plugin.go` — adds `connect.WithInterceptors(chassis.NewTraceClientInterceptor())` to its `stepexecutorv1connect.NewStepExecutorClient` construction, so a `garage://` step's call to the plugin also continues the trace.
+- `services/tooling/bench/foundry_plugin.go` — adds `connect.WithInterceptors(chassis.NewTraceClientInterceptor())` to its `stepexecutorv1connect.NewStepExecutorClient` construction, so a `foundry://` step's call to the plugin also continues the trace.
 
 **Usage — the pattern any chassis service can follow** for background work started from (but outliving) an inbound handler:
 
@@ -539,3 +733,116 @@ func (s *Scheduler) execute(ctx context.Context, run *workflowv1.Run, w *workflo
 Call `chassis.StartSpan(ctx, name)` again anywhere further down the same call path (another goroutine, a retry loop, a per-item iteration) to add a child span — nesting falls out automatically from whatever span `ctx` already carries, no explicit parent-passing needed. For an outbound call that should hand the trace to another chassis service: use `connect.WithInterceptors(chassis.NewTraceClientInterceptor())` on a connect-go client, or set the `chassis.TraceParentHeader(ctx)` header by hand on a raw `net/http` request — either way, the receiving service's own `NewTraceInterceptor` picks it up with no further wiring.
 
 **How to test:** Trigger a workflow (`curl -X POST http://localhost:9300/tooling.workflow.v1.WorkflowService/TriggerRun -d '{"workflow_name":"crud-e2e"}'`) and query `beacon.spans` for the resulting `trace_id`. Verified live: a passing run produced `workflow:crud-e2e` (root) → `step:create-name` / `step:read-name` (children, correct `parent_span_id`) → `examples.crud.v1.CrudService/Create` / `.../Read` (crud's own spans, now children of the matching step span instead of disconnected new traces), all one `trace_id`, all `STATUS_CODE_OK`. Stopping `crud` mid-run and re-triggering produced the same shape with `STATUS_CODE_ERROR` on both `workflow:crud-e2e` and `step:create-name` (and no span at all for the skipped `read-name`, since no work happened for it). Confirmed this only took effect after rebuilding *both* services sharing the local chassis `replace` — bench and crud each needed a fresh build for the new `traceparent`-aware `NewTraceInterceptor` to take effect on their side.
+
+### Phase 19 — `ListMetricNames`/`ListLabelValues` RPCs `[Go]`
+
+**Goal:** Metrics gain the same "what can I even query" discovery surface Prometheus's own HTTP API provides — the precondition for any click-to-build query bar, per [Why the query builder needs a new backend capability](#why-the-query-builder-needs-a-new-backend-capability).
+
+**New paths:**
+- `api/core/observability/metrics/v1/metrics.proto` — `ListMetricNames(ListMetricNamesRequest{prefix, limit}) returns (ListMetricNamesResponse{names})`; `ListLabelValues(ListLabelValuesRequest{metric_name, limit}) returns (ListLabelValuesResponse{values: map<string, LabelValues>})`, `LabelValues{values: repeated string}` — keyed by label name so one call discovers both which label keys exist for a metric and each key's values, rather than needing a separate "list label keys" RPC.
+- `services/core/beacon/query/metric_discovery.go` — `SELECT DISTINCT metric_name FROM metric_points [WHERE metric_name LIKE ?] LIMIT ?` for the first; `SELECT DISTINCT arrayJoin(mapKeys(labels)) AS k, arrayJoin(labels[k]) AS v FROM metric_points WHERE metric_name = ? GROUP BY k, v LIMIT ?`-shaped query for the second, grouped into the response's `map<string, LabelValues>` server-side.
+
+**How to test:** With seeded `http_requests_total{route="/api", service="fuse"}` and `process_cpu_percent` points in `metric_points`, `ListMetricNames` (no prefix) returns both names; `ListMetricNames{prefix: "http_"}` returns only the first. `ListLabelValues{metric_name: "http_requests_total"}` returns `{"route": ["/api"], "service": ["fuse"]}`.
+
+### Phase 20 — Web client Metrics view: `MetricQueryBuilder` `[Rust/Dioxus]`
+
+**Goal:** Building a PromQL-subset query is a series of clicks, matching the convenience Stream's `QueryBuilder` and Events' `WideEventQueryBuilder` already give their own grammars.
+
+**New paths:**
+- `services/core/beacon/web-client/src/components/metric_query_builder.rs` — `MetricQueryBuilder(expression: Signal<String>, on_add: EventHandler<String>)`, per [`MetricQueryBuilder`](#metricquerybuilder) above: metric-name select (populated via `ListMetricNames` on mount) → label filter rows (key + value selects, populated via `ListLabelValues` scoped to the chosen metric) → optional aggregation wrapper select (`rate(...)` / `sum by (...)` / bare selector, sourced from `query/promql.go`'s own supported-construct list, not a hand-maintained duplicate) → live fragment preview + "Add to query".
+
+**Changed paths:**
+- `services/core/beacon/web-client/src/views/metrics.rs` — mounts `MetricQueryBuilder` above the existing `QueryBar`, wired to the same `expression` signal so a click-built fragment and hand-typed text compose the same way Stream's two input modes already do.
+
+**How to test:** Selecting metric `http_requests_total`, adding a label filter `route = "/api"`, and choosing the `rate(...)` wrapper builds `rate(http_requests_total{route="/api"}[5m])` in the preview; clicking "Add to query" populates the query bar with exactly that string and running it returns the expected series.
+
+### Phase 21 — Web client Metrics view: `ChartTypeSelector` + `Chart` dispatcher `[Rust/Dioxus]`
+
+**Goal:** A query result renders as the chart shape that actually fits it, not always the same overlaid-lines view.
+
+**New paths:**
+- `services/core/beacon/web-client/src/components/chart_type_selector.rs` — `ChartType` enum (`Line | Bar | Area | SingleStat`) + a small icon-button group, matching `wide_events.rs`'s `ViewMode` List/FlameGraph toggle for the interaction shape.
+- `services/core/beacon/web-client/src/components/chart.rs` — `Chart(chart_type: ChartType, series: Vec<TimeSeries>)`, dispatching to: today's `TimeSeriesChart` unchanged for `Line`; a new `Bar` renderer generalizing `SeverityHistogram`/`WideEventHistogram`'s stacked-proportional-bar approach from "count per time bucket" to "value per sample, colored by series"; a new `Area` renderer reusing `Line`'s coordinate math with each series' region filled at low opacity; `SingleStat` rendering only when exactly one series is present, reusing `MetricStatTile`'s existing `MetricCard` adaptation with no chart beneath it.
+
+**Changed paths:**
+- `services/core/beacon/web-client/src/views/metrics.rs` — a `chart_type: Signal<ChartType>` alongside the existing signals; the current unconditional `TimeSeriesChart { series: series_list.clone() }` call becomes `Chart { chart_type: chart_type(), series: series_list.clone() }`.
+
+**How to test:** With a multi-series query result loaded, switching the selector between all four types re-renders the same data as overlaid lines, stacked bars, filled areas, and (once narrowed to a single series) one big `MetricCard` with no chart — no re-query needed, since it's the same `series_list` reshaped client-side.
+
+### Phase 22 — Web client Metrics view: `PollingIntervalSelector` `[Rust/Dioxus]`
+
+**Goal:** A graph stays live at an operator-chosen cadence, matching Blueprint's own Metrics view's existing (fixed 5s) polling and Stream's live tail, instead of Beacon's Metrics view remaining the one page in the product with no auto-refresh.
+
+**New paths:**
+- `services/core/beacon/web-client/src/components/polling_interval_selector.rs` — `PollingIntervalSelector(interval: Signal<Option<Duration>>)`, a `<select>` over Off/5s/10s/30s/1m/5m.
+
+**Changed paths:**
+- `services/core/beacon/web-client/Cargo.toml` — add `gloo-timers = { version = "0.3", features = ["futures"] }` (already a Blueprint web-client dependency; Beacon's doesn't have it yet).
+- `services/core/beacon/web-client/src/views/metrics.rs` — a `refresh: Signal<Option<Duration>>` driven by `PollingIntervalSelector`; when `Some(d)`, a `gloo_timers::callback::Interval::new(d.as_millis(), ...)` held in its own `use_signal` (so it isn't dropped at the end of the render function — see Blueprint's `metrics.rs` for the exact pattern this mirrors) increments a `tick: Signal<u32>` that the existing query-refetch `use_effect` depends on; switching back to "Off" drops the `Interval` (setting the holding signal back to `None`), stopping the ticks. Each tick rebuilds `QueryMetricsRequest` with a sliding `start`/`end` window (`end = now`, `start = now - window`) rather than resending the exact same absolute range forever.
+
+**How to test:** With a query already running, setting the interval to 5s and watching `metric_points` receive new rows (e.g. a chassis host-metrics reporter still running) shows the chart/tiles advance every ~5s with no manual "run" click; switching to "Off" stops further requests (confirm via network inspection — no new `QueryMetrics` calls after the switch) without clearing the last-fetched data off screen.
+
+### Phase 23 — Web client Metrics view: "View correlated events" pivot `[Rust/Dioxus]`
+
+**Goal:** A metric spike answers "which requests" by pivoting into Events, pre-filled by label and time window — see [Correlating a graph with Events](#correlating-a-graph-with-events).
+
+**New paths:**
+- `services/core/beacon/web-client/src/components/metric_events_link.rs` — `MetricEventsLink(series: TimeSeries, window_start: String, window_end: String)`: builds a BeaconQL fragment from `series.labels` (a label whose key matches one of WideEvent's own first-class fields — today just `service` → `service_name`, per `TimeSeries.labels`' typical OTel-convention keys — becomes `service_name = "..."`; every other label becomes `attributes["<key>"] = "<value>"`) and renders a link/button to the Events route carrying that fragment plus the window as query parameters.
+
+**Changed paths:**
+- `services/core/beacon/web-client/src/views/metrics.rs` — one `MetricEventsLink` per stat tile/series (reusing `series.labels` already in hand from the current `QueryMetrics` result — no new fetch, no PromQL-string parsing needed to recover the labels).
+- `services/core/beacon/web-client/src/views/wide_events.rs` — reads an optional pre-fill (BeaconQL fragment + time range) from the navigation, seeding `expression`/the time range picker on mount, the same way a deep link into Traces from Stream's `TracePill` already seeds that view's own state today.
+
+**How to test:** Querying `rate(http_requests_total{service="fuse"}[5m])`, clicking "View correlated events" on the resulting series opens Events with `service_name = "fuse"` already in the query bar and the time range matching the graph's current window; adding `attributes["http.path"] = "..."` by hand (or via `WideEventQueryBuilder`, once loaded) narrows to the specific route.
+
+### Phase 24 — OTLP exemplar capture + `QueryMetrics` exemplar fields `[Go]`
+
+**Goal:** A single chart point can link straight to the exact WideEvent that produced it, for exporters that actually send exemplars — see [Correlating a graph with Events](#correlating-a-graph-with-events) for why this is additive groundwork rather than the primary mechanism (most exporters, including chassis's own `otel_metrics.go` reporter today, don't emit exemplars).
+
+**New paths:** none — extends Phase 7/8's existing files.
+
+**Changed paths:**
+- `services/core/beacon/ingest/metrics.go` — capture each OTLP data point's `Exemplars` (when present) instead of discarding them; add nullable `exemplar_trace_id String`, `exemplar_span_id String` columns to `metric_points` (empty string when the point carries none — ClickHouse has no natural `NULL` for `String` without `Nullable()`, and an empty string is an unambiguous "no exemplar" sentinel here since real trace/span ids are never empty).
+- `api/core/observability/metrics/v1/metrics.proto` — `Sample` gains `optional string exemplar_trace_id = 3` / `optional string exemplar_span_id = 4`.
+- `services/core/beacon/web-client/src/views/metrics.rs` — a chart point with a non-empty exemplar pair renders as clickable, opening the Events detail panel directly via `GetWideEvent(trace_id)` — no query-builder round trip needed, since there's exactly one event to show.
+
+**How to test:** An OTel SDK configured to emit exemplars (most language SDKs support this for histograms) sends a data point with one attached; the resulting `Sample` in `QueryMetricsResponse` carries the matching `exemplar_trace_id`; clicking that point in the chart opens the exact WideEvent, confirmed by comparing its `trace_id` to the one the exemplar named.
+
+### Phase 25 — Blueprint: generic `TypeMutation` Catalyst consumer `[Go]`
+
+**Goal:** Any process with a registered type can mutate it over Catalyst instead of a direct KV RPC — a framework capability, not Beacon-specific. See [Type Mutation Events](/docs/architecture/core-services#type-mutation-events). This phase has no dependency on Beacon or Metrics at all; it's a prerequisite Phase 26 builds on.
+
+**New paths:**
+- `api/core/registry/key_value/v1/service.proto` — adds `TypeMutation` and its nested `Action` enum, per [Persisting a graph](#persisting-a-graph)'s exact definition.
+- `services/core/blueprint/key_value/type_mutation_consumer.go` — opens a `ConsumerClient.Consume` stream (same shape `services/tooling/catalyst-consume/rpc.go` already uses) filtered to CloudEvent type `"core.registry.key_value.v1.TypeMutation"`, started as a background goroutine at Blueprint's own startup. For each event: decode the body into `TypeMutation`, look up `value.type_url` (or the message name for `ACTION_DELETE`, which carries none) against Blueprint's own already-existing registered-type descriptors (the same lookup `DecodeValues` uses), and apply `CREATE`/`UPDATE` as the internal equivalent of `KeyValueService.Set` or `DELETE` as the internal equivalent of `Delete` — calling the same underlying storage function the RPC handlers already call, not a second code path. An unregistered `type_url` or a decode failure is logged and dropped, never fatal to the consumer loop.
+
+**Changed paths:**
+- `services/core/blueprint/main.go` — starts the new consumer alongside Blueprint's other startup work. This is Blueprint's first-ever dependency on Catalyst (previously zero coupling between the two — Blueprint doesn't import Catalyst's API at all today); worth calling out plainly rather than treating as an incidental detail, even though it's a one-way "Blueprint reads from Catalyst" dependency, not a cycle (Catalyst doesn't depend on Blueprint's KV in return).
+
+**How to test:** With a type registered via `RegisterType`, producing a `TypeMutation{action: ACTION_CREATE, key: "test-key", value: <the registered type>}` CloudEvent by hand (e.g. via `foundry://http-call@v1` or a small script hitting Catalyst's `Produce` RPC directly) results in `KeyValueService.Get{key: "test-key"}` returning that value shortly after — no direct `Set` call involved. The same for `ACTION_UPDATE` (value changes) and `ACTION_DELETE` (`Get` then returns not-found). A `TypeMutation` naming an unregistered `type_url` is logged by Blueprint and has no effect on the KV store — confirmed by checking nothing new appears under `ListKinds`.
+
+### Phase 26 — `BeaconMetricsGraphConfiguration` proto + `chassis.PublishTypeMutation` + Beacon's Save/Delete RPCs `[Go]`
+
+**Goal:** A graph's config has a real, typed shape, and Beacon can persist one via Phase 25's new mechanism — see [Persisting a graph](#persisting-a-graph).
+
+**New paths:**
+- `pkg/chassis/type_mutation.go` — `PublishTypeMutation(action, key, msg)`, the generic producer helper any chassis service (not just Beacon) can call, per [Persisting a graph](#persisting-a-graph)'s exact description (lazy `sync.Once`-held `BidiStreamForClient`, mirroring `wide_event.go`'s own shape and caveats).
+- `services/core/beacon/query/graph_configuration.go` — `MetricsService.SaveGraphConfiguration`/`DeleteGraphConfiguration` RPC handlers: `SaveGraphConfiguration` fills in `id` (generated) and `created_at` on first save (an empty incoming `id`) or preserves both and bumps `updated_at` on a re-save (a non-empty incoming `id`), then calls `chassis.PublishTypeMutation(ACTION_CREATE_or_UPDATE, "beacon_metrics_graph_configuration_"+id, &config)`. `DeleteGraphConfiguration` calls it with `ACTION_DELETE` and no value.
+
+**Changed paths:**
+- `api/core/observability/metrics/v1/metrics.proto` — adds `ChartType`, `BeaconMetricsGraphConfiguration`, and the two new RPCs + their request/response messages.
+- `services/core/beacon/main.go` — `chassis.New(logger).WithRegisteredType(&metricsv1.BeaconMetricsGraphConfiguration{})` added to the existing builder chain.
+
+**How to test:** Calling `SaveGraphConfiguration` with an empty `id` returns one newly generated; querying Blueprint's `KeyValueService.Get` for `"beacon_metrics_graph_configuration_" + <that id>` shortly after returns the saved config, decoded as `BeaconMetricsGraphConfiguration` (not an opaque blob) in Blueprint's own KV browser UI — confirming both Phase 25's consumer and this phase's producer work together, end to end, before any UI exists to drive it.
+
+### Phase 27 — Web client Metrics view: Save/Load a graph configuration `[Rust/Dioxus]`
+
+**Goal:** A graph survives a page refresh and is nameable/reloadable, stored in Blueprint like every other piece of cluster config — see [Persisting a graph](#persisting-a-graph).
+
+**New paths:**
+- `services/core/beacon/web-client/src/components/saved_graphs.rs` — `BLUEPRINT_DOMAIN` (mirrors Blueprint's own `CATALYST_DOMAIN` shape exactly: `option_env!`-overridable, defaults to `http://localhost:2221`), used only for the *read* side (`KeyValueService.List`/`Get`, direct to Blueprint); a `SaveGraphButton(config: GraphConfig, on_saved: EventHandler<GraphConfig>)` (prompts for a name when `config.name` is empty, calls Beacon's own `SaveGraphConfiguration` RPC — same-origin, no cross-service client needed for this half) and a `LoadGraphDropdown(on_load: EventHandler<GraphConfig>)` (`List`s Blueprint directly by `BeaconMetricsGraphConfiguration`'s type URL on mount, populating a `<select>`).
+
+**Changed paths:**
+- `services/core/beacon/web-client/src/views/metrics.rs` — mounts both alongside `ChartTypeSelector`/`PollingIntervalSelector`; `LoadGraphDropdown`'s `on_load` replaces the view's `GraphConfig` signal wholesale (query, chart type, window, refresh interval all switch together, matching what was saved).
+
+**How to test:** Building a graph, saving it as "Fuse error rate," navigating away (or refreshing the page) and back, then loading it from the dropdown reproduces the exact same query/chart-type/window/refresh-interval — confirmed by comparing the query bar's text and the chart-type toggle's selected state before and after the round trip. Matches Phase 26's own verification but now driven by the actual UI instead of a direct RPC call.

@@ -1,13 +1,13 @@
 ---
 weight: 30
 title: 'End-to-End Testing — Overview'
-description: 'Architecture for Bench (a declarative workflow engine) and Garage (its plugin repository), Draft''s answer to end-to-end testing.'
+description: 'Architecture for Bench (a declarative workflow engine) and Foundry (its plugin repository), Draft''s answer to end-to-end testing.'
 icon: 'fact_check'
 draft: false
 toc: true
 ---
 
-This document proposes two new services for testing Draft-based systems end to end: **Bench**, a declarative workflow engine that runs YAML-defined test workflows and reports their results, and **Garage**, the plugin repository that supplies the reusable, versioned step executors Bench's workflows call into. Both are ordinary Draft applications — built on [Chassis](/docs/architecture/chassis-composability), registered with [Blueprint](/docs/architecture/core-services#blueprint), routed through [Fuse](/docs/architecture/core-services#fuse), eventing over [Catalyst](/docs/architecture/core-services#catalyst) — not a fifth core pillar. This document covers the prior art that shaped the design and the resulting architecture; [Bench — Workflow Engine](/docs/architecture/bench-workflow-engine) and [Garage — Plugin Repository](/docs/architecture/garage-plugin-repository) cover each service in depth, including its UI.
+This document proposes two new services for testing Draft-based systems end to end: **Bench**, a declarative workflow engine that runs YAML-defined test workflows and reports their results, and **Foundry**, the plugin repository that supplies the reusable, versioned step executors Bench's workflows call into. Both are ordinary Draft applications — built on [Chassis](/docs/architecture/chassis-composability), registered with [Blueprint](/docs/architecture/core-services#blueprint), routed through [Fuse](/docs/architecture/core-services#fuse), eventing over [Catalyst](/docs/architecture/core-services#catalyst) — not a fifth core pillar. This document covers the prior art that shaped the design and the resulting architecture; [Bench — Workflow Engine](/docs/architecture/bench-workflow-engine) and [Foundry — Plugin Repository](/docs/architecture/foundry-plugin-repository) cover each service in depth, including its UI.
 
 {{< alert context="warning" text="This is a design proposal, not a committed roadmap item or an implementation. Nothing described here exists yet." />}}
 
@@ -38,7 +38,7 @@ Two conclusions follow directly:
 
 Argo, Tekton, Drone, and Concourse all model a plugin as a container image invoked by a scheduler they own (Kubernetes, in four of five cases). Draft has no equivalent — it's a service-registration and RPC framework, not a container orchestrator; the closest thing it has to "run this pluggable unit somewhere" is a process registering itself with Blueprint and being reachable by RPC. Bolting a container scheduler onto Draft just to give Bench a plugin execution model would mean adopting an entire orchestration layer Draft doesn't have anywhere else, for the benefit of one service.
 
-The design that actually fits Draft's existing primitives: **a plugin is an ordinary Draft service that implements a small, fixed gRPC contract (`StepExecutor`) and registers itself — with Blueprint for live discovery, and with Garage for versioned catalog metadata.** Bench resolves a step's `uses: name@version` reference by asking Garage which version satisfies it and Blueprint where a live instance of it currently is, then makes an ordinary RPC. Draft already composes at process/service granularity everywhere — that's what [service registration](/docs/architecture/core-services#process-registration) *is* — so Bench doesn't need a new composition model, it needs to use the one Draft already has.
+The design that actually fits Draft's existing primitives: **a plugin is an ordinary Draft service that implements a small, fixed gRPC contract (`StepExecutor`) and registers itself — with Blueprint for live discovery, and with Foundry for versioned catalog metadata.** Bench resolves a step's `uses: name@version` reference by asking Foundry which version satisfies it and Blueprint where a live instance of it currently is, then makes an ordinary RPC. Draft already composes at process/service granularity everywhere — that's what [service registration](/docs/architecture/core-services#process-registration) *is* — so Bench doesn't need a new composition model, it needs to use the one Draft already has.
 
 One consequence worth stating plainly: a plugin process has to actually be running and registered for a step to execute, the same as any other Draft service dependency. There's no "spin up a container on demand" story here (that's what Argo/Tekton get from Kubernetes) — a plugin that needs elastic scaling would run behind a load-balanced pool of registered instances, same as any other Draft service under load, not via new machinery specific to Bench.
 
@@ -69,27 +69,27 @@ One consequence worth stating plainly: a plugin process has to actually be runni
                                                                     catalog       │
                                                                     metadata      │
                                                                            ┌───────────┐
-                                                                           │  Garage   │
+                                                                           │  Foundry   │
                                                                            │ (plugin   │
                                                                            │  catalog) │
                                                                            └───────────┘
 ```
 
 - **Bench** owns workflow definitions, receives webhook triggers, executes steps by calling plugins over RPC, tracks run/step status, and publishes status-change events to Catalyst.
-- **Garage** owns the plugin catalog: names, versions, config schemas, descriptions. It does not execute anything itself.
+- **Foundry** owns the plugin catalog: names, versions, config schemas, descriptions. It does not execute anything itself.
 - **Plugins** are separate registered Draft services (or, for the common built-in cases, code shipped inside Bench itself — see the Bench doc) that implement `StepExecutor` and are discovered through Blueprint the same way any RPC dependency is.
-- Both Bench's and Garage's UIs are server-side rendered, sharing one DaisyUI theme (detailed in each service's doc) — deliberately not the Dioxus/WASM approach used by [Blueprint's web client](/docs/architecture/blueprint-web-client-components), since the requirement here is explicitly SSR. The rationale for that split is covered in the Bench UI section.
+- Both Bench's and Foundry's UIs are server-side rendered, sharing one DaisyUI theme (detailed in each service's doc) — deliberately not the Dioxus/WASM approach used by [Blueprint's web client](/docs/architecture/blueprint-web-client-components), since the requirement here is explicitly SSR. The rationale for that split is covered in the Bench UI section.
 
 ## Decided
 
-- **Naming**: **Bench** (as in a test bench) and **Garage** (where a chassis's parts are kept and serviced) — continuing the naming pattern of Blueprint/Catalyst/Fuse/Chassis without colliding with existing proto package names (a plugin *registry* would otherwise be easy to confuse with `api/core/registry/*`, which is Blueprint's KV/service-discovery domain).
-- **Storage**: Postgres (via `pkg/repositories/postgres` + `bun`, the same pattern `golf-tracker`'s `course_creator` already uses) for both Bench's run history and Garage's plugin catalog — see each service's doc for the full reasoning.
+- **Naming**: **Bench** (as in a test bench) and **Foundry** (where a chassis's parts are kept and serviced) — continuing the naming pattern of Blueprint/Catalyst/Fuse/Chassis without colliding with existing proto package names (a plugin *registry* would otherwise be easy to confuse with `api/core/registry/*`, which is Blueprint's KV/service-discovery domain).
+- **Storage**: Postgres (via `pkg/repositories/postgres` + `bun`, the same pattern `golf-tracker`'s `course_creator` already uses) for both Bench's run history and Foundry's plugin catalog — see each service's doc for the full reasoning.
 - **Execution model**: Bench supports full DAG execution (`depends_on`, concurrent independent steps) from v1, not a sequential-only first cut.
-- **Location**: `services/tooling/bench` and `services/tooling/garage` — a new top-level grouping, not `services/core/`, since (as stated above) neither is required cluster infrastructure the way Blueprint/Fuse/Catalyst are. This is the first thing to land under `services/tooling/`; nothing else lives there yet.
+- **Location**: `services/tooling/bench` and `services/tooling/foundry` — a new top-level grouping, not `services/core/`, since (as stated above) neither is required cluster infrastructure the way Blueprint/Fuse/Catalyst are. This is the first thing to land under `services/tooling/`; nothing else lives there yet.
 
 ## Implementation plan
 
-This is the cross-cutting plan: the proto work both services share, the order the two services get built in, and the one codegen change this whole effort actually requires. Each service's own doc — [Bench](/docs/architecture/bench-workflow-engine#implementation-plan), [Garage](/docs/architecture/garage-plugin-repository#implementation-plan) — has the detailed phase breakdown for that service specifically.
+This is the cross-cutting plan: the proto work both services share, the order the two services get built in, and the one codegen change this whole effort actually requires. Each service's own doc — [Bench](/docs/architecture/bench-workflow-engine#implementation-plan), [Foundry](/docs/architecture/foundry-plugin-repository#implementation-plan) — has the detailed phase breakdown for that service specifically.
 
 {{< alert context="info" text="**Tracking convention**, used on every checklist in this document and the two service docs: an unchecked box is not started; a checked box gets a completion timestamp appended in place, `- [x] ... _(completed 2026-08-23 14:00 UTC)_`. Timestamps are UTC so they're comparable across contributors regardless of local timezone. Don't remove or reword a completed item's original text — append the timestamp, so the history of what was planned stays intact." />}}
 
@@ -98,9 +98,9 @@ This is the cross-cutting plan: the proto work both services share, the order th
 Three new packages, following the `services/tooling/` split decided above rather than living under `api/core/`:
 
 - [x] **`api/tooling/workflow/v1`** — `Workflow`/`Step`/`Run`/`StepResult` messages and `WorkflowService` (Bench's own API — `TriggerRun`, `GetRun`, `ListRuns`, `ListWorkflows`). Sketch in the [Bench doc](/docs/architecture/bench-workflow-engine#the-webhook-trigger-and-status-api). _(completed 2026-08-22 22:15 UTC — `api/tooling/workflow/v1/service.proto`, includes `Trigger`/`WebhookTrigger`/`RetryPolicy` and the `RunStatus`/`StepStatus`/`FailurePolicy` enums beyond the doc sketch, needed to make the messages concrete.)_
-- [x] **`api/tooling/step_executor/v1`** — `StepRequest`/`StepResponse` and the `StepExecutor` service every plugin implements, called by Bench. Sketch in the [Garage doc](/docs/architecture/garage-plugin-repository#what-a-plugin-is). _(completed 2026-08-22 22:15 UTC — `api/tooling/step_executor/v1/service.proto`, matches the doc sketch exactly.)_
-- [x] **`api/tooling/plugin_catalog/v1`** — `Plugin` manifest messages and `PluginCatalogService` (Garage's own API — `Publish`, `Get`, `List`, `Search`). Sketch in the [Garage doc](/docs/architecture/garage-plugin-repository#the-catalog). _(completed 2026-08-22 22:15 UTC — `api/tooling/plugin_catalog/v1/service.proto`; added a `Retract` RPC beyond the original sketch, since the doc's own "Publishing and discovery" section already described a retract-on-shutdown `chassis.Effect` that had no corresponding RPC defined until now.)_
-- [x] Run `buf generate` against `buf.gen.go.yaml` and confirm the generated Go types compile. _(completed 2026-08-22 22:15 UTC — `buf lint` clean, `go build ./tooling/...` in `api/` passes, `go mod tidy` made no changes. TS/web codegen (`buf.gen.web.yaml`) needs plugins normally pulled by `dctl api build`'s Docker image — not runnable bare from this host, and not needed for Bench/Garage's own Go SSR UI, so left for whenever a TS consumer actually exists.)_
+- [x] **`api/tooling/step_executor/v1`** — `StepRequest`/`StepResponse` and the `StepExecutor` service every plugin implements, called by Bench. Sketch in the [Foundry doc](/docs/architecture/foundry-plugin-repository#what-a-plugin-is). _(completed 2026-08-22 22:15 UTC — `api/tooling/step_executor/v1/service.proto`, matches the doc sketch exactly.)_
+- [x] **`api/tooling/plugin_catalog/v1`** — `Plugin` manifest messages and `PluginCatalogService` (Foundry's own API — `Publish`, `Get`, `List`, `Search`). Sketch in the [Foundry doc](/docs/architecture/foundry-plugin-repository#the-catalog). _(completed 2026-08-22 22:15 UTC — `api/tooling/plugin_catalog/v1/service.proto`; added a `Retract` RPC beyond the original sketch, since the doc's own "Publishing and discovery" section already described a retract-on-shutdown `chassis.Effect` that had no corresponding RPC defined until now.)_
+- [x] Run `buf generate` against `buf.gen.go.yaml` and confirm the generated Go types compile. _(completed 2026-08-22 22:15 UTC — `buf lint` clean, `go build ./tooling/...` in `api/` passes, `go mod tidy` made no changes. TS/web codegen (`buf.gen.web.yaml`) needs plugins normally pulled by `dctl api build`'s Docker image — not runnable bare from this host, and not needed for Bench/Foundry's own Go SSR UI, so left for whenever a TS consumer actually exists.)_
 
 **The codegen change this requires** — the only one, and worth being precise about, because two of the three generation pipelines need nothing done to them:
 
@@ -114,7 +114,7 @@ Three new packages, following the `services/tooling/` split decided above rather
       "./core/message_broker/actors/v1/",
   ];
   ```
-  Since Bench's and Garage's own UIs are server-side rendered Go, not Rust/WASM, **none of the three new packages need an entry here for Bench or Garage themselves to work** — skip this in Phase 0. Add an entry only if/when a Rust consumer actually needs generated bindings for one of these packages (the most plausible future case: Blueprint's web client surfacing run status on its cluster view, echoing the `PluginInventoryGateway`-style read-only projection pattern from the DeepSeek harness research). Flagging this now so it isn't rediscovered as a mystery build failure later — a new proto package under a directory this array doesn't list will silently not get Rust bindings, not error. Left unchecked deliberately — there is no current Rust consumer, so there's nothing to do here yet; check it off only when one exists and the entry is actually added.
+  Since Bench's and Foundry's own UIs are server-side rendered Go, not Rust/WASM, **none of the three new packages need an entry here for Bench or Foundry themselves to work** — skip this in Phase 0. Add an entry only if/when a Rust consumer actually needs generated bindings for one of these packages (the most plausible future case: Blueprint's web client surfacing run status on its cluster view, echoing the `PluginInventoryGateway`-style read-only projection pattern from the DeepSeek harness research). Flagging this now so it isn't rediscovered as a mystery build failure later — a new proto package under a directory this array doesn't list will silently not get Rust bindings, not error. Left unchecked deliberately — there is no current Rust consumer, so there's nothing to do here yet; check it off only when one exists and the entry is actually added.
 
 ### Cross-service sequencing
 
@@ -122,9 +122,9 @@ Three new packages, following the `services/tooling/` split decided above rather
 |---|---|---|---|
 | 0 | Proto definitions (above) | — | Done (2026-08-22) |
 | 1 | Bench core loop: scaffolding → workflow loading → DAG scheduler against the built-in `grpc-call` executor only → webhook + status API | Phase 0 | Done (2026-08-22) |
-| 2 | Garage: scaffolding → catalog RPCs → one real reference plugin (`slack-notify`) | Phase 0 (independent of Phase 1 — can build in parallel) | Done (2026-08-22) |
-| 3 | Bench's `garage://` resolution (catalog lookup + Blueprint discovery + `Execute` call) | Phases 1 and 2 both complete | Not started |
-| 4 | Both UIs | Phase 1 (Bench UI) / Phase 2 (Garage UI) — independent of Phase 3 and of each other | Garage done (2026-08-22); Bench not started |
+| 2 | Foundry: scaffolding → catalog RPCs → one real reference plugin (`slack-notify`) | Phase 0 (independent of Phase 1 — can build in parallel) | Done (2026-08-22) |
+| 3 | Bench's `foundry://` resolution (catalog lookup + Blueprint discovery + `Execute` call) | Phases 1 and 2 both complete | Not started |
+| 4 | Both UIs | Phase 1 (Bench UI) / Phase 2 (Foundry UI) — independent of Phase 3 and of each other | Foundry done (2026-08-22); Bench not started |
 | 5 (stretch) | Catalyst live-update wiring for the UI; `chassis.Effect`-based step teardown | Phase 4 / Phase 1 | Not started |
 
-The one thing to protect in this ordering: **Bench's core loop (Phase 1) is fully provable without Garage existing at all**, since the built-in `grpc-call` executor covers the example workflow in the Bench doc end to end. Building Garage first, or blocking Bench on it, would be backwards — Garage only has to exist by the time Phase 3 needs a real plugin to resolve against.
+The one thing to protect in this ordering: **Bench's core loop (Phase 1) is fully provable without Foundry existing at all**, since the built-in `grpc-call` executor covers the example workflow in the Bench doc end to end. Building Foundry first, or blocking Bench on it, would be backwards — Foundry only has to exist by the time Phase 3 needs a real plugin to resolve against.
