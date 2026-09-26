@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{beacon} Logs</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .lg-layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .lg-list { padding: 24px 32px 48px; min-width: 0; }
+    .lg-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .lg-head h1 { margin: 0; font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: 600; }
+    .lg-histo { margin: 16px 0 16px; }
+    .lg-histo .d-panel-body { padding: 12px 16px 10px; }
+    .lg-table td.t { color: var(--dim); width: 1%; }
+    .lg-table td.sev { width: 1%; }
+    .lg-table td.col-svc { width: 1%; }
+    .lg-table td.tr { width: 1%; }
+    .lg-table td.body { color: var(--ink); width: 36%; max-width: 0; }
+    .lg-table td.attr { color: var(--dim); max-width: 0; }
+    .lg-table tr.is-error td.body { color: var(--err); }
+    .svc { display: inline-flex; align-items: center; gap: 8px; }
+    .svc::before { content: ""; width: 6px; height: 6px; border-radius: 1px; background: var(--c, var(--sv)); }
+    .trace {
+      display: inline-flex; align-items: center; height: 20px; padding: 0 6px;
+      border: 1px solid color-mix(in oklab, var(--ca) 40%, transparent); border-radius: var(--radius);
+      color: var(--ca); font-size: 11.5px; text-decoration: none;
+    }
+    .trace:hover { background: color-mix(in oklab, var(--ca) 12%, transparent); text-decoration: none; }
+    .attr-k { color: var(--dimmer); }
+    .lg-drawer { padding: 20px; }
+    .lg-drawer h2 { margin: 10px 0 4px; font-family: var(--font-mono); font-size: 15px; font-weight: 600; color: var(--err); }
+    .lg-block { margin-top: 18px; }
+    .lg-span { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: center; font-family: var(--font-mono); font-size: 11.5px; margin-top: 6px; }
+    .lg-span i { display: block; height: 14px; background: color-mix(in oklab, var(--c) 30%, transparent); border-left: 2px solid var(--c); }
+    .lg-span span { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>beacon</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Beacon</span><i>/</i><span>Signals</span><i>/</i><span>Logs</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Clickhouse · 1.2k rows/min</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Signals</span>
+    <a class="d-nav-item" href="beacon-wide-events.html">Wide events</a>
+    <a class="d-nav-item" aria-current="page" href="beacon-logs.html">Logs</a>
+    <a class="d-nav-item" href="beacon-traces.html">Traces</a>
+    <a class="d-nav-item" href="beacon-metrics.html">Metrics</a>
+
+    <span class="d-label">Saved queries</span>
+    <a class="d-nav-item" href="#">Errors · last hour <span class="d-count">3</span></a>
+    <a class="d-nav-item" href="#">Fuse upstream slow</a>
+    <a class="d-nav-item" href="#">Raft leader changes</a>
+
+    <span class="d-label">Apps</span>
+    <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+    <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+  </aside>
+
+  <main class="d-main">
+    <div class="lg-layout">
+      <section class="lg-list">
+
+        <div class="lg-head">
+          <h1>Logs</h1>
+          <span class="d-label">1,284 lines · last 15 min</span>
+          <span class="d-spacer"></span>
+          <span class="d-toggle" role="switch" aria-checked="true"><i></i>Stream</span>
+          <span class="d-seg" role="group" aria-label="Time range"><button aria-pressed="true">15m</button><button aria-pressed="false">1h</button><button aria-pressed="false">6h</button><button aria-pressed="false">24h</button></span>
+        </div>
+
+        <div class="d-query">
+          <span class="d-query-lang">BEACONQL</span>
+          <input value='severity >= "warn" OR service_name = "fuse"' aria-label="Query">
+          <button class="d-btn d-btn--primary">Run</button>
+        </div>
+        <div class="d-chips">
+          <button class="d-chip">severity = "error"</button>
+          <button class="d-chip">service_name = "blueprint"</button>
+          <button class="d-chip">trace_id EXISTS</button>
+          <button class="d-chip">body LIKE "%leader%"</button>
+        </div>
+
+        <div class="d-panel lg-histo">
+          <div class="d-panel-head">
+            <span class="d-label">Volume by severity</span>
+            <span class="d-spacer"></span>
+            <div class="d-legend">
+              <span style="--c:var(--err)">Error 3</span>
+              <span style="--c:var(--warn)">Warn 18</span>
+              <span style="--c:var(--ca)">Info 211</span>
+              <span style="--c:var(--dimmer)">Debug 1,052</span>
+            </div>
+          </div>
+          <div class="d-panel-body">
+            <div class="d-histo" id="histo" aria-label="Log volume per 15 seconds, stacked by severity"></div>
+            <div class="d-axis"><span>01:32</span><span>01:35</span><span>01:38</span><span>01:41</span><span>01:44</span><span>01:47 UTC</span></div>
+          </div>
+        </div>
+
+        <div class="d-panel d-table-wrap">
+          <table class="d-table lg-table">
+            <thead><tr><th>Time (UTC)</th><th>Sev</th><th>Service</th><th>Trace</th><th>Body</th><th>Attributes</th></tr></thead>
+            <tbody>
+              <tr class="is-error" aria-selected="true">
+                <td class="t">01:47:09.201</td><td class="sev"><span class="d-tag d-tag--err">Error</span></td>
+                <td class="col-svc"><span class="svc" style="--c:var(--fs)">fuse</span></td>
+                <td class="tr"><a class="trace" href="beacon-traces.html">5ca1ef52…d68c</a></td>
+                <td class="body"><span class="d-trunc">upstream connect error: localhost:9096 refused</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">route=</span>examples-file_host <span class="attr-k">retry=</span>3 <span class="attr-k">upstream=</span>host.docker.internal:9096</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:47:08.944</td><td class="sev"><span class="d-tag d-tag--warn">Warn</span></td>
+                <td class="col-svc"><span class="svc" style="--c:var(--fs)">fuse</span></td>
+                <td class="tr"><a class="trace" href="beacon-traces.html">5ca1ef52…d68c</a></td>
+                <td class="body"><span class="d-trunc">upstream slow, retrying (2/3)</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">route=</span>examples-file_host <span class="attr-k">elapsed_ms=</span>2004</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:47:07.688</td><td class="sev"><span class="d-tag d-tag--quiet">Debug</span></td>
+                <td class="col-svc"><span class="svc" style="--c:var(--bp)">blueprint</span></td>
+                <td class="tr"><a class="trace" href="beacon-traces.html">967915d9…7b08</a></td>
+                <td class="body"><span class="d-trunc">value saved</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">caller_service=</span>grpc-call <span class="attr-k">key=</span>c411495d-98e4-54ca-ad17-3b9e96bf938b</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:47:07.656</td><td class="sev"><span class="d-tag d-tag--quiet">Debug</span></td>
+                <td class="col-svc"><span class="svc" style="--c:var(--bp)">blueprint</span></td>
+                <td class="tr"><a class="trace" href="beacon-traces.html">967915d9…7b08</a></td>
+                <td class="body"><span class="d-trunc">forwarding set request to leader</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">caller_service=</span>grpc-call <span class="attr-k">span_id=</span>551ede2b6ed0b60b</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:47:07.577</td><td class="sev"><span class="d-tag d-tag--quiet">Debug</span></td>
+                <td class="col-svc"><span class="svc" style="--c:var(--bp)">blueprint</span></td>
+                <td class="tr"><a class="trace" href="beacon-traces.html">0e0d99e9…6c130</a></td>
+                <td class="body"><span class="d-trunc">value saved</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">caller_service=</span>slack-notify <span class="attr-k">key=</span>96619942-cac4-565d-9832-088003f8923b</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:47:06.979</td><td class="sev"><span class="d-tag d-tag--ca">Info</span></td>
+                <td class="col-svc"><span class="svc" style="--c:var(--ca)">catalyst</span></td>
+                <td class="tr"><span class="d-muted">—</span></td>
+                <td class="body"><span class="d-trunc">flushed 41 events to clickhouse</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">batch=</span>41 <span class="attr-k">flush_ms=</span>9</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:40:55.549</td><td class="sev"><span class="d-tag d-tag--ca">Info</span></td>
+                <td class="col-svc"><span class="svc">lineman</span></td>
+                <td class="tr"><span class="d-muted">—</span></td>
+                <td class="body"><span class="d-trunc">published plugin to foundry catalog</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">name=</span>lineman <span class="attr-k">version=</span>v1</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:40:55.545</td><td class="sev"><span class="d-tag d-tag--ca">Info</span></td>
+                <td class="col-svc"><span class="svc">lineman</span></td>
+                <td class="tr"><span class="d-muted">—</span></td>
+                <td class="body"><span class="d-trunc">successfully registered type</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">type_url=</span>type.googleapis.com/tooling.lineman.v1.Loop</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="d-drawer lg-drawer" aria-label="Log detail">
+        <div class="d-row"><span class="d-tag d-tag--err">Error</span><span class="d-label">01:47:09.201 UTC</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm d-btn--icon" aria-label="Close">✕</button></div>
+        <h2>upstream connect error: localhost:9096 refused</h2>
+        <span class="d-label">fuse · route examples-file_host</span>
+
+        <div class="lg-block">
+          <div class="d-section-title" style="margin:0 0 10px"><span class="d-label">Attributes</span></div>
+          <dl class="d-kv">
+            <dt>service_name</dt><dd>fuse</dd>
+            <dt>route</dt><dd>examples-file_host</dd>
+            <dt>upstream</dt><dd>host.docker.internal:9096</dd>
+            <dt>retry</dt><dd>3</dd>
+            <dt>trace_id</dt><dd style="color:var(--ca)">5ca1ef522473b1592123dd68c270</dd>
+            <dt>span_id</dt><dd>14ac8ba5c0e48c14</dd>
+          </dl>
+        </div>
+
+        <div class="lg-block">
+          <div class="d-section-title" style="margin:0 0 10px"><span class="d-label">Trace · 3 spans · 2.21 s</span></div>
+          <div class="lg-span" style="--c:var(--fs)"><span>fuse ingress</span><i style="width:100%"></i></div>
+          <div class="lg-span" style="--c:var(--fs)"><span>route match</span><i style="width:6%"></i></div>
+          <div class="lg-span" style="--c:var(--err)"><span>upstream ×3</span><i style="width:92%;margin-left:6%"></i></div>
+        </div>
+
+        <div class="d-row" style="margin-top:20px">
+          <a class="d-btn d-btn--primary" href="beacon-traces.html">Open trace</a>
+          <button class="d-btn">Show context ±50</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Source <b>clickhouse:8123</b></span>
+    <span>Query <b>38 ms</b></span>
+    <span>Rows scanned <b>12,840</b></span>
+    <span class="d-spacer"></span>
+    <span>Streaming <b>on</b></span>
+  </footer>
+</div>
+
+<script>
+  // Deterministic sample data for the stacked severity histogram.
+  (function () {
+    var el = document.getElementById("histo");
+    var n = 60, max = 60;
+    for (var i = 0; i < n; i++) {
+      var base = 14 + Math.round(10 * Math.sin(i / 5) + 6 * Math.sin(i / 2.3));
+      var debug = Math.max(4, base);
+      var info = Math.max(1, Math.round(debug * 0.22 + (i % 7 === 0 ? 5 : 0)));
+      var warn = (i % 11 === 3 || i > 55) ? 2 + (i % 3) : 0;
+      var err = (i === 58 || i === 59) ? 2 : 0;
+      var bar = document.createElement("div");
+      bar.className = "d-histo-bar";
+      bar.title = "debug " + debug + " · info " + info + " · warn " + warn + " · error " + err;
+      [["var(--dimmer)", debug], ["var(--ca)", info], ["var(--warn)", warn], ["var(--err)", err]].forEach(function (s) {
+        if (!s[1]) return;
+        var seg = document.createElement("span");
+        seg.style.height = (s[1] / max * 72) + "px";
+        seg.style.background = s[0];
+        seg.style.opacity = s[0] === "var(--dimmer)" ? "0.7" : "1";
+        bar.appendChild(seg);
+      });
+      el.appendChild(bar);
+    }
+  })();
+</script>
+</body>
+</html>

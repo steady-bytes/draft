@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{blueprint} Events Topology</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .tp-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .tp-main { padding: 24px 32px 40px; min-width: 0; }
+    .tp-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tp-head h1 { margin: 0; font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: 600; }
+    .tp-board { position: relative; padding: 14px 16px 12px; }
+    .tp-cols { display: grid; grid-template-columns: 17% 24.5% 17% 24.5% 17%; margin-bottom: 6px; }
+    .tp-cols span:nth-child(2) { grid-column: 3; }
+    .tp-cols span:nth-child(3) { grid-column: 5; }
+    #topo { display: block; width: 100%; height: auto; }
+    #topo .box { fill: var(--panel-2); stroke: var(--rule-strong); stroke-width: 1; }
+    #topo .box.type { fill: var(--bg); }
+    #topo .lbl { font-family: var(--font-mono); font-size: 12px; fill: var(--ink); }
+    #topo .sub { font-family: var(--font-mono); font-size: 10px; fill: var(--dim); letter-spacing: .06em; }
+    #topo .edge { fill: none; stroke-linejoin: round; transition: opacity .15s; }
+    #topo .pad { stroke: none; }
+    #topo .n { cursor: pointer; transition: opacity .15s; }
+    #topo.is-hover .edge:not(.on), #topo.is-hover .n:not(.on) { opacity: .15; }
+    #topo .n.sel .box { stroke: var(--primary); }
+    .tp-legend { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
+    .tp-legend svg { width: 28px; height: 10px; vertical-align: middle; margin-right: 6px; }
+    .tp-legend path { stroke: var(--dim); fill: none; }
+    .tip {
+      position: absolute; pointer-events: none; z-index: 4; padding: 6px 9px;
+      background: var(--panel-3); border: 1px solid var(--rule-strong); border-radius: var(--radius);
+      font-family: var(--font-mono); font-size: 11.5px; color: var(--ink); white-space: nowrap;
+    }
+    .tp-side { padding: 20px; }
+    .tp-side h2 { margin: 8px 0 4px; font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
+    .tp-block { margin-top: 18px; }
+    .tp-block .d-section-title { margin: 0 0 10px; }
+    .rate-row { display: grid; grid-template-columns: 1fr 64px 60px; gap: 10px; align-items: center; font-family: var(--font-mono); font-size: 12px; padding: 5px 0; border-bottom: 1px solid var(--rule); }
+    .rate-row i { display: block; height: 4px; background: var(--bp); border-radius: 0 2px 2px 0; }
+    .rate-row span:last-child { text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Blueprint</span><i>/</i><span>Events</span><i>/</i><span>Topology</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Catalyst · 24.1 evt/min</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Control plane</span>
+    <a class="d-nav-item" href="blueprint-key-value.html">Key / Value <span class="d-count">6</span></a>
+    <a class="d-nav-item" href="blueprint-service-registry.html">Service registry <span class="d-count">14</span></a>
+    <a class="d-nav-item" href="blueprint-gateway.html">Gateway <span class="d-count">11</span></a>
+    <a class="d-nav-item" href="blueprint-cluster.html">Cluster</a>
+
+    <span class="d-label">Events</span>
+    <a class="d-nav-item" href="blueprint-events-query.html">Query</a>
+    <a class="d-nav-item" aria-current="page" href="blueprint-events-topology.html">Topology</a>
+    <a class="d-nav-item" href="blueprint-events-metrics.html">Metrics</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="beacon-logs.html"><span class="d-glyph" style="--c:var(--ca)">Bc</span>Beacon</a>
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="foundry-catalog.html"><span class="d-glyph">Fd</span>Foundry</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+
+    <span class="d-label">System</span>
+    <a class="d-nav-item" href="#">Settings</a>
+    <a class="d-nav-item" href="../design-system.html">Design system</a>
+  </aside>
+
+  <main class="d-main">
+    <div class="tp-layout">
+      <section class="tp-main">
+        <div class="tp-head">
+          <h1>Topology</h1>
+          <span class="d-label">5 producers · 5 event types · 4 consumers · last 3h</span>
+          <span class="d-spacer"></span>
+          <span class="d-toggle" role="switch" aria-checked="true"><i></i>Labels</span>
+          <span class="d-toggle" role="switch" aria-checked="false"><i></i>Include wide events</span>
+          <span class="d-seg" role="group" aria-label="Time range"><button aria-pressed="false">15m</button><button aria-pressed="false">1h</button><button aria-pressed="true">3h</button><button aria-pressed="false">24h</button></span>
+        </div>
+
+        <div class="d-panel tp-board" id="board">
+          <div class="tp-cols"><span class="d-label">Producers</span><span class="d-label">Event types</span><span class="d-label">Consumers</span></div>
+          <svg id="topo" viewBox="0 0 1000 440" role="img" aria-label="Event flow from producing services through event types to consuming services"></svg>
+          <div class="tip" id="tip" hidden></div>
+        </div>
+
+        <div class="tp-legend">
+          <span><svg viewBox="0 0 28 10"><path d="M0 5 H28" stroke-width="1"/></svg>&lt; 0.1 / min</span>
+          <span><svg viewBox="0 0 28 10"><path d="M0 5 H28" stroke-width="2.5"/></svg>~ 1 / min</span>
+          <span><svg viewBox="0 0 28 10"><path d="M0 5 H28" stroke-width="5"/></svg>10+ / min</span>
+          <span>Line color = event type · hover a node to trace its flow</span>
+        </div>
+      </section>
+
+      <aside class="d-drawer tp-side" aria-label="Event type detail">
+        <div class="d-row"><span class="d-label">Event type</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm d-btn--icon" aria-label="Close">✕</button></div>
+        <h2><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bp);margin-right:8px"></span>lineman.task.*</h2>
+        <span class="d-label">tooling.lineman.v1 · 3 subtypes</span>
+
+        <div class="d-stats" style="grid-template-columns:1fr 1fr; margin-top:16px">
+          <div class="d-panel d-stat"><span class="d-label">Rate</span><div class="d-stat-value">0.82<small>/min</small></div></div>
+          <div class="d-panel d-stat"><span class="d-label">Last seen</span><div class="d-stat-value">12<small>s ago</small></div></div>
+        </div>
+
+        <div class="tp-block">
+          <div class="d-section-title"><span class="d-label">Subtypes · last 3h</span></div>
+          <div class="rate-row"><span>lineman.task.queued</span><i style="width:100%"></i><span>121</span></div>
+          <div class="rate-row"><span>lineman.task.started</span><i style="width:16%"></i><span>19</span></div>
+          <div class="rate-row"><span>lineman.task.done</span><i style="width:7%"></i><span>8</span></div>
+        </div>
+
+        <div class="tp-block">
+          <div class="d-section-title"><span class="d-label">Flow</span></div>
+          <dl class="d-kv">
+            <dt>producers</dt><dd>lineman</dd>
+            <dt>consumers</dt><dd>bench, beacon</dd>
+            <dt>delivery</dt><dd>p95 6 ms · 0 dropped</dd>
+          </dl>
+        </div>
+
+        <div class="d-row" style="margin-top:20px">
+          <button class="d-btn d-btn--primary">Query these events</button>
+          <button class="d-btn">Schema</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Window <b>3h</b></span>
+    <span>Edges <b>12</b></span>
+    <span class="d-spacer"></span>
+    <span>Hover a node to isolate its flow</span>
+  </footer>
+</div>
+
+<script>
+  // Illustrative topology: producers → event types → consumers.
+  (function () {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.getElementById("topo");
+    var W = 170, H = 44;
+    var X = { p: 0, t: 415, c: 830 };
+    var nodes = {
+      fuse:    { col: "p", y: 20,  name: "fuse",       sub: "API GATEWAY" },
+      bench:   { col: "p", y: 105, name: "bench",      sub: "WORKFLOWS" },
+      lineman: { col: "p", y: 190, name: "lineman",    sub: "TASKS" },
+      foundry: { col: "p", y: 275, name: "foundry",    sub: "PLUGIN CATALOG" },
+      beaconp: { col: "p", y: 360, name: "beacon",     sub: "OBSERVABILITY" },
+      wide:    { col: "t", y: 20,  name: "WideEvent",        sub: "22.4 / MIN", c: "--sv" },
+      task:    { col: "t", y: 105, name: "lineman.task.*",   sub: "0.82 / MIN", c: "--bp", sel: true },
+      run:     { col: "t", y: 190, name: "workflow.run.*",   sub: "0.81 / MIN", c: "--ca" },
+      route:   { col: "t", y: 275, name: "route.changed",    sub: "0.06 / MIN", c: "--fs" },
+      plugin:  { col: "t", y: 360, name: "plugin.published", sub: "0.03 / MIN", c: "--primary" },
+      beacon:  { col: "c", y: 40,  name: "beacon",     sub: "STORES ALL" },
+      benchc:  { col: "c", y: 145, name: "bench",      sub: "TRIGGERS" },
+      linemanc:{ col: "c", y: 250, name: "lineman",    sub: "LOOPS" },
+      bp:      { col: "c", y: 355, name: "blueprint",  sub: "CLUSTER VIEW" }
+    };
+    // [from, to, events/min] — the type sets the color
+    var edges = [
+      ["fuse","wide",14], ["bench","wide",2.1], ["lineman","wide",2.4], ["foundry","wide",1.6], ["beaconp","wide",2.3],
+      ["lineman","task",0.82], ["bench","run",0.81], ["fuse","route",0.06], ["foundry","plugin",0.03],
+      ["wide","beacon",22.4], ["task","beacon",0.82], ["task","benchc",0.82], ["run","linemanc",0.81],
+      ["run","beacon",0.81], ["route","bp",0.06], ["plugin","benchc",0.03]
+    ];
+    function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e; }
+    function width(r) { return Math.max(1, Math.min(5, 1.25 + 1.5 * Math.log10(r * 10 + 1))); }
+    var gE = el("g", {}), gN = el("g", {}), gP = el("g", {});
+    svg.appendChild(gE); svg.appendChild(gN); svg.appendChild(gP);
+
+    // lanes so parallel verticals never overlap
+    var laneL = 0, laneR = 0;
+    edges.forEach(function (e) {
+      var a = nodes[e[0]], b = nodes[e[1]];
+      var typeKey = a.col === "t" ? e[0] : e[1];
+      var color = "var(" + nodes[typeKey].c + ")";
+      var x1 = X[a.col] + W, y1 = a.y + H / 2, x2 = X[b.col], y2 = b.y + H / 2;
+      var mid = a.col === "p" ? 205 + (laneL++) * 20 : 620 + (laneR++) * 22;
+      var d = "M" + x1 + " " + y1 + " H" + mid + " V" + y2 + " H" + x2;
+      var p = el("path", { d: d, class: "edge", stroke: color, "stroke-width": width(e[2]).toFixed(2) });
+      p.dataset.a = e[0]; p.dataset.b = e[1];
+      p.dataset.tip = nodes[e[0]].name + " → " + nodes[e[1]].name + " · " + e[2] + " / min";
+      gE.appendChild(p);
+      gP.appendChild(el("circle", { cx: x1, cy: y1, r: 3, class: "pad", fill: color }));
+      gP.appendChild(el("circle", { cx: x2, cy: y2, r: 3, class: "pad", fill: color }));
+    });
+
+    Object.keys(nodes).forEach(function (k) {
+      var n = nodes[k], x = X[n.col];
+      var g = el("g", { class: "n" + (n.sel ? " sel" : ""), tabindex: "0" });
+      g.dataset.id = k;
+      g.appendChild(el("rect", { x: x, y: n.y, width: W, height: H, rx: 2, class: "box" + (n.col === "t" ? " type" : "") }));
+      if (n.c) g.appendChild(el("rect", { x: x, y: n.y, width: 3, height: H, fill: "var(" + n.c + ")" }));
+      var t = el("text", { x: x + 12, y: n.y + 19, class: "lbl" }); t.textContent = n.name; g.appendChild(t);
+      var s = el("text", { x: x + 12, y: n.y + 34, class: "sub" }); s.textContent = n.sub; g.appendChild(s);
+      gN.appendChild(g);
+    });
+
+    var paths = [].slice.call(gE.children), groups = [].slice.call(gN.children);
+    function focus(id) {
+      var on = {}; on[id] = 1;
+      // walk one hop each way, and through a type to the far side
+      paths.forEach(function (p) { if (p.dataset.a === id || p.dataset.b === id) { on[p.dataset.a] = 1; on[p.dataset.b] = 1; } });
+      if (nodes[id].col !== "t") paths.forEach(function (p) {
+        if (on[p.dataset.a] && nodes[p.dataset.a].col === "t" && nodes[id].col === "p") on[p.dataset.b] = 1;
+        if (on[p.dataset.b] && nodes[p.dataset.b].col === "t" && nodes[id].col === "c") on[p.dataset.a] = 1;
+      });
+      paths.forEach(function (p) { p.classList.toggle("on", !!(on[p.dataset.a] && on[p.dataset.b])); });
+      groups.forEach(function (g) { g.classList.toggle("on", !!on[g.dataset.id]); });
+      svg.classList.add("is-hover");
+    }
+    function clear() { svg.classList.remove("is-hover"); }
+    groups.forEach(function (g) {
+      g.addEventListener("mouseenter", function () { focus(g.dataset.id); });
+      g.addEventListener("focus", function () { focus(g.dataset.id); });
+      g.addEventListener("mouseleave", clear);
+      g.addEventListener("blur", clear);
+    });
+
+    var tip = document.getElementById("tip"), board = document.getElementById("board");
+    paths.forEach(function (p) {
+      p.style.pointerEvents = "stroke";
+      p.addEventListener("mousemove", function (ev) {
+        var r = board.getBoundingClientRect();
+        tip.textContent = p.dataset.tip; tip.hidden = false;
+        tip.style.left = (ev.clientX - r.left + 12) + "px"; tip.style.top = (ev.clientY - r.top + 12) + "px";
+      });
+      p.addEventListener("mouseleave", function () { tip.hidden = true; });
+    });
+  })();
+</script>
+</body>
+</html>

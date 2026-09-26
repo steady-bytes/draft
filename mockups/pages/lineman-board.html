@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{lineman} Board</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .ob-progress { margin: 18px 0 8px; }
+    .ob-progress .d-progress { height: 6px; }
+    .ob-stats { display: flex; gap: 28px; margin-top: 10px; }
+    .ob-stats div { display: grid; gap: 2px; }
+    .ob-stats b { font-family: var(--font-mono); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .ob-bar { display: flex; align-items: center; gap: 12px; margin: 24px 0 16px; }
+    .ob-bar .d-input { width: 240px; }
+    .d-card .id { color: var(--dimmer); }
+    .loop-card .d-card-title { color: var(--dim); }
+    .loop-card .d-card-title b { color: var(--ink); font-weight: 500; }
+    .add-card {
+      display: flex; align-items: center; justify-content: center; height: 36px;
+      border: 1px dashed var(--rule-strong); border-radius: var(--radius);
+      color: var(--dim); font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; background: transparent; width: 100%;
+    }
+    .add-card:hover { border-color: var(--primary); color: var(--primary); }
+    .rail-ob { display: flex; flex-direction: column; }
+    .rail-ob .d-nav-item span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>lineman</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Lineman</span><i>/</i><span>Objectives</span><i>/</i><span>Roll out Fuse load balancing</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">3 agents online</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Overview</span>
+    <a class="d-nav-item" href="#">Dashboard</a>
+
+    <span class="d-label">Objectives</span>
+    <div class="rail-ob">
+      <a class="d-nav-item" aria-current="page" href="#"><span class="t">Roll out Fuse load balancing</span><span class="d-count">22</span></a>
+      <a class="d-nav-item" href="#"><span class="t">Beacon retention policy</span><span class="d-count">6</span></a>
+      <a class="d-nav-item" href="#"><span class="t">Webhook secret rotation</span><span class="d-count">4</span></a>
+      <a class="d-nav-item" href="#" style="color:var(--primary)">+ New objective</a>
+    </div>
+
+    <span class="d-label">Automation</span>
+    <a class="d-nav-item" href="#">Scheduler <span class="d-count">2</span></a>
+    <a class="d-nav-item" href="#">Loops <span class="d-count">1</span></a>
+
+    <span class="d-label">Apps</span>
+    <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+    <a class="d-nav-item" href="beacon-logs.html"><span class="d-glyph" style="--c:var(--ca)">Bc</span>Beacon</a>
+  </aside>
+
+  <main class="d-main">
+
+    <div class="d-page-head">
+      <div>
+        <span class="d-label">Objective · created Sep 21, 2026</span>
+        <h1>Roll out Fuse load balancing</h1>
+        <p>Move Fuse from single-upstream routes to weighted pools, with health checks and a rollback path.</p>
+      </div>
+      <div class="d-actions">
+        <span class="d-seg" role="group" aria-label="View"><button aria-pressed="true">Board</button><button aria-pressed="false">List</button></span>
+        <button class="d-btn d-btn--primary">+ Add task</button>
+      </div>
+    </div>
+
+    <div class="ob-progress">
+      <div class="d-progress" aria-label="1 done, 1 in flight, 20 queued">
+        <span style="--c:var(--primary); width:4.5%"></span>
+        <span style="--c:var(--ca); width:4.5%"></span>
+        <span style="--c:var(--rule-strong); width:91%"></span>
+      </div>
+      <div class="ob-stats">
+        <div><span class="d-label">Total</span><b>22</b></div>
+        <div><span class="d-label" style="color:var(--primary)">Done</span><b>1</b></div>
+        <div><span class="d-label" style="color:var(--ca)">In flight</span><b>1</b></div>
+        <div><span class="d-label">Queued</span><b>20</b></div>
+        <div><span class="d-label">High priority open</span><b style="color:var(--err)">1</b></div>
+      </div>
+    </div>
+
+    <div class="ob-bar">
+      <input class="d-input" placeholder="Filter tasks…" aria-label="Filter tasks">
+      <button class="d-chip">Priority: any</button>
+      <button class="d-chip">Assignee: any</button>
+      <span class="d-spacer"></span>
+      <span class="d-label">Drag cards between columns</span>
+    </div>
+
+    <div class="d-board">
+
+      <section>
+        <div class="d-col-head" style="--c:var(--dim)"><span class="d-label" style="color:var(--ink)">Queued</span><span class="d-count">20</span></div>
+
+        <article class="d-panel d-card">
+          <div class="d-card-meta"><span class="d-tag d-tag--warn">Medium</span><span class="d-spacer"></span><span class="id">T-104</span></div>
+          <div class="d-card-title">Rotate crud-e2e webhook secret</div>
+          <div class="d-card-meta"><span>Due Sep 28</span><span class="d-spacer"></span><span class="d-avatar">AM</span></div>
+        </article>
+
+        <article class="d-panel d-card">
+          <div class="d-card-meta"><span class="d-tag d-tag--warn">Medium</span><span class="d-spacer"></span><span class="id">T-107</span></div>
+          <div class="d-card-title">Add UI test coverage for board drag</div>
+          <div class="d-card-meta"><span>Unassigned</span></div>
+        </article>
+
+        <article class="d-panel d-card">
+          <div class="d-card-meta"><span class="d-tag d-tag--warn">Medium</span><span class="d-spacer"></span><span class="id">T-109</span></div>
+          <div class="d-card-title">Rotate Beacon ClickHouse credentials</div>
+          <div class="d-card-meta"><span>Unassigned</span></div>
+        </article>
+
+        <article class="d-panel d-card d-card--group loop-card">
+          <div class="d-card-meta"><span class="d-tag d-tag--quiet">Low</span><span class="d-tag d-tag--bp">Loop</span><span class="d-spacer"></span><span class="id">×17</span></div>
+          <div class="d-card-title"><b>Nightly log rotation check</b> · 17 queued instances</div>
+          <div class="d-card-meta"><span>Daily at 09:00 · next in 7h 12m</span><span class="d-spacer"></span><a href="#">Expand</a></div>
+        </article>
+
+        <button class="add-card">+ Add task</button>
+      </section>
+
+      <section>
+        <div class="d-col-head" style="--c:var(--ca)"><span class="d-label" style="color:var(--ink)">In flight</span><span class="d-count">1</span></div>
+
+        <article class="d-panel d-card d-brackets" style="--bk:var(--ca)">
+          <div class="d-card-meta"><span class="d-tag d-tag--err">High</span><span class="d-spacer"></span><span class="id">T-101</span></div>
+          <div class="d-card-title">Migrate Bench webhook secret</div>
+          <div class="d-card-meta"><span class="d-status d-status--live" style="--c:var(--ca);color:var(--ca)">Running 14m</span><span class="d-spacer"></span><span class="d-avatar d-avatar--agent" title="lineman-agent-3">A3</span><span>lineman-agent-3</span></div>
+        </article>
+      </section>
+
+      <section>
+        <div class="d-col-head" style="--c:var(--primary)"><span class="d-label" style="color:var(--ink)">Done</span><span class="d-count">1</span></div>
+
+        <article class="d-panel d-card" style="opacity:.8">
+          <div class="d-card-meta"><span class="d-tag d-tag--quiet">Medium</span><span class="d-spacer"></span><span class="id">T-100</span></div>
+          <div class="d-card-title">Verify webhook HMAC flow</div>
+          <div class="d-card-meta"><span>Done Sep 24 · 16:02</span><span class="d-spacer"></span><span class="d-avatar">AM</span></div>
+        </article>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Objective <b>814820c1</b></span>
+    <span>Last event <b>12s ago</b></span>
+    <span class="d-spacer"></span>
+    <span>Catalyst <b>connected</b></span>
+  </footer>
+</div>
+</body>
+</html>

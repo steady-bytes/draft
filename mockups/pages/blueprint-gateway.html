@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{blueprint} Gateway</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .gw-layout { display: grid; grid-template-columns: minmax(0, 1fr) 420px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .gw-list { padding: 28px 32px 48px; min-width: 0; }
+    .gw-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .gw-toolbar .d-input { width: 240px; }
+    .gw-table td.match { color: var(--ink); }
+    .gw-table .kind { display: inline-block; width: 52px; color: var(--dimmer); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+    .gw-table td.protos .d-tag { margin-right: 3px; }
+    .gw-table td.target { color: var(--dim); }
+    .gw-table tr.group td {
+      height: 28px; background: var(--bg); color: var(--dim);
+      font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    }
+    .gw-drawer { padding: 20px; }
+    .gw-drawer h2 { margin: 6px 0 4px; font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
+    .flow { margin: 16px 0 4px; }
+    .flow svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .flow .box { fill: var(--bg); stroke: var(--rule-strong); }
+    .flow .box.fs { stroke: color-mix(in oklab, var(--fs) 60%, transparent); }
+    .flow .box.up { stroke: color-mix(in oklab, var(--bp) 60%, transparent); }
+    .flow text { font-family: var(--font-mono); font-size: 10.5px; fill: var(--ink); }
+    .flow text.sub { fill: var(--dim); font-size: 9.5px; letter-spacing: .06em; }
+    .flow .wire { fill: none; stroke: var(--primary); stroke-width: 1.25; }
+    .flow .via { fill: var(--primary); }
+    .gw-block { margin-top: 18px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Blueprint</span><i>/</i><span>Control plane</span><i>/</i><span>Gateway</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Fuse · envoy config v212 applied</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Control plane</span>
+    <a class="d-nav-item" href="blueprint-key-value.html">Key / Value <span class="d-count">6</span></a>
+    <a class="d-nav-item" href="blueprint-service-registry.html">Service registry <span class="d-count">14</span></a>
+    <a class="d-nav-item" aria-current="page" href="blueprint-gateway.html">Gateway <span class="d-count">11</span></a>
+    <a class="d-nav-item" href="blueprint-cluster.html">Cluster</a>
+
+    <span class="d-label">Events</span>
+    <a class="d-nav-item" href="blueprint-events-query.html">Query</a>
+    <a class="d-nav-item" href="blueprint-events-topology.html">Topology</a>
+    <a class="d-nav-item" href="blueprint-events-metrics.html">Metrics</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="beacon-logs.html"><span class="d-glyph" style="--c:var(--ca)">Bc</span>Beacon</a>
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="foundry-catalog.html"><span class="d-glyph">Fd</span>Foundry</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+
+    <span class="d-label">System</span>
+    <a class="d-nav-item" href="#">Settings</a>
+    <a class="d-nav-item" href="../design-system.html">Design system</a>
+  </aside>
+
+  <main class="d-main">
+    <div class="gw-layout">
+
+      <section class="gw-list">
+        <div class="d-page-head">
+          <div>
+            <span class="d-label">Control plane · Fuse</span>
+            <h1>Gateway</h1>
+            <p>Routes Fuse pushes to Envoy. Host routes serve a service's UI on its own subdomain; prefix routes send RPC paths to the service that owns them.</p>
+          </div>
+          <div class="d-actions">
+            <button class="d-btn d-btn--primary">+ Add route</button>
+          </div>
+        </div>
+
+        <div class="gw-toolbar">
+          <input class="d-input" placeholder="Filter routes, hosts, targets…" aria-label="Filter routes">
+          <button class="d-chip">Host</button>
+          <button class="d-chip">Prefix</button>
+          <button class="d-chip">gRPC</button>
+          <button class="d-chip">WS</button>
+          <button class="d-chip">Auth required</button>
+          <span class="d-spacer"></span>
+          <span class="d-label">11 routes · 10 valid · 1 warning</span>
+        </div>
+
+        <div class="d-panel d-table-wrap">
+          <table class="d-table gw-table">
+            <thead><tr><th>Route</th><th>Match</th><th>Protocols</th><th>Target</th><th>Auth</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr class="group"><td colspan="6">UI · host routes · 5</td></tr>
+              <tr><td>beacon-ui</td><td class="match"><span class="kind">host</span>beacon.draft.localhost</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--sv">H2</span><span class="d-tag d-tag--bp">gRPC</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">localhost:2222</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+              <tr aria-selected="true"><td>core-blueprint-ui</td><td class="match"><span class="kind">host</span>blueprint.draft.localhost</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--sv">H2</span><span class="d-tag d-tag--bp">gRPC</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">5 backends · round robin</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+              <tr><td>lineman-ui</td><td class="match"><span class="kind">host</span>lineman.draft.localhost</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--sv">H2</span><span class="d-tag d-tag--bp">gRPC</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">localhost:9307</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+              <tr><td>tooling-bench-ui</td><td class="match"><span class="kind">host</span>bench.draft.localhost</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--sv">H2</span><span class="d-tag d-tag--bp">gRPC</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">localhost:9300</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+              <tr><td>tooling-foundry-ui</td><td class="match"><span class="kind">host</span>foundry.draft.localhost</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--sv">H2</span><span class="d-tag d-tag--bp">gRPC</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">localhost:9301</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+
+              <tr class="group"><td colspan="6">RPC · prefix routes · 6</td></tr>
+              <tr><td>beacon</td><td class="match"><span class="kind">prefix</span>/core.observability.</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">localhost:2222</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+              <tr><td>examples-crud</td><td class="match"><span class="kind">prefix</span>/examples.crud.v1.CrudService/</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">localhost:9090</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+              <tr><td>examples-echo</td><td class="match"><span class="kind">prefix</span>/examples.echo.v1.EchoService/</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">localhost:9091</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+              <tr><td>examples-file_host</td><td class="match"><span class="kind">prefix</span>/</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">host.docker.internal:9096</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status d-status--warn">Catch-all /</span></td></tr>
+              <tr><td>lineman-rpc</td><td class="match"><span class="kind">prefix</span>/tooling.lineman.v1.LinemanService/</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">localhost:9307</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+              <tr><td>tooling-foundry</td><td class="match"><span class="kind">prefix</span>/tooling.plugin_catalog.v1.PluginCatalogService/</td><td class="protos"><span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--bp">gRPC-Web</span><span class="d-tag d-tag--fs">WS</span></td><td class="target">localhost:9301</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="d-drawer gw-drawer" aria-label="Route detail">
+        <div class="d-row"><span class="d-label">Route · host</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm d-btn--icon" aria-label="Close">✕</button></div>
+        <h2>core-blueprint-ui</h2>
+        <span class="d-status">Valid · applied in envoy v212</span>
+
+        <div class="flow" aria-label="Request path: client to Fuse to five Blueprint backends">
+          <svg viewBox="0 0 380 176">
+            <!-- client -->
+            <rect class="box" x="0" y="68" width="92" height="40" rx="2"/>
+            <text x="10" y="86">client</text>
+            <text class="sub" x="10" y="99">:10000</text>
+            <!-- fuse -->
+            <rect class="box fs" x="128" y="62" width="100" height="52" rx="2"/>
+            <text x="138" y="82">FUSE</text>
+            <text class="sub" x="138" y="96">HOST MATCH</text>
+            <text class="sub" x="138" y="107">ROUND ROBIN</text>
+            <path class="wire" d="M92 88 H128"/>
+            <circle class="via" cx="92" cy="88" r="2.5"/><circle class="via" cx="128" cy="88" r="2.5"/>
+            <!-- bus + backends -->
+            <path class="wire" d="M228 88 H254 M254 16 V160"/>
+            <circle class="via" cx="254" cy="88" r="2.5"/>
+            <g>
+              <path class="wire" d="M254 16 H280"/><rect class="box up" x="280" y="4" width="100" height="24" rx="2"/><text x="290" y="20">node_1 :2221</text>
+              <path class="wire" d="M254 52 H280"/><rect class="box up" x="280" y="40" width="100" height="24" rx="2"/><text x="290" y="56">node_2 :2231</text>
+              <path class="wire" d="M254 88 H280"/><rect class="box up" x="280" y="76" width="100" height="24" rx="2"/><text x="290" y="92">node_3 :2241</text>
+              <path class="wire" d="M254 124 H280"/><rect class="box up" x="280" y="112" width="100" height="24" rx="2"/><text x="290" y="128">node_4 :2251</text>
+              <path class="wire" d="M254 160 H280"/><rect class="box up" x="280" y="148" width="100" height="24" rx="2"/><text x="290" y="164">node_5 :2261</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="gw-block">
+          <div class="d-section-title" style="margin:0 0 10px"><span class="d-label">Match</span></div>
+          <dl class="d-kv">
+            <dt>host</dt><dd>blueprint.draft.localhost</dd>
+            <dt>path</dt><dd>/ (prefix)</dd>
+            <dt>protocols</dt><dd>HTTP, HTTP/2, gRPC, gRPC-Web, WebSocket</dd>
+          </dl>
+        </div>
+
+        <div class="gw-block">
+          <div class="d-section-title" style="margin:0 0 10px"><span class="d-label">Upstream</span></div>
+          <dl class="d-kv">
+            <dt>backends</dt><dd>5 healthy of 5</dd>
+            <dt>policy</dt><dd>Round robin</dd>
+            <dt>timeout</dt><dd>30 s</dd>
+            <dt>auth</dt><dd>Bypass (no authentication)</dd>
+          </dl>
+        </div>
+
+        <div class="d-row" style="margin-top:20px">
+          <button class="d-btn d-btn--primary">Edit route</button>
+          <button class="d-btn">View traffic in Beacon</button>
+          <span class="d-spacer"></span>
+          <button class="d-btn d-btn--danger">Delete</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Fuse <b>localhost:18000</b></span>
+    <span>Envoy config <b>v212</b></span>
+    <span>Listener <b>:10000</b></span>
+    <span class="d-spacer"></span>
+    <span>Last push <b>4 min ago</b></span>
+  </footer>
+
+</div>
+</body>
+</html>

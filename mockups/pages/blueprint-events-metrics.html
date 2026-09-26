@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{blueprint} Events Metrics</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .m-head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 20px; }
+    .m-head h1 { margin: 4px 0 0; font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: 600; }
+    .m-head .d-spacer { flex: 1; }
+    .m-group { margin: 26px 0 10px; }
+    .m-group:first-of-type { margin-top: 0; }
+
+    .chart-panel { margin-top: 12px; }
+    .chart-body { position: relative; padding: 8px 16px 12px; }
+    #chart { display: block; width: 100%; height: auto; overflow: visible; }
+    #chart .grid line { stroke: var(--rule); stroke-width: 1; }
+    #chart .axis text { font-family: var(--font-mono); font-size: 10.5px; fill: var(--dim); }
+    #chart .series path { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    #chart .series path.area { stroke: none; opacity: .08; }
+    #chart .end { stroke: var(--panel); stroke-width: 2; }
+    #chart .end-label { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); }
+    #chart .xhair { stroke: var(--dim); stroke-width: 1; stroke-dasharray: 3 3; }
+    #chart .hover-dot { stroke: var(--panel); stroke-width: 2; }
+    .chart-tip {
+      position: absolute; top: 8px; pointer-events: none; min-width: 170px; padding: 8px 10px;
+      background: var(--panel-3); border: 1px solid var(--rule-strong); border-radius: var(--radius);
+      font-family: var(--font-mono); font-size: 11.5px;
+    }
+    .chart-tip b { display: block; margin-bottom: 6px; color: var(--dim); font-weight: 500; font-size: 10.5px; letter-spacing: .08em; }
+    .chart-tip div { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
+    .chart-tip div i { width: 8px; height: 2px; background: var(--c); }
+    .chart-tip div span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; }
+    .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; }
+    .chart-legend span { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--ink); text-transform: none; letter-spacing: 0; }
+    .chart-legend span::before { content: ""; width: 12px; height: 2px; background: var(--c); }
+
+    .meter { height: 6px; background: var(--panel-3); border-radius: 1px; margin-top: 12px; overflow: hidden; }
+    .meter i { display: block; height: 100%; width: 0.4%; background: var(--primary); }
+
+    .topics td.type { width: 30%; }
+    .topics td.type span { display: inline-flex; align-items: center; gap: 8px; }
+    .topics .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
+    .topics td.share { width: 18%; }
+    .topics .share i { display: block; height: 4px; background: var(--c); border-radius: 0 2px 2px 0; }
+    .topics td.spark { width: 110px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Blueprint</span><i>/</i><span>Events</span><i>/</i><span>Metrics</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Catalyst · healthy</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Control plane</span>
+    <a class="d-nav-item" href="blueprint-key-value.html">Key / Value <span class="d-count">6</span></a>
+    <a class="d-nav-item" href="blueprint-service-registry.html">Service registry <span class="d-count">14</span></a>
+    <a class="d-nav-item" href="blueprint-gateway.html">Gateway <span class="d-count">11</span></a>
+    <a class="d-nav-item" href="blueprint-cluster.html">Cluster</a>
+
+    <span class="d-label">Events</span>
+    <a class="d-nav-item" href="blueprint-events-query.html">Query</a>
+    <a class="d-nav-item" href="blueprint-events-topology.html">Topology</a>
+    <a class="d-nav-item" aria-current="page" href="blueprint-events-metrics.html">Metrics</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="beacon-logs.html"><span class="d-glyph" style="--c:var(--ca)">Bc</span>Beacon</a>
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="foundry-catalog.html"><span class="d-glyph">Fd</span>Foundry</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+
+    <span class="d-label">System</span>
+    <a class="d-nav-item" href="#">Settings</a>
+    <a class="d-nav-item" href="../design-system.html">Design system</a>
+  </aside>
+
+  <main class="d-main">
+    <div class="m-head">
+      <div>
+        <span class="d-label">Events · Catalyst</span>
+        <h1>Metrics</h1>
+      </div>
+      <span class="d-label" style="padding-bottom:6px">Last 3 hours · updated 4s ago</span>
+      <span class="d-spacer"></span>
+      <span class="d-seg" role="group" aria-label="Time range"><button aria-pressed="false">15m</button><button aria-pressed="false">1h</button><button aria-pressed="true">3h</button><button aria-pressed="false">24h</button><button aria-pressed="false">All</button></span>
+    </div>
+
+    <h2 class="d-section-title m-group"><span class="d-label">Throughput and latency</span></h2>
+    <div class="d-stats">
+      <div class="d-panel d-stat"><span class="d-label">Events / min</span><div class="d-stat-value">24.1</div><div class="d-stat-foot"><span class="d-delta is-good">▲ 6% vs prev 3h</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--primary)"><path d="M0 16 L12 15 L24 13 L36 14 L48 11 L60 12 L72 9 L84 10 L96 8"/></svg></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Median delivery</span><div class="d-stat-value">3.1<small>ms</small></div><div class="d-stat-foot"><span class="d-delta is-good">▼ 0.4ms</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--ca)"><path d="M0 9 L16 10 L32 12 L48 11 L64 13 L80 14 L96 14"/></svg></div></div>
+      <div class="d-panel d-stat"><span class="d-label">P95 delivery</span><div class="d-stat-value">9.0<small>ms</small></div><div class="d-stat-foot"><span class="d-delta is-bad">▲ 1.2ms</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--fs)"><path d="M0 16 L16 15 L32 15 L48 12 L64 8 L80 10 L96 9"/></svg></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Failed deliveries</span><div class="d-stat-value">0.0<small>%</small></div><div class="d-stat-foot"><span class="d-delta">0 of 4,338</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--err)"><path d="M0 20 L96 20"/></svg></div></div>
+    </div>
+
+    <div class="d-panel chart-panel">
+      <div class="d-panel-head">
+        <span class="d-label">Events per minute, by producer</span>
+        <span class="d-spacer"></span>
+        <div class="chart-legend" id="legend"></div>
+      </div>
+      <div class="chart-body" id="chartbody">
+        <svg id="chart" viewBox="0 0 960 250" role="img" aria-label="Line chart of events per minute for five producers over the last three hours"></svg>
+        <div class="chart-tip" id="ctip" hidden></div>
+      </div>
+    </div>
+
+    <h2 class="d-section-title m-group"><span class="d-label">Resources</span></h2>
+    <div class="d-stats">
+      <div class="d-panel d-stat"><span class="d-label">Queue depth</span><div class="d-stat-value">412<small>/ 100,000</small></div><div class="meter" aria-label="0.4% of queue capacity"><i></i></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Producers</span><div class="d-stat-value">5</div><div class="d-stat-foot"><span class="d-delta">fuse · bench · lineman · foundry · beacon</span></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Consumers</span><div class="d-stat-value">4</div><div class="d-stat-foot"><span class="d-delta">All acking</span></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Flush p95</span><div class="d-stat-value">9.0<small>ms</small></div><div class="d-stat-foot"><span class="d-delta">41 flushes · 0 dropped</span></div></div>
+    </div>
+
+    <h2 class="d-section-title m-group"><span class="d-label">Event types · 5</span></h2>
+    <div class="d-panel d-table-wrap">
+      <table class="d-table topics">
+        <thead><tr><th>Type</th><th class="is-right">Producers</th><th class="is-right">Consumers</th><th class="is-right">Events · 3h</th><th class="is-right">/ min</th><th>Share</th><th>Trend</th></tr></thead>
+        <tbody>
+          <tr><td class="type"><span><i class="dot" style="--c:var(--sv)"></i>core.observability.wide_events.v1.WideEvent</span></td><td class="is-right">5</td><td class="is-right">1</td><td class="is-right">4,032</td><td class="is-right">22.4</td><td class="share"><i style="--c:var(--sv); width:92%"></i></td><td class="spark"><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--sv)"><path d="M0 14 L16 13 L32 12 L48 12 L64 10 L80 11 L96 9"/></svg></td></tr>
+          <tr><td class="type"><span><i class="dot" style="--c:var(--bp)"></i>lineman.task.*</span></td><td class="is-right">1</td><td class="is-right">2</td><td class="is-right">148</td><td class="is-right">0.82</td><td class="share"><i style="--c:var(--bp); width:3.4%"></i></td><td class="spark"><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--bp)"><path d="M0 18 L16 18 L32 6 L48 18 L64 18 L80 17 L96 16"/></svg></td></tr>
+          <tr><td class="type"><span><i class="dot" style="--c:var(--ca)"></i>workflow.run.*</span></td><td class="is-right">1</td><td class="is-right">2</td><td class="is-right">147</td><td class="is-right">0.81</td><td class="share"><i style="--c:var(--ca); width:3.4%"></i></td><td class="spark"><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--ca)"><path d="M0 12 L16 12 L32 13 L48 12 L64 12 L80 13 L96 12"/></svg></td></tr>
+          <tr><td class="type"><span><i class="dot" style="--c:var(--fs)"></i>route.changed</span></td><td class="is-right">1</td><td class="is-right">1</td><td class="is-right">11</td><td class="is-right">0.06</td><td class="share"><i style="--c:var(--fs); width:0.6%"></i></td><td class="spark"><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--fs)"><path d="M0 20 L40 20 L48 8 L56 20 L96 20"/></svg></td></tr>
+          <tr><td class="type"><span><i class="dot" style="--c:var(--primary)"></i>plugin.published</span></td><td class="is-right">1</td><td class="is-right">1</td><td class="is-right">6</td><td class="is-right">0.03</td><td class="share"><i style="--c:var(--primary); width:0.4%"></i></td><td class="spark"><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--primary)"><path d="M0 20 L24 20 L28 10 L32 20 L96 20"/></svg></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Source <b>catalyst · clickhouse</b></span>
+    <span>Resolution <b>5 min</b></span>
+    <span class="d-spacer"></span>
+    <span>Auto-refresh <b>10s</b></span>
+  </footer>
+</div>
+
+<script>
+  // Illustrative series: events/min per producer, 5-minute buckets over 3h.
+  (function () {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.getElementById("chart");
+    var W = 960, H = 250, L = 40, R = 90, T = 12, B = 26;
+    var series = [
+      { name: "fuse",    c: "--fs",      base: 14, amp: 3.2, f: 0.35 },
+      { name: "lineman", c: "--bp",      base: 3.2, amp: 1.1, f: 0.6 },
+      { name: "beacon",  c: "--sv",      base: 2.3, amp: 0.5, f: 0.9 },
+      { name: "bench",   c: "--ca",      base: 2.9, amp: 1.4, f: 0.45 },
+      { name: "foundry", c: "--primary", base: 1.6, amp: 0.6, f: 1.2 }
+    ];
+    var N = 37; // 3h at 5 min, inclusive
+    series.forEach(function (s, k) {
+      s.v = [];
+      for (var i = 0; i < N; i++) {
+        var v = s.base + s.amp * Math.sin(i * s.f + k) + 0.6 * Math.sin(i * 1.7 + k * 2);
+        if (s.name === "fuse" && i > 26 && i < 31) v += 4.5;          // a visible burst
+        s.v.push(Math.max(0.2, +v.toFixed(1)));
+      }
+    });
+    var max = 24; // axis ceiling chosen from data (peak ≈ 21)
+    function x(i) { return L + (W - L - R) * i / (N - 1); }
+    function y(v) { return T + (H - T - B) * (1 - v / max); }
+    function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e; }
+
+    var grid = el("g", { class: "grid" }), axis = el("g", { class: "axis" });
+    [0, 6, 12, 18, 24].forEach(function (t) {
+      grid.appendChild(el("line", { x1: L, x2: W - R, y1: y(t), y2: y(t) }));
+      var tx = el("text", { x: L - 8, y: y(t) + 4, "text-anchor": "end" }); tx.textContent = t; axis.appendChild(tx);
+    });
+    var times = ["22:50", "23:20", "23:50", "00:20", "00:50", "01:20", "01:50"];
+    times.forEach(function (lbl, j) {
+      var tx = el("text", { x: x(j * 6), y: H - 6, "text-anchor": j === 0 ? "start" : j === times.length - 1 ? "end" : "middle" });
+      tx.textContent = lbl; axis.appendChild(tx);
+    });
+    svg.appendChild(grid); svg.appendChild(axis);
+
+    var gs = el("g", { class: "series" });
+    var labelsY = [];
+    series.forEach(function (s) {
+      var d = s.v.map(function (v, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); }).join(" ");
+      if (s.name === "fuse") gs.appendChild(el("path", { d: d + " L" + x(N - 1) + " " + y(0) + " L" + x(0) + " " + y(0) + " Z", class: "area", fill: "var(" + s.c + ")" }));
+      gs.appendChild(el("path", { d: d, stroke: "var(" + s.c + ")" }));
+      var ey = y(s.v[N - 1]);
+      gs.appendChild(el("circle", { cx: x(N - 1), cy: ey, r: 4, class: "end", fill: "var(" + s.c + ")" }));
+      labelsY.push({ s: s, y: ey });
+    });
+    // direct labels at the line ends, nudged apart so they never collide
+    labelsY.sort(function (a, b) { return a.y - b.y; });
+    for (var i = 1; i < labelsY.length; i++) if (labelsY[i].y - labelsY[i - 1].y < 13) labelsY[i].y = labelsY[i - 1].y + 13;
+    labelsY.forEach(function (o) {
+      var t = el("text", { x: x(N - 1) + 10, y: o.y + 4, class: "end-label" });
+      t.textContent = o.s.name + " " + o.s.v[N - 1]; gs.appendChild(t);
+    });
+    svg.appendChild(gs);
+
+    var legend = document.getElementById("legend");
+    series.forEach(function (s) { var sp = document.createElement("span"); sp.style.setProperty("--c", "var(" + s.c + ")"); sp.textContent = s.name; legend.appendChild(sp); });
+
+    // crosshair + tooltip
+    var xh = el("line", { class: "xhair", y1: T, y2: H - B, visibility: "hidden" }); svg.appendChild(xh);
+    var dots = series.map(function (s) { var c = el("circle", { r: 4, class: "hover-dot", fill: "var(" + s.c + ")", visibility: "hidden" }); svg.appendChild(c); return c; });
+    var hit = el("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" }); svg.appendChild(hit);
+    var tip = document.getElementById("ctip"), body = document.getElementById("chartbody");
+    function label(i) { var m = 22 * 60 + 50 + i * 5; m %= 1440; return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0") + " UTC"; }
+    hit.addEventListener("mousemove", function (ev) {
+      var r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) * W / r.width;
+      var i = Math.max(0, Math.min(N - 1, Math.round((sx - L) / (W - L - R) * (N - 1))));
+      xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i)); xh.setAttribute("visibility", "visible");
+      dots.forEach(function (d, k) { d.setAttribute("cx", x(i)); d.setAttribute("cy", y(series[k].v[i])); d.setAttribute("visibility", "visible"); });
+      var rows = series.slice().sort(function (a, b) { return b.v[i] - a.v[i]; })
+        .map(function (s) { return '<div style="--c:var(' + s.c + ')"><i></i><span>' + s.name + "</span><span>" + s.v[i].toFixed(1) + "</span></div>"; }).join("");
+      tip.innerHTML = "<b>" + label(i) + " · EVENTS / MIN</b>" + rows;
+      tip.hidden = false;
+      var px = (x(i) / W) * r.width + 16;
+      var br = body.getBoundingClientRect();
+      if (px + 190 > br.width) px -= 210;
+      tip.style.left = px + "px";
+    });
+    hit.addEventListener("mouseleave", function () { tip.hidden = true; xh.setAttribute("visibility", "hidden"); dots.forEach(function (d) { d.setAttribute("visibility", "hidden"); }); });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{beacon} Traces</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .tr-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .tr-main { padding: 24px 32px 48px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+    .tr-head { display: flex; align-items: center; gap: 12px; }
+    .tr-head h1 { margin: 0; font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: 600; }
+    .list-wrap { max-height: 252px; overflow: auto; }
+    .tl td.root { max-width: 0; width: 40%; color: var(--ink); }
+    .tl td.svcs { width: 1%; }
+    .svcs span { display: inline-block; width: 8px; height: 8px; border-radius: 1px; margin-right: 3px; background: var(--c); }
+    .tl td.dur { width: 180px; }
+    .dur-cell { display: grid; grid-template-columns: 60px 1fr; gap: 10px; align-items: center; }
+    .dur-cell span { text-align: right; }
+    .dur-cell i { display: block; height: 4px; background: var(--rule-strong); }
+    .dur-cell i b { display: block; height: 100%; background: var(--c, var(--dim)); }
+    .tl tr.is-err td.root { color: var(--err); }
+
+    /* waterfall */
+    .wf-head { display: grid; grid-template-columns: 300px 1fr; border-bottom: 1px solid var(--rule-strong); }
+    .wf-head > div { padding: 8px 14px; }
+    .ticks { position: relative; height: 16px; font-family: var(--font-mono); font-size: 10.5px; color: var(--dim); }
+    .ticks span { position: absolute; top: 0; transform: translateX(-50%); }
+    .ticks span:first-child { transform: none; }
+    .ticks span:last-child { transform: translateX(-100%); }
+    .wf-row { display: grid; grid-template-columns: 300px 1fr; min-height: 32px; border-bottom: 1px solid var(--rule); cursor: pointer; }
+    .wf-row:hover { background: var(--panel-2); }
+    .wf-row[aria-selected="true"] { background: var(--primary-soft); box-shadow: inset 2px 0 0 var(--primary); }
+    .wf-row .nm { display: flex; align-items: center; gap: 8px; padding: 0 14px 0 calc(14px + var(--d, 0) * 16px); font-family: var(--font-mono); font-size: 12px; min-width: 0; }
+    .wf-row .nm .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wf-row .nm .s { color: var(--dim); font-size: 11px; flex: none; }
+    .wf-row .nm::before { content: ""; width: 6px; height: 6px; border-radius: 1px; background: var(--c); flex: none; }
+    .wf-row .lane { position: relative; margin: 0 14px; background-image: linear-gradient(90deg, var(--rule) 1px, transparent 1px); background-size: 25% 100%; }
+    .wf-row .bar { position: absolute; top: 9px; height: 14px; border-radius: 1px; background: color-mix(in oklab, var(--c) 40%, transparent); border-left: 2px solid var(--c); display: flex; align-items: center; }
+    .wf-row .bar.err { background: color-mix(in oklab, var(--err) 30%, transparent); border-left-color: var(--err); outline: 1px solid color-mix(in oklab, var(--err) 60%, transparent); }
+    .wf-row .bar em { position: absolute; left: calc(100% + 8px); font-style: normal; font-family: var(--font-mono); font-size: 10.5px; color: var(--dim); white-space: nowrap; }
+    .wf-row .bar.right em { left: auto; right: calc(100% + 8px); }
+
+    .sp { padding: 20px; }
+    .sp h2 { margin: 10px 0 4px; font-family: var(--font-mono); font-size: 15px; font-weight: 600; }
+    .sp-block { margin-top: 18px; }
+    .sp-block .d-section-title { margin: 0 0 10px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>beacon</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Beacon</span><i>/</i><span>Traces</span><i>/</i><span>5ca1ef52…d68c</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Clickhouse · 310 traces/h</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Signals</span>
+    <a class="d-nav-item" href="beacon-wide-events.html">Wide events</a>
+    <a class="d-nav-item" href="beacon-logs.html">Logs</a>
+    <a class="d-nav-item" aria-current="page" href="beacon-traces.html">Traces</a>
+    <a class="d-nav-item" href="beacon-metrics.html">Metrics</a>
+
+    <span class="d-label">Saved queries</span>
+    <a class="d-nav-item" href="#">Errors · last hour <span class="d-count">3</span></a>
+    <a class="d-nav-item" href="#">Slowest bench runs</a>
+    <a class="d-nav-item" href="#">Raft leader changes</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="tr-layout">
+      <section class="tr-main">
+        <div class="tr-head">
+          <h1>Traces</h1>
+          <span class="d-label">312 traces · 3 with errors · last 1h</span>
+          <span class="d-spacer"></span>
+          <span class="d-toggle" role="switch" aria-checked="false"><i></i>Errors only</span>
+          <span class="d-seg" role="group" aria-label="Time range"><button aria-pressed="false">15m</button><button aria-pressed="true">1h</button><button aria-pressed="false">6h</button><button aria-pressed="false">24h</button></span>
+        </div>
+
+        <div class="d-query">
+          <span class="d-query-lang">BEACONQL</span>
+          <input value='duration_ms > 100 OR status = "error"' aria-label="Trace query">
+          <button class="d-btn d-btn--primary">Run</button>
+        </div>
+
+        <div class="d-panel list-wrap">
+          <table class="d-table tl">
+            <thead><tr><th>Root span</th><th>Services</th><th class="is-right">Spans</th><th>Duration</th><th>Status</th><th class="is-right">Started</th></tr></thead>
+            <tbody>
+              <tr class="is-err" aria-selected="true"><td class="root"><span class="d-trunc">bench · call-7 → GET /health</span></td><td class="svcs"><span style="--c:var(--sv)"></span><span style="--c:var(--primary)"></span><span style="--c:var(--fs)"></span></td><td class="is-right">7</td><td class="dur"><span class="dur-cell"><span>2.21 s</span><i><b style="width:100%;--c:var(--err)"></b></i></span></td><td><span class="d-status d-status--err">Error</span></td><td class="is-right is-dim">01:12:40</td></tr>
+              <tr><td class="root"><span class="d-trunc">fuse · POST /core.control_plane.networking.v1.NetworkingService/AddRoute</span></td><td class="svcs"><span style="--c:var(--fs)"></span><span style="--c:var(--bp)"></span></td><td class="is-right">4</td><td class="dur"><span class="dur-cell"><span>122 ms</span><i><b style="width:6%"></b></i></span></td><td><span class="d-status">OK</span></td><td class="is-right is-dim">01:40:55</td></tr>
+              <tr><td class="root"><span class="d-trunc">fuse · POST /core.registry.service_discovery.v1.ServiceDiscoveryService/Query</span></td><td class="svcs"><span style="--c:var(--fs)"></span><span style="--c:var(--bp)"></span></td><td class="is-right">3</td><td class="dur"><span class="dur-cell"><span>59.7 ms</span><i><b style="width:3%"></b></i></span></td><td><span class="d-status">OK</span></td><td class="is-right is-dim">01:41:51</td></tr>
+              <tr><td class="root"><span class="d-trunc">bench · crud-e2e → create-name</span></td><td class="svcs"><span style="--c:var(--sv)"></span><span style="--c:var(--primary)"></span><span style="--c:var(--fs)"></span><span style="--c:var(--ca)"></span></td><td class="is-right">9</td><td class="dur"><span class="dur-cell"><span>812 ms</span><i><b style="width:37%"></b></i></span></td><td><span class="d-status">OK</span></td><td class="is-right is-dim">01:45:05</td></tr>
+              <tr><td class="root"><span class="d-trunc">lineman · ScheduleLoop nightly-log-rotation</span></td><td class="svcs"><span style="--c:var(--bp)"></span><span style="--c:var(--ca)"></span></td><td class="is-right">5</td><td class="dur"><span class="dur-cell"><span>41 ms</span><i><b style="width:2%"></b></i></span></td><td><span class="d-status">OK</span></td><td class="is-right is-dim">01:09:00</td></tr>
+              <tr><td class="root"><span class="d-trunc">foundry · POST /tooling.plugin_catalog.v1.PluginCatalogService/Publish</span></td><td class="svcs"><span style="--c:var(--primary)"></span><span style="--c:var(--bp)"></span></td><td class="is-right">3</td><td class="dur"><span class="dur-cell"><span>3.2 ms</span><i><b style="width:1%"></b></i></span></td><td><span class="d-status">OK</span></td><td class="is-right is-dim">01:40:37</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-panel">
+          <div class="d-panel-head">
+            <span class="d-label">Waterfall · trace 5ca1ef52…d68c · 7 spans · 2.21 s</span>
+            <span class="d-spacer"></span>
+            <div class="d-legend"><span style="--c:var(--sv)">bench</span><span style="--c:var(--primary)">http-call</span><span style="--c:var(--fs)">fuse</span><span style="--c:var(--err)">error</span></div>
+          </div>
+          <div class="wf-head">
+            <div class="d-label">Span</div>
+            <div><div class="ticks"><span style="left:0">0</span><span style="left:25%">0.55 s</span><span style="left:50%">1.10 s</span><span style="left:75%">1.66 s</span><span style="left:100%">2.21 s</span></div></div>
+          </div>
+          <div class="wf-row" style="--c:var(--sv)"><div class="nm"><span class="t">call-7</span><span class="s">bench</span></div><div class="lane"><span class="bar err" style="left:0;width:100%"></span></div></div>
+          <div class="wf-row" style="--c:var(--primary); --d:1"><div class="nm"><span class="t">GET /health</span><span class="s">http-call</span></div><div class="lane"><span class="bar err" style="left:0.3%;width:99.5%"></span></div></div>
+          <div class="wf-row" style="--c:var(--fs); --d:2"><div class="nm"><span class="t">ingress</span><span class="s">fuse</span></div><div class="lane"><span class="bar err" style="left:0.6%;width:99%"></span></div></div>
+          <div class="wf-row" style="--c:var(--fs); --d:3"><div class="nm"><span class="t">route match · examples-file_host</span><span class="s">fuse</span></div><div class="lane"><span class="bar" style="left:0.6%;width:0.4%"><em>0.4 ms</em></span></div></div>
+          <div class="wf-row" style="--c:var(--fs); --d:3"><div class="nm"><span class="t">upstream attempt 1</span><span class="s">fuse</span></div><div class="lane"><span class="bar err" style="left:1.1%;width:27.6%"><em>610 ms · refused</em></span></div></div>
+          <div class="wf-row" style="--c:var(--fs); --d:3" aria-selected="true"><div class="nm"><span class="t">upstream attempt 2</span><span class="s">fuse</span></div><div class="lane"><span class="bar err" style="left:29.2%;width:31.7%"><em>701 ms · refused</em></span></div></div>
+          <div class="wf-row" style="--c:var(--fs); --d:3"><div class="nm"><span class="t">upstream attempt 3</span><span class="s">fuse</span></div><div class="lane"><span class="bar err right" style="left:61.4%;width:38.2%"><em>845 ms · refused</em></span></div></div>
+        </div>
+      </section>
+
+      <aside class="d-drawer sp" aria-label="Span detail">
+        <div class="d-row"><span class="d-status d-status--err">Error</span><span class="d-label">Span 4 of 7</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm d-btn--icon" aria-label="Close">✕</button></div>
+        <h2>upstream attempt 2</h2>
+        <span class="d-label">fuse · 701 ms · starts at +645 ms</span>
+
+        <div class="sp-block">
+          <div class="d-section-title"><span class="d-label">Attributes</span></div>
+          <dl class="d-kv">
+            <dt>upstream.address</dt><dd>host.docker.internal:9096</dd>
+            <dt>upstream.attempt</dt><dd>2 of 3</dd>
+            <dt>error</dt><dd style="color:var(--err)">connection refused</dd>
+            <dt>route.name</dt><dd>examples-file_host</dd>
+            <dt>span_id</dt><dd>14ac8ba5c0e48c14</dd>
+            <dt>parent</dt><dd>ingress · 2a91f0c3e7d11b08</dd>
+          </dl>
+        </div>
+
+        <div class="sp-block">
+          <div class="d-section-title"><span class="d-label">Events on this span</span></div>
+          <dl class="d-kv">
+            <dt>+0 ms</dt><dd>connect start</dd>
+            <dt>+701 ms</dt><dd style="color:var(--err)">connect failed: ECONNREFUSED</dd>
+          </dl>
+        </div>
+
+        <div class="sp-block">
+          <div class="d-section-title"><span class="d-label">Related</span></div>
+          <div class="d-stack" style="gap:8px">
+            <a class="d-btn" href="beacon-logs.html">2 logs on this trace</a>
+            <a class="d-btn" href="bench-run.html">Bench run r-0409</a>
+            <a class="d-btn" href="blueprint-gateway.html">Route examples-file_host</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Trace <b>5ca1ef52…d68c</b></span>
+    <span>Critical path <b>upstream ×3</b></span>
+    <span class="d-spacer"></span>
+    <span><span class="d-kbd">↑</span><span class="d-kbd">↓</span> move between spans</span>
+  </footer>
+</div>
+</body>
+</html>

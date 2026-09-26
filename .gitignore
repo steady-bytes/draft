@@ -23,3 +23,5 @@ assets/*
 
 # scripts/run-tooling-stack.sh's build output and logs
 .local-stack/
+
+/Claude outputs

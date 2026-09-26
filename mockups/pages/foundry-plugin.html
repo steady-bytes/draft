@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{foundry} grpc-call</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .pd-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
+    .pd-head-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--dim); }
+    .pd-head-meta b { color: var(--ink); font-weight: 500; }
+    .schema td.f { width: 1%; color: var(--ca); }
+    .schema td.t { width: 1%; color: var(--dim); }
+    .schema td.r { width: 1%; }
+    .schema td.d { white-space: normal; font-family: var(--font-sans); color: var(--dim); line-height: 1.45; padding-block: 8px; }
+    .schema td.d code { color: var(--ink); font-size: 12px; }
+    .snip pre { margin: 0; padding: 14px 16px; font-size: 12.5px; line-height: 1.65; overflow: auto; }
+    .snip .k { color: var(--ca); }
+    .snip .u { color: var(--primary); }
+    .snip .ph { color: var(--fs); }
+    .snip .c { color: var(--dimmer); }
+    .list { display: grid; }
+    .list a, .list div { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-top: 1px solid var(--rule); font-family: var(--font-mono); font-size: 12.5px; color: var(--ink); text-decoration: none; }
+    .list a:hover { background: var(--panel-2); text-decoration: none; }
+    .list .d-spacer { flex: 1; }
+    .list small { color: var(--dim); font-size: 11px; }
+    .side .d-panel + .d-panel { margin-top: 14px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+    @media (max-width: 1100px) { .pd-layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>foundry</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Foundry</span><i>/</i><span>Catalog</span><i>/</i><span>grpc-call</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">6 plugins · 7 versions</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Catalog</span>
+    <a class="d-nav-item" aria-current="page" href="foundry-catalog.html">All plugins <span class="d-count">6</span></a>
+    <a class="d-nav-item" href="#">Recently published</a>
+
+    <span class="d-label">Maintainers</span>
+    <a class="d-nav-item" href="#">platform-team <span class="d-count">5</span></a>
+    <a class="d-nav-item" href="#">steady-bytes <span class="d-count">1</span></a>
+
+    <span class="d-label">Publish</span>
+    <a class="d-nav-item" href="#">How to publish</a>
+    <a class="d-nav-item" href="#">Catalog API</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="d-page-head">
+      <div>
+        <span class="d-label">Plugin · step executor</span>
+        <h1>grpc-call</h1>
+        <p>Makes a unary call to any gRPC server that exposes server reflection, resolving the request and response shape at runtime. No generated stubs required.</p>
+        <div class="pd-head-meta"><span>Maintainer <b>platform-team</b></span><span>Published <b>Sep 21, 2026</b></span><span>Address <b>localhost:9305</b></span><span class="d-status">Serving</span></div>
+      </div>
+      <div class="d-actions">
+        <span class="d-seg" role="group" aria-label="Version"><button aria-pressed="true">v1</button></span>
+        <a class="d-btn" href="#">Source ↗</a>
+      </div>
+    </div>
+
+    <div class="pd-layout">
+      <section>
+        <div class="d-panel d-table-wrap">
+          <div class="d-panel-head"><span class="d-label">Config schema · <code>with:</code></span><span class="d-spacer"></span><span class="d-label">3 required · 5 optional</span></div>
+          <table class="d-table schema">
+            <thead><tr><th>Field</th><th>Type</th><th></th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="f">address</td><td class="t">string</td><td class="r"><span class="d-tag d-tag--warn">required</span></td><td class="d">Target server as <code>host:port</code>. Resolved through the gateway when it matches a Fuse route.</td></tr>
+              <tr><td class="f">service</td><td class="t">string</td><td class="r"><span class="d-tag d-tag--warn">required</span></td><td class="d">Fully qualified service name, e.g. <code>examples.crud.v1.CrudService</code>.</td></tr>
+              <tr><td class="f">method</td><td class="t">string</td><td class="r"><span class="d-tag d-tag--warn">required</span></td><td class="d">Method on that service. Only unary methods are supported.</td></tr>
+              <tr><td class="f">request</td><td class="t">object</td><td class="r"><span class="d-tag d-tag--quiet">optional</span></td><td class="d">Request message as JSON. Values can reference earlier steps with <code>${steps.&lt;name&gt;.body.&lt;field&gt;}</code>.</td></tr>
+              <tr><td class="f">metadata</td><td class="t">object</td><td class="r"><span class="d-tag d-tag--quiet">optional</span></td><td class="d">gRPC metadata sent as headers.</td></tr>
+              <tr><td class="f">expect</td><td class="t">object</td><td class="r"><span class="d-tag d-tag--quiet">optional</span></td><td class="d">Assertions on <code>status</code> and <code>body</code>. The step fails when any assertion fails.</td></tr>
+              <tr><td class="f">timeout</td><td class="t">duration</td><td class="r"><span class="d-tag d-tag--quiet">optional</span></td><td class="d">Per-call deadline. Default <code>5s</code>.</td></tr>
+              <tr><td class="f">tls</td><td class="t">boolean</td><td class="r"><span class="d-tag d-tag--quiet">optional</span></td><td class="d">Use TLS for the connection. Default <code>false</code>.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="side">
+        <div class="d-panel snip">
+          <div class="d-panel-head"><span class="d-label">Use it in a workflow</span><span class="d-spacer"></span><button class="d-btn d-btn--sm" id="copy-snippet">Copy</button></div>
+<pre id="snippet">- <span class="k">name</span>: <span class="ph">query-name</span>
+  <span class="k">uses</span>: <span class="u">foundry://grpc-call@v1</span>
+  <span class="k">with</span>:
+    <span class="k">address</span>: <span class="ph">localhost:9090</span>
+    <span class="k">service</span>: <span class="ph">examples.crud.v1.CrudService</span>
+    <span class="k">method</span>: <span class="ph">Read</span>
+    <span class="k">request</span>: { <span class="k">id</span>: <span class="ph">${steps.create-name.body.id}</span> }
+  <span class="k">expect</span>:
+    <span class="k">status</span>: <span class="ph">OK</span>   <span class="c"># optional</span></pre>
+        </div>
+
+        <div class="d-panel">
+          <div class="d-panel-head"><span class="d-label">Used by · 3 workflows</span></div>
+          <div class="list">
+            <a href="bench-editor.html"><span class="d-status">Passing</span>crud-e2e<span class="d-spacer"></span><small>step 2</small></a>
+            <a href="bench-run.html"><span class="d-status d-status--err">Failing</span>fuse-proxy-e2e-10x<span class="d-spacer"></span><small>step 1</small></a>
+            <a href="bench-overview.html"><span class="d-status">Passing</span>fuse-proxy-e2e<span class="d-spacer"></span><small>step 1</small></a>
+          </div>
+        </div>
+
+        <div class="d-panel">
+          <div class="d-panel-head"><span class="d-label">Versions</span></div>
+          <div class="list">
+            <div><span class="d-tag d-tag--primary">v1</span>current<span class="d-spacer"></span><small>Sep 21, 2026</small></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Plugin <b>grpc-call@v1</b></span>
+    <span>Catalog <b>localhost:9301</b></span>
+    <span class="d-spacer"></span>
+    <span>Registered in Blueprint <b>yes</b></span>
+  </footer>
+</div>
+<script>
+  document.getElementById("copy-snippet").addEventListener("click", function (e) {
+    var btn = e.currentTarget, text = document.getElementById("snippet").innerText;
+    function done(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copy"; }, 1400); }
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { done("Copied"); }, function () { done("Select to copy"); });
+    else done("Select to copy");
+  });
+</script>
+</body>
+</html>

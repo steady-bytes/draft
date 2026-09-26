@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{beacon} Wide Events</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .we-layout { display: grid; grid-template-columns: minmax(0, 1fr) 420px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .we-list { padding: 24px 32px 48px; min-width: 0; }
+    .we-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .we-head h1 { margin: 0; font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: 600; }
+    .we-histo { margin: 16px 0; }
+    .we-histo .d-panel-body { padding: 12px 16px 10px; }
+    .we-table td.t { width: 1%; color: var(--dim); }
+    .we-table td.sv { width: 1%; }
+    .we-table td.route { max-width: 0; width: 34%; color: var(--ink); }
+    .we-table td.dur { width: 190px; }
+    .we-table td.st { width: 1%; }
+    .we-table td.attr { max-width: 0; color: var(--dim); }
+    .svc { display: inline-flex; align-items: center; gap: 8px; }
+    .svc::before { content: ""; width: 6px; height: 6px; border-radius: 1px; background: var(--c, var(--sv)); }
+    .dur-cell { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; }
+    .dur-cell span { text-align: right; font-variant-numeric: tabular-nums; }
+    .dur-cell i { display: block; height: 4px; background: var(--rule-strong); border-radius: 0 2px 2px 0; }
+    .dur-cell i b { display: block; height: 100%; background: var(--c, var(--dim)); border-radius: inherit; }
+    .attr-k { color: var(--dimmer); }
+    tr.is-err td.route { color: var(--err); }
+    .we-drawer { padding: 20px; }
+    .we-drawer h2 { margin: 10px 0 4px; font-family: var(--font-mono); font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+    .we-block { margin-top: 18px; }
+    .we-block .d-section-title { margin: 0 0 10px; }
+    .wf { display: grid; gap: 5px; }
+    .wf-row { display: grid; grid-template-columns: 120px 1fr 56px; gap: 10px; align-items: center; font-family: var(--font-mono); font-size: 11.5px; }
+    .wf-row span:first-child { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wf-row .lane { position: relative; height: 12px; background: var(--panel-2); }
+    .wf-row .lane i { position: absolute; top: 0; bottom: 0; background: color-mix(in oklab, var(--c) 35%, transparent); border-left: 2px solid var(--c); }
+    .wf-row span:last-child { text-align: right; color: var(--dim); }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>beacon</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Beacon</span><i>/</i><span>Signals</span><i>/</i><span>Wide events</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Clickhouse · 22 events/min</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Signals</span>
+    <a class="d-nav-item" aria-current="page" href="beacon-wide-events.html">Wide events</a>
+    <a class="d-nav-item" href="beacon-logs.html">Logs</a>
+    <a class="d-nav-item" href="beacon-traces.html">Traces</a>
+    <a class="d-nav-item" href="beacon-metrics.html">Metrics</a>
+
+    <span class="d-label">Saved queries</span>
+    <a class="d-nav-item" href="#">Errors · last hour <span class="d-count">3</span></a>
+    <a class="d-nav-item" href="#">Slow requests &gt; 500 ms</a>
+    <a class="d-nav-item" href="#">Gateway routes by status</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="we-layout">
+      <section class="we-list">
+
+        <div class="we-head">
+          <h1>Wide events</h1>
+          <span class="d-label">4,032 events · 3 errors · last 3h</span>
+          <span class="d-spacer"></span>
+          <span class="d-seg" role="group" aria-label="View"><button aria-pressed="true">List</button><button aria-pressed="false">Flame graph</button><button aria-pressed="false">Group by</button></span>
+          <span class="d-seg" role="group" aria-label="Time range"><button aria-pressed="false">15m</button><button aria-pressed="false">1h</button><button aria-pressed="true">3h</button><button aria-pressed="false">24h</button></span>
+        </div>
+
+        <div class="d-query">
+          <span class="d-query-lang">BEACONQL</span>
+          <input value='service_name IN ("fuse", "foundry") AND duration_ms > 5' aria-label="BeaconQL query">
+          <button class="d-btn d-btn--primary">Run</button>
+        </div>
+        <div class="d-chips">
+          <button class="d-chip">status = "error"</button>
+          <button class="d-chip">duration_ms &gt; 500</button>
+          <button class="d-chip">attributes["http.status_code"] &gt;= 500</button>
+          <button class="d-chip">route.name = "core-blueprint-ui"</button>
+        </div>
+
+        <div class="d-panel we-histo">
+          <div class="d-panel-head">
+            <span class="d-label">Volume by status · 5 min buckets</span>
+            <span class="d-spacer"></span>
+            <div class="d-legend"><span style="--c:var(--err)">Error 3</span><span style="--c:var(--primary)">OK 4,029</span></div>
+          </div>
+          <div class="d-panel-body">
+            <div class="d-histo" id="histo" aria-label="Wide events per 5 minutes, stacked by status"></div>
+            <div class="d-axis"><span>22:50</span><span>23:20</span><span>23:50</span><span>00:20</span><span>00:50</span><span>01:20</span><span>01:50 UTC</span></div>
+          </div>
+        </div>
+
+        <div class="d-panel d-table-wrap">
+          <table class="d-table we-table">
+            <thead><tr><th>Time (UTC)</th><th>Service</th><th>Span · route</th><th>Duration</th><th>Status</th><th>Attributes</th></tr></thead>
+            <tbody>
+              <tr class="is-err" aria-selected="true">
+                <td class="t">01:47:09.201</td><td class="sv"><span class="svc" style="--c:var(--fs)">fuse</span></td>
+                <td class="route"><span class="d-trunc">GET /health · examples-file_host</span></td>
+                <td class="dur"><span class="dur-cell"><span>2.21 s</span><i><b style="width:100%;--c:var(--err)"></b></i></span></td>
+                <td class="st"><span class="d-status d-status--err">503</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">upstream=</span>host.docker.internal:9096 <span class="attr-k">retry=</span>3</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:41:51.537</td><td class="sv"><span class="svc" style="--c:var(--fs)">fuse</span></td>
+                <td class="route"><span class="d-trunc">POST /core.registry.service_discovery.v1.ServiceDiscoveryService/Query</span></td>
+                <td class="dur"><span class="dur-cell"><span>59.7 ms</span><i><b style="width:12%"></b></i></span></td>
+                <td class="st"><span class="d-status">200</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">route.name=</span>core-blueprint-ui <span class="attr-k">upstream=</span>localhost:2221</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:41:00.356</td><td class="sv"><span class="svc" style="--c:var(--fs)">fuse</span></td>
+                <td class="route"><span class="d-trunc">POST /core.registry.key_value.v1.KeyValueService/List</span></td>
+                <td class="dur"><span class="dur-cell"><span>53.8 ms</span><i><b style="width:11%"></b></i></span></td>
+                <td class="st"><span class="d-status">200</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">route.name=</span>core-blueprint-ui <span class="attr-k">upstream=</span>localhost:2221</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:41:00.309</td><td class="sv"><span class="svc" style="--c:var(--fs)">fuse</span></td>
+                <td class="route"><span class="d-trunc">GET / · core-blueprint-ui</span></td>
+                <td class="dur"><span class="dur-cell"><span>8.57 ms</span><i><b style="width:2%"></b></i></span></td>
+                <td class="st"><span class="d-status">200</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">route.name=</span>core-blueprint-ui <span class="attr-k">bytes=</span>2,114</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:40:55.550</td><td class="sv"><span class="svc" style="--c:var(--fs)">fuse</span></td>
+                <td class="route"><span class="d-trunc">POST /core.control_plane.networking.v1.NetworkingService/AddRoute</span></td>
+                <td class="dur"><span class="dur-cell"><span>122.5 ms</span><i><b style="width:24%"></b></i></span></td>
+                <td class="st"><span class="d-status">200</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">route=</span>lineman-ui <span class="attr-k">envoy.version=</span>212</span></td>
+              </tr>
+              <tr>
+                <td class="t">01:40:37.465</td><td class="sv"><span class="svc">foundry</span></td>
+                <td class="route"><span class="d-trunc">POST /tooling.plugin_catalog.v1.PluginCatalogService/Publish</span></td>
+                <td class="dur"><span class="dur-cell"><span>3.20 ms</span><i><b style="width:1%"></b></i></span></td>
+                <td class="st"><span class="d-status">200</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">plugin=</span>lineman <span class="attr-k">version=</span>v1</span></td>
+              </tr>
+              <tr>
+                <td class="t">00:14:22.018</td><td class="sv"><span class="svc" style="--c:var(--fs)">fuse</span></td>
+                <td class="route"><span class="d-trunc">GET /health · examples-file_host</span></td>
+                <td class="dur"><span class="dur-cell"><span>612 ms</span><i><b style="width:27%;--c:var(--warn)"></b></i></span></td>
+                <td class="st"><span class="d-status d-status--warn">Slow</span></td>
+                <td class="attr"><span class="d-trunc"><span class="attr-k">upstream=</span>host.docker.internal:9096 <span class="attr-k">retry=</span>1</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="d-drawer we-drawer" aria-label="Wide event detail">
+        <div class="d-row"><span class="d-status d-status--err">Error · 503</span><span class="d-label">01:47:09.201 UTC</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm d-btn--icon" aria-label="Close">✕</button></div>
+        <h2>GET /health · examples-file_host</h2>
+        <span class="d-label">fuse · 2.21 s · 3 spans · 2 logs</span>
+
+        <div class="we-block">
+          <div class="d-section-title"><span class="d-label">Spans</span></div>
+          <div class="wf">
+            <div class="wf-row" style="--c:var(--fs)"><span>fuse ingress</span><div class="lane"><i style="left:0;width:100%"></i></div><span>2.21 s</span></div>
+            <div class="wf-row" style="--c:var(--fs)"><span>route match</span><div class="lane"><i style="left:0;width:2%"></i></div><span>0.4 ms</span></div>
+            <div class="wf-row" style="--c:var(--err)"><span>upstream ×3</span><div class="lane"><i style="left:2%;width:98%"></i></div><span>2.20 s</span></div>
+          </div>
+        </div>
+
+        <div class="we-block">
+          <div class="d-section-title"><span class="d-label">Attributes</span></div>
+          <dl class="d-kv">
+            <dt>http.method</dt><dd>GET</dd>
+            <dt>http.path</dt><dd>/health</dd>
+            <dt>http.status_code</dt><dd style="color:var(--err)">503</dd>
+            <dt>route.name</dt><dd>examples-file_host</dd>
+            <dt>route.match_type</dt><dd>PREFIX</dd>
+            <dt>upstream.address</dt><dd>host.docker.internal:9096</dd>
+            <dt>upstream.retries</dt><dd>3</dd>
+            <dt>trace_id</dt><dd style="color:var(--ca)">5ca1ef522473b1592123dd68c270</dd>
+          </dl>
+        </div>
+
+        <div class="we-block">
+          <div class="d-section-title"><span class="d-label">Logs · 2</span></div>
+          <dl class="d-kv">
+            <dt style="color:var(--warn)">WARN</dt><dd>upstream slow, retrying (2/3)</dd>
+            <dt style="color:var(--err)">ERROR</dt><dd>upstream connect error: localhost:9096 refused</dd>
+          </dl>
+        </div>
+
+        <div class="d-row" style="margin-top:20px">
+          <a class="d-btn d-btn--primary" href="beacon-traces.html">Open trace</a>
+          <a class="d-btn" href="beacon-logs.html">Logs ±50</a>
+          <button class="d-btn">Similar events</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Source <b>clickhouse:8123</b></span>
+    <span>Query <b>44 ms</b></span>
+    <span>Rows scanned <b>4,032</b></span>
+    <span class="d-spacer"></span>
+    <span>Newest first</span>
+  </footer>
+</div>
+
+<script>
+  // Illustrative: wide events per 5 minutes, stacked OK / error.
+  (function () {
+    var el = document.getElementById("histo"), n = 37, max = 180;
+    for (var i = 0; i < n; i++) {
+      var ok = Math.round(96 + 30 * Math.sin(i / 4) + 14 * Math.sin(i * 1.3) + (i > 26 && i < 31 ? 40 : 0));
+      var err = (i === 16 || i === 36) ? (i === 36 ? 2 : 1) : 0;
+      var bar = document.createElement("div");
+      bar.className = "d-histo-bar";
+      bar.title = "ok " + ok + (err ? " · error " + err : "");
+      // errors keep a 3px minimum so a single failure stays visible as a red cap
+      [["var(--primary)", ok, ".55", 0], ["var(--err)", err, "1", 3]].forEach(function (s) {
+        if (!s[1]) return;
+        var seg = document.createElement("span");
+        seg.style.height = Math.max(s[3], s[1] / max * 72) + "px"; seg.style.background = s[0]; seg.style.opacity = s[2];
+        bar.appendChild(seg);
+      });
+      el.appendChild(bar);
+    }
+  })();
+</script>
+</body>
+</html>

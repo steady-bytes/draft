@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{foundry} Catalog</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .fc-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .fc-bar .d-query { width: 420px; }
+    .fc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+    .pl { display: grid; grid-template-rows: auto 1fr auto; gap: 10px; padding: 16px; text-decoration: none; color: var(--ink); min-height: 196px; }
+    .pl:hover { border-color: var(--rule-strong); text-decoration: none; }
+    .pl .top { display: flex; align-items: center; gap: 10px; }
+    .pl .top b { font-family: var(--font-mono); font-size: 14px; font-weight: 700; }
+    .pl .top .d-spacer { flex: 1; }
+    .pl p { margin: 0; color: var(--dim); font-size: 13px; line-height: 1.5; }
+    .pl .uses { font-family: var(--font-mono); font-size: 11.5px; color: var(--dim); padding: 7px 9px; background: var(--bg); border: 1px solid var(--rule); border-radius: var(--radius); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pl .uses b { color: var(--primary); font-weight: 500; }
+    .pl .foot { display: flex; align-items: center; gap: 14px; padding-top: 10px; border-top: 1px solid var(--rule); font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
+    .pl .foot .d-spacer { flex: 1; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>foundry</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Foundry</span><i>/</i><span>Catalog</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">6 plugins · 7 versions</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Catalog</span>
+    <a class="d-nav-item" aria-current="page" href="foundry-catalog.html">All plugins <span class="d-count">6</span></a>
+    <a class="d-nav-item" href="#">Recently published</a>
+
+    <span class="d-label">Maintainers</span>
+    <a class="d-nav-item" href="#">platform-team <span class="d-count">5</span></a>
+    <a class="d-nav-item" href="#">steady-bytes <span class="d-count">1</span></a>
+
+    <span class="d-label">Publish</span>
+    <a class="d-nav-item" href="#">How to publish</a>
+    <a class="d-nav-item" href="#">Catalog API</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="d-page-head">
+      <div>
+        <span class="d-label">Plugin catalog</span>
+        <h1>What's on the shelf</h1>
+        <p>Every step executor a Bench workflow can reference with <code>uses: foundry://name@version</code>.</p>
+      </div>
+    </div>
+
+    <div class="fc-bar">
+      <div class="d-query"><span class="d-query-lang">SEARCH</span><input id="catalog-search" placeholder="Name, description or field…" aria-label="Search plugins"></div>
+      <button class="d-chip">Catalyst</button>
+      <button class="d-chip">Network</button>
+      <button class="d-chip">Notify</button>
+      <span class="d-spacer"></span>
+      <span class="d-seg" role="group" aria-label="Sort"><button aria-pressed="true">Most used</button><button aria-pressed="false">A–Z</button><button aria-pressed="false">Newest</button></span>
+    </div>
+
+    <div class="fc-grid">
+      <a class="d-panel pl" href="foundry-plugin.html">
+        <div class="top"><span class="d-glyph" style="--c:var(--primary)">Pl</span><b>http-call</b><span class="d-spacer"></span><span class="d-tag d-tag--quiet">v1</span></div>
+        <p>Makes a plain HTTP request (any method, headers, body) and optionally asserts on the status and response.</p>
+        <div class="uses">uses: <b>foundry://http-call@v1</b></div>
+        <div class="foot"><span>platform-team</span><span class="d-spacer"></span><span>1 required</span><span>4 workflows</span></div>
+      </a>
+      <a class="d-panel pl d-brackets is-active" href="foundry-plugin.html">
+        <div class="top"><span class="d-glyph" style="--c:var(--primary)">Pl</span><b>grpc-call</b><span class="d-spacer"></span><span class="d-tag d-tag--quiet">v1</span></div>
+        <p>Makes a unary call to any gRPC server that exposes server reflection, resolving the request and response shape at runtime.</p>
+        <div class="uses">uses: <b>foundry://grpc-call@v1</b></div>
+        <div class="foot"><span>platform-team</span><span class="d-spacer"></span><span>3 required</span><span>3 workflows</span></div>
+      </a>
+      <a class="d-panel pl" href="foundry-plugin.html">
+        <div class="top"><span class="d-glyph" style="--c:var(--ca)">Ca</span><b>catalyst-consume</b><span class="d-spacer"></span><span class="d-tag d-tag--quiet">v1</span></div>
+        <p>Waits for the next Catalyst CloudEvent of a configured type and extracts named fields from its payload for later steps.</p>
+        <div class="uses">uses: <b>foundry://catalyst-consume@v1</b></div>
+        <div class="foot"><span>platform-team</span><span class="d-spacer"></span><span>1 required</span><span>1 workflow</span></div>
+      </a>
+      <a class="d-panel pl" href="foundry-plugin.html">
+        <div class="top"><span class="d-glyph" style="--c:var(--ca)">Ca</span><b>catalyst-produce</b><span class="d-spacer"></span><span class="d-tag d-tag--quiet">v1</span></div>
+        <p>Publishes a CloudEvent to Catalyst with a configured type and JSON payload.</p>
+        <div class="uses">uses: <b>foundry://catalyst-produce@v1</b></div>
+        <div class="foot"><span>platform-team</span><span class="d-spacer"></span><span>2 required</span><span>1 workflow</span></div>
+      </a>
+      <a class="d-panel pl" href="foundry-plugin.html">
+        <div class="top"><span class="d-glyph" style="--c:var(--bp)">Lm</span><b>lineman</b><span class="d-spacer"></span><span class="d-tag d-tag--quiet">v1</span></div>
+        <p>Task orchestrator: tracks objectives, tasks, and the agents (human, scripted or AI) working them, with scheduler and loop primitives.</p>
+        <div class="uses">uses: <b>foundry://lineman@v1</b></div>
+        <div class="foot"><span>steady-bytes</span><span class="d-spacer"></span><span>Service plugin</span><span>1 workflow</span></div>
+      </a>
+      <a class="d-panel pl" href="foundry-plugin.html">
+        <div class="top"><span class="d-glyph" style="--c:var(--fs)">Sn</span><b>slack-notify</b><span class="d-spacer"></span><span class="d-tag d-tag--quiet">v1</span><span class="d-tag d-tag--primary">v2</span></div>
+        <p>Posts a message to a Slack channel via an incoming webhook.</p>
+        <div class="uses">uses: <b>foundry://slack-notify@v2</b></div>
+        <div class="foot"><span>platform-team</span><span class="d-spacer"></span><span>2 required</span><span>1 workflow</span></div>
+      </a>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Catalog <b>localhost:9301</b></span>
+    <span>Last publish <b>lineman@v1 · 01:40 UTC</b></span>
+    <span class="d-spacer"></span>
+    <span><span class="d-kbd">/</span> search</span>
+  </footer>
+</div>
+</body>
+</html>

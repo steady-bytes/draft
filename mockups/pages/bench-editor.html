@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{bench} Workflow Editor</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .ed-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .ed-main { padding: 24px 32px 32px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+    .ed-fields { display: grid; grid-template-columns: 260px 1fr; gap: 12px; }
+    .ed-fields .d-input { width: 100%; }
+
+    .pipe { display: flex; align-items: center; flex-wrap: wrap; gap: 0; padding: 12px 14px; }
+    .pipe .n { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border: 1px solid var(--rule-strong); border-radius: var(--radius); background: var(--bg); font-family: var(--font-mono); font-size: 11.5px; }
+    .pipe .n small { color: var(--dim); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+    .pipe .n.trg { border-color: color-mix(in oklab, var(--ca) 55%, transparent); color: var(--ca); }
+    .pipe .n.cur { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .pipe .w { width: 26px; height: 2px; background: var(--primary); position: relative; }
+    .pipe .w::after { content: ""; position: absolute; right: -2px; top: -2px; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+    .pipe .add { margin-left: 10px; }
+
+    .editor { display: grid; grid-template-columns: 44px 1fr; flex: 1; min-height: 380px; overflow: hidden; }
+    .gutter, .code { margin: 0; padding: 14px 0; font-family: var(--font-mono); font-size: 12.5px; line-height: 20px; }
+    .gutter { text-align: right; padding-right: 10px; color: var(--dimmer); background: var(--panel-2); border-right: 1px solid var(--rule); user-select: none; }
+    .gutter .e { color: var(--err); }
+    .code { padding-left: 14px; overflow: auto; white-space: pre; color: var(--ink); }
+    .code .k { color: var(--ca); }
+    .code .s { color: var(--ink); }
+    .code .v { color: var(--fs); }
+    .code .c { color: var(--dimmer); }
+    .code .u { color: var(--primary); }
+    .code .hl { display: inline-block; width: 100%; background: var(--primary-soft); }
+    .code .sq { text-decoration: underline wavy var(--err); text-underline-offset: 4px; }
+
+    .problems { font-family: var(--font-mono); font-size: 12px; }
+    .problems .row { display: flex; gap: 12px; padding: 8px 14px; border-top: 1px solid var(--rule); }
+    .problems .row:first-of-type { border-top: 0; }
+    .problems .ln { color: var(--dim); width: 56px; }
+
+    .side { padding: 20px; }
+    .side .d-input { width: 100%; }
+    .res { display: grid; gap: 8px; margin-top: 12px; }
+    .res .d-panel { padding: 10px 12px; display: grid; gap: 6px; }
+    .res .d-panel:hover { border-color: var(--rule-strong); }
+    .res .top { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; }
+    .res .top .d-spacer { flex: 1; }
+    .res p { margin: 0; color: var(--dim); font-size: 12.5px; line-height: 1.45; }
+    .res code { font-size: 11px; color: var(--dim); }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>bench</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Bench</span><i>/</i><span>crud-e2e</span><i>/</i><span>Edit</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--err">1 problem</span>
+    <button class="d-btn d-btn--ghost d-btn--sm">Cancel</button>
+    <button class="d-btn d-btn--sm">Validate</button>
+    <button class="d-btn d-btn--primary d-btn--sm">Save</button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Workflows</span>
+    <a class="d-nav-item" href="bench-overview.html">Overview</a>
+    <a class="d-nav-item" aria-current="page" href="bench-overview.html">All workflows <span class="d-count">5</span></a>
+    <a class="d-nav-item" href="bench-editor.html" style="color:var(--primary)">+ New workflow</a>
+
+    <span class="d-label">Runs</span>
+    <a class="d-nav-item" href="bench-run.html">Recent runs <span class="d-count">48</span></a>
+    <a class="d-nav-item" href="bench-run.html">Failed · 24h <span class="d-count" style="color:var(--err);border-color:color-mix(in oklab,var(--err) 50%,transparent)">1</span></a>
+
+    <span class="d-label">Settings</span>
+    <a class="d-nav-item" href="#">Plugin registries <span class="d-count">1</span></a>
+    <a class="d-nav-item" href="#">Webhook secrets</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="foundry-catalog.html"><span class="d-glyph">Fd</span>Foundry</a>
+      <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+      <a class="d-nav-item" href="beacon-logs.html"><span class="d-glyph" style="--c:var(--ca)">Bc</span>Beacon</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="ed-layout">
+      <section class="ed-main">
+        <div class="ed-fields">
+          <label class="d-field"><span class="d-label">Name</span><input class="d-input" id="wf-name" value="crud-e2e"></label>
+          <label class="d-field"><span class="d-label">Description</span><input class="d-input" id="wf-desc" value="Create a Name via CrudService through the real Envoy proxy, then confirm it's queryable."></label>
+        </div>
+
+        <div class="d-panel">
+          <div class="d-panel-head"><span class="d-label">Pipeline · from the YAML below</span></div>
+          <div class="pipe">
+            <span class="n trg"><small>Webhook</small>/webhooks/crud-e2e</span><span class="w"></span>
+            <span class="n"><small>01</small>create-name</span><span class="w"></span>
+            <span class="n cur"><small>02</small>query-name</span>
+            <button class="d-btn d-btn--ghost d-btn--sm add">+ Step</button>
+          </div>
+        </div>
+
+        <div class="d-panel editor" aria-label="Workflow YAML">
+<pre class="gutter">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+<span class="e">24</span>
+25
+26</pre>
+<pre class="code"><span class="k">apiVersion</span>: <span class="s">bench/v1</span>
+<span class="k">kind</span>: <span class="s">Workflow</span>
+<span class="k">metadata</span>:
+  <span class="k">name</span>: <span class="s">crud-e2e</span>
+  <span class="k">description</span>: <span class="s">Create a Name via CrudService through the real Envoy proxy</span>
+<span class="k">trigger</span>:
+  <span class="k">webhook</span>:
+    <span class="k">slug</span>: <span class="s">crud-e2e</span>
+    <span class="k">signature</span>:
+      <span class="k">header</span>: <span class="s">X-Bench-Signature</span>
+      <span class="k">secret_ref</span>: <span class="s">blueprint://secrets/bench/crud-e2e-webhook</span>
+<span class="k">steps</span>:
+  - <span class="k">name</span>: <span class="s">create-name</span>
+    <span class="k">uses</span>: <span class="u">foundry://http-call@v1</span>
+    <span class="k">with</span>:
+      <span class="k">body</span>: { <span class="k">name</span>: { <span class="k">first_name</span>: <span class="s">Ada</span>, <span class="k">last_name</span>: <span class="s">Lovelace</span> } }
+    <span class="k">expect</span>:
+      <span class="k">status</span>: <span class="v">OK</span>
+      <span class="k">body</span>: { <span class="k">id</span>: { <span class="k">exists</span>: <span class="v">true</span> } }
+<span class="hl">  - <span class="k">name</span>: <span class="s">query-name</span></span>
+<span class="hl">    <span class="k">uses</span>: <span class="u">foundry://grpc-call@v1</span></span>
+<span class="hl">    <span class="k">with</span>:</span>
+<span class="hl">      <span class="k">service</span>: <span class="s">examples.crud.v1.CrudService</span></span>
+<span class="hl">      <span class="k">methd</span>: <span class="sq"><span class="s">Read</span></span>    <span class="c"># ← unknown field</span></span>
+<span class="hl">      <span class="k">request</span>: { <span class="k">id</span>: <span class="v">${steps.create-name.body.id}</span> }</span>
+<span class="hl">      <span class="k">address</span>: <span class="s">localhost:9090</span></span></pre>
+        </div>
+
+        <div class="d-panel problems">
+          <div class="d-panel-head"><span class="d-label">Problems · 1</span><span class="d-spacer"></span><span class="d-label">Validated against grpc-call@v1 schema</span></div>
+          <div class="row"><span class="d-tag d-tag--err">Error</span><span class="ln">24:7</span><span><code>methd</code> is not a field of grpc-call@v1. Did you mean <code>method</code>? <code>method</code> is required.</span></div>
+        </div>
+      </section>
+
+      <aside class="d-drawer side" aria-label="Plugin search">
+        <span class="d-label">Insert a step · from Foundry</span>
+        <input class="d-input" id="plugin-search" style="margin-top:10px" placeholder="Search plugins…" value="call">
+        <div class="res">
+          <div class="d-panel">
+            <div class="top">grpc-call<span class="d-tag d-tag--quiet">v1</span><span class="d-spacer"></span><button class="d-btn d-btn--sm">Insert</button></div>
+            <p>Unary call to any gRPC server with reflection; no generated stubs.</p>
+            <code>required: address · service · method</code>
+          </div>
+          <div class="d-panel">
+            <div class="top">http-call<span class="d-tag d-tag--quiet">v1</span><span class="d-spacer"></span><button class="d-btn d-btn--sm">Insert</button></div>
+            <p>Plain HTTP request, with optional assertions on status and body.</p>
+            <code>required: url</code>
+          </div>
+          <div class="d-panel">
+            <div class="top">catalyst-consume<span class="d-tag d-tag--quiet">v1</span><span class="d-spacer"></span><button class="d-btn d-btn--sm">Insert</button></div>
+            <p>Waits for the next matching CloudEvent and extracts fields for later steps.</p>
+            <code>required: type</code>
+          </div>
+        </div>
+
+        <div class="d-section-title" style="margin:24px 0 10px"><span class="d-label">Selected step · query-name</span></div>
+        <dl class="d-kv">
+          <dt>uses</dt><dd>grpc-call@v1</dd>
+          <dt>address</dt><dd>localhost:9090 ✓</dd>
+          <dt>service</dt><dd>examples.crud.v1.CrudService ✓</dd>
+          <dt>method</dt><dd style="color:var(--err)">missing</dd>
+          <dt>request</dt><dd>uses create-name output</dd>
+        </dl>
+        <div class="d-row" style="margin-top:14px"><a href="foundry-plugin.html" class="d-btn d-btn--sm">grpc-call docs ↗</a></div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>YAML <b>26 lines</b></span>
+    <span>Cursor <b>24:7</b></span>
+    <span class="d-spacer"></span>
+    <span><span class="d-kbd">⌘</span><span class="d-kbd">S</span> save</span>
+    <span><span class="d-kbd">⌘</span><span class="d-kbd">↵</span> save and run</span>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{blueprint} Service Registry</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .sr-toolbar { display: flex; gap: 8px; align-items: center; margin: 20px 0 12px; }
+    .sr-toolbar .d-input { width: 260px; }
+    .sr-table td.name { width: 24%; }
+    .sr-table td.name .d-row { gap: 10px; }
+    .sr-table .caret { width: 14px; color: var(--dimmer); font-size: 10px; cursor: pointer; }
+    .sr-table tr.is-open .caret { color: var(--primary); }
+    .inst { display: inline-flex; gap: 3px; vertical-align: middle; margin-right: 8px; }
+    .inst i { width: 6px; height: 12px; background: var(--primary); opacity: .85; border-radius: 1px; }
+    .inst i.off { background: var(--rule-strong); opacity: 1; }
+    .sr-table tr.child td { background: var(--panel-2); height: 30px; font-size: 12px; }
+    .sr-table tr.child td:first-child { padding-left: 44px; color: var(--dim); }
+    .sr-table tr.child:hover td { background: var(--panel-3); }
+    .role { color: var(--dim); }
+    .role.leader { color: var(--primary); }
+    .beat { color: var(--dim); }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Blueprint</span><i>/</i><span>Control plane</span><i>/</i><span>Service registry</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Raft · 5 nodes · leader node_1</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Control plane</span>
+    <a class="d-nav-item" href="blueprint-key-value.html">Key / Value <span class="d-count">6</span></a>
+    <a class="d-nav-item" aria-current="page" href="blueprint-service-registry.html">Service registry <span class="d-count">14</span></a>
+    <a class="d-nav-item" href="blueprint-gateway.html">Gateway <span class="d-count">11</span></a>
+    <a class="d-nav-item" href="blueprint-cluster.html">Cluster</a>
+
+    <span class="d-label">Events</span>
+    <a class="d-nav-item" href="blueprint-events-query.html">Query</a>
+    <a class="d-nav-item" href="blueprint-events-topology.html">Topology</a>
+    <a class="d-nav-item" href="blueprint-events-metrics.html">Metrics</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="beacon-logs.html"><span class="d-glyph" style="--c:var(--ca)">Bc</span>Beacon</a>
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="foundry-catalog.html"><span class="d-glyph">Fd</span>Foundry</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+
+    <span class="d-label">System</span>
+    <a class="d-nav-item" href="#">Settings</a>
+    <a class="d-nav-item" href="../design-system.html">Design system</a>
+  </aside>
+
+  <main class="d-main">
+    <div class="d-page-head">
+      <div>
+        <span class="d-label">Control plane</span>
+        <h1>Service registry</h1>
+        <p>Every process that has registered with Blueprint, grouped by service. Instances report a heartbeat every 5 seconds and are marked stale after 15.</p>
+      </div>
+      <div class="d-actions">
+        <button class="d-btn">Open in cluster view</button>
+      </div>
+    </div>
+
+    <div class="d-stats">
+      <div class="d-panel d-stat"><span class="d-label">Services</span><div class="d-stat-value">14</div><div class="d-stat-foot"><span class="d-delta">3 core · 6 tooling · 5 plugins</span></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Instances</span><div class="d-stat-value">18</div><div class="d-stat-foot"><span class="d-delta">Blueprint runs 5</span></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Healthy</span><div class="d-stat-value">17<small>/ 18</small></div><div class="d-stat-foot"><span class="d-delta is-bad">1 stale · file_host</span></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Last change</span><div class="d-stat-value">4<small>min ago</small></div><div class="d-stat-foot"><span class="d-delta">lineman registered v1</span></div></div>
+    </div>
+
+    <div class="sr-toolbar">
+      <input class="d-input" placeholder="Filter services…" aria-label="Filter services">
+      <span class="d-seg" role="group" aria-label="Domain"><button aria-pressed="true">All</button><button aria-pressed="false">Core</button><button aria-pressed="false">Tooling</button><button aria-pressed="false">Plugins</button><button aria-pressed="false">Examples</button></span>
+      <span class="d-spacer"></span>
+      <span class="d-toggle" role="switch" aria-checked="false"><i></i>Problems only</span>
+    </div>
+
+    <div class="d-panel d-table-wrap">
+      <table class="d-table sr-table">
+        <thead><tr><th>Service</th><th>Domain</th><th>Instances</th><th>Health</th><th>Version</th><th>Address</th><th class="is-right">Last heartbeat</th></tr></thead>
+        <tbody>
+          <tr class="is-open">
+            <td class="name"><span class="d-row"><span class="caret">▼</span><span class="d-glyph" style="--c:var(--bp)">Bp</span>blueprint</span></td>
+            <td><span class="d-tag d-tag--quiet">Core</span></td>
+            <td><span class="inst"><i></i><i></i><i></i><i></i><i></i></span>5 / 5</td>
+            <td><span class="d-status">Healthy</span></td>
+            <td class="is-dim">0.9.0</td>
+            <td class="is-dim">localhost:2221 +4</td>
+            <td class="is-right beat">1s ago</td>
+          </tr>
+          <tr class="child"><td>node_1</td><td><span class="role leader">Raft leader</span></td><td></td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.9.0</td><td class="is-dim">localhost:2221</td><td class="is-right beat">1s ago</td></tr>
+          <tr class="child"><td>node_2</td><td><span class="role">Follower</span></td><td></td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.9.0</td><td class="is-dim">localhost:2231</td><td class="is-right beat">2s ago</td></tr>
+          <tr class="child"><td>node_3</td><td><span class="role">Follower</span></td><td></td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.9.0</td><td class="is-dim">localhost:2241</td><td class="is-right beat">1s ago</td></tr>
+          <tr class="child"><td>node_4</td><td><span class="role">Follower</span></td><td></td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.9.0</td><td class="is-dim">localhost:2251</td><td class="is-right beat">3s ago</td></tr>
+          <tr class="child"><td>node_5</td><td><span class="role">Follower</span></td><td></td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.9.0</td><td class="is-dim">localhost:2261</td><td class="is-right beat">2s ago</td></tr>
+
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph" style="--c:var(--fs)">Fs</span>fuse</span></td><td><span class="d-tag d-tag--quiet">Core</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.9.0</td><td class="is-dim">localhost:18000</td><td class="is-right beat">2s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph" style="--c:var(--ca)">Ca</span>catalyst</span></td><td><span class="d-tag d-tag--quiet">Core</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.9.0</td><td class="is-dim">localhost:2220</td><td class="is-right beat">1s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Bc</span>beacon</span></td><td><span class="d-tag d-tag--quiet">Core</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.9.0</td><td class="is-dim">localhost:2222</td><td class="is-right beat">4s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Bn</span>bench</span></td><td><span class="d-tag d-tag--quiet">Tooling</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.4.2</td><td class="is-dim">localhost:9300</td><td class="is-right beat">3s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Fd</span>foundry</span></td><td><span class="d-tag d-tag--quiet">Tooling</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.4.2</td><td class="is-dim">localhost:9301</td><td class="is-right beat">2s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Lm</span>lineman</span></td><td><span class="d-tag d-tag--quiet">Tooling</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">1.0.0</td><td class="is-dim">localhost:9307</td><td class="is-right beat">1s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Pl</span>http-call</span></td><td><span class="d-tag d-tag--quiet">Plugin</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">v1</td><td class="is-dim">localhost:9304</td><td class="is-right beat">2s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Pl</span>grpc-call</span></td><td><span class="d-tag d-tag--quiet">Plugin</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">v1</td><td class="is-dim">localhost:9305</td><td class="is-right beat">2s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Pl</span>slack-notify</span></td><td><span class="d-tag d-tag--quiet">Plugin</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">v2</td><td class="is-dim">localhost:9302</td><td class="is-right beat">3s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Pl</span>catalyst-consume</span></td><td><span class="d-tag d-tag--quiet">Plugin</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">v1</td><td class="is-dim">localhost:9303</td><td class="is-right beat">1s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Pl</span>catalyst-produce</span></td><td><span class="d-tag d-tag--quiet">Plugin</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">v1</td><td class="is-dim">localhost:9306</td><td class="is-right beat">4s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Ex</span>crud</span></td><td><span class="d-tag d-tag--quiet">Example</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.1.0</td><td class="is-dim">localhost:9090</td><td class="is-right beat">2s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Ex</span>echo</span></td><td><span class="d-tag d-tag--quiet">Example</span></td><td><span class="inst"><i></i></span>1 / 1</td><td><span class="d-status">Healthy</span></td><td class="is-dim">0.1.0</td><td class="is-dim">localhost:9091</td><td class="is-right beat">1s ago</td></tr>
+          <tr><td class="name"><span class="d-row"><span class="caret">▶</span><span class="d-glyph">Ex</span>file_host</span></td><td><span class="d-tag d-tag--quiet">Example</span></td><td><span class="inst"><i class="off"></i></span>0 / 1</td><td><span class="d-status d-status--warn">Stale · 42s</span></td><td class="is-dim">0.1.0</td><td class="is-dim">host.docker.internal:9096</td><td class="is-right" style="color:var(--warn)">42s ago</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Node <b>node_1</b></span>
+    <span>Term <b>7</b></span>
+    <span>Commit <b>4,118</b></span>
+    <span class="d-spacer"></span>
+    <span>RPC <b>9 ms</b></span>
+    <span>v0.9.0-alpha</span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{bench} Run r-0409</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .rn-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; }
+    .rn-status { display: flex; align-items: center; gap: 10px; }
+    .rn-status .d-tag { height: 24px; font-size: 11px; }
+    .rn-meta { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--dim); }
+    .rn-meta b { color: var(--ink); font-weight: 500; }
+    .rn-progress { display: flex; gap: 2px; margin: 20px 0 24px; }
+    .rn-progress i { flex: 1; height: 6px; background: var(--primary); }
+    .rn-progress i.f { background: var(--err); }
+    .rn-progress i.s { background: var(--rule-strong); }
+
+    /* step timeline drawn as a PCB trace */
+    .steps { position: relative; padding-left: 28px; }
+    .steps::before { content: ""; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 2px; background: var(--primary); }
+    .steps::after { content: ""; position: absolute; left: 7px; top: calc(var(--fail-at) + 10px); bottom: 10px; width: 2px; background: repeating-linear-gradient(var(--rule-strong) 0 4px, var(--bg) 4px 8px); }
+    .step { position: relative; padding: 8px 0 14px; }
+    .step::before {
+      content: ""; position: absolute; left: -26px; top: 12px; width: 10px; height: 10px; border-radius: 50%;
+      background: var(--bg); border: 2px solid var(--c, var(--primary)); z-index: 1;
+    }
+    .step.fail { --c: var(--err); }
+    .step.skip { --c: var(--rule-strong); }
+    .step-head { display: flex; align-items: baseline; gap: 12px; font-family: var(--font-mono); }
+    .step-head .no { width: 26px; color: var(--dimmer); font-size: 11px; }
+    .step-head .nm { font-size: 13px; }
+    .step-head .uses { color: var(--dim); font-size: 11.5px; }
+    .step-head .d-spacer { flex: 1; }
+    .step-head .dur { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .step.skip .nm, .step.skip .dur { color: var(--dimmer); }
+    .step.group .nm { color: var(--dim); }
+    .fail-card { margin: 12px 0 4px 38px; }
+    .fail-card .err { padding: 10px 14px; border-bottom: 1px solid var(--rule); background: color-mix(in oklab, var(--err) 8%, transparent); color: var(--err); font-family: var(--font-mono); font-size: 12.5px; }
+    .fail-card .cols { display: grid; grid-template-columns: 1fr 1fr; }
+    .fail-card .cols > div { padding: 12px 14px; min-width: 0; }
+    .fail-card .cols > div + div { border-left: 1px solid var(--rule); }
+    .fail-card pre { margin: 8px 0 0; font-size: 11.5px; line-height: 1.6; white-space: pre; overflow: auto; }
+    .fail-card .bad { color: var(--err); background: color-mix(in oklab, var(--err) 12%, transparent); }
+    .fail-card .k { color: var(--ca); }
+
+    .side .d-panel + .d-panel { margin-top: 14px; }
+    .hist { display: flex; gap: 3px; }
+    .hist i { flex: 1; height: 22px; background: var(--primary); opacity: .9; border-radius: 1px; }
+    .hist i.f { background: var(--err); }
+    .hist i.cur { outline: 1px solid var(--ink); outline-offset: 2px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+    @media (max-width: 1100px) { .rn-layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>bench</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Bench</span><i>/</i><span>fuse-proxy-e2e-10x</span><i>/</i><span>r-0409</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live" style="--c:var(--ca);color:var(--ca)">1 run in flight</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Workflows</span>
+    <a class="d-nav-item" href="bench-overview.html">Overview</a>
+    <a class="d-nav-item" href="bench-overview.html">All workflows <span class="d-count">5</span></a>
+    <a class="d-nav-item" href="bench-editor.html" style="color:var(--primary)">+ New workflow</a>
+
+    <span class="d-label">Runs</span>
+    <a class="d-nav-item" href="bench-run.html">Recent runs <span class="d-count">48</span></a>
+    <a class="d-nav-item" aria-current="page" href="bench-run.html">Failed · 24h <span class="d-count" style="color:var(--err);border-color:color-mix(in oklab,var(--err) 50%,transparent)">1</span></a>
+
+    <span class="d-label">Settings</span>
+    <a class="d-nav-item" href="#">Plugin registries <span class="d-count">1</span></a>
+    <a class="d-nav-item" href="#">Webhook secrets</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="foundry-catalog.html"><span class="d-glyph">Fd</span>Foundry</a>
+      <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+      <a class="d-nav-item" href="beacon-logs.html"><span class="d-glyph" style="--c:var(--ca)">Bc</span>Beacon</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="d-page-head" style="margin-bottom:0">
+      <div>
+        <span class="d-label">Run r-0409 · manual trigger by AM</span>
+        <h1>fuse-proxy-e2e-10x</h1>
+        <div class="rn-meta"><span>Started <b>01:12:04 UTC</b></span><span>Duration <b>38.2 s</b></span><span>Steps <b>13 passed · 1 failed · 7 skipped</b></span></div>
+      </div>
+      <div class="d-actions">
+        <span class="rn-status"><span class="d-tag d-tag--err d-tag--solid">Failed</span></span>
+        <button class="d-btn">Open trace in Beacon</button>
+        <button class="d-btn">Definition</button>
+        <button class="d-btn d-btn--primary">Re-run</button>
+      </div>
+    </div>
+
+    <div class="rn-progress" aria-label="Step results: 13 passed, 1 failed, 7 skipped">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="f"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i><i class="s"></i>
+    </div>
+
+    <div class="rn-layout">
+      <section>
+        <div class="steps" style="--fail-at: 190px">
+          <div class="step"><div class="step-head"><span class="no">01</span><span class="nm">register-route</span><span class="uses">foundry://grpc-call@v1</span><span class="d-spacer"></span><span class="dur">212 ms</span></div></div>
+          <div class="step"><div class="step-head"><span class="no">02</span><span class="nm">call-1</span><span class="uses">foundry://http-call@v1</span><span class="d-spacer"></span><span class="dur">41 ms</span></div></div>
+          <div class="step group"><div class="step-head"><span class="no">03–12</span><span class="nm">wait-1 … call-6 · 10 steps passed</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm">Expand</button><span class="dur">30.3 s</span></div></div>
+          <div class="step"><div class="step-head"><span class="no">13</span><span class="nm">wait-6</span><span class="uses">builtin://sleep</span><span class="d-spacer"></span><span class="dur">5.00 s</span></div></div>
+          <div class="step fail">
+            <div class="step-head"><span class="no">14</span><span class="nm" style="color:var(--err)">call-7</span><span class="uses">foundry://http-call@v1</span><span class="d-spacer"></span><span class="dur" style="color:var(--err)">2.01 s · timeout</span></div>
+            <div class="d-panel fail-card">
+              <div class="err">expect.status: wanted 200, got 503 — upstream connect error: localhost:9096 refused</div>
+              <div class="cols">
+                <div>
+                  <span class="d-label">Request</span>
+<pre><span class="k">GET</span> http://files.draft.localhost:10000/health
+<span class="k">x-bench-run</span>: r-0409
+<span class="k">x-bench-step</span>: call-7
+<span class="k">timeout</span>: 2s</pre>
+                </div>
+                <div>
+                  <span class="d-label">Response</span>
+<pre><span class="bad">HTTP/1.1 503 Service Unavailable</span>
+<span class="k">server</span>: envoy
+<span class="k">x-envoy-upstream</span>: examples-file_host
+<span class="k">content-length</span>: 91
+
+upstream connect error or disconnect/
+reset before headers. reset reason:
+connection failure</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="step skip"><div class="step-head"><span class="no">15–21</span><span class="nm">wait-7 … call-10 · 7 steps skipped</span><span class="d-spacer"></span><span class="dur">—</span></div></div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <div class="d-panel d-panel-body">
+          <span class="d-label">Likely cause</span>
+          <p style="margin:8px 0 10px">The Fuse route <code>examples-file_host</code> points at <code>host.docker.internal:9096</code>, which stopped heartbeating 42 s before this step.</p>
+          <div class="d-row" style="gap:8px"><button class="d-btn d-btn--sm">Service registry</button><button class="d-btn d-btn--sm">Gateway route</button></div>
+        </div>
+
+        <div class="d-panel d-panel-body">
+          <div class="d-row"><span class="d-label">Last 12 runs</span><span class="d-spacer"></span><span class="d-label">11 / 12 passed</span></div>
+          <div class="hist" style="margin-top:12px"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="f cur"></i></div>
+          <p style="margin:12px 0 0; color:var(--dim); font-size:12.5px">Last passing run r-0402 took 51.0 s. Step 14 took 38 ms there.</p>
+        </div>
+
+        <div class="d-panel d-panel-body">
+          <span class="d-label">Run</span>
+          <dl class="d-kv" style="margin-top:10px">
+            <dt>run id</dt><dd>r-0409</dd>
+            <dt>trigger</dt><dd>manual · AM</dd>
+            <dt>registry</dt><dd>default · localhost:9301</dd>
+            <dt>trace</dt><dd style="color:var(--ca)">5ca1ef52…d68c</dd>
+          </dl>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Run <b>r-0409</b></span>
+    <span>Finished <b>01:12:42 UTC</b></span>
+    <span class="d-spacer"></span>
+    <span>Polling <b>off</b> · run finished</span>
+  </footer>
+</div>
+<script>
+  // The trace is solid up to the failed step and dashed after it.
+  (function () {
+    var steps = document.querySelector(".steps"), fail = document.querySelector(".step.fail");
+    function place() { steps.style.setProperty("--fail-at", fail.offsetTop + "px"); }
+    place(); window.addEventListener("resize", place);
+    if (document.fonts) document.fonts.ready.then(place);
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{beacon} Metrics</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .mx-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .mx-main { padding: 24px 32px 48px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+    .mx-head { display: flex; align-items: center; gap: 12px; }
+    .mx-head h1 { margin: 0; font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: 600; }
+
+    .chart-body { position: relative; padding: 8px 16px 12px; }
+    #chart { display: block; width: 100%; height: auto; overflow: visible; }
+    #chart .grid line { stroke: var(--rule); }
+    #chart .axis text { font-family: var(--font-mono); font-size: 10.5px; fill: var(--dim); }
+    #chart .series path { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    #chart .end { stroke: var(--panel); stroke-width: 2; }
+    #chart .xhair { stroke: var(--dim); stroke-dasharray: 3 3; }
+    #chart .hover-dot { stroke: var(--panel); stroke-width: 2; }
+    .chart-tip { position: absolute; top: 8px; pointer-events: none; min-width: 200px; padding: 8px 10px; background: var(--panel-3); border: 1px solid var(--rule-strong); border-radius: var(--radius); font-family: var(--font-mono); font-size: 11.5px; }
+    .chart-tip b { display: block; margin-bottom: 6px; color: var(--dim); font-weight: 500; font-size: 10.5px; letter-spacing: .08em; }
+    .chart-tip div { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
+    .chart-tip div i { width: 8px; height: 2px; background: var(--c); }
+    .chart-tip div span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+    .series-t td.lbl { width: 40%; }
+    .series-t td.lbl label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+    .series-t input { accent-color: var(--primary); }
+    .series-t .sw { width: 12px; height: 2px; background: var(--c); }
+    .series-t .lk { color: var(--dimmer); }
+    .series-t tr.off td { opacity: .45; }
+
+    .browser { padding: 18px; }
+    .browser .d-input { width: 100%; margin-top: 10px; }
+    .mlist { display: grid; margin-top: 10px; }
+    .mlist a { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--radius); font-family: var(--font-mono); font-size: 12px; color: var(--ink); text-decoration: none; }
+    .mlist a:hover { background: var(--panel-2); text-decoration: none; }
+    .mlist a[aria-current="true"] { background: var(--panel-3); }
+    .mlist a .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mlist a .d-tag { margin-left: auto; height: 18px; font-size: 9.5px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>beacon</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Beacon</span><i>/</i><span>Signals</span><i>/</i><span>Metrics</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Clickhouse · 1,240 series</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Signals</span>
+    <a class="d-nav-item" href="beacon-wide-events.html">Wide events</a>
+    <a class="d-nav-item" href="beacon-logs.html">Logs</a>
+    <a class="d-nav-item" href="beacon-traces.html">Traces</a>
+    <a class="d-nav-item" aria-current="page" href="beacon-metrics.html">Metrics</a>
+
+    <span class="d-label">Saved queries</span>
+    <a class="d-nav-item" href="#">Gateway rps by route</a>
+    <a class="d-nav-item" href="#">Raft apply latency p95</a>
+    <a class="d-nav-item" href="#">Catalyst queue depth</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="mx-layout">
+      <section class="mx-main">
+        <div class="mx-head">
+          <h1>Metrics</h1>
+          <span class="d-label">5 series · step 1m · last 3h</span>
+          <span class="d-spacer"></span>
+          <span class="d-toggle" role="switch" aria-checked="true"><i></i>Live</span>
+          <span class="d-seg" role="group" aria-label="Time range"><button aria-pressed="false">15m</button><button aria-pressed="false">1h</button><button aria-pressed="true">3h</button><button aria-pressed="false">24h</button></span>
+        </div>
+
+        <div>
+          <div class="d-query">
+            <span class="d-query-lang">PROMQL</span>
+            <input value='sum by (route) (rate(fuse_requests_total[5m]))' aria-label="PromQL query">
+            <button class="d-btn d-btn--primary">Run</button>
+          </div>
+          <div class="d-chips">
+            <button class="d-chip">histogram_quantile(0.95, …)</button>
+            <button class="d-chip">rate(…[5m])</button>
+            <button class="d-chip">sum by (service)</button>
+            <button class="d-chip">topk(5, …)</button>
+          </div>
+        </div>
+
+        <div class="d-stats">
+          <div class="d-panel d-stat"><span class="d-label">Total now</span><div class="d-stat-value" id="s-now">—<small>req/s</small></div></div>
+          <div class="d-panel d-stat"><span class="d-label">Peak · 3h</span><div class="d-stat-value" id="s-peak">—<small>req/s</small></div><div class="d-stat-foot"><span class="d-delta" id="s-peak-at"></span></div></div>
+          <div class="d-panel d-stat"><span class="d-label">Series</span><div class="d-stat-value">5</div><div class="d-stat-foot"><span class="d-delta">grouped by route</span></div></div>
+          <div class="d-panel d-stat"><span class="d-label">Samples</span><div class="d-stat-value">905</div><div class="d-stat-foot"><span class="d-delta">181 steps × 5 series</span></div></div>
+        </div>
+
+        <div class="d-panel">
+          <div class="d-panel-head"><span class="d-label">Requests per second, by route</span><span class="d-spacer"></span><span class="d-label">Hover for values</span></div>
+          <div class="chart-body" id="chartbody">
+            <svg id="chart" viewBox="0 0 960 260" role="img" aria-label="Line chart of Fuse requests per second for five routes over three hours"></svg>
+            <div class="chart-tip" id="ctip" hidden></div>
+          </div>
+        </div>
+
+        <div class="d-panel d-table-wrap">
+          <table class="d-table series-t">
+            <thead><tr><th>Series</th><th class="is-right">Last</th><th class="is-right">Min</th><th class="is-right">Avg</th><th class="is-right">Max</th></tr></thead>
+            <tbody id="stable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="d-drawer browser" aria-label="Metric browser">
+        <span class="d-label">Metric browser</span>
+        <input class="d-input" id="metric-search" placeholder="Filter metric names…" value="fuse_">
+        <div class="mlist">
+          <a href="#" aria-current="true"><span class="t">fuse_requests_total</span><span class="d-tag d-tag--ca">counter</span></a>
+          <a href="#"><span class="t">fuse_request_duration_seconds</span><span class="d-tag d-tag--bp">histogram</span></a>
+          <a href="#"><span class="t">fuse_upstream_retries_total</span><span class="d-tag d-tag--ca">counter</span></a>
+          <a href="#"><span class="t">fuse_routes_active</span><span class="d-tag d-tag--fs">gauge</span></a>
+          <a href="#"><span class="t">fuse_envoy_config_version</span><span class="d-tag d-tag--fs">gauge</span></a>
+        </div>
+
+        <div class="d-section-title" style="margin:22px 0 10px"><span class="d-label">fuse_requests_total · labels</span></div>
+        <dl class="d-kv">
+          <dt>route</dt><dd>11 values</dd>
+          <dt>method</dt><dd>GET, POST</dd>
+          <dt>status</dt><dd>200, 404, 503</dd>
+          <dt>service</dt><dd>fuse</dd>
+        </dl>
+        <p style="margin:14px 0 0; color:var(--dim); font-size:12.5px">Counter of requests handled by Fuse. Use it with <code>rate()</code>; the raw value only ever goes up.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Engine <b>PromQL subset</b></span>
+    <span>Query <b>63 ms</b></span>
+    <span class="d-spacer"></span>
+    <span>Step <b>1m</b></span>
+  </footer>
+</div>
+
+<script>
+  // Illustrative series: Fuse requests/s by route, 1-minute steps over 3h.
+  (function () {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.getElementById("chart");
+    var W = 960, H = 260, L = 40, R = 16, T = 12, B = 26, N = 181, max = 4;
+    var series = [
+      { name: "core-blueprint-ui", c: "--bp",      base: 1.9, amp: 0.6, f: 0.05 },
+      { name: "beacon-ui",         c: "--ca",      base: 1.2, amp: 0.4, f: 0.07 },
+      { name: "lineman-rpc",       c: "--primary", base: 0.8, amp: 0.3, f: 0.09 },
+      { name: "examples-crud",     c: "--fs",      base: 0.5, amp: 0.3, f: 0.12 },
+      { name: "examples-file_host",c: "--sv",      base: 0.3, amp: 0.1, f: 0.2 }
+    ];
+    series.forEach(function (s, k) {
+      s.on = true; s.v = [];
+      for (var i = 0; i < N; i++) {
+        var v = s.base + s.amp * Math.sin(i * s.f + k) + 0.12 * Math.sin(i * 0.9 + k * 3);
+        if (s.name === "core-blueprint-ui" && i > 150 && i < 160) v += 1.1;
+        if (s.name === "examples-file_host" && i > 170) v = 0.02;
+        s.v.push(Math.max(0, +v.toFixed(2)));
+      }
+    });
+    function x(i) { return L + (W - L - R) * i / (N - 1); }
+    function y(v) { return T + (H - T - B) * (1 - v / max); }
+    function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e; }
+    function tlabel(i) { var m = (22 * 60 + 50 + i) % 1440; return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); }
+
+    var grid = el("g", { class: "grid" }), axis = el("g", { class: "axis" });
+    [0, 1, 2, 3, 4].forEach(function (t) {
+      grid.appendChild(el("line", { x1: L, x2: W - R, y1: y(t), y2: y(t) }));
+      var tx = el("text", { x: L - 8, y: y(t) + 4, "text-anchor": "end" }); tx.textContent = t; axis.appendChild(tx);
+    });
+    for (var j = 0; j <= 6; j++) {
+      var tx = el("text", { x: x(j * 30), y: H - 6, "text-anchor": j === 0 ? "start" : j === 6 ? "end" : "middle" });
+      tx.textContent = tlabel(j * 30) + (j === 6 ? " UTC" : ""); axis.appendChild(tx);
+    }
+    svg.appendChild(grid); svg.appendChild(axis);
+    var gs = el("g", { class: "series" }); svg.appendChild(gs);
+
+    function draw() {
+      while (gs.firstChild) gs.removeChild(gs.firstChild);
+      series.forEach(function (s) {
+        if (!s.on) return;
+        var d = s.v.map(function (v, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); }).join(" ");
+        gs.appendChild(el("path", { d: d, stroke: "var(" + s.c + ")" }));
+        gs.appendChild(el("circle", { cx: x(N - 1), cy: y(s.v[N - 1]), r: 4, class: "end", fill: "var(" + s.c + ")" }));
+      });
+      var tot = series.filter(function (s) { return s.on; });
+      var now = tot.reduce(function (a, s) { return a + s.v[N - 1]; }, 0);
+      var peak = 0, at = 0;
+      for (var i = 0; i < N; i++) { var t = tot.reduce(function (a, s) { return a + s.v[i]; }, 0); if (t > peak) { peak = t; at = i; } }
+      document.getElementById("s-now").innerHTML = now.toFixed(2) + "<small>req/s</small>";
+      document.getElementById("s-peak").innerHTML = peak.toFixed(2) + "<small>req/s</small>";
+      document.getElementById("s-peak-at").textContent = "at " + tlabel(at) + " UTC";
+    }
+
+    var tb = document.getElementById("stable");
+    series.forEach(function (s, k) {
+      var min = Math.min.apply(null, s.v), mx = Math.max.apply(null, s.v);
+      var avg = s.v.reduce(function (a, b) { return a + b; }, 0) / N;
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td class="lbl"><label><input type="checkbox" id="series-' + k + '" checked><i class="sw" style="--c:var(' + s.c + ')"></i><span><span class="lk">route=</span>"' + s.name + '"</span></label></td>' +
+        '<td class="is-right">' + s.v[N - 1].toFixed(2) + '</td><td class="is-right is-dim">' + min.toFixed(2) + '</td><td class="is-right is-dim">' + avg.toFixed(2) + '</td><td class="is-right is-dim">' + mx.toFixed(2) + '</td>';
+      tr.querySelector("input").addEventListener("change", function (e) { s.on = e.target.checked; tr.classList.toggle("off", !s.on); draw(); });
+      tb.appendChild(tr);
+    });
+    draw();
+
+    var xh = el("line", { class: "xhair", y1: T, y2: H - B, visibility: "hidden" }); svg.appendChild(xh);
+    var dots = series.map(function (s) { var c = el("circle", { r: 4, class: "hover-dot", fill: "var(" + s.c + ")", visibility: "hidden" }); svg.appendChild(c); return c; });
+    var hit = el("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" }); svg.appendChild(hit);
+    var tip = document.getElementById("ctip"), body = document.getElementById("chartbody");
+    hit.addEventListener("mousemove", function (ev) {
+      var r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) * W / r.width;
+      var i = Math.max(0, Math.min(N - 1, Math.round((sx - L) / (W - L - R) * (N - 1))));
+      xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i)); xh.setAttribute("visibility", "visible");
+      dots.forEach(function (d, k) { var s = series[k]; d.setAttribute("cx", x(i)); d.setAttribute("cy", y(s.v[i])); d.setAttribute("visibility", s.on ? "visible" : "hidden"); });
+      var rows = series.filter(function (s) { return s.on; }).sort(function (a, b) { return b.v[i] - a.v[i]; })
+        .map(function (s) { return '<div style="--c:var(' + s.c + ')"><i></i><span>' + s.name + "</span><span>" + s.v[i].toFixed(2) + "</span></div>"; }).join("");
+      tip.innerHTML = "<b>" + tlabel(i) + " UTC · REQ/S</b>" + rows; tip.hidden = false;
+      var px = (x(i) / W) * r.width + 16, br = body.getBoundingClientRect();
+      if (px + 220 > br.width) px -= 240;
+      tip.style.left = px + "px";
+    });
+    hit.addEventListener("mouseleave", function () { tip.hidden = true; xh.setAttribute("visibility", "hidden"); dots.forEach(function (d) { d.setAttribute("visibility", "hidden"); }); });
+  })();
+</script>
+</body>
+</html>

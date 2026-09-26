@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{blueprint} Events Query</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .eq-layout { display: grid; grid-template-columns: minmax(0, 1fr) 420px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .eq-list { padding: 24px 32px 48px; min-width: 0; }
+    .eq-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .eq-head h1 { margin: 0; font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: 600; }
+    .eq-facets { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 16px 0 12px; }
+    .facet {
+      display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px;
+      border: 1px solid var(--rule-strong); border-radius: var(--radius); background: transparent;
+      font-family: var(--font-mono); font-size: 11.5px; color: var(--ink); cursor: pointer;
+    }
+    .facet[aria-pressed="false"] { color: var(--dim); }
+    .facet[aria-pressed="false"] .dot { opacity: .35; }
+    .facet .d-count { height: 16px; min-width: 18px; font-size: 10px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
+    .eq-table td.t { color: var(--dim); width: 1%; }
+    .eq-table td.type { width: 1%; }
+    .eq-table td.type span { display: inline-flex; align-items: center; gap: 8px; }
+    .eq-table td.src { width: 1%; color: var(--ink); }
+    .eq-table td.id { width: 1%; color: var(--dim); }
+    .eq-table td.body { max-width: 0; color: var(--dim); }
+    .eq-table .k { color: var(--dimmer); }
+    .eq-drawer { padding: 20px; }
+    .eq-drawer h2 { margin: 10px 0 4px; font-family: var(--font-mono); font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+    .eq-block { margin-top: 18px; }
+    .eq-block .d-section-title { margin: 0 0 10px; }
+    .eq-drawer pre {
+      margin: 0; padding: 12px; overflow: auto; max-height: 300px;
+      background: var(--bg); border: 1px solid var(--rule); border-radius: var(--radius);
+      font-size: 12px; line-height: 1.6;
+    }
+    .eq-drawer pre .k { color: var(--ca); }
+    .eq-drawer pre .s { color: var(--ink); }
+    .eq-drawer pre .n { color: var(--fs); }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Blueprint</span><i>/</i><span>Events</span><i>/</i><span>Query</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Catalyst · streaming</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Control plane</span>
+    <a class="d-nav-item" href="blueprint-key-value.html">Key / Value <span class="d-count">6</span></a>
+    <a class="d-nav-item" href="blueprint-service-registry.html">Service registry <span class="d-count">14</span></a>
+    <a class="d-nav-item" href="blueprint-gateway.html">Gateway <span class="d-count">11</span></a>
+    <a class="d-nav-item" href="blueprint-cluster.html">Cluster</a>
+
+    <span class="d-label">Events</span>
+    <a class="d-nav-item" aria-current="page" href="blueprint-events-query.html">Query</a>
+    <a class="d-nav-item" href="blueprint-events-topology.html">Topology</a>
+    <a class="d-nav-item" href="blueprint-events-metrics.html">Metrics</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="beacon-logs.html"><span class="d-glyph" style="--c:var(--ca)">Bc</span>Beacon</a>
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+      <a class="d-nav-item" href="foundry-catalog.html"><span class="d-glyph">Fd</span>Foundry</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+
+    <span class="d-label">System</span>
+    <a class="d-nav-item" href="#">Settings</a>
+    <a class="d-nav-item" href="../design-system.html">Design system</a>
+  </aside>
+
+  <main class="d-main">
+    <div class="eq-layout">
+      <section class="eq-list">
+
+        <div class="eq-head">
+          <h1>Events</h1>
+          <span class="d-label">312 matched · last 3h</span>
+          <span class="d-spacer"></span>
+          <span class="d-toggle" role="switch" aria-checked="true"><i></i>Stream</span>
+          <span class="d-seg" role="group" aria-label="Time range"><button aria-pressed="false">15m</button><button aria-pressed="false">1h</button><button aria-pressed="true">3h</button><button aria-pressed="false">24h</button></span>
+        </div>
+
+        <div class="d-query">
+          <span class="d-query-lang">CESQL</span>
+          <input value="source LIKE '/services/%' AND type <> 'core.observability.wide_events.v1.WideEvent'" aria-label="CESQL query">
+          <button class="d-btn d-btn--primary">Run</button>
+        </div>
+        <div class="d-chips">
+          <button class="d-chip">type LIKE '%lineman%'</button>
+          <button class="d-chip">source = '/services/fuse'</button>
+          <button class="d-chip">EXISTS subject</button>
+          <button class="d-chip">Hide wide events</button>
+        </div>
+
+        <div class="eq-facets" role="group" aria-label="Event types">
+          <span class="d-label" style="margin-right:4px">Types</span>
+          <button class="facet" aria-pressed="true"><span class="dot" style="--c:var(--bp)"></span>lineman.task.*<span class="d-count">148</span></button>
+          <button class="facet" aria-pressed="true"><span class="dot" style="--c:var(--primary)"></span>plugin.published<span class="d-count">6</span></button>
+          <button class="facet" aria-pressed="true"><span class="dot" style="--c:var(--fs)"></span>route.changed<span class="d-count">11</span></button>
+          <button class="facet" aria-pressed="true"><span class="dot" style="--c:var(--ca)"></span>workflow.run.*<span class="d-count">147</span></button>
+          <button class="facet" aria-pressed="false"><span class="dot" style="--c:var(--sv)"></span>wide_events.WideEvent<span class="d-count">1,902</span></button>
+        </div>
+
+        <div class="d-panel d-table-wrap">
+          <table class="d-table eq-table">
+            <thead><tr><th>Time (UTC) ↓</th><th>Type</th><th>Source</th><th>Subject</th><th>ID</th><th>Data</th></tr></thead>
+            <tbody>
+              <tr aria-selected="true"><td class="t">01:45:18.204</td><td class="type"><span><i class="dot" style="--c:var(--bp)"></i>lineman.task.started</span></td><td class="src">/services/lineman</td><td>T-101</td><td class="id">ea2dd4f7</td><td class="body"><span class="d-trunc"><span class="k">objective=</span>814820c1 <span class="k">agent=</span>lineman-agent-3 <span class="k">priority=</span>HIGH</span></td></tr>
+              <tr><td class="t">01:45:05.771</td><td class="type"><span><i class="dot" style="--c:var(--ca)"></i>workflow.run.passed</span></td><td class="src">/services/bench</td><td>crud-e2e</td><td class="id">d5d8a29f</td><td class="body"><span class="d-trunc"><span class="k">run=</span>r-0412 <span class="k">steps=</span>2 <span class="k">duration_ms=</span>812</span></td></tr>
+              <tr><td class="t">01:44:58.010</td><td class="type"><span><i class="dot" style="--c:var(--ca)"></i>workflow.run.started</span></td><td class="src">/services/bench</td><td>crud-e2e</td><td class="id">a9ecb34c</td><td class="body"><span class="d-trunc"><span class="k">run=</span>r-0412 <span class="k">trigger=</span>webhook</span></td></tr>
+              <tr><td class="t">01:41:51.337</td><td class="type"><span><i class="dot" style="--c:var(--fs)"></i>route.changed</span></td><td class="src">/services/fuse</td><td>lineman-ui</td><td class="id">dfd83c1b</td><td class="body"><span class="d-trunc"><span class="k">op=</span>ADD <span class="k">host=</span>lineman.draft.localhost <span class="k">target=</span>localhost:9307</span></td></tr>
+              <tr><td class="t">01:40:55.549</td><td class="type"><span><i class="dot" style="--c:var(--primary)"></i>plugin.published</span></td><td class="src">/services/foundry</td><td>lineman@v1</td><td class="id">c4d09694</td><td class="body"><span class="d-trunc"><span class="k">name=</span>lineman <span class="k">version=</span>v1 <span class="k">maintainer=</span>steady-bytes</span></td></tr>
+              <tr><td class="t">01:40:37.465</td><td class="type"><span><i class="dot" style="--c:var(--primary)"></i>plugin.published</span></td><td class="src">/services/foundry</td><td>http-call@v1</td><td class="id">54054286</td><td class="body"><span class="d-trunc"><span class="k">name=</span>http-call <span class="k">version=</span>v1 <span class="k">maintainer=</span>platform-team</span></td></tr>
+              <tr><td class="t">01:32:10.908</td><td class="type"><span><i class="dot" style="--c:var(--bp)"></i>lineman.task.done</span></td><td class="src">/services/lineman</td><td>T-100</td><td class="id">8e633a56</td><td class="body"><span class="d-trunc"><span class="k">objective=</span>814820c1 <span class="k">by=</span>AM <span class="k">elapsed=</span>41m</span></td></tr>
+              <tr><td class="t">01:09:00.002</td><td class="type"><span><i class="dot" style="--c:var(--bp)"></i>lineman.task.queued</span></td><td class="src">/services/lineman</td><td>T-126</td><td class="id">54336005</td><td class="body"><span class="d-trunc"><span class="k">loop=</span>nightly-log-rotation <span class="k">occurrence=</span>17</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="d-row" style="margin-top:12px; justify-content:space-between">
+          <span class="d-label">Showing 8 of 312 · newest first</span>
+          <button class="d-btn d-btn--sm">Load older</button>
+        </div>
+      </section>
+
+      <aside class="d-drawer eq-drawer" aria-label="Event detail">
+        <div class="d-row"><span class="d-label">CloudEvent · 1.0</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm d-btn--icon" aria-label="Close">✕</button></div>
+        <h2>lineman.task.started</h2>
+        <span class="d-label">01:45:18.204 UTC · forwarded +3 ms</span>
+
+        <div class="eq-block">
+          <div class="d-section-title"><span class="d-label">Envelope</span></div>
+          <dl class="d-kv">
+            <dt>id</dt><dd>ea2dd4f74729e5ab</dd>
+            <dt>source</dt><dd>/services/lineman</dd>
+            <dt>subject</dt><dd>T-101</dd>
+            <dt>datacontenttype</dt><dd>application/json</dd>
+            <dt>traceparent</dt><dd style="color:var(--ca)">00-5ca1ef52…d68c-01</dd>
+          </dl>
+        </div>
+
+        <div class="eq-block">
+          <div class="d-section-title"><span class="d-label">Data</span></div>
+<pre>{
+  <span class="k">"task_id"</span>: <span class="s">"T-101"</span>,
+  <span class="k">"objective_id"</span>: <span class="s">"814820c1"</span>,
+  <span class="k">"title"</span>: <span class="s">"Migrate Bench webhook secret"</span>,
+  <span class="k">"priority"</span>: <span class="s">"HIGH"</span>,
+  <span class="k">"agent"</span>: <span class="s">"lineman-agent-3"</span>,
+  <span class="k">"attempt"</span>: <span class="n">1</span>
+}</pre>
+        </div>
+
+        <div class="eq-block">
+          <div class="d-section-title"><span class="d-label">Delivered to · 2</span></div>
+          <dl class="d-kv">
+            <dt>bench</dt><dd>acked in 4 ms</dd>
+            <dt>beacon</dt><dd>acked in 6 ms</dd>
+          </dl>
+        </div>
+
+        <div class="d-row" style="margin-top:20px">
+          <button class="d-btn d-btn--primary">Open trace</button>
+          <button class="d-btn">Copy JSON</button>
+          <button class="d-btn">Replay…</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Source <b>catalyst · clickhouse</b></span>
+    <span>Query <b>21 ms</b></span>
+    <span class="d-spacer"></span>
+    <span>Streaming <b>on</b></span>
+  </footer>
+</div>
+</body>
+</html>

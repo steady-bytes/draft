@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DRAFT // MOCKUPS</title>
+  <link rel="stylesheet" href="draft.css">
+  <script src="draft.js"></script>
+  <style>
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 48px 24px 80px; }
+    .top { display: flex; align-items: center; gap: 16px; }
+    .top .d-spacer { flex: 1; }
+    h1 { font-family: var(--font-mono); font-size: 32px; letter-spacing: -.02em; line-height: 1.15; margin: 28px 0 10px; }
+    .lead { color: var(--dim); max-width: 68ch; margin: 0; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    a.card { display: grid; gap: 6px; padding: 14px 16px; color: var(--ink); text-decoration: none; }
+    a.card:hover { border-color: var(--primary); text-decoration: none; }
+    a.card strong { font-family: var(--font-mono); font-size: 13.5px; }
+    a.card span:last-child { color: var(--dim); font-size: 12.5px; line-height: 1.45; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="d-wordmark"><b>{</b>draft<b>}</b><small>mockups</small></span>
+    <span class="d-spacer"></span>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </div>
+  <h1>Design system mockups</h1>
+  <p class="lead">Static mockups for every Draft surface, all built on <code>draft.css</code>. Open any page and use the sidebar to move between them. Sample data is illustrative. The pages load Inter and JetBrains Mono from Google Fonts.</p>
+
+  <h2 class="d-section-title"><span class="d-label">Reference</span></h2>
+  <div class="grid">
+    <a class="d-panel card" href="design-system.html"><span class="d-label">Tokens + components</span><strong>Design system</strong><span>Colors, type, buttons, tags, status, query bar, stat tiles, table. Try other primary colors here.</span></a>
+  </div>
+
+  <h2 class="d-section-title"><span class="d-label">Blueprint · control plane</span></h2>
+  <div class="grid">
+    <a class="d-panel card" href="pages/blueprint-key-value.html"><span class="d-label">Shell</span><strong>Key / Value</strong><span>Masked secrets, truncated values, detail drawer.</span></a>
+    <a class="d-panel card" href="pages/blueprint-service-registry.html"><span class="d-label">Registry</span><strong>Service registry</strong><span>Instance bars, Raft roles per node, a stale service.</span></a>
+    <a class="d-panel card" href="pages/blueprint-gateway.html"><span class="d-label">Fuse</span><strong>Gateway</strong><span>Host and prefix routes, protocol tags, route path diagram.</span></a>
+    <a class="d-panel card" href="pages/blueprint-cluster.html"><span class="d-label">Canvas</span><strong>Cluster</strong><span>Route and event buses, grouped plugins, inspector.</span></a>
+  </div>
+
+  <h2 class="d-section-title"><span class="d-label">Blueprint · events</span></h2>
+  <div class="grid">
+    <a class="d-panel card" href="pages/blueprint-events-query.html"><span class="d-label">CESQL</span><strong>Query</strong><span>Type facets with counts, CloudEvent detail, delivery status.</span></a>
+    <a class="d-panel card" href="pages/blueprint-events-topology.html"><span class="d-label">Flow</span><strong>Topology</strong><span>Producers → event types → consumers; hover to isolate.</span></a>
+    <a class="d-panel card" href="pages/blueprint-events-metrics.html"><span class="d-label">Catalyst</span><strong>Metrics</strong><span>Stat tiles, per-producer chart with crosshair, type table.</span></a>
+  </div>
+
+  <h2 class="d-section-title"><span class="d-label">Beacon · Lineman</span></h2>
+  <div class="grid">
+    <a class="d-panel card" href="pages/beacon-wide-events.html"><span class="d-label">Beacon</span><strong>Wide events</strong><span>Status histogram, duration bars, event detail with spans and logs.</span></a>
+    <a class="d-panel card" href="pages/beacon-logs.html"><span class="d-label">Beacon</span><strong>Logs</strong><span>Severity histogram, readable trace links, log detail.</span></a>
+    <a class="d-panel card" href="pages/beacon-traces.html"><span class="d-label">Beacon</span><strong>Traces</strong><span>Trace list, waterfall with retries on one timeline, span detail.</span></a>
+    <a class="d-panel card" href="pages/beacon-metrics.html"><span class="d-label">Beacon</span><strong>Metrics</strong><span>PromQL bar, per-route chart with crosshair, toggleable series, metric browser.</span></a>
+    <a class="d-panel card" href="pages/lineman-board.html"><span class="d-label">Lineman</span><strong>Objective board</strong><span>Progress and counts, outlined priorities, grouped loop tasks.</span></a>
+  </div>
+
+  <h2 class="d-section-title"><span class="d-label">Bench · Foundry</span></h2>
+  <div class="grid">
+    <a class="d-panel card" href="pages/bench-overview.html"><span class="d-label">Bench</span><strong>Overview</strong><span>Verdict line, pass-rate tiles, 12-run history strips.</span></a>
+    <a class="d-panel card" href="pages/bench-run.html"><span class="d-label">Bench</span><strong>Failed run</strong><span>Step trace, request/response of the failing step.</span></a>
+    <a class="d-panel card" href="pages/bench-editor.html"><span class="d-label">Bench</span><strong>Workflow editor</strong><span>Pipeline strip, YAML with inline errors, plugin search.</span></a>
+    <a class="d-panel card" href="pages/foundry-catalog.html"><span class="d-label">Foundry</span><strong>Catalog</strong><span>Plugin cards with uses line, required fields, usage.</span></a>
+    <a class="d-panel card" href="pages/foundry-plugin.html"><span class="d-label">Foundry</span><strong>Plugin detail</strong><span>Schema with descriptions, copyable snippet, used-by.</span></a>
+  </div>
+</div>
+</body>
+</html>

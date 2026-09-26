@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{bench} Overview</title>
+  <link rel="stylesheet" href="../draft.css">
+  <script src="../draft.js"></script>
+  <style>
+    .bn-verdict { display: flex; align-items: center; gap: 14px; margin: 4px 0 24px; }
+    .bn-verdict .lamp { width: 14px; height: 14px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 5px color-mix(in oklab, var(--warn) 16%, transparent); }
+    .bn-verdict b { font-family: var(--font-mono); font-size: 15px; font-weight: 600; color: var(--warn); }
+    .bn-verdict span { color: var(--dim); }
+    .bn-toolbar { display: flex; align-items: center; gap: 8px; margin: 28px 0 12px; }
+    .bn-toolbar .d-input { width: 240px; }
+    .wf td.name { width: 34%; max-width: 0; }
+    .wf td.name b { display: block; font-weight: 600; color: var(--ink); }
+    .wf td.name span { display: block; font-family: var(--font-sans); font-size: 12.5px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wf td { height: 52px; }
+    .runs { display: inline-flex; gap: 3px; vertical-align: middle; }
+    .runs i { width: 8px; height: 16px; border-radius: 1px; background: var(--primary); opacity: .9; }
+    .runs i.f { background: var(--err); }
+    .runs i.r { background: var(--ca); animation: bn-blink 1.2s ease-in-out infinite; }
+    .runs i.n { background: var(--rule-strong); opacity: 1; }
+    @keyframes bn-blink { 50% { opacity: .35; } }
+    @media (prefers-reduced-motion: reduce) { .runs i.r { animation: none; } }
+    .wf .last { display: grid; gap: 2px; }
+    .wf .last small { color: var(--dim); font-size: 11px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>bench</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Bench</span><i>/</i><span>Overview</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live" style="--c:var(--ca);color:var(--ca)">1 run in flight</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Workflows</span>
+    <a class="d-nav-item" aria-current="page" href="bench-overview.html">Overview</a>
+    <a class="d-nav-item" href="bench-overview.html">All workflows <span class="d-count">5</span></a>
+    <a class="d-nav-item" href="bench-editor.html" style="color:var(--primary)">+ New workflow</a>
+
+    <span class="d-label">Runs</span>
+    <a class="d-nav-item" href="bench-run.html">Recent runs <span class="d-count">48</span></a>
+    <a class="d-nav-item" href="bench-run.html">Failed · 24h <span class="d-count" style="color:var(--err);border-color:color-mix(in oklab,var(--err) 50%,transparent)">1</span></a>
+
+    <span class="d-label">Settings</span>
+    <a class="d-nav-item" href="#">Plugin registries <span class="d-count">1</span></a>
+    <a class="d-nav-item" href="#">Webhook secrets</a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="foundry-catalog.html"><span class="d-glyph">Fd</span>Foundry</a>
+      <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+      <a class="d-nav-item" href="beacon-logs.html"><span class="d-glyph" style="--c:var(--ca)">Bc</span>Beacon</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="d-page-head" style="margin-bottom:8px">
+      <div>
+        <span class="d-label">Bench · end-to-end workflows</span>
+        <h1>Is it green?</h1>
+      </div>
+      <div class="d-actions">
+        <span class="d-seg" role="group" aria-label="Window"><button aria-pressed="false">1h</button><button aria-pressed="true">24h</button><button aria-pressed="false">7d</button></span>
+        <button class="d-btn d-btn--primary">+ New workflow</button>
+      </div>
+    </div>
+    <div class="bn-verdict"><i class="lamp" aria-hidden="true"></i><b>Mostly.</b><span>4 of 5 workflows passed their last run. fuse-proxy-e2e-10x failed at step 14 at 01:12 UTC.</span></div>
+
+    <div class="d-stats">
+      <div class="d-panel d-stat"><span class="d-label">Pass rate · 24h</span><div class="d-stat-value">97.9<small>%</small></div><div class="d-stat-foot"><span class="d-delta">47 of 48 runs</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--primary)"><path d="M0 6 L16 6 L32 6 L48 6 L64 6 L72 16 L80 6 L96 6"/></svg></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Running now</span><div class="d-stat-value">1</div><div class="d-stat-foot"><span class="d-delta">crud-e2e · step 2 of 2</span></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Failing workflows</span><div class="d-stat-value" style="color:var(--err)">1</div><div class="d-stat-foot"><span class="d-delta is-bad">fuse-proxy-e2e-10x</span></div></div>
+      <div class="d-panel d-stat"><span class="d-label">Median run</span><div class="d-stat-value">1.4<small>s</small></div><div class="d-stat-foot"><span class="d-delta is-good">▼ 0.3s vs prev 24h</span></div></div>
+    </div>
+
+    <div class="bn-toolbar">
+      <input class="d-input" placeholder="Filter workflows…" aria-label="Filter workflows">
+      <button class="d-chip">Failing</button>
+      <button class="d-chip">Webhook</button>
+      <button class="d-chip">Scheduled</button>
+      <span class="d-spacer"></span>
+      <span class="d-label">Last 12 runs, oldest → newest</span>
+    </div>
+
+    <div class="d-panel d-table-wrap">
+      <table class="d-table wf">
+        <thead><tr><th>Workflow</th><th>Trigger</th><th class="is-right">Steps</th><th>History</th><th>Last run</th><th class="is-right">p50</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="name"><b>fuse-proxy-e2e-10x</b><span>Register a route with Fuse, call it through Envoy 10 times, 5s apart</span></td>
+            <td><span class="d-tag d-tag--quiet">manual</span></td>
+            <td class="is-right">21</td>
+            <td><span class="runs" aria-label="11 passed, 1 failed"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="f"></i></span></td>
+            <td><span class="last"><span class="d-status d-status--err">Failed · step 14</span><small>01:12 UTC · 38.2s</small></span></td>
+            <td class="is-right is-dim">51.0s</td>
+            <td class="is-right"><button class="d-btn d-btn--sm">Run</button></td>
+          </tr>
+          <tr>
+            <td class="name"><b>crud-e2e</b><span>Create a Name via CrudService through the real Envoy proxy, then confirm it's queryable</span></td>
+            <td><span class="d-tag d-tag--ca">webhook</span></td>
+            <td class="is-right">2</td>
+            <td><span class="runs" aria-label="11 passed, 1 running"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="r"></i></span></td>
+            <td><span class="last"><span class="d-status d-status--live" style="--c:var(--ca);color:var(--ca)">Running · 1.1s</span><small>01:47 UTC · webhook</small></span></td>
+            <td class="is-right is-dim">0.81s</td>
+            <td class="is-right"><button class="d-btn d-btn--sm" disabled style="opacity:.4">Run</button></td>
+          </tr>
+          <tr>
+            <td class="name"><b>fuse-proxy-e2e</b><span>Register a route with Fuse, call it through Envoy, confirm the response</span></td>
+            <td><span class="d-tag d-tag--quiet">manual</span></td>
+            <td class="is-right">3</td>
+            <td><span class="runs" aria-label="12 passed"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></td>
+            <td><span class="last"><span class="d-status">Passed</span><small>01:10 UTC · 1.9s</small></span></td>
+            <td class="is-right is-dim">1.8s</td>
+            <td class="is-right"><button class="d-btn d-btn--sm">Run</button></td>
+          </tr>
+          <tr>
+            <td class="name"><b>lineman-loop-smoke</b><span>Create a loop in Lineman and confirm the first task instance is queued</span></td>
+            <td><span class="d-tag d-tag--bp">schedule · hourly</span></td>
+            <td class="is-right">4</td>
+            <td><span class="runs" aria-label="12 passed"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></td>
+            <td><span class="last"><span class="d-status">Passed</span><small>01:00 UTC · 1.2s</small></span></td>
+            <td class="is-right is-dim">1.2s</td>
+            <td class="is-right"><button class="d-btn d-btn--sm">Run</button></td>
+          </tr>
+          <tr>
+            <td class="name"><b>slack-notify-canary</b><span>Post a message through slack-notify and check the webhook returns 200</span></td>
+            <td><span class="d-tag d-tag--quiet">manual</span></td>
+            <td class="is-right">1</td>
+            <td><span class="runs" aria-label="3 passed, 9 never run"><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i></i><i></i><i></i></span></td>
+            <td><span class="last"><span class="d-status">Passed</span><small>Sep 24 · 0.4s</small></span></td>
+            <td class="is-right is-dim">0.4s</td>
+            <td class="is-right"><button class="d-btn d-btn--sm">Run</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Registry <b>foundry · localhost:9301</b></span>
+    <span>Workflows dir <b>bench.workflows_dir</b></span>
+    <span class="d-spacer"></span>
+    <span>Webhooks <b>POST /webhooks/:slug</b></span>
+  </footer>
+</div>
+</body>
+</html>

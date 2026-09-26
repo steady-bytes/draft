@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DRAFT // DESIGN SYSTEM</title>
+  <link rel="stylesheet" href="draft.css">
+  <script src="draft.js"></script>
+  <style>
+    .ds { max-width: 1120px; margin: 0 auto; padding: 0 32px 96px; }
+    .ds-top {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; align-items: center; gap: 16px;
+      height: 56px; margin: 0 -32px 8px; padding: 0 32px;
+      background: color-mix(in oklab, var(--bg) 90%, transparent);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--rule);
+    }
+    .ds-top nav { display: flex; gap: 4px; margin-left: 16px; }
+    .ds-swatches { display: flex; gap: 6px; align-items: center; }
+    .ds-swatches button {
+      width: 18px; height: 18px; padding: 0; border: 1px solid var(--rule-strong);
+      border-radius: var(--radius); background: var(--s); cursor: pointer;
+    }
+    .ds-swatches button[aria-pressed="true"] { outline: 1px solid var(--ink); outline-offset: 2px; }
+    .ds-hero { padding: 56px 0 8px; }
+    .ds-hero h1 { margin: 10px 0 12px; font-family: var(--font-mono); font-size: 40px; letter-spacing: -0.02em; line-height: 1.1; }
+    .ds-hero p { max-width: 64ch; color: var(--dim); font-size: 15px; margin: 0; }
+    .ds-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .ds-token { overflow: hidden; }
+    .ds-token i { display: block; height: 56px; background: var(--v); border-bottom: 1px solid var(--rule); }
+    .ds-token div { padding: 10px 12px; }
+    .ds-token code { display: block; font-size: 12px; }
+    .ds-token small { display: block; margin-top: 2px; color: var(--dim); font-size: 11.5px; }
+    .ds-type-row { display: grid; grid-template-columns: 140px 1fr; gap: 24px; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+    .ds-demo { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .ds-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .ds-note { margin: 8px 0 0; color: var(--dim); font-size: 12.5px; max-width: 80ch; }
+    .ds-node { width: 188px; padding: 10px 12px; }
+    .ds-node .d-row { gap: 10px; }
+    .ds-node b { display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; }
+    .ds-node small { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+    .ds-node .d-row + .d-row { margin-top: 10px; justify-content: space-between; }
+    @media (max-width: 760px) { .ds-two { grid-template-columns: 1fr; } .ds-type-row { grid-template-columns: 1fr; gap: 4px; } .ds-top nav { display: none; } }
+  </style>
+</head>
+<body>
+<div class="ds">
+
+  <header class="ds-top">
+    <span class="d-wordmark"><b>{</b>draft<b>}</b><small>design system</small></span>
+    <nav>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#color">Color</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#type">Type</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#components">Components</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#data">Data</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="pages/blueprint-key-value.html">Mockups ↗</a>
+    </nav>
+    <span class="d-spacer"></span>
+    <span class="d-label">Primary</span>
+    <div class="ds-swatches" role="group" aria-label="Primary color">
+      <button style="--s:#4db380" data-primary="#4db380" title="#4db380 (default)"></button>
+      <button style="--s:#3ddc97" data-primary="#3ddc97" title="#3ddc97"></button>
+      <button style="--s:#4fb3d9" data-primary="#4fb3d9" title="#4fb3d9"></button>
+      <button style="--s:#b48cff" data-primary="#b48cff" title="#b48cff"></button>
+      <button style="--s:#ffb454" data-primary="#ffb454" title="#ffb454"></button>
+    </div>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <section class="ds-hero">
+    <span class="d-label">v0.1 · one system for every Draft surface</span>
+    <h1>Circuit board, not dashboard.</h1>
+    <p>Dark first, monospace for anything that is data, thin rules instead of shadows, and color only where it means something. Every token below ships in <code>draft.css</code> as a CSS variable and as a daisyUI 5 theme, so existing <code>btn</code>, <code>badge</code> and <code>table</code> markup picks it up.</p>
+  </section>
+
+  <!-- COLOR -->
+  <h2 id="color" class="d-section-title"><span class="d-label">01 · Surfaces and ink</span></h2>
+  <div class="ds-grid">
+    <div class="d-panel ds-token" style="--v:var(--bg)"><i></i><div><code>--bg</code><small>Page, grid underlay</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--panel)"><i></i><div><code>--panel</code><small>Surfaces, rail, tables</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--panel-2)"><i></i><div><code>--panel-2</code><small>Hover, raised</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--panel-3)"><i></i><div><code>--panel-3</code><small>Active nav, pressed</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--rule-strong)"><i></i><div><code>--rule / --rule-strong</code><small>1px borders only</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--ink)"><i></i><div><code>--ink</code><small>Primary text</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--dim)"><i></i><div><code>--dim</code><small>Labels, secondary text</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--dimmer)"><i></i><div><code>--dimmer</code><small>Decoration, disabled</small></div></div>
+  </div>
+
+  <h2 class="d-section-title"><span class="d-label">02 · Meaning</span></h2>
+  <div class="ds-grid">
+    <div class="d-panel ds-token" style="--v:var(--primary)"><i></i><div><code>--primary</code><small>Swatchable. Active, focus, live</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--ca)"><i></i><div><code>--ca</code><small>Catalyst · also info, links in data</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--bp)"><i></i><div><code>--bp</code><small>Blueprint · agents</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--fs)"><i></i><div><code>--fs</code><small>Fuse</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--sv)"><i></i><div><code>--sv</code><small>Generic service</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--warn)"><i></i><div><code>--warn</code><small>Degraded, medium priority</small></div></div>
+    <div class="d-panel ds-token" style="--v:var(--err)"><i></i><div><code>--err</code><small>Failed, destructive, high</small></div></div>
+  </div>
+  <p class="ds-note">Rule of thumb: healthy is the quietest state on screen. A running service is a small dot, not a green block; color is spent on things that need a human.</p>
+
+  <!-- TYPE -->
+  <h2 id="type" class="d-section-title"><span class="d-label">03 · Type</span></h2>
+  <div>
+    <div class="ds-type-row"><span class="d-label">Page title · 24</span><span style="font-family:var(--font-mono);font-size:24px;font-weight:600;letter-spacing:-0.01em">Key / Value</span></div>
+    <div class="ds-type-row"><span class="d-label">Body · Inter 16</span><span style="font-size:16px">Prose only: descriptions, empty states, docs.</span></div>
+    <div class="ds-type-row"><span class="d-label">Data · Mono 13</span><span class="mono">core.registry.key_value.v1.Value · 2026-09-26 01:47:07.688</span></div>
+    <div class="ds-type-row"><span class="d-label">Label · Mono 11</span><span class="d-label" style="color:var(--ink)">Service registry · 14 services · 18 instances</span></div>
+    <div class="ds-type-row"><span class="d-label">Numbers</span><span class="num" style="font-size:28px;font-weight:600">1,288.40<small style="font-size:13px;color:var(--dim)">ms</small></span></div>
+  </div>
+
+  <!-- COMPONENTS -->
+  <h2 id="components" class="d-section-title"><span class="d-label">04 · Buttons and controls</span></h2>
+  <div class="ds-demo">
+    <button class="d-btn d-btn--primary">+ Add entry</button>
+    <button class="d-btn">Edit</button>
+    <button class="d-btn d-btn--ghost">Cancel</button>
+    <button class="d-btn d-btn--danger">Delete</button>
+    <button class="d-btn d-btn--sm">Small</button>
+    <span class="d-seg" role="group"><button aria-pressed="false">15m</button><button aria-pressed="false">1h</button><button aria-pressed="true">3h</button><button aria-pressed="false">24h</button></span>
+    <span class="d-toggle" role="switch" aria-checked="true"><i></i>Stream</span>
+    <span class="d-toggle" role="switch" aria-checked="false"><i></i>Snap</span>
+    <span class="d-row" style="gap:6px"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></span>
+  </div>
+
+  <h2 class="d-section-title"><span class="d-label">05 · Tags and status</span></h2>
+  <div class="ds-demo">
+    <span class="d-tag d-tag--ca">HTTP</span>
+    <span class="d-tag d-tag--sv">HTTP2</span>
+    <span class="d-tag d-tag--bp">gRPC</span>
+    <span class="d-tag d-tag--bp">gRPC-Web</span>
+    <span class="d-tag d-tag--fs">WS</span>
+    <span class="d-tag d-tag--quiet">bypass</span>
+    <span class="d-tag d-tag--err">High</span>
+    <span class="d-tag d-tag--warn">Medium</span>
+    <span class="d-tag d-tag--quiet">Low</span>
+  </div>
+  <div class="ds-demo" style="margin-top:14px">
+    <span class="d-status d-status--live">Online</span>
+    <span class="d-status">5 / 5 healthy</span>
+    <span class="d-status d-status--warn">Degraded</span>
+    <span class="d-status d-status--err">Failed</span>
+    <span class="d-status d-status--idle">Never run</span>
+  </div>
+
+  <h2 class="d-section-title"><span class="d-label">06 · Query bar — one component for CESQL, BeaconQL, PromQL</span></h2>
+  <div class="d-query">
+    <span class="d-query-lang">BEACONQL</span>
+    <input placeholder='severity = "error" AND service_name = "beacon"' aria-label="Query">
+    <button class="d-btn d-btn--primary">Run <span class="d-kbd" style="border-color:currentColor;color:inherit">↵</span></button>
+  </div>
+  <div class="d-chips">
+    <button class="d-chip">severity = "error"</button>
+    <button class="d-chip">service_name = "fuse"</button>
+    <button class="d-chip">trace_id EXISTS</button>
+    <button class="d-chip">duration_ms &gt; 500</button>
+  </div>
+
+  <h2 class="d-section-title"><span class="d-label">07 · Panels and canvas nodes</span></h2>
+  <div class="ds-demo">
+    <div class="d-panel ds-node"><div class="d-row"><span class="d-glyph" style="--c:var(--ca)">Ca</span><div><b>CATALYST</b><small>Event bus</small></div></div><div class="d-row"><span class="d-status">Online</span><span class="d-label">3 evt</span></div></div>
+    <div class="d-panel d-brackets is-active ds-node" style="border-color:color-mix(in oklab,var(--primary) 40%,var(--rule))"><div class="d-row"><span class="d-glyph" style="--c:var(--bp)">Bp</span><div><b>BLUEPRINT</b><small>Service registry</small></div></div><div class="d-row"><span class="d-status">Online</span><span class="d-label">Selected</span></div></div>
+    <div class="d-panel d-brackets ds-node"><div class="d-row"><span class="d-glyph" style="--c:var(--fs)">Fs</span><div><b>FUSE</b><small>API gateway</small></div></div><div class="d-row"><span class="d-status d-status--warn">Degraded</span><span class="d-label">10 links</span></div></div>
+    <div class="d-panel ds-node"><div class="d-row"><span class="d-glyph">Sv</span><div><b>LINEMAN</b><small>Workload</small></div></div><div class="d-row"><span class="d-status d-status--idle">Offline</span><span class="d-label">2 links</span></div></div>
+  </div>
+  <p class="ds-note">Bracket corners mark focus and selection. A panel at rest is a plain 1px rule.</p>
+
+  <!-- DATA -->
+  <h2 id="data" class="d-section-title"><span class="d-label">08 · Stat tiles — delta colored by good or bad, never by direction</span></h2>
+  <div class="d-stats">
+    <div class="d-panel d-stat"><span class="d-label">Messages / min</span><div class="d-stat-value">312</div><div class="d-stat-foot"><span class="d-delta is-good">▲ 8% vs prev</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--primary)"><path d="M0 18 L12 16 L24 17 L36 12 L48 13 L60 9 L72 10 L84 6 L96 5"/></svg></div></div>
+    <div class="d-panel d-stat"><span class="d-label">P95 latency</span><div class="d-stat-value">94<small>ms</small></div><div class="d-stat-foot"><span class="d-delta is-bad">▲ 12ms vs prev</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--fs)"><path d="M0 16 L16 15 L32 14 L48 12 L64 6 L80 11 L96 13"/></svg></div></div>
+    <div class="d-panel d-stat"><span class="d-label">Error rate</span><div class="d-stat-value">0.4<small>%</small></div><div class="d-stat-foot"><span class="d-delta is-good">▼ 0.2pt vs prev</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--err)"><path d="M0 8 L16 10 L32 9 L48 14 L64 13 L80 17 L96 18"/></svg></div></div>
+    <div class="d-panel d-stat"><span class="d-label">Queue depth</span><div class="d-stat-value">0<small>/ 100,000</small></div><div class="d-stat-foot"><span class="d-delta">No change</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--ca)"><path d="M0 20 L96 20"/></svg></div></div>
+  </div>
+
+  <h2 class="d-section-title"><span class="d-label">09 · Data table</span></h2>
+  <div class="d-panel d-table-wrap">
+    <table class="d-table">
+      <thead><tr><th>Name</th><th>Match</th><th>Protocols</th><th>Target</th><th>Auth</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>beacon-ui</td><td>beacon.draft.localhost<span class="is-dim"> /</span></td><td><span class="d-tag d-tag--ca">HTTP</span> <span class="d-tag d-tag--sv">HTTP2</span> <span class="d-tag d-tag--bp">gRPC</span> <span class="d-tag d-tag--fs">WS</span></td><td>localhost:2222</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+        <tr aria-selected="true"><td>core-blueprint-ui</td><td>blueprint.draft.localhost<span class="is-dim"> /</span></td><td><span class="d-tag d-tag--ca">HTTP</span> <span class="d-tag d-tag--sv">HTTP2</span> <span class="d-tag d-tag--bp">gRPC</span> <span class="d-tag d-tag--fs">WS</span></td><td>5 backends</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td></tr>
+        <tr><td>examples-file_host</td><td><span class="is-dim">prefix</span> /</td><td><span class="d-tag d-tag--ca">HTTP</span> <span class="d-tag d-tag--bp">gRPC-Web</span></td><td>host.docker.internal:9096</td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status d-status--warn">Upstream slow</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>
