@@ -1,0 +1,289 @@
+@use "../abstracts/mixins" as m;
+
+// Vertical step trace (Bench run) ------------------------------------------------------------------------------------
+// Solid up to the failing step, dashed after it. Set `--fail-at` (px) on `.d-trace` to the failing
+// step's offsetTop; without it the whole trace is solid.
+.d-trace {
+  --fail-at: 100%;
+  position: relative;
+  padding-left: 28px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    background: var(--primary);
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: calc(var(--fail-at) + 10px);
+    bottom: 10px;
+    width: 2px;
+    background: repeating-linear-gradient(var(--rule-strong) 0 4px, var(--bg) 4px 8px);
+  }
+}
+
+.d-step {
+  --c: var(--primary);
+  position: relative;
+  padding: 8px 0 14px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: -26px;
+    top: 12px;
+    z-index: 1;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--c);
+  }
+
+  &.is-fail {
+    --c: var(--err);
+  }
+
+  &.is-skip {
+    --c: var(--rule-strong);
+  }
+
+  &.is-run {
+    --c: var(--ca);
+  }
+
+  &.is-group .d-step-name {
+    color: var(--dim);
+  }
+
+  &.is-skip .d-step-name,
+  &.is-skip .d-step-dur {
+    color: var(--dim);
+  }
+}
+
+.d-step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-family: var(--font-mono);
+
+  // Wide enough for a range such as "15–21"; the failure card indents to match (12px gap).
+  .d-step-no {
+    flex: none;
+    min-width: 38px;
+    color: var(--dim);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .d-step-name {
+    font-size: 13px;
+  }
+
+  .d-step-uses {
+    color: var(--dim);
+    font-size: 11.5px;
+  }
+
+  .d-spacer {
+    flex: 1;
+  }
+
+  .d-step-dur {
+    color: var(--dim);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// Failure card under a step: error line, then request | response columns.
+.d-fail {
+  margin: 12px 0 4px 50px;
+
+  .d-fail-err {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule);
+    background: color-mix(in oklab, var(--err) 8%, transparent);
+    color: var(--err);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+
+  .d-fail-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    > div {
+      padding: 12px 14px;
+      min-width: 0;
+
+      + div {
+        border-left: 1px solid var(--rule);
+      }
+    }
+
+    .d-code {
+      margin: 8px 0 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      max-height: none;
+      font-size: 11.5px;
+    }
+  }
+
+  @include m.below(640px) {
+    margin-left: 0;
+
+    .d-fail-cols {
+      grid-template-columns: 1fr;
+
+      > div + div {
+        border-left: 0;
+        border-top: 1px solid var(--rule);
+      }
+    }
+  }
+}
+
+// Horizontal pipeline (Bench editor): trigger → step → step ------------------------------------------------------------
+.d-pipe {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 12px 14px;
+
+  .d-pipe-node {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    background: var(--bg);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+
+    small {
+      color: var(--dim);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    &.is-trigger {
+      border-color: color-mix(in oklab, var(--ca) 55%, transparent);
+      color: var(--ca);
+    }
+
+    &.is-current {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+
+    &.is-err {
+      border-color: var(--err);
+    }
+  }
+
+  // The wire between two nodes.
+  .d-pipe-wire {
+    position: relative;
+    width: 26px;
+    height: 2px;
+    background: var(--primary);
+
+    &::after {
+      content: "";
+      position: absolute;
+      right: -2px;
+      top: -2px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+  }
+
+  .d-btn {
+    margin-left: 10px;
+  }
+}
+
+// The failing step reads in the error colour, name and duration alike.
+.d-step.is-fail {
+  .d-step-name,
+  .d-step-dur {
+    color: var(--err);
+  }
+}
+
+// A folded run of steps: one line that unfolds into the steps themselves.
+details.d-step {
+  > summary {
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+
+  .d-step-toggle {
+    @include m.label-voice;
+    color: var(--dim);
+
+    .is-open {
+      display: none;
+    }
+  }
+
+  &[open] .d-step-toggle {
+    .is-open {
+      display: inline;
+    }
+
+    .is-closed {
+      display: none;
+    }
+  }
+
+  &[open] > summary {
+    margin-bottom: 4px;
+  }
+}
+
+// Request / response / detail folded under a step that did not fail.
+.d-step-more {
+  margin: 6px 0 0 50px;
+
+  > summary {
+    @include m.label-voice;
+    width: max-content;
+    color: var(--dim);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--ink);
+    }
+  }
+
+  .d-label {
+    display: block;
+    margin-top: 10px;
+  }
+
+  .d-code {
+    margin-top: 6px;
+  }
+}

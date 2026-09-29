@@ -1,0 +1,39 @@
+@use "../abstracts/mixins" as m;
+
+// Segmented control: time ranges, List / Flame graph, sort, domain filter, Board / List.
+.d-seg {
+  display: inline-flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+
+  > button,
+  > a {
+    @include m.label-voice($spacing: 0.06em);
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-right: 1px solid var(--rule-strong);
+    background: transparent;
+    color: var(--dim);
+    cursor: pointer;
+    text-decoration: none;
+
+    &:last-child {
+      border-right: 0;
+    }
+
+    &:hover {
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    &[aria-pressed="true"],
+    &[aria-current="true"],
+    &[aria-current="page"] {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+  }
+}

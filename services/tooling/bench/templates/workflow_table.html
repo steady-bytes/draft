@@ -1,0 +1,26 @@
+{{/*
+wf-table is the overview's workflow table. It is a define of its own because the filter box swaps
+it alone (GET /partials/workflows) — the page and the fragment render the same markup.
+*/}}
+{{define "wf-table"}}<div class="d-panel d-table-wrap" id="wf-table">
+  {{if .Rows}}
+  <table class="d-table">
+    <thead><tr><th>Workflow</th><th>Trigger</th><th class="is-right">Steps</th><th>History</th><th>Last run</th><th class="is-right">p50</th><th></th></tr></thead>
+    <tbody>
+    {{range .Rows}}
+      <tr>
+        <td class="is-title"><b><a href="/workflows/{{.Name}}">{{.Name}}</a></b>{{if .Description}}<span title="{{.Description}}">{{.Description}}</span>{{end}}</td>
+        <td>{{template "d-tag" .Trigger}}</td>
+        <td class="is-right">{{.Steps}}</td>
+        <td>{{template "d-strip" .History}}</td>
+        <td>{{with .Last}}<a class="d-status-stack" href="/runs/{{.RunID}}">{{template "d-status" .Status}}<small>{{.Note}}</small></a>{{else}}<span class="d-muted">Never run</span>{{end}}</td>
+        <td class="is-right is-dim">{{.P50}}</td>
+        <td class="is-right"><form method="post" action="/workflows/{{.Name}}/run"><button class="d-btn d-btn--sm" type="submit"{{if .Running}} disabled title="Already running"{{end}}>Run</button></form></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  {{template "d-empty" (empty "Nothing to show" .Empty)}}
+  {{end}}
+</div>{{end}}

@@ -1,0 +1,74 @@
+// Design tokens — the single source of truth.
+//
+// Everything downstream (CSS custom properties, the daisyUI 5 theme mapping, the Tailwind v4
+// `@plugin "daisyui/theme"` file and the docs-site Bootstrap mapping) is generated from these maps,
+// so the outputs cannot disagree.
+//
+// Text rule (enforced by tests/contrast.rs): text is `--ink`, `--dim`, a kind colour or a status
+// colour. `--dimmer` is for rules, decoration and disabled states only — it fails WCAG AA as text.
+
+// Swatches offered by the theme picker. The first is the default.
+$primary-swatches: (#4db380, #3ddc97, #4fb3d9, #b48cff, #ffb454);
+$primary-default: #4db380;
+
+// Light mode derives a darker primary from the swatch. The mockup used 68 % toward black; that
+// leaves #3ddc97 and #ffb454 at 4.10 : 1 and 4.06 : 1 on --panel-3. 62 % keeps all five ≥ 4.99 : 1.
+$light-primary-mix: 62%;
+
+$dark: (
+  "primary-ink": #04110a,
+  "bg": #0a0d10,
+  "panel": #0e1318,
+  "panel-2": #121920,
+  "panel-3": #18212a,
+  "rule": #1d262f,
+  "rule-strong": #2b3641,
+  "grid": rgba(215, 224, 232, 0.035),
+  "ink": #d7e0e8,
+  "dim": #8795a2,
+  "dimmer": #56626e,
+  "ca": #58a6ff,
+  "bp": #b48cff,
+  "fs": #ffb454,
+  "sv": #9fb3c2,
+  "err": #ff6b6b,
+  "warn": #f2c14e,
+);
+
+// Light values were re-measured (see tests/contrast.rs): ca, fs, err and warn are darker than the
+// mockup's so each clears 4.5 : 1 on the darkest light surface (--panel-3).
+$light: (
+  "primary-ink": #ffffff,
+  "bg": #f3f5f7,
+  "panel": #ffffff,
+  "panel-2": #f6f8fa,
+  "panel-3": #eaeef2,
+  "rule": #dde2e7,
+  "rule-strong": #c3cbd3,
+  "grid": rgba(16, 22, 28, 0.045),
+  "ink": #111820,
+  "dim": #56636f,
+  "dimmer": #97a2ad,
+  "ca": #1a63bd,
+  "bp": #7447d6,
+  "fs": #9a5508,
+  "sv": #52606d,
+  "err": #bd2f2f,
+  "warn": #8a5c00,
+);
+
+// Component kinds: one identity colour per Draft component, used everywhere it appears.
+$kinds: ("ca", "bp", "fs", "sv");
+
+// Meaning tones available as `--c` modifiers on tags, alerts, glyphs, dots …
+$tones: ("primary", "ca", "bp", "fs", "sv", "err", "warn");
+
+// Typography and sizing (not theme-dependent).
+$font-mono: unquote('"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace');
+$font-sans: unquote('"Inter", ui-sans-serif, system-ui, -apple-system, sans-serif');
+
+// Layout breakpoints. Below $bp-rail the rail collapses into an overlay; below $bp-drawer a
+// master/detail drawer becomes an overlay too.
+$bp-drawer: 1100px;
+$bp-rail: 900px;
+$bp-narrow: 640px;

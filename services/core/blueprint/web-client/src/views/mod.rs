@@ -1,20 +1,17 @@
 mod key_value;
 pub use key_value::KeyValueView;
 
-mod key_value_detail;
-pub use key_value_detail::KeyValueDetail;
+pub use key_value::KeyValueDetail;
 
 mod service_registry;
 pub use service_registry::ServiceRegistry;
 
-mod service_detail;
-pub use service_detail::ServiceDetail;
+pub use service_registry::ServiceDetail;
 
 mod gateway;
 pub use gateway::Gateway;
 
-mod route_detail;
-pub use route_detail::{NewRoute, RouteDetail};
+pub use gateway::{NewRoute, RouteDetail};
 
 mod store;
 pub use store::Store;
@@ -31,5 +28,3 @@ pub use metrics::Metrics;
 mod settings;
 pub use settings::Settings;
 
-mod page_not_found;
-pub use page_not_found::PageNotFound;

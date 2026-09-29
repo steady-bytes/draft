@@ -1,27 +1,41 @@
-{{define "title"}}Foundry — Plugin Catalog{{end}}
-{{define "content"}}
-<div class="flex flex-col gap-8">
-  <div class="flex flex-col gap-1">
-    <span class="font-mono text-xs uppercase tracking-widest text-primary">Plugin Catalog</span>
-    <h1 class="font-display text-4xl font-bold tracking-tight">What's on the shelf</h1>
-    <p class="text-base-content/60 max-w-xl">Every step executor a Bench workflow can reference with <span class="font-mono text-base-content/80">uses: foundry://name@version</span>.</p>
-  </div>
+{{define "head"}}
+<style>
+  .fc-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .fc-bar .d-query { width: min(420px, 100%); }
+</style>
+{{end}}
 
-  <label class="input input-bordered flex items-center gap-2 w-full sm:w-96 focus-within:input-primary">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+{{define "content"}}
+<div class="d-page-head">
+  <div>
+    <span class="d-label">Plugin catalog</span>
+    <h1>What's on the shelf</h1>
+    <p>Every step executor a Bench workflow can reference with <code>uses: foundry://name@version</code>.</p>
+  </div>
+</div>
+
+<div class="fc-bar">
+  <div class="d-query">
+    <span class="d-query-lang">SEARCH</span>
     <input
       type="search"
       name="q"
-      placeholder="Search by name or description&hellip;"
-      class="grow font-mono text-sm"
+      placeholder="Name or description…"
+      aria-label="Search plugins"
       value="{{.Query}}"
+      data-shortcut="/"
       hx-get="/partials/catalog-cards"
       hx-trigger="keyup changed delay:300ms, search"
       hx-target="#card-grid"
       hx-swap="outerHTML"
+      hx-include="[name='sort'],[name='maintainer']"
     />
-  </label>
-
-  {{template "card-grid" .}}
+  </div>
+  <input type="hidden" name="sort" value="{{.Sort}}">
+  <input type="hidden" name="maintainer" value="{{.Maintainer}}">
+  <span class="d-spacer"></span>
+  <span class="d-seg" role="group" aria-label="Sort">{{range .SortLinks}}<a href="{{.Href}}"{{if .Active}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}</span>
 </div>
+
+{{template "card-grid" .}}
 {{end}}

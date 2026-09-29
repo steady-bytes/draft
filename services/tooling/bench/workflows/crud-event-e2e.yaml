@@ -1,0 +1,197 @@
+# End-to-end proof for services/examples/crud-event: exercises all four CrudService RPCs
+# (Create/Read/Update/Delete) directly against crud-event's own port, and after each one, waits
+# for the examples.crud.v1.ModelEvent CloudEvent that operation must emit through Catalyst (see
+# services/examples/crud-event/service/events.go), asserting both that the event actually arrived
+# and that its operation/model contents are correct.
+#
+# Called directly at http://localhost:9098 (foundry://http-call@v1), not through the Envoy/Fuse
+# proxy the way workflows/crud-e2e.yaml calls plain crud: crud-event's own main.go deliberately
+# registers no Fuse route (it implements the exact same examples.crud.v1.CrudService path prefix
+# crud already owns there, and a second registration for that prefix fails live with "conflicts
+# with existing route(s)" -- see crud-event/main.go's own comment). bench://grpc-call@v1 was
+# considered instead, but rejected for the same reason: its resolver
+# (services/tooling/bench/discovery.go) maps a bare RPC service name to exactly one address, and
+# crud and crud-event both advertise "examples.crud.v1.CrudService" -- whichever registered last
+# wins, so `service: examples.crud.v1.CrudService` can't reliably target crud-event specifically.
+# A direct URL has no such ambiguity.
+#
+# The catalyst-consume steps are what actually prove the point of this workflow: each one's
+# with.expect (services/tooling/catalyst-consume/rpc.go's own convention, extended the same
+# session this workflow was written, mirroring foundry://http-call@v1's with.expect exactly) fails
+# the step -- and so this whole run -- if the operation field is wrong or the model doesn't match,
+# not just if no event arrives at all. This is deliberately a stronger check than "an event
+# happened": it catches the operation type or model payload being wrong even if delivery itself is
+# fine, and it's what actually validates the model.go Returning("*") fix (Update/Delete return the
+# post-write row, not an echo of the request) that made Update/Delete work at all -- see
+# [[project-crud-event-example]].
+#
+# Note this workflow does NOT scope which subject/run produced the matched event -- Catalyst's
+# Consume simply returns "the next event of this type," the same characteristic
+# services/tooling/catalyst-consume/rpc.go's own header comment already documents for its
+# tooling.workflow.v1.RunFinished use in Bench's other workflows. A *different* concurrent run of
+# this same workflow, or anything else emitting examples.crud.v1.ModelEvent at the same moment,
+# could in principle steal one of these waits -- an accepted, pre-existing limitation of the tool,
+# not something this workflow works around.
+#
+# Each triggering http-call step depends on its own lead-in-* delay (bench://delay@v1), NOT
+# directly on the previous pair's wait -- confirmed live necessary, not a style preference. The
+# first attempt made each wait-*-event a sibling of its own http-call step (both depending on the
+# same prior step, so scheduler.go's "every simultaneously-unblocked step runs concurrently, via
+# real goroutines" would start them together) and it still failed every time with a full-duration
+# timeout, never receiving the event: services/tooling/catalyst-consume/rpc.go's waitForEvent
+# opens a brand-new h2c client and Consume stream to Catalyst on every single Execute call (no
+# persistent connection the way, say, crud-event's own EventPublisher keeps one open for its whole
+# process lifetime -- see services/examples/crud-event/service/events.go) -- that connection
+# setup, plus the resolve-then-RPC hop bench's foundry:// dispatch needs to even reach
+# catalyst-consume's process, reliably takes longer than crud-event's own dispatch hop plus its
+# already-warm Send. So "started at the same instant" in practice meant the triggering call's
+# event was produced, broadcast, and (Consume has no replay/buffering for a subscriber that wasn't
+# listening yet) discarded before catalyst-consume's Subscribe had even landed. An explicit lead-in
+# delay (800ms was enough in practice; 1s here for margin on a loaded machine) before the
+# triggering call, with the wait step itself starting immediately (no delay), reproducibly fixed
+# it -- confirmed by isolating the two steps into their own throwaway two-step workflow first.
+apiVersion: bench/v1
+kind: Workflow
+metadata:
+  name: crud-event-e2e
+  description: Create/Read/Update/Delete a Name via crud-event, confirming each operation emits the right examples.crud.v1.ModelEvent.
+trigger:
+  webhook:
+    slug: crud-event-e2e
+    signature:
+      header: X-Bench-Signature
+      secret_ref: blueprint://secrets/bench/crud-event-e2e-webhook
+steps:
+  - name: lead-in-create
+    uses: bench://delay@v1
+    with:
+      duration: 1s
+
+  - name: wait-create-event
+    uses: foundry://catalyst-consume@v1
+    with:
+      event_type: examples.crud.v1.ModelEvent
+      timeout: 15s
+      expect:
+        operation: { equals: "OPERATION_CREATE" }
+        model:
+          firstName: { equals: "Ada" }
+          lastName: { matches: "^Love.*" }
+
+  - name: create-name
+    uses: foundry://http-call@v1
+    depends_on: [lead-in-create]
+    with:
+      method: POST
+      url: "http://localhost:9098/examples.crud.v1.CrudService/Create"
+      headers: { Content-Type: application/json }
+      body:
+        name:
+          first_name: "Ada"
+          last_name: "Lovelace"
+      expect:
+        status: OK
+        body:
+          id: { exists: true }
+
+  - name: lead-in-read
+    uses: bench://delay@v1
+    depends_on: [wait-create-event, create-name]
+    with:
+      duration: 1s
+
+  - name: wait-read-event
+    uses: foundry://catalyst-consume@v1
+    depends_on: [wait-create-event, create-name]
+    with:
+      event_type: examples.crud.v1.ModelEvent
+      timeout: 15s
+      expect:
+        operation: { equals: "OPERATION_READ" }
+        model:
+          firstName: { equals: "Ada" }
+          lastName: { equals: "Lovelace" }
+
+  - name: read-name
+    uses: foundry://http-call@v1
+    depends_on: [lead-in-read]
+    with:
+      method: POST
+      url: "http://localhost:9098/examples.crud.v1.CrudService/Read"
+      headers: { Content-Type: application/json }
+      body:
+        id: "{{ steps.create-name.result.body.id }}"
+      expect:
+        status: OK
+        body:
+          name:
+            firstName: { equals: "Ada" }
+
+  - name: lead-in-update
+    uses: bench://delay@v1
+    depends_on: [wait-read-event, read-name]
+    with:
+      duration: 1s
+
+  - name: wait-update-event
+    uses: foundry://catalyst-consume@v1
+    depends_on: [wait-read-event, read-name]
+    with:
+      event_type: examples.crud.v1.ModelEvent
+      timeout: 15s
+      expect:
+        operation: { equals: "OPERATION_UPDATE" }
+        model:
+          # first_name changed; last_name was never sent on this Update, so it must still be the
+          # original committed value -- proof model.go's Returning("*") fix (see this file's own
+          # header comment) returns the real post-write row, not an echo of the partial request.
+          firstName: { equals: "Grace" }
+          lastName: { equals: "Lovelace" }
+
+  - name: update-name
+    uses: foundry://http-call@v1
+    depends_on: [lead-in-update]
+    with:
+      method: POST
+      url: "http://localhost:9098/examples.crud.v1.CrudService/Update"
+      headers: { Content-Type: application/json }
+      body:
+        name:
+          id: "{{ steps.create-name.result.body.id }}"
+          first_name: "Grace"
+      expect:
+        status: OK
+        body:
+          id: { equals: "{{ steps.create-name.result.body.id }}" }
+
+  - name: lead-in-delete
+    uses: bench://delay@v1
+    depends_on: [wait-update-event, update-name]
+    with:
+      duration: 1s
+
+  - name: wait-delete-event
+    uses: foundry://catalyst-consume@v1
+    depends_on: [wait-update-event, update-name]
+    with:
+      event_type: examples.crud.v1.ModelEvent
+      timeout: 15s
+      expect:
+        operation: { equals: "OPERATION_DELETE" }
+        model:
+          firstName: { equals: "Grace" }
+          lastName: { equals: "Lovelace" }
+
+  - name: delete-name
+    uses: foundry://http-call@v1
+    depends_on: [lead-in-delete]
+    with:
+      method: POST
+      url: "http://localhost:9098/examples.crud.v1.CrudService/Delete"
+      headers: { Content-Type: application/json }
+      body:
+        id: "{{ steps.create-name.result.body.id }}"
+      expect:
+        status: OK
+        body:
+          id: { equals: "{{ steps.create-name.result.body.id }}" }

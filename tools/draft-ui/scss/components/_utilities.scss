@@ -1,0 +1,47 @@
+@use "../abstracts/mixins" as m;
+@use "../abstracts/tokens" as t;
+
+// Utilities ------------------------------------------------------------------------------------------------------------
+.d-spacer {
+  flex: 1;
+}
+
+.d-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.d-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.d-muted {
+  color: var(--dim);
+}
+
+.d-hidden {
+  display: none !important;
+}
+
+// A key/value list where every pair sits on its own line ("Selected step" panel).
+.d-inline-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+// A sentence of small print under a value.
+.d-note {
+  margin: 0;
+  color: var(--dim);
+  font-size: 12.5px;
+}
+
+// Drop something that is nice to have when the screen is narrow (a Cancel link beside Save).
+@include m.below(t.$bp-narrow) {
+  .d-hide-narrow {
+    display: none !important;
+  }
+}

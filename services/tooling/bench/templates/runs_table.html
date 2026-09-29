@@ -1,0 +1,24 @@
+{{/*
+runs-table is the one run list every page uses: Recent runs, a workflow's own history. Data: a
+runsTable (ui_overview.go).
+*/}}
+{{define "runs-table"}}<div class="d-panel d-table-wrap">
+  {{if .Rows}}
+  <table class="d-table">
+    <thead><tr><th>Status</th>{{if .ShowWorkflow}}<th>Workflow</th>{{end}}<th>Run</th><th>Started</th><th class="is-right">Duration</th></tr></thead>
+    <tbody>
+    {{range .Rows}}
+      <tr>
+        <td>{{template "d-status" .Status}}</td>
+        {{if $.ShowWorkflow}}<td class="is-key"><a href="/workflows/{{.Workflow}}">{{.Workflow}}</a></td>{{end}}
+        <td><a href="/runs/{{.RunID}}" title="{{.RunID}}">{{.Short}}</a></td>
+        <td class="is-dim"{{with .StartedTitle}} title="{{.}}"{{end}}>{{.Started}}</td>
+        <td class="is-right is-dim">{{.Duration}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  {{template "d-empty" (empty "No runs" .Empty)}}
+  {{end}}
+</div>{{end}}

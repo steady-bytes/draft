@@ -42,6 +42,17 @@ type (
 		ctx context.Context
 		*acv1.CloudEvent
 		*connect.ServerStream[acv1.ConsumeResponse]
+		// subscribed carries back the subscription consumer.Consume must deliver into, once
+		// controller.consume has called Subscribe for it. Buffered by 1 so consume() never blocks
+		// handing it off.
+		subscribed chan subscription
+	}
+
+	// subscription is one Consume call's own delivery channel and the id to Unsubscribe it with —
+	// see atomicMap.Subscribe.
+	subscription struct {
+		id uint64
+		ch chan *acv1.CloudEvent
 	}
 
 	// observerRegistry manages live-event channels for QueryStream subscribers.
@@ -58,11 +69,12 @@ func NewController(logger chassis.Logger, storer Storer) Controller {
 		consumerRegistrationChan = make(chan register)
 	)
 
+	state := newAtomicMap()
 	ctr := &controller{
 		Producer:  NewProducer(producerMsgChan),
-		Consumer:  NewConsumer(consumerRegistrationChan),
+		Consumer:  NewConsumer(consumerRegistrationChan, state),
 		logger:    logger,
-		state:     newAtomicMap(),
+		state:     state,
 		storer:    storer,
 		observers: newObserverRegistry(),
 		topology:  newTopologyRegistry(),
@@ -126,8 +138,7 @@ func (c *controller) produce(producerMsgChan chan *acv1.CloudEvent) {
 		}
 
 		c.publishedTotal.Add(1)
-		key := c.state.hash(string(msg.ProtoReflect().Descriptor().FullName()))
-		c.state.Broadcast(key, msg)
+		c.state.Broadcast(msg)
 		c.observers.broadcast(msg)
 		c.topology.ObserveProducer(msg.GetSource())
 
@@ -137,12 +148,21 @@ func (c *controller) produce(producerMsgChan chan *acv1.CloudEvent) {
 	}
 }
 
+// consume hands each registration its subscription (see atomicMap.Subscribe) and tracks consumer
+// identity for topology — it never touches reg.ServerStream itself. Actual message delivery
+// (stream.Send) happens back on consumer.Consume's own goroutine, the same one the connect
+// framework will later call Close on for this RPC: an earlier version of this fix ran delivery in
+// a second goroutine here, which raced with that framework-driven Close over the same underlying
+// HTTP/2 response writer (a -race failure, not a correctness one, but a real one) whenever the
+// consumer's context was cancelled while a message was in flight.
 func (c *controller) consume(registerChan chan register) {
 	for {
 		reg := <-registerChan
 
-		key := c.state.hash(string(reg.ProtoReflect().Descriptor().FullName()))
-		c.state.Broker(reg.ctx, key, reg.ServerStream)
+		// reg.GetType() is the event type this consumer declared interest in (empty = every
+		// type — see atomicMap.Subscribe).
+		id, ch := c.state.Subscribe(reg.GetType())
+		reg.subscribed <- subscription{id: id, ch: ch}
 
 		// Track consumer identity declared via ConsumeRequest.message.source/type.
 		// A cleanup goroutine removes the registration when the RPC context is cancelled

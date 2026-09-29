@@ -1,0 +1,175 @@
+@use "../abstracts/mixins" as m;
+
+// Card grid (Foundry catalog, Lineman dashboard).
+.d-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+// Board (Lineman). States are free-form per objective, so columns flow horizontally and scroll.
+.d-board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 1fr);
+  gap: 16px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.d-col-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--rule-strong);
+  margin-bottom: 10px;
+
+  &::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--c, var(--dim));
+  }
+
+  .d-count {
+    margin-left: auto;
+  }
+
+  // While a card is dragged over this column.
+  &.is-drop {
+    border-bottom-color: var(--primary);
+  }
+}
+
+.d-card {
+  display: grid;
+  // A card stretched to its row's height keeps its content at the top instead of spreading it.
+  align-content: start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: grab;
+
+  &:hover {
+    border-color: var(--rule-strong);
+  }
+
+  &.is-dragging {
+    opacity: 0.4;
+  }
+
+  // A card that must not be dragged (e.g. waiting on a human answer).
+  &.is-locked {
+    cursor: pointer;
+  }
+
+  // Where a dragged card would land: above this one.
+  &.is-drop-before {
+    box-shadow: 0 -3px 0 -1px var(--primary);
+  }
+
+  &--group {
+    border-style: dashed;
+  }
+
+  // A card that is a link (plugin card, objective card).
+  &--link {
+    cursor: pointer;
+    color: var(--ink);
+    text-decoration: none;
+    margin-bottom: 0;
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
+
+  .id {
+    color: var(--dim);
+  }
+}
+
+.d-card-title {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.4;
+
+  b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+}
+
+.d-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--dim);
+
+  .d-spacer {
+    flex: 1;
+  }
+}
+
+// A pill-shaped "uses: foundry://name@version" line.
+.d-uses {
+  @include m.truncate;
+  padding: 7px 9px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--dim);
+
+  b {
+    color: var(--primary);
+    font-weight: 500;
+  }
+}
+
+// Dashed "+ Add …" affordance.
+.d-add {
+  @include m.label-voice;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 36px;
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+}
+
+.d-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--dim);
+
+  &--agent {
+    border-radius: var(--radius);
+    border-color: color-mix(in oklab, var(--bp) 50%, transparent);
+    color: var(--bp);
+  }
+}

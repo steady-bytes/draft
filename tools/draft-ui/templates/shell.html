@@ -1,0 +1,62 @@
+{{/*
+shell is the app frame, the html/template twin of the Rust `AppShell` — same DOM, same classes, so
+both renderers share dist/draft.css. Every page defines `content` (and may define `head`):
+
+  {{define "content"}} … {{end}}
+
+A page may also define `topbar` (extra controls between the status pill and ⌘K — the workflow
+editor's Cancel / Validate / Save) and `head` (page-local <style>).
+
+Data: an embedded draftui.Page (see kit.go). The rail's responsive toggle is a CSS-only checkbox
+that must be the first child of .d-app.
+*/}}
+{{define "wordmark"}}<span class="d-wordmark"><b>{</b>draft<b>}</b>{{if .Name}}<small>{{.Name}}</small>{{end}}</span>{{end}}
+
+{{define "navinner"}}{{if .Glyph}}<span class="d-glyph {{.GlyphClass}}" aria-hidden="true">{{.Glyph}}</span>{{end}}<span class="d-nav-text">{{.Label}}</span>{{if .Count}}<span class="d-count{{if .CountErr}} d-count--err{{end}}">{{.Count}}</span>{{end}}{{end}}
+
+{{define "navitem"}}{{if .External}}<a class="d-nav-item d-nav-item--ext{{if .Action}} d-nav-item--action{{end}}" href="{{.Path}}" target="_blank" rel="noopener noreferrer">{{template "navinner" .}}</a>{{else}}<a class="d-nav-item{{if .Action}} d-nav-item--action{{end}}" href="{{.Path}}"{{if .Current}} aria-current="page"{{end}}>{{template "navinner" .}}</a>{{end}}{{end}}
+
+{{define "baritem"}}{{if eq .Kind "kv"}}<span>{{.Label}} <b{{with .ID}} id="{{.}}"{{end}}>{{.Value}}</b></span>{{else if eq .Kind "hint"}}<span><span class="d-kbd">{{.Label}}</span> {{.Value}}</span>{{else}}<span>{{.Value}}</span>{{end}}{{end}}
+
+{{define "shell"}}<!DOCTYPE html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · {{.App.Title}}</title>
+  <link rel="stylesheet" href="{{asset "fonts.css"}}">
+  <link rel="stylesheet" href="{{asset "draft.css"}}">
+  <script src="{{asset "draft.js"}}"></script>
+  <script src="{{asset "htmx.min.js"}}" defer></script>
+  {{block "head" .}}{{end}}
+</head>
+<body>
+<div class="d-app">
+  <input type="checkbox" id="d-rail-toggle" class="d-rail-toggle" aria-label="Toggle navigation">
+
+  <div class="d-brand">{{template "wordmark" .App}}</div>
+
+  <header class="d-topbar">
+    <label for="d-rail-toggle" class="d-btn d-btn--ghost d-btn--icon d-hamburger" aria-label="Menu">☰</label>
+    <span class="d-topbar-brand">{{template "wordmark" .App}}</span>
+    <nav class="d-crumbs" aria-label="Breadcrumb">{{range $i, $c := .Crumbs}}{{if $i}}<i aria-hidden="true">/</i>{{end}}<span>{{$c}}</span>{{end}}</nav>
+    <span class="d-spacer"></span>
+    {{with .Status}}<span id="d-status" class="d-status{{if .Class}} {{.Class}}{{end}}{{if .Live}} d-status--live{{end}}">{{.Text}}</span>{{end}}
+    {{block "topbar" .}}{{end}}
+    <button class="d-btn d-btn--ghost d-btn--sm d-cmd" type="button" aria-label="Command palette (not available yet)" aria-disabled="true"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" type="button" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail" aria-label="Navigation">
+    {{range .Rail}}{{if .Items}}<span class="d-label">{{.Label}}</span>{{range .Items}}{{template "navitem" .}}{{end}}{{end}}{{end}}
+    {{if .Apps}}<span class="d-label">Apps</span>{{range .Apps}}{{template "navitem" .}}{{end}}{{end}}
+  </aside>
+
+  <main class="d-main{{if .Flush}} d-main--flush{{end}}">{{template "content" .}}</main>
+
+  <footer class="d-statusbar">{{range .Left}}{{template "baritem" .}}{{end}}<span class="d-spacer"></span>{{range .Right}}{{template "baritem" .}}{{end}}</footer>
+
+  <label class="d-rail-scrim" for="d-rail-toggle"></label>
+</div>
+</body>
+</html>{{end}}

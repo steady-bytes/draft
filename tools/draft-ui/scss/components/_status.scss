@@ -1,0 +1,135 @@
+@use "../abstracts/mixins" as m;
+
+// Status — dot + label. Healthy stays quiet; only problems get loud.
+.d-status {
+  --c: var(--ok);
+  @include m.label-voice;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--dim);
+  white-space: nowrap;
+
+  &::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--c) 18%, transparent);
+  }
+
+  &--warn {
+    --c: var(--warn);
+    color: var(--warn);
+  }
+
+  &--err {
+    --c: var(--err);
+    color: var(--err);
+  }
+
+  // Informational / in-flight (blue). Replaces the inline `--c`/`color` overrides the Bench and
+  // Lineman mockups repeated on every running run and task.
+  &--info {
+    --c: var(--info);
+    color: var(--info);
+  }
+
+  &--idle {
+    --c: var(--dimmer);
+  }
+
+  &--live::before {
+    animation: d-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes d-pulse {
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--c) 4%, transparent);
+  }
+}
+
+@include m.reduced-motion {
+  .d-status--live::before {
+    animation: none;
+  }
+}
+
+// A plain coloured dot (facets, series keys, column heads).
+.d-dot {
+  --c: var(--dim);
+  flex: none;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c);
+  vertical-align: middle;
+}
+
+// Service label: a small square in the service colour, then the name.
+.d-svc {
+  --c: var(--sv);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: var(--c);
+  }
+}
+
+.d-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+
+  &--err {
+    color: var(--err);
+    border-color: color-mix(in oklab, var(--err) 50%, transparent);
+  }
+}
+
+.d-kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--rule-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--dim);
+}
+
+// A status with a quiet line under it: "Failed · step 14" over "01:12 UTC · 38.2s".
+.d-status-stack {
+  display: grid;
+  gap: 2px;
+  color: inherit;
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  > small {
+    color: var(--dim);
+    font-size: 11px;
+  }
+}

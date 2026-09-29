@@ -32,7 +32,14 @@ Four services carry this today: `blueprint.draft.localhost`, `beacon.draft.local
 
 ## Self-discovery in Blueprint's sidebar
 
-No new proto field, no separate registry. Blueprint's sidebar calls `ListRoutes`, and treats **any route with a non-empty `host` and `prefix == "/"`** as a UI worth linking to — exactly the shape every call above already has. A label is derived from the host (`beacon.draft.localhost` → "Beacon") and the link points at `{current protocol}//{host}:{current port}/`, reusing the viewing page's own scheme/port so the same code works whether Fuse listens on `:10000` locally or `:443` in a real deployment (`service_url`/`service_label`, `services/core/blueprint/web-client/src/main.rs`). Add a fifth service the same way the first four were added, and it shows up in the sidebar with no Blueprint-side change at all.
+No new proto field, no separate registry. Blueprint's sidebar calls `ListRoutes`, and treats **any route with a non-empty `host` and `prefix == "/"`** as a UI worth linking to — exactly the shape every call above already has. A label is derived from the host (`beacon.draft.localhost` → "Beacon") and the link points at `{current protocol}//{host}:{current port}/`, reusing the viewing page's own scheme/port so the same code works whether Fuse listens on `:10000` locally or `:443` in a real deployment (`draft_ui::shell::app_links` and `host_label`, `tools/draft-ui/src/shell/discovery.rs` — the logic that used to live in Blueprint's `main.rs` as `service_url`/`service_label`, now shared by Blueprint, Beacon and Lineman). Add a fifth service the same way the first four were added, and it shows up in the sidebar with no Blueprint-side change at all.
+
+## Shared theme and app links
+
+Every Draft UI (Blueprint, Beacon, Lineman, Bench, Foundry) is built from the same [design system](/docs/architecture/design-system-implementation-plan), and the subdomain convention is what lets them feel like one product:
+
+- **The rail's Apps block is derived from the host.** On `bench.draft.localhost:10000` the other apps are its siblings — same scheme and port, first label swapped (`foundry.draft.localhost:10000`, …). Blueprint, Beacon and Lineman ask Fuse for its routes and list the ones that are UIs; the Go services (`draftui.Kit.AppLinks`) compute the same list from the request's host. A plain `localhost:9300` has no siblings to derive, so each service configures direct-port fallbacks.
+- **Theme and accent are one preference.** The light/dark choice and the accent colour are stored in a cookie on the *parent* domain (`draft.localhost`), so switching theme in Bench switches it in Blueprint. Where the browser refuses a parent-domain cookie (a bare `localhost`, an IP address) each host keeps its own copy, with `localStorage` behind it. The logic is the design system's `boot.js`, inlined in each app's `index.html` (Dioxus) or linked (Go), so the first paint already has the right theme.
 
 ## Real bugs found building this
 

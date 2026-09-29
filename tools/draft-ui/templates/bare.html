@@ -1,0 +1,24 @@
+{{/*
+bare is the page frame without the app shell — no rail, topbar or status bar — for pages that stand
+alone: sign in, register. Same head as `shell` (fonts, the design-system CSS, draft.js for the theme
+boot), and the page defines `content` (and may define `head`):
+
+  {{define "content"}}{{template "auth-card" .Card}}{{end}}
+
+Render it with `kit.Render(w, tpl, "bare", data)`; data embeds a draftui.Page for Title and App.
+*/}}
+{{define "bare"}}<!DOCTYPE html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · {{.App.Title}}</title>
+  <link rel="stylesheet" href="{{asset "fonts.css"}}">
+  <link rel="stylesheet" href="{{asset "draft.css"}}">
+  <script src="{{asset "draft.js"}}"></script>
+  {{block "head" .}}{{end}}
+</head>
+<body>
+{{template "content" .}}
+</body>
+</html>{{end}}

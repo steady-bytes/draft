@@ -1,0 +1,89 @@
+@use "../abstracts/mixins" as m;
+
+.d-btn {
+  @include m.label-voice;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  color: var(--ink);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 120ms, border-color 120ms, color 120ms;
+
+  &:hover {
+    border-color: var(--dim);
+    background: var(--panel-3);
+    text-decoration: none;
+  }
+
+  &:disabled,
+  &[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &--primary {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary);
+
+    &:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--primary-ink);
+    }
+  }
+
+  &--ghost {
+    border-color: transparent;
+    background: transparent;
+    color: var(--dim);
+
+    &:hover {
+      border-color: transparent;
+      background: var(--panel-3);
+      color: var(--ink);
+    }
+  }
+
+  &--danger {
+    border-color: transparent;
+    background: transparent;
+    color: var(--err);
+
+    &:hover {
+      @include m.tint-border(var(--err), 50%);
+      @include m.tint(var(--err), 10%);
+    }
+  }
+
+  &--sm {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  &--icon {
+    width: 30px;
+    padding: 0;
+  }
+
+  &--sm.d-btn--icon {
+    width: 24px;
+  }
+
+  // A key hint inside a button ("Run ↵") inherits the button colour.
+  .d-kbd {
+    border-color: currentColor;
+    color: inherit;
+  }
+}

@@ -1,0 +1,149 @@
+// Code editor: line-number gutter + code area, with per-line highlight and error squiggle.
+// The SSR editor is a real <textarea class="d-editor-code"> whose gutter is kept in sync by
+// draft.js; the Dioxus editor renders the same classes.
+.d-editor {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  min-height: 380px;
+  overflow: hidden;
+}
+
+.d-editor-gutter,
+.d-editor-code {
+  margin: 0;
+  padding: 14px 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 20px;
+}
+
+.d-editor-gutter {
+  padding-right: 10px;
+  text-align: right;
+  color: var(--dim);
+  background: var(--panel-2);
+  border-right: 1px solid var(--rule);
+  overflow: hidden;
+  user-select: none;
+  white-space: pre;
+
+  .is-err {
+    color: var(--err);
+  }
+}
+
+.d-editor-code {
+  padding-left: 14px;
+  padding-right: 14px;
+  overflow: auto;
+  white-space: pre;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  resize: none;
+  tab-size: 2;
+
+  .hl {
+    display: inline-block;
+    width: 100%;
+    background: var(--primary-soft);
+  }
+
+  .sq {
+    text-decoration: underline wavy var(--err);
+    text-underline-offset: 4px;
+  }
+}
+
+// Token colours: inside the Dioxus editor's own <pre>, and in the SSR editor's overlay.
+.d-editor-code,
+.d-editor-hl {
+  .tk-key {
+    color: var(--ca);
+  }
+
+  .tk-url {
+    color: var(--primary);
+  }
+
+  .tk-val {
+    color: var(--fs);
+  }
+
+  .tk-com {
+    color: var(--dim);
+  }
+}
+
+// The SSR editor colours its text with an overlay: a <pre> under a text area whose own text is made
+// invisible (its caret and selection stay). The wrapper gets `is-hl` from draft.js only once the
+// overlay exists, so without JavaScript the text area simply shows its plain text.
+//
+//   <div class="d-editor-body">
+//     <pre class="d-editor-hl" id="…" aria-hidden="true"></pre>
+//     <textarea class="d-editor-code" data-editor data-highlight="#…"></textarea>
+//   </div>
+.d-editor-body {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+.d-editor-hl {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 14px 14px 30px; // the extra bottom padding covers the text area's horizontal scrollbar
+  overflow: hidden;
+  pointer-events: none;
+  white-space: pre;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 20px;
+  color: var(--ink);
+  tab-size: 2;
+}
+
+.d-editor-body.is-hl > .d-editor-code {
+  position: relative;
+  color: transparent;
+  caret-color: var(--ink);
+
+  &::selection {
+    background: color-mix(in oklab, var(--primary) 30%, transparent);
+    color: transparent;
+  }
+}
+
+@media (forced-colors: active) {
+  .d-editor-body.is-hl > .d-editor-code {
+    color: CanvasText;
+  }
+
+  .d-editor-hl {
+    display: none;
+  }
+}
+
+// Problems list under an editor.
+.d-problems {
+  font-family: var(--font-mono);
+  font-size: 12px;
+
+  > .d-problem {
+    display: flex;
+    gap: 12px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--rule);
+
+    &:first-of-type {
+      border-top: 0;
+    }
+
+    .ln {
+      width: 56px;
+      color: var(--dim);
+    }
+  }
+}

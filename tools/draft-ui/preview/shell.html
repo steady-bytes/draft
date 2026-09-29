@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{draft} shell</title>
+  <link rel="stylesheet" href="../dist/fonts.css">
+  <link rel="stylesheet" href="../dist/draft.css">
+  <script src="../dist/draft.js"></script>
+</head>
+<body>
+<!-- The shell contract: .d-app > input.d-rail-toggle (first), .d-brand, .d-topbar, .d-rail, .d-main, .d-statusbar, label.d-rail-scrim -->
+<div class="d-app">
+  <input type="checkbox" id="d-rail-toggle" class="d-rail-toggle" aria-label="Toggle navigation">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b></span></div>
+
+  <header class="d-topbar">
+    <label for="d-rail-toggle" class="d-btn d-btn--ghost d-btn--icon d-hamburger" aria-label="Menu">☰</label>
+    <span class="d-wordmark d-topbar-brand"><b>{</b>draft<b>}</b></span>
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Blueprint</span><i>/</i><span>Control plane</span><i>/</i><span>Key · Value</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Raft · 5 nodes · leader node_1</span>
+    <button class="d-btn d-btn--ghost d-btn--sm d-cmd" aria-label="Command palette" aria-disabled="true"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Control plane</span>
+    <a class="d-nav-item" aria-current="page" href="#">Key / Value <span class="d-count">6</span></a>
+    <a class="d-nav-item" href="#">Service registry <span class="d-count">14</span></a>
+    <a class="d-nav-item" href="#">Gateway <span class="d-count">11</span></a>
+    <a class="d-nav-item" href="#">Cluster</a>
+    <span class="d-label">Events</span>
+    <a class="d-nav-item" href="#">Query</a>
+    <a class="d-nav-item" href="#">Topology</a>
+    <a class="d-nav-item" href="#">Metrics</a>
+    <span class="d-label">Apps</span>
+    <a class="d-nav-item d-nav-item--ext" href="#"><span class="d-glyph d-glyph--ca">Bc</span>Beacon</a>
+    <a class="d-nav-item d-nav-item--ext" href="#"><span class="d-glyph">Bn</span>Bench</a>
+    <a class="d-nav-item d-nav-item--ext" href="#"><span class="d-glyph d-glyph--bp">Lm</span>Lineman</a>
+    <span class="d-label">Objectives</span>
+    <a class="d-nav-item" href="#"><span class="d-nav-text">Roll out Fuse load balancing</span><span class="d-count">22</span></a>
+    <a class="d-nav-item d-nav-item--action" href="#">+ New objective</a>
+  </aside>
+
+  <main class="d-main">
+    <div class="d-split d-split--wide d-split--flush">
+      <section class="d-split-main">
+        <div class="d-page-head">
+          <div>
+            <span class="d-label">Control plane</span>
+            <h1>Key / Value</h1>
+            <p>Raft-replicated configuration. Values are protobuf <code>Any</code> messages; long values are previewed here and opened in full on the right.</p>
+          </div>
+          <div class="d-actions"><button class="d-btn d-btn--primary">+ Add entry</button></div>
+        </div>
+        <div class="d-toolbar">
+          <select class="d-select" aria-label="Kind"><option>Value · 6</option></select>
+          <input class="d-input" placeholder="Filter keys…" aria-label="Filter keys">
+          <span class="d-spacer"></span>
+          <span class="d-label">6 entries · 1 secret masked</span>
+        </div>
+        <div class="d-panel d-table-wrap">
+          <table class="d-table">
+            <thead><tr><th>Key</th><th>Value</th><th>Type</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="is-key">auth_service_address</td><td class="is-fill is-dim"><span class="d-trunc">http://host.docker.internal:9095</span></td><td class="is-shrink"><span class="d-tag d-tag--quiet">Value</span></td><td class="is-act"><button class="d-btn d-btn--danger d-btn--sm">Delete</button></td></tr>
+              <tr aria-selected="true"><td class="is-key">cluster/layout</td><td class="is-fill is-dim"><span class="d-row" style="gap:8px"><span class="d-tag d-tag--ca">JSON</span><span class="d-trunc">{"positions":{"live:catalyst":[168.0,1080.0],…</span></span></td><td class="is-shrink"><span class="d-tag d-tag--quiet">Value</span></td><td class="is-act"><button class="d-btn d-btn--danger d-btn--sm">Delete</button></td></tr>
+              <tr><td class="is-key">fuse_local_ca</td><td class="is-fill"><span class="d-secret"><span class="d-tag d-tag--warn">Secret</span><span class="d-secret-mask">••••••••••••</span><span>PEM · 3.1 KB</span><button class="d-btn d-btn--ghost d-btn--sm">Reveal</button></span></td><td class="is-shrink"><span class="d-tag d-tag--quiet">Value</span></td><td class="is-act"><button class="d-btn d-btn--danger d-btn--sm">Delete</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="d-foot"><span>Values starting with <code>-----BEGIN</code> are masked.</span><span>Replicated to 5 / 5 nodes</span></div>
+      </section>
+      <aside class="d-drawer" aria-label="Entry detail">
+        <div class="d-drawer-head"><span class="d-label">Entry</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm d-btn--icon" aria-label="Close">✕</button></div>
+        <h2 class="d-drawer-title">cluster/layout</h2>
+        <dl class="d-kv"><dt>Type</dt><dd>core.registry.key_value.v1.Value</dd><dt>Size</dt><dd>612 B</dd></dl>
+        <div class="d-block"><div class="d-section-title"><span class="d-label">Value</span></div>
+<pre class="d-code">{
+  <span class="tk-key">"positions"</span>: {
+    <span class="tk-key">"live:catalyst"</span>: [<span class="tk-num">168.0</span>, <span class="tk-num">1080.0</span>]
+  },
+  <span class="tk-key">"zoom"</span>: <span class="tk-num">0.476</span>
+}</pre></div>
+        <div class="d-row" style="margin-top:16px"><button class="d-btn d-btn--primary">Edit</button><button class="d-btn">Copy</button><span class="d-spacer"></span><button class="d-btn d-btn--danger">Delete</button></div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Node <b>node_1</b></span><span>Commit <b>4,118</b></span><span class="d-spacer"></span><span>RPC <b>12 ms</b></span><span>v0.9.0-alpha</span>
+  </footer>
+
+  <label class="d-rail-scrim" for="d-rail-toggle"></label>
+</div>
+</body>
+</html>

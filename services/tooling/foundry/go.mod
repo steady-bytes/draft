@@ -13,13 +13,16 @@ replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 // loggers implementation too — mirrors services/core/heartbeat/go.mod.
 replace github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
 
+// The shared design system's Go side (shell, partials, embedded CSS/JS). Local, like chassis.
+replace github.com/steady-bytes/draft/tools/draft-ui => ../../../tools/draft-ui
+
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/google/uuid v1.6.0
 	github.com/steady-bytes/draft/api v1.0.0
 	github.com/steady-bytes/draft/pkg/chassis v0.6.2
-	github.com/steady-bytes/draft/pkg/loggers v0.2.6
 	github.com/steady-bytes/draft/pkg/repositories v0.0.4
+	github.com/steady-bytes/draft/tools/draft-ui v0.0.0-00010101000000-000000000000
 	github.com/uptrace/bun v1.1.16
 	github.com/uptrace/bun/dialect/pgdialect v1.1.16
 	github.com/uptrace/bun/driver/pgdriver v1.1.16
@@ -47,7 +50,6 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/rs/cors v1.10.1 // indirect
-	github.com/rs/zerolog v1.32.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect

@@ -1,0 +1,182 @@
+@use "../abstracts/mixins" as m;
+
+// Waterfall: a span-per-row timeline (Beacon traces) and its compact drawer variant (wide events).
+// Hoisted from the two conflicting `.wf-row` definitions in the mockups.
+// The waterfall wrapper: lets a wide lane scroll instead of overflowing its panel.
+.d-wf {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.d-wf-head {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  border-bottom: 1px solid var(--rule-strong);
+
+  > div {
+    padding: 8px 14px;
+  }
+}
+
+.d-wf-ticks {
+  position: relative;
+  height: 16px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--dim);
+
+  span {
+    position: absolute;
+    top: 0;
+    white-space: nowrap;
+    transform: translateX(-50%);
+
+    &:first-child {
+      transform: none;
+    }
+
+    &:last-child {
+      transform: translateX(-100%);
+    }
+  }
+}
+
+.d-wf-row {
+  --c: var(--sv);
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  min-height: 32px;
+  border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--panel-2);
+  }
+
+  &[aria-selected="true"] {
+    background: var(--primary-soft);
+    box-shadow: inset 2px 0 0 var(--primary);
+  }
+
+  // Name cell; `--d` is the span's depth.
+  .d-wf-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 0 14px 0 calc(14px + var(--d, 0) * 16px);
+    font-family: var(--font-mono);
+    font-size: 12px;
+
+    &::before {
+      content: "";
+      flex: none;
+      width: 6px;
+      height: 6px;
+      border-radius: 1px;
+      background: var(--c);
+    }
+
+    .t {
+      @include m.truncate;
+    }
+
+    .s {
+      flex: none;
+      color: var(--dim);
+      font-size: 11px;
+    }
+  }
+
+  .d-wf-lane {
+    position: relative;
+    margin: 0 14px;
+    background-image: linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+    background-size: 25% 100%;
+  }
+
+  .d-wf-bar {
+    position: absolute;
+    top: 9px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    border-radius: 1px;
+    background: color-mix(in oklab, var(--c) 40%, transparent);
+    border-left: 2px solid var(--c);
+
+    &.is-err {
+      background: color-mix(in oklab, var(--err) 30%, transparent);
+      border-left-color: var(--err);
+      outline: 1px solid color-mix(in oklab, var(--err) 60%, transparent);
+    }
+
+    // Duration label just outside the bar.
+    em {
+      position: absolute;
+      left: calc(100% + 8px);
+      font-style: normal;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--dim);
+      white-space: nowrap;
+    }
+
+    &.is-right em {
+      left: auto;
+      right: calc(100% + 8px);
+    }
+
+    // A bar that spans (nearly) the whole lane has no room outside: the label goes inside.
+    &.is-inside em {
+      left: auto;
+      right: 8px;
+      color: var(--ink);
+    }
+  }
+}
+
+// Compact: three columns (name, lane, duration) for a drawer.
+.d-wf--compact {
+  display: grid;
+  gap: 5px;
+
+  .d-wf-row {
+    grid-template-columns: 120px 1fr 56px;
+    gap: 10px;
+    align-items: center;
+    min-height: 0;
+    border-bottom: 0;
+    cursor: default;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+
+    &:hover {
+      background: none;
+    }
+
+    > span:first-child {
+      @include m.truncate;
+      color: var(--dim);
+    }
+
+    > span:last-child {
+      text-align: right;
+      color: var(--dim);
+    }
+
+    .d-wf-lane {
+      height: 12px;
+      margin: 0;
+      background: var(--panel-2);
+
+      > i {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        background: color-mix(in oklab, var(--c) 35%, transparent);
+        border-left: 2px solid var(--c);
+      }
+    }
+  }
+}

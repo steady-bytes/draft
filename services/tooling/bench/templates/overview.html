@@ -1,0 +1,29 @@
+{{define "content"}}
+<div class="d-page-head">
+  <div>
+    <span class="d-label">Bench · end-to-end workflows</span>
+    <h1>Is it green?</h1>
+  </div>
+  <div class="d-actions">
+    <span class="d-seg" role="group" aria-label="Window">{{range .Windows}}<a href="{{.Href}}"{{if .Active}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}</span>
+    <a class="d-btn d-btn--primary" href="/workflows/new">+ New workflow</a>
+  </div>
+</div>
+
+<div class="d-verdict{{with .Verdict.Class}} {{.}}{{end}}" role="status"><b>{{.Verdict.Lead}}</b><span>{{.Verdict.Text}}</span></div>
+
+<div class="d-stats">{{range .Stats}}{{template "d-stat" .}}{{end}}</div>
+
+<form class="d-toolbar" method="get" action="{{.Base}}">
+  <input class="d-input" type="search" name="q" value="{{.Query.Text}}" placeholder="Filter workflows…" aria-label="Filter workflows" data-shortcut="/"
+    hx-get="/partials/workflows" hx-trigger="keyup changed delay:250ms, search" hx-target="#wf-table" hx-swap="outerHTML"
+    hx-include="[name='window'],[name='filter']">
+  <input type="hidden" name="window" value="{{.Query.Window.Key}}">
+  <input type="hidden" name="filter" value="{{.Query.Filter}}">
+  {{range .Chips}}<a class="d-chip" href="{{.Href}}"{{if .Active}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}
+  <span class="d-spacer"></span>
+  <span class="d-label">Last 12 runs, oldest → newest</span>
+</form>
+
+{{template "wf-table" .Table}}
+{{end}}

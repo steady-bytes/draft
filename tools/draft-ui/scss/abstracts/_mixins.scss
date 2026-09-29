@@ -1,0 +1,51 @@
+// The monospace all-caps "voice" used for labels, buttons, tags and status text.
+@mixin label-voice($size: var(--fs-xs), $spacing: 0.08em) {
+  font-family: var(--font-mono);
+  font-size: $size;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+}
+
+@mixin label {
+  @include label-voice;
+  font-weight: 500;
+  color: var(--dim);
+}
+
+// A translucent wash of a colour (e.g. `@include tint(var(--c), 9%)`).
+@mixin tint($color, $amount) {
+  background: color-mix(in oklab, #{$color} #{$amount}, transparent);
+}
+
+// A border in a translucent colour.
+@mixin tint-border($color, $amount) {
+  border-color: color-mix(in oklab, #{$color} #{$amount}, transparent);
+}
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Resets a <button> so it can be styled as a non-button control.
+@mixin button-reset {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}
+
+@mixin below($width) {
+  @media (max-width: #{$width - 1px}) {
+    @content;
+  }
+}

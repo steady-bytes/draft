@@ -130,7 +130,7 @@ type StepRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StepRequestMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -262,7 +262,7 @@ type StepResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m StepResponseMultiError) Error() string {
-	msgs := make([]string, 0, len(m))
+	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

@@ -1,0 +1,18 @@
+{{/* plugin-results is the editor drawer's search results: the htmx-swapped fragment. */}}
+{{define "plugin-results"}}
+{{if .Error}}{{template "d-empty" (empty "Search unavailable" .Error)}}
+{{else if .NoRegistries}}<div class="d-empty d-empty--compact"><b>No plugin registries</b><span><a href="/settings">Add one in Settings</a> to search for plugins.</span></div>
+{{else if not .Results}}{{template "d-empty" (empty "No plugins matched" "Try another word.")}}
+{{else}}
+<div class="d-stack" style="margin-top:12px">
+  {{range .Results}}
+  <div class="d-panel d-result">
+    <div class="d-result-top">{{.Name}}{{template "d-tag" (tag "quiet" .Version)}}<span class="d-spacer"></span><button class="d-btn d-btn--sm" type="button" data-insert-into="#workflow-yaml" data-insert="{{.Snippet}}">Insert</button></div>
+    <p>{{.Description}}</p>
+    <code>{{.RequiredLine}}</code>
+    <span class="d-label">{{.Registry}}</span>
+  </div>
+  {{end}}
+</div>
+{{end}}
+{{end}}

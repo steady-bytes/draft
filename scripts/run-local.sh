@@ -58,6 +58,8 @@
 #   grpc-call (RPC only)                http://localhost:9305/
 #   catalyst-produce (RPC only)         http://localhost:9306/
 #   crud (examples, RPC only)           http://localhost:9090/
+#   crud-event (examples, RPC only, emits examples.crud.v1.ModelEvent) http://localhost:9098/
+#   crud-audit (examples, background consumer, audits examples.crud.v1.ModelEvent) http://localhost:9099/
 #   echo (examples, RPC only)           http://localhost:9091/
 #   Documentation site (Hugo)           http://localhost:1313/
 #   Fuse data plane (native reverse proxy; proxies blueprint/foundry/bench/beacon.draft.localhost + Beacon's RPC prefix) http://localhost:10000/
@@ -258,6 +260,8 @@ log "Building core services"
 
 log "Building example services"
 (cd "$REPO_ROOT/services/examples/crud" && go build -o "$BIN_DIR/crud" .) || die "crud build failed"
+(cd "$REPO_ROOT/services/examples/crud-event" && go build -o "$BIN_DIR/crud-event" .) || die "crud-event build failed"
+(cd "$REPO_ROOT/services/examples/crud-audit" && go build -o "$BIN_DIR/crud-audit" .) || die "crud-audit build failed"
 (cd "$REPO_ROOT/services/examples/echo" && go build -o "$BIN_DIR/echo" .) || die "echo build failed"
 
 log "Building tooling services"
@@ -314,6 +318,25 @@ log "Starting crud (examples)"
 start_bg crud "$REPO_ROOT/services/examples/crud" "$BIN_DIR/crud"
 wait_for_tcp localhost 9090 crud
 
+# crud-event registers no route with Fuse at all (it's the same
+# examples.crud.v1.CrudService path prefix crud above already owns there --
+# a second registration would collide, not add a second backend for it), so
+# unlike crud it doesn't strictly need Fuse up first. Starting it here
+# anyway keeps every examples/ service grouped together in this script's
+# startup order. It also opens its own Produce stream to Catalyst on
+# startup (see services/examples/crud-event/service/events.go), so it does
+# need Catalyst already up -- true by this point regardless.
+log "Starting crud-event (examples)"
+start_bg crud-event "$REPO_ROOT/services/examples/crud-event" "$BIN_DIR/crud-event"
+wait_for_tcp localhost 9098 crud-event
+
+# crud-audit is a standing Catalyst consumer, not an RPC server anyone calls -- it needs Catalyst
+# up (true by this point regardless) and nothing else, so its place here is purely for grouping
+# every examples/ service together, same reasoning as crud-event above.
+log "Starting crud-audit (examples)"
+start_bg crud-audit "$REPO_ROOT/services/examples/crud-audit" "$BIN_DIR/crud-audit"
+wait_for_tcp localhost 9099 crud-audit
+
 # echo's own WithRoute call is synchronous too, same reasoning as crud/beacon
 # above -- needs Fuse already up. Required for Bench's fuse-proxy-e2e and
 # fuse-proxy-e2e-10x workflows -- though per this script's header, those two
@@ -366,6 +389,8 @@ Full local Draft cluster is up.
   grpc-call (RPC only)          localhost:9305
   catalyst-produce (RPC only)   localhost:9306
   crud (examples, RPC only)     localhost:9090
+  crud-event (examples, RPC only, emits examples.crud.v1.ModelEvent) localhost:9098
+  crud-audit (examples, background consumer, audits examples.crud.v1.ModelEvent) localhost:9099
   echo (examples, RPC only)     localhost:9091
   Documentation site (Hugo)     http://localhost:1313/
   Fuse data plane (native reverse proxy)  localhost:10000  (proxies blueprint/foundry/bench/beacon.draft.localhost + Beacon's RPC prefix — see this script's header)

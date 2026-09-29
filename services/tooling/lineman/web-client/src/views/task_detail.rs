@@ -1,42 +1,51 @@
+//! One task, live: who has it, what they are doing, and — when the agent is blocked — the
+//! question and the buttons to answer it.
+//!
+//! No Retry/Cancel: Lineman's RPC interface has no corresponding calls, so those buttons would be
+//! inert. They are left out rather than shipped as fake controls.
+
 use dioxus::prelude::*;
-use draft_api::hook::tooling_lineman_v1::use_lineman_service_service;
 use draft_api::proto::tooling_lineman_v1::{
-    lineman_service_client::LinemanServiceClient, watch_response, GetObjectiveRequest,
-    GetTaskRequest, ProvideGuidanceRequest, Task, UpdateTaskStateRequest, WatchRequest,
+    lineman_service_client::LinemanServiceClient, watch_response, GetObjectiveRequest, GetTaskRequest,
+    ProvideGuidanceRequest, Task, UpdateTaskStateRequest, WatchRequest,
 };
-use gloo_timers::future::TimeoutFuture;
+use draft_ui::data::{Kv, KvItem};
+use draft_ui::layout::{PageHead, SectionTitle};
+use draft_ui::shell::{use_page_chrome, BarItem};
+use draft_ui::ui::{use_toast, Alert, Btn, BtnVariant, Loading, Select, Status, Tag, Toast};
+use draft_ui::StatusKind;
 use tonic_web_wasm_client::Client as WasmClient;
 
-use crate::components::{agent_badge, priority_badge, toast};
-use crate::Route;
+use crate::components::{format_when, PriorityTag};
+use crate::rail::use_rail;
+use crate::state::{classify, short_id};
 
-/// How long the "state updated" toast stays up before auto-clearing.
-const TOAST_DURATION_MS: u32 = 3000;
+fn client() -> LinemanServiceClient<WasmClient> {
+    LinemanServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()))
+}
 
-/// Page 7 -- Task Detail. The primary place a human watches one task's live
-/// state: current agent, current action, and -- when the task is blocked on
-/// Needs Input -- the question and a way to answer it. No Retry/Cancel here
-/// (unlike the design brief's mockup): this pass's RPC interface has no
-/// corresponding RPC for either, so the buttons would be inert; left out
-/// rather than shipped as fake controls.
 #[component]
 pub fn TaskDetail(id: String, task_id: String) -> Element {
-    let service = use_lineman_service_service();
-    let task_id_for_display = task_id.clone();
+    rsx! { TaskView { key: "{task_id}", id: id.clone(), task_id: task_id.clone() } }
+}
 
-    let task_id_for_get = task_id.clone();
-    let get_req = use_signal(move || GetTaskRequest {
-        id: task_id_for_get.clone(),
-    });
-    let get_result = service.get_task(get_req);
+#[component]
+fn TaskView(id: String, task_id: String) -> Element {
+    let rail = use_rail();
+    let toast = use_toast();
 
-    // The objective's own states -- what a manual state change can move a
-    // task into (states are fully custom per objective, not a fixed enum).
-    let id_for_obj = id.clone();
-    let obj_req = use_signal(move || GetObjectiveRequest {
-        id: id_for_obj.clone(),
+    let task_for_get = task_id.clone();
+    let get_result = use_resource(move || {
+        let id = task_for_get.clone();
+        async move { client().get_task(GetTaskRequest { id }).await.map(|r| r.into_inner()).map_err(|e| e.message().to_string()) }
     });
-    let obj_result = service.get_objective(obj_req);
+    // The objective's own states are what a manual state change can move the task into; they are
+    // fully custom per objective, not a fixed enum.
+    let objective_for_get = id.clone();
+    let objective = use_resource(move || {
+        let id = objective_for_get.clone();
+        async move { client().get_objective(GetObjectiveRequest { id }).await.map(|r| r.into_inner()) }
+    });
 
     let mut task: Signal<Option<Task>> = use_signal(|| None);
     use_effect(move || {
@@ -45,159 +54,131 @@ pub fn TaskDetail(id: String, task_id: String) -> Element {
         }
     });
 
-    let task_id_for_watch = task_id.clone();
+    let task_for_watch = task_id.clone();
     use_coroutine(move |_rx: UnboundedReceiver<()>| {
-        let watched_id = task_id_for_watch.clone();
+        let watched = task_for_watch.clone();
         async move {
-            let wasm_client = WasmClient::new(crate::API_DOMAIN.clone());
-            let mut client = LinemanServiceClient::new(wasm_client);
-            let Ok(response) = client.watch(WatchRequest {}).await else {
+            let Ok(response) = client().watch(WatchRequest {}).await else {
                 return;
             };
             let mut stream = response.into_inner();
-            loop {
-                match stream.message().await {
-                    Ok(Some(msg)) => {
-                        if let Some(watch_response::Item::Task(t)) = msg.item {
-                            if t.id == watched_id && !msg.removed {
-                                task.set(Some(t));
-                            }
-                        }
+            while let Ok(Some(msg)) = stream.message().await {
+                if let Some(watch_response::Item::Task(t)) = msg.item {
+                    if t.id == watched && !msg.removed {
+                        task.set(Some(t));
                     }
-                    Ok(None) => break,
-                    Err(_) => break,
                 }
             }
         }
     });
 
-    let mut toast_message: Signal<Option<String>> = use_signal(|| None);
+    let task_id_for_bar = task_id.clone();
+    use_page_chrome(move || {
+        let objective_name = match &*objective.read() {
+            Some(Ok(o)) => o.name.clone(),
+            _ => "…".to_string(),
+        };
+        let name = task().map(|t| t.name).unwrap_or_else(|| "…".to_string());
+        let mut chrome = rail.chrome(&["Lineman", "Objectives", &objective_name, &name]);
+        chrome.left = vec![BarItem::kv("Task", short_id(&task_id_for_bar))];
+        chrome.right = vec![BarItem::Text("Live updates on".to_string())];
+        chrome
+    });
 
-    let objective_id = id.clone();
-    let task_id_for_move = task_id.clone();
-    let move_task = move |new_state: String| {
-        let task_id = task_id_for_move.clone();
-        let new_state_for_toast = new_state.clone();
+    let task_for_move = task_id.clone();
+    let move_to = use_callback(move |new_state: String| {
+        let task_id = task_for_move.clone();
         spawn(async move {
-            let mut client = LinemanServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()));
-            if client
-                .update_task_state(UpdateTaskStateRequest { task_id, new_state })
-                .await
-                .is_ok()
-            {
-                toast_message.set(Some(format!("Moved to {new_state_for_toast}")));
-                TimeoutFuture::new(TOAST_DURATION_MS).await;
-                toast_message.set(None);
+            let moved = client().update_task_state(UpdateTaskStateRequest { task_id, new_state: new_state.clone() }).await;
+            match moved {
+                Ok(_) => {
+                    toast.show(format!("Moved to {new_state}"), 3000);
+                    rail.refresh();
+                }
+                Err(e) => toast.show(format!("Could not move task: {}", e.message()), 6000),
             }
         });
+    });
+
+    let task_for_guidance = task_id.clone();
+    let respond = use_callback(move |response: String| {
+        let task_id = task_for_guidance.clone();
+        let next_state = task.peek().as_ref().map(|t| t.state.clone()).unwrap_or_default();
+        spawn(async move {
+            let sent = client().provide_guidance(ProvideGuidanceRequest { task_id, response, next_state }).await;
+            match sent {
+                Ok(_) => toast.show("Answer sent", 3000),
+                Err(e) => toast.show(format!("Could not send answer: {}", e.message()), 6000),
+            }
+        });
+    });
+
+    if let Some(Err(err)) = &*get_result.read() {
+        return rsx! {
+            Alert { kind: StatusKind::Err, "Failed to load task: {err}" }
+        };
+    }
+    let Some(t) = task() else {
+        return rsx! { Loading {} };
     };
 
-    let respond = move |response: String| {
-        let task_id = task_id.clone();
-        let next_state = task().map(|t| t.state.clone()).unwrap_or_default();
-        spawn(async move {
-            let mut client = LinemanServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()));
-            let _ = client
-                .provide_guidance(ProvideGuidanceRequest {
-                    task_id,
-                    response,
-                    next_state,
-                })
-                .await;
-        });
+    let states: Vec<String> = match &*objective.read() {
+        Some(Ok(o)) => o.states.clone(),
+        _ => Vec::new(),
     };
+    let kind = classify(&states, &t.state);
+    let state_options: Vec<(String, String)> = states.iter().map(|s| (s.clone(), s.clone())).collect();
+    let eyebrow = format!("Task {}", short_id(&t.id));
+    let created = format_when(t.created_at.as_ref().map(|x| x.seconds));
+    let updated = format_when(t.updated_at.as_ref().map(|x| x.seconds));
+    let has_agent = !t.agent_id.is_empty();
+    let agent_label = if has_agent { t.agent_id.clone() } else { "Unassigned".to_string() };
+    let blocked = t.needs_input.clone();
 
     rsx! {
-        div { class: "flex flex-col gap-4",
-            div { class: "breadcrumbs text-sm",
-                ul {
-                    li { Link { to: Route::Dashboard {}, "Objectives" } }
-                    li { Link { to: Route::ObjectiveDetail { id: objective_id.clone() }, "Detail" } }
-                    li { "#{task_id_for_display}" }
+        PageHead {
+            title: t.name.clone(),
+            eyebrow: eyebrow,
+            meta: rsx! {
+                PriorityTag { priority: t.priority }
+                Tag { tone: kind.tone(), "{t.state}" }
+                if blocked.is_some() {
+                    Status { kind: StatusKind::Warn, "Waiting on you" }
+                } else if has_agent {
+                    Status { kind: StatusKind::Info, live: true, "{agent_label}" }
                 }
-            }
+            },
+            actions: rsx! {
+                if !state_options.is_empty() {
+                    Select {
+                        value: t.state.clone(),
+                        options: state_options,
+                        aria_label: "Move to state".to_string(),
+                        on_change: move |s| move_to.call(s),
+                    }
+                }
+                Btn { to: format!("/objectives/{id}"), "Back to objective" }
+            },
+        }
 
-            match task() {
-                Some(t) => {
-                    let has_needs_input = t.needs_input.is_some();
-                    let states: Vec<String> = match &*obj_result.read() {
-                        Some(Ok(obj)) => obj.states.clone(),
-                        _ => Vec::new(),
-                    };
-                    let current_state = t.state.clone();
-                    rsx! {
-                        div { class: "flex flex-col md:flex-row md:items-start justify-between gap-4 bg-base-200 border border-base-300 rounded-box p-6",
-                            div { class: "space-y-2",
-                                div { class: "flex items-center gap-2 flex-wrap",
-                                    {priority_badge(t.priority)}
-                                    span { class: "badge badge-info badge-sm", "{t.state}" }
-                                    span { class: "text-xl font-semibold", "{t.name}" }
-                                }
-                                if !t.agent_id.is_empty() {
-                                    {agent_badge(&t.agent_id, !has_needs_input)}
-                                }
-                            }
-                            if !states.is_empty() {
-                                div { class: "flex items-center gap-2 shrink-0",
-                                    select {
-                                        class: "select select-bordered select-sm",
-                                        value: "{current_state}",
-                                        onchange: move |e| move_task(e.value()),
-                                        for s in states {
-                                            option { key: "{s}", value: "{s}", "{s}" }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        if !t.details.is_empty() {
-                            div {
-                                h2 { class: "text-sm font-semibold text-base-content/70 mb-2", "Details" }
-                                div { class: "card bg-base-200 border border-base-300",
-                                    div { class: "card-body p-4",
-                                        p { class: "text-sm whitespace-pre-wrap", "{t.details}" }
-                                    }
-                                }
-                            }
-                        }
-
-                        if !t.current_action.is_empty() {
-                            div {
-                                h2 { class: "text-sm font-semibold text-base-content/70 mb-2", "Current Action" }
-                                div { class: "card bg-base-200 border border-base-300",
-                                    div { class: "card-body p-4 gap-1",
-                                        div { class: "flex items-center gap-2 text-sm font-mono",
-                                            span { class: "w-1.5 h-1.5 rounded-full bg-info animate-pulse" }
-                                            "{t.current_action}"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        if let Some(needs_input) = t.needs_input.clone() {
-                            div {
-                                h2 { class: "text-sm font-semibold text-base-content/70 mb-2", "Needs Input" }
-                                div { class: "card bg-warning/10 border border-warning/40",
-                                    div { class: "card-body p-4 gap-3",
-                                        div { class: "flex items-center gap-2",
-                                            span { class: "badge badge-warning badge-sm", "Needs Input" }
-                                        }
-                                        div { class: "text-sm", "{needs_input.question}" }
-                                        div { class: "flex gap-2 flex-wrap",
-                                            for option in needs_input.options.clone() {
-                                                {
-                                                    let opt = option.clone();
-                                                    let respond = respond.clone();
-                                                    rsx! {
-                                                        button {
-                                                            key: "{option}",
-                                                            class: "btn btn-warning btn-sm",
-                                                            onclick: move |_| respond(opt.clone()),
-                                                            "{option}"
-                                                        }
-                                                    }
+        div { class: "td-layout",
+            div { class: "td-main",
+                if let Some(q) = blocked {
+                    section {
+                        SectionTitle { "Needs input" }
+                        Alert { kind: StatusKind::Warn,
+                            div { class: "td-needs",
+                                p { class: "td-question", "{q.question}" }
+                                div { class: "td-answers",
+                                    for option in q.options.clone() {
+                                        {
+                                            let choice = option.clone();
+                                            rsx! {
+                                                Btn {
+                                                    key: "{option}",
+                                                    variant: BtnVariant::Primary,
+                                                    onclick: move |_| respond.call(choice.clone()),
+                                                    "{option}"
                                                 }
                                             }
                                         }
@@ -205,27 +186,40 @@ pub fn TaskDetail(id: String, task_id: String) -> Element {
                                 }
                             }
                         }
+                    }
+                }
 
-                        div {
-                            h2 { class: "text-sm font-semibold text-base-content/70 mb-2", "Metadata" }
-                            div { class: "card bg-base-200 border border-base-300",
-                                div { class: "card-body p-4 gap-2 text-sm",
-                                    div { class: "flex justify-between", span { class: "text-base-content/50", "Task" } span { class: "font-mono", "{t.id}" } }
-                                    div { class: "flex justify-between", span { class: "text-base-content/50", "State" } span { "{t.state}" } }
-                                    if !t.agent_id.is_empty() {
-                                        div { class: "flex justify-between", span { class: "text-base-content/50", "Agent" } span { class: "font-mono", "{t.agent_id}" } }
-                                    }
-                                }
-                            }
+                if !t.current_action.is_empty() {
+                    section {
+                        SectionTitle { "Current action" }
+                        div { class: "d-panel td-block",
+                            Status { kind: StatusKind::Info, live: true, "{t.current_action}" }
                         }
                     }
                 }
-                None => rsx! { div { class: "text-base-content/50 text-sm", "Loading…" } },
+
+                if !t.details.is_empty() {
+                    section {
+                        SectionTitle { "Details" }
+                        div { class: "d-panel td-block td-details", "{t.details}" }
+                    }
+                }
             }
 
-            if let Some(msg) = toast_message() {
-                {toast(&msg)}
+            aside { class: "td-side",
+                SectionTitle { "Metadata" }
+                div { class: "d-panel td-block",
+                    Kv {
+                        KvItem { label: "Task".to_string(), "{t.id}" }
+                        KvItem { label: "State".to_string(), tone: kind.tone(), "{t.state}" }
+                        KvItem { label: "Agent".to_string(), "{agent_label}" }
+                        KvItem { label: "Created".to_string(), "{created}" }
+                        KvItem { label: "Updated".to_string(), "{updated}" }
+                    }
+                }
             }
         }
+
+        Toast { state: toast }
     }
 }

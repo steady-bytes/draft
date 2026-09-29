@@ -1,32 +1,23 @@
-{{ define "title" }}Login{{ end }}
+{{ define "title" }}Sign in{{ end }}
 
+{{/* The same card as draftui's `auth-card` partial (tools/draft-ui/templates/partials.html), written
+     out because this package renders with plain text/template. Keep the two in step. */}}
 {{ define "content" }}
-<div class="hero bg-base-200 min-h-screen">
-    <div class="hero-content text-center">
-        <div class="max-w-md">
-        <h1 class="text-5xl font-bold">Login</h1><br>
-
-        <form method="POST" action="/login">
-            <fieldset class="fieldset">
-                <input type="text" class="input" id="username" name="username" placeholder="hello@gmail.com">
-            </fieldset>
-
-            <fieldset class="fieldset">
-                <input type="password" class="input" id="password" name="password" placeholder="Password">
-            </fieldset>
-
-            <fieldset class="fieldset">
-                <label class="cursor-pointer label">
-                    <input type="checkbox" class="checkbox" id="remember-me" name="remember-me">
-                    <span class="label-text">Remember me</span>
-                </label>
-            </fieldset>
-
-            <br>
-
-            <button class="btn" type="submit">Login</button>
-        </form>
+<main class="d-auth">
+    <form class="d-panel d-auth-card" method="post" action="/login">
+        <div>
+            <span class="d-label">Account</span>
+            <h1>Sign in</h1>
         </div>
-    </div>
-</div>
+
+        <label class="d-field"><span class="d-label">Username</span>
+            <input class="d-input" type="text" id="username" name="username" placeholder="you@example.com" autocomplete="username" required></label>
+        <label class="d-field"><span class="d-label">Password</span>
+            <input class="d-input" type="password" id="password" name="password" autocomplete="current-password" required></label>
+        <label class="d-check-row"><input class="d-check" type="checkbox" id="remember-me" name="remember-me"><span>Remember me</span></label>
+
+        <button class="d-btn d-btn--primary" type="submit">Sign in</button>
+        <p class="d-note">No account yet? <a href="/register">Register</a></p>
+    </form>
+</main>
 {{ end }}

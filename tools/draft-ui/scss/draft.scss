@@ -1,0 +1,44 @@
+// draft.css — the shared Draft design system.
+//
+// One stylesheet for every Draft surface: Blueprint, Beacon, Bench, Foundry, Lineman and the docs
+// site. GENERATED into dist/ by `cargo run --features cli --bin draft-ui-css`; never edit dist/.
+//
+// Themes:   <html data-theme="draft">        dark (default)
+//           <html data-theme="draft-light">  light
+// Primary:  swatchable — set --primary-base on :root (or any element).
+//
+// Layers: tokens → daisyUI 5 theme mapping → base → layout → components → viz.
+
+// Fonts are separate (fonts.css) so a `url()` resolves next to its files — see scss/fonts.scss.
+
+@use "base/theme";
+@use "base/daisyui";
+@use "base/base";
+
+@use "layout/shell";
+@use "layout/page";
+@use "layout/split";
+
+@use "components/label";
+@use "components/panel";
+@use "components/btn";
+@use "components/seg";
+@use "components/field";
+@use "components/query";
+@use "components/tag";
+@use "components/status";
+@use "components/table";
+@use "components/stat";
+@use "components/list";
+@use "components/code";
+@use "components/strip";
+@use "components/card";
+@use "components/overlay";
+@use "components/state";
+@use "components/utilities";
+
+@use "viz/chart";
+@use "viz/waterfall";
+@use "viz/wire";
+@use "viz/trace";
+@use "viz/editor";

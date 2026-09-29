@@ -1,0 +1,35 @@
+/* draft boot — restores the saved theme and primary before first paint.
+ * Inline this (or load it synchronously in <head>). Preferences live in a cookie shared across
+ * sibling subdomains (bench.draft.localhost ↔ blueprint.draft.localhost) with localStorage as the
+ * fallback where the browser rejects a parent-domain cookie. */
+(function () {
+  var root = document.documentElement;
+  var D = (window.draftPrefs = {
+    get: function (k) {
+      var m = document.cookie.match(new RegExp("(?:^|; )" + k.replace(/\./g, "\\.") + "=([^;]*)"));
+      if (m) return decodeURIComponent(m[1]);
+      try { return localStorage.getItem(k); } catch (e) { return null; }
+    },
+    set: function (k, v) {
+      try { localStorage.setItem(k, v); } catch (e) {}
+      var enc = k + "=" + encodeURIComponent(v);
+      var base = enc + "; Path=/; Max-Age=31536000; SameSite=Lax";
+      var parts = location.hostname.split(".");
+      // An IP address (127.0.0.1) has no parent domain to share a cookie on.
+      if (parts.length >= 3 && !/^[\d.]+$/.test(location.hostname)) {
+        document.cookie = base + "; Domain=" + parts.slice(1).join(".");
+        // Accepted only if this exact value reads back (an older cookie of the same name must not
+        // pass for it), and then a host-only copy is retired so it cannot shadow the shared one.
+        if (document.cookie.split("; ").indexOf(enc) !== -1) {
+          document.cookie = k + "=; Path=/; Max-Age=0";
+          return;
+        }
+      }
+      document.cookie = base; // host-only fallback
+    },
+  });
+  var theme = D.get("draft.theme");
+  if (theme === "draft" || theme === "draft-light") root.setAttribute("data-theme", theme);
+  var primary = D.get("draft.primary");
+  if (primary && /^#[0-9a-f]{6}$/i.test(primary)) root.style.setProperty("--primary-base", primary);
+})();

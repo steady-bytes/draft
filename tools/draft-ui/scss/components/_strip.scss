@@ -1,0 +1,157 @@
+// Bar strips: a row of small cells, one per item. Hoisted from bench `.runs`, registry `.inst`,
+// run `.hist` and `.rn-progress` — four hand-written variants of one idea.
+//
+//   <span class="d-strip"><i class="is-ok"></i>…<i class="is-err"></i></span>
+.d-strip {
+  --cell-w: 8px;
+  --cell-h: 16px;
+  --cell-gap: 3px;
+  display: inline-flex;
+  gap: var(--cell-gap);
+  vertical-align: middle;
+
+  > i {
+    display: block;
+    width: var(--cell-w);
+    height: var(--cell-h);
+    border-radius: 1px;
+    background: var(--primary);
+    opacity: 0.9;
+
+    &.is-err {
+      background: var(--err);
+    }
+
+    &.is-warn {
+      background: var(--warn);
+    }
+
+    // In flight.
+    &.is-run {
+      background: var(--ca);
+      animation: d-blink 1.2s ease-in-out infinite;
+    }
+
+    // Never ran / offline / skipped.
+    &.is-none,
+    &.is-skip {
+      background: var(--rule-strong);
+      opacity: 1;
+    }
+
+    // The item currently being looked at.
+    &.is-cur {
+      outline: 1px solid var(--ink);
+      outline-offset: 2px;
+    }
+  }
+
+  // Sizes.
+  &--xs {
+    --cell-w: 6px;
+    --cell-h: 12px;
+  }
+
+  &--stretch {
+    display: flex;
+    --cell-h: 6px;
+    --cell-gap: 2px;
+
+    > i {
+      flex: 1;
+      width: auto;
+      opacity: 1;
+    }
+  }
+
+  &--tall {
+    display: flex;
+    --cell-h: 22px;
+
+    > i {
+      flex: 1;
+      width: auto;
+    }
+  }
+}
+
+@keyframes d-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d-strip > i.is-run {
+    animation: none;
+  }
+}
+
+// Segmented progress (Lineman objective): widths come from inline `--w` / `width`.
+.d-progress {
+  display: flex;
+  height: 4px;
+  gap: 2px;
+  background: transparent;
+
+  span {
+    display: block;
+    height: 100%;
+    background: var(--c);
+  }
+
+  &--lg {
+    height: 6px;
+  }
+}
+
+// Single-value meter (event volume, share of total).
+.d-meter {
+  height: 6px;
+  margin-top: 12px;
+  background: var(--panel-3);
+  border-radius: 1px;
+  overflow: hidden;
+
+  > i {
+    display: block;
+    height: 100%;
+    background: var(--c, var(--primary));
+  }
+}
+
+// Value + bar cell (durations). `--c` colours the bar; the inner <b> width is the ratio.
+.d-dur {
+  --c: var(--dim);
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 10px;
+  align-items: center;
+
+  > span {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  > i {
+    display: block;
+    height: 4px;
+    background: var(--rule-strong);
+    border-radius: 0 2px 2px 0;
+
+    > b {
+      display: block;
+      height: 100%;
+      background: var(--c);
+      border-radius: inherit;
+    }
+  }
+}
+
+// A horizontal line swatch (series keys in tables and legends).
+.d-sw {
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  background: var(--c);
+}

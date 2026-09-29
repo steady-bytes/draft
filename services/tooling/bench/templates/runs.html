@@ -1,0 +1,16 @@
+{{define "content"}}
+<div class="d-page-head">
+  <div>
+    <span class="d-label">Bench · run history</span>
+    <h1>Recent runs</h1>
+    {{if .Workflow}}<p>Runs of <code>{{.Workflow}}</code>. <a href="/runs">Show every workflow</a></p>{{end}}
+  </div>
+  <div class="d-actions">
+    <span class="d-seg" role="group" aria-label="Status">{{range .Filters}}<a href="{{.Href}}"{{if .Active}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}</span>
+  </div>
+</div>
+
+{{template "runs-table" .Table}}
+
+{{if .Older}}<div class="d-foot"><span></span><a class="d-btn d-btn--sm" href="{{.Older}}">Older runs →</a></div>{{end}}
+{{end}}

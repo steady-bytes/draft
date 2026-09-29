@@ -1,15 +1,18 @@
 use dioxus::logger::tracing::Level;
 use dioxus::prelude::*;
+use draft_ui::kinds::AppKind;
+use draft_ui::shell::{use_app_links, AppShell, NavItem, NavSection};
+use draft_ui::ui::NotFound;
+use draft_ui::DraftStyles;
 use once_cell::sync::Lazy;
 use web_sys::window;
 
 mod components;
+mod rail;
+mod state;
 mod views;
 
-use views::{
-    CreateObjective, Dashboard, Loops, ObjectiveDetail, PageNotFound, Scheduler, TaskBoard,
-    TaskDetail,
-};
+use views::{CreateObjective, Dashboard, Loops, ObjectiveDetail, Scheduler, TaskBoard, TaskDetail};
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
@@ -21,6 +24,7 @@ enum Route {
         CreateObjective {},
         #[route("/objectives/:id")]
         ObjectiveDetail { id: String },
+        // The board is the objective view in Board mode; the URL is kept as a deep link.
         #[route("/objectives/:id/board")]
         TaskBoard { id: String },
         #[route("/objectives/:id/tasks/:task_id")]
@@ -29,12 +33,9 @@ enum Route {
         Scheduler {},
         #[route("/loops")]
         Loops {},
-    #[end_layout]
-
-    #[route("/:..route")]
-    PageNotFound {
-        route: Vec<String>,
-    },
+        // Unknown paths keep the shell, so the rail is still there to navigate from.
+        #[route("/:..route")]
+        NotFound { route: Vec<String> },
 }
 
 fn get_domain() -> String {
@@ -42,18 +43,16 @@ fn get_domain() -> String {
     window.location().origin().expect("failed to get origin")
 }
 
-/// Same "same-origin as whatever page is currently loaded" resolution
-/// Blueprint's own web client uses (see service_url/API_DOMAIN there) --
-/// Lineman is served on its own subdomain through Fuse
-/// (lineman.draft.localhost), so its own RPC prefix is reachable at that
-/// same origin.
-pub static API_DOMAIN: Lazy<String> = Lazy::new(|| {
-    if let Some(api_domain) = option_env!("API_DOMAIN") {
-        if !api_domain.is_empty() {
-            return api_domain.to_string();
-        }
-    }
-    get_domain()
+/// Same "same-origin as whatever page is currently loaded" resolution Blueprint's own web client
+/// uses -- Lineman is served on its own subdomain through Fuse (lineman.draft.localhost), so its
+/// own RPC prefix is reachable at that same origin.
+pub static API_DOMAIN: Lazy<String> =
+    Lazy::new(|| draft_ui::util::resolve_domain(option_env!("API_DOMAIN"), get_domain));
+
+/// Fuse's own control-plane address, used to discover the other apps for the rail's Apps block.
+/// It does not route itself through the proxy it manages, so it is reached directly.
+pub static FUSE_DOMAIN: Lazy<String> = Lazy::new(|| {
+    draft_ui::util::resolve_domain(option_env!("FUSE_DOMAIN"), || "http://localhost:18000".to_string())
 });
 
 fn main() {
@@ -64,43 +63,44 @@ fn main() {
             host: API_DOMAIN.clone(),
         });
         rsx! {
+            DraftStyles {}
+            // Lineman's own few rules (the objective view, forms), on top of the shared design system.
+            document::Stylesheet { href: asset!("/assets/lineman.css") }
             Router::<Route> {}
         }
     });
 }
 
-/// Static sidebar -- three sections (Overview / Objectives / Automation),
-/// matching assets/lineman/design-brief.html's Navigation & IA exactly.
-/// Unlike Blueprint's own dashboard_layout, this doesn't drive the sidebar
-/// from a KV-stored NavigationConfig -- Lineman's IA is small and fixed
-/// enough that the extra indirection isn't worth it for a first pass.
+/// The shell: rail (Overview / Objectives / Automation / Apps), topbar and status bar. The
+/// objectives and their counts come from the shared data the layout loads once.
 fn dashboard_layout() -> Element {
+    let route = use_route::<Route>();
+    let rail = rail::use_rail_provider();
+    let apps = use_app_links(FUSE_DOMAIN.clone(), AppKind::Lineman);
+
+    let snapshot = rail.get().unwrap_or_default();
+    let mut objective_items: Vec<NavItem> = snapshot
+        .objectives
+        .iter()
+        .map(|o| NavItem::new(o.name.clone(), format!("/objectives/{}", o.id)).count(o.total))
+        .collect();
+    objective_items.push(NavItem::new("+ New objective", "/objectives/new").action().exact());
+
+    let sections = vec![
+        NavSection::new("Overview", vec![NavItem::new("Dashboard", "/").exact()]),
+        NavSection::new("Objectives", objective_items),
+        NavSection::new(
+            "Automation",
+            vec![
+                NavItem::new("Scheduler", "/scheduler").count(snapshot.scheduled_pending),
+                NavItem::new("Loops", "/loops").count(snapshot.loops_active),
+            ],
+        ),
+    ];
+
     rsx! {
-        div { class: "drawer lg:drawer-open",
-            input { id: "lineman-drawer", r#type: "checkbox", class: "drawer-toggle" }
-            div { class: "drawer-content flex flex-col",
-                div { class: "navbar bg-base-300 lg:hidden",
-                    label { r#for: "lineman-drawer", class: "btn btn-square btn-ghost", "☰" }
-                    span { class: "text-lg font-bold ml-2", "Lineman" }
-                }
-                main { class: "flex-1 p-4", Outlet::<Route> {} }
-            }
-            div { class: "drawer-side",
-                label { r#for: "lineman-drawer", class: "drawer-overlay" }
-                ul { class: "menu bg-base-200 w-80 min-h-full p-4",
-                    li { class: "mb-4",
-                        Link { to: Route::Dashboard {}, class: "text-xl font-bold", "Lineman" }
-                    }
-                    li { class: "menu-title", "Overview" }
-                    li { Link { to: Route::Dashboard {}, "Dashboard" } }
-                    li { class: "menu-title mt-2", "Objectives" }
-                    li { Link { to: Route::Dashboard {}, "All Objectives" } }
-                    li { Link { to: Route::CreateObjective {}, "+ Create Objective" } }
-                    li { class: "menu-title mt-2", "Automation" }
-                    li { Link { to: Route::Scheduler {}, "Scheduler" } }
-                    li { Link { to: Route::Loops {}, "Loops" } }
-                }
-            }
+        AppShell { app: AppKind::Lineman, current: route.to_string(), sections, apps,
+            Outlet::<Route> {}
         }
     }
 }

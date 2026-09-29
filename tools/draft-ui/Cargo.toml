@@ -1,0 +1,52 @@
+[package]
+name = "draft-ui"
+version = "0.1.0"
+edition = "2021"
+description = "Shared Draft design system: SCSS/CSS, daisyUI theme configuration, Dioxus components and a Go SSR kit"
+license = "LGPL-3.0-or-later"
+publish = false
+# The Go module (go.mod, embed.go, templates/) lives in this same directory.
+exclude = ["/go.mod", "/go.sum", "/embed.go", "/*.go", "/templates", "/preview"]
+
+[features]
+default = []
+# Dioxus 0.7 component library (used by the WASM clients).
+dioxus = ["dep:dioxus", "dep:web-sys", "dep:wasm-bindgen", "dep:gloo-timers"]
+# Fuse/Blueprint-backed app discovery + nav config (needs draft-api).
+discovery = ["dioxus", "dep:draft-api", "dep:tonic-web-wasm-client", "dep:prost", "dep:prost-types"]
+# Native SCSS build tool (`draft-ui-css`).
+cli = ["dep:grass"]
+
+[dependencies]
+# `lib` = macro + html + signals + hooks + document + asset (no launcher/devtools), so this
+# builds for every renderer and every consumer's Dioxus 0.7.x patch version.
+dioxus = { version = "0.7", default-features = false, features = ["lib", "router"], optional = true }
+web-sys = { version = "0.3", features = ["Window", "Document", "HtmlDocument", "Element", "HtmlElement", "CssStyleDeclaration", "Storage", "Location", "Clipboard", "Navigator", "NodeList"], optional = true }
+gloo-timers = { version = "0.3", features = ["futures"], optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+draft-api = { path = "../../api", features = ["web"], optional = true }
+tonic-web-wasm-client = { version = "0.9.1", optional = true }
+prost = { version = "0.14", optional = true }
+prost-types = { version = "0.14", optional = true }
+grass = { version = "0.13", default-features = false, optional = true }
+
+[dev-dependencies]
+dioxus-ssr = "0.7"
+dioxus = { version = "0.7", default-features = false, features = ["lib", "router", "ssr"] }
+regex = "1"
+
+[[bin]]
+name = "draft-ui-css"
+path = "src/bin/draft-ui-css.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "ssr"
+required-features = ["dioxus"]
+
+[[test]]
+name = "dist_fresh"
+required-features = ["cli"]
+
+[lints.rust]
+unsafe_code = "forbid"

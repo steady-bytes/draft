@@ -1,76 +1,118 @@
+//! Events: Catalyst's CloudEvents, as a stored snapshot (`Query`) or a live stream
+//! (`QueryStream`, which replays from the start of the window and then goes live). The CESQL bar
+//! and the type facets narrow what was fetched. See `cesql.rs` for why filtering happens here
+//! rather than in the request.
+
+use std::collections::HashSet;
+
+use chrono::{Duration, Utc};
 use dioxus::prelude::*;
 use dioxus_core::Task;
+use draft_api::proto::core_message_broker_actors_v1::{query_client::QueryClient, CloudEvent, OrderDirection, QueryRequest};
+use draft_ui::data::{CodeBlock, CodeLang, Kv, KvItem};
+use draft_ui::layout::{Drawer, DrawerBlock, PageHead, Split};
+use draft_ui::query::{string_literal, Connector, GrammarId, LiteralStyle, QueryBar, QueryFilters};
+use draft_ui::shell::{use_page_chrome, BarItem, Chrome, ChromeStatus};
+use draft_ui::ui::{Chip, Dot, Empty, Loading, Seg, Toggle};
+use draft_ui::util::{short_type_name, truncate_middle};
+use draft_ui::{StatusKind, Tone};
 use tonic_web_wasm_client::Client as WasmClient;
 
-use draft_api::proto::core_message_broker_actors_v1::{
-    cloud_event::{cloud_event_attribute_value, Data as CloudEventData},
-    query_client::QueryClient,
-    CloudEvent, OrderDirection, QueryRequest,
-};
+use crate::cesql::Filter;
+use crate::events::{attr, attr_text, event_time, forward_delay_ms, full_time, json_leaf, row_time, text_data, type_facets};
 
-use crate::components::{CesqlBar, QueryBuilder, SortDir, TypeBadge, WaveLoader};
-
-// Cap stored events so the table doesn't grow without bound.
+/// Events kept in the table, so a long stream does not grow without bound.
 const MAX_EVENTS: usize = 1_000;
 
-#[derive(Clone, PartialEq)]
+/// The time-range presets, in minutes.
+const PRESETS: [i64; 5] = [15, 60, 180, 1440, 10_080];
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Order {
+    Newest,
+    Oldest,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum StreamStatus {
     Connecting,
     Connected,
+    /// A stored snapshot: nothing is arriving.
+    Snapshot,
     Disconnected,
+}
+
+fn range_label(minutes: i64) -> String {
+    match minutes {
+        m if m < 60 => format!("{m}m"),
+        m if m < 1440 => format!("{}h", m / 60),
+        m => format!("{}d", m / 1440),
+    }
+}
+
+/// A type's colour: stable per name, the same mapping services use elsewhere.
+fn type_tone(event_type: &str) -> Tone {
+    Tone::for_name(event_type)
+}
+
+fn client() -> QueryClient<WasmClient> {
+    QueryClient::new(WasmClient::new(crate::CATALYST_DOMAIN.clone()))
 }
 
 #[component]
 pub fn Store() -> Element {
-    let mut expression = use_signal(String::new);
+    // `draft` is what is typed; `applied` is what filters the table (set on Run, chip or drawer
+    // click), so half-typed text never flashes a parse error.
+    let mut draft = use_signal(String::new);
+    let mut applied = use_signal(String::new);
     let mut streaming = use_signal(|| false);
-    let mut events: Signal<Vec<CloudEvent>> = use_signal(Vec::new);
-    let mut query_results: Signal<Vec<CloudEvent>> = use_signal(Vec::new);
-    let mut sort_dir: Signal<SortDir> = use_signal(|| SortDir::Desc);
-    let mut status: Signal<StreamStatus> = use_signal(|| StreamStatus::Disconnected);
-    let mut querying = use_signal(|| true);
-    // Holds the active stream task so it can be cancelled when the toggle turns off.
-    let mut stream_task: Signal<Option<Task>> = use_signal(|| None);
-    // Details drawer for a clicked row. `selected` is left holding the last-clicked event even
-    // after the drawer closes (only `drawer_open` toggles) so the close transition slides an
-    // empty-content flash-free panel away rather than the content vanishing the instant the
-    // backdrop is clicked.
-    let mut selected: Signal<Option<CloudEvent>> = use_signal(|| None);
-    let mut drawer_open = use_signal(|| false);
+    let mut order = use_signal(|| Order::Newest);
+    let mut range = use_signal(|| 180i64);
+    let mut types: Signal<HashSet<String>> = use_signal(HashSet::new);
 
-    // Spawns a QueryStream task and stores the handle. Cancels any prior task first.
+    let mut streamed: Signal<Vec<CloudEvent>> = use_signal(Vec::new);
+    let mut stored: Signal<Vec<CloudEvent>> = use_signal(Vec::new);
+    let mut status = use_signal(|| StreamStatus::Snapshot);
+    let mut querying = use_signal(|| true);
+    let mut fetch_error: Signal<Option<String>> = use_signal(|| None);
+    let mut stream_task: Signal<Option<Task>> = use_signal(|| None);
+    let mut selected: Signal<Option<CloudEvent>> = use_signal(|| None);
+
+    let after = move || (Utc::now() - Duration::minutes(*range.peek())).to_rfc3339();
+
+    // Opens the live stream (cancelling any previous one): historical replay from the start of
+    // the window, then live events, newest first.
     let start_stream = use_callback(move |_: ()| {
         if let Some(t) = stream_task.write().take() {
             t.cancel();
         }
-        events.set(Vec::new());
+        streamed.set(Vec::new());
+        fetch_error.set(None);
         status.set(StreamStatus::Connecting);
-        let host = crate::CATALYST_DOMAIN.clone();
+        let after = after();
         let task = spawn(async move {
-            let mut client = QueryClient::new(WasmClient::new(host));
-            let stream_response = client
-                .query_stream(QueryRequest {
-                    expression: None,
-                    limit: 0,
-                    after: String::new(),
-                    order_by: OrderDirection::Asc as i32,
-                })
+            let response = client()
+                .query_stream(QueryRequest { expression: None, limit: 0, after, order_by: OrderDirection::Asc as i32 })
                 .await;
-            let Ok(response) = stream_response else {
-                status.set(StreamStatus::Disconnected);
-                return;
+            let stream = match response {
+                Ok(r) => r,
+                Err(e) => {
+                    status.set(StreamStatus::Disconnected);
+                    fetch_error.set(Some(e.message().to_string()));
+                    return;
+                }
             };
             status.set(StreamStatus::Connected);
-            let mut stream = response.into_inner();
+            let mut stream = stream.into_inner();
             loop {
                 match stream.message().await {
                     Ok(Some(msg)) => {
                         if let Some(event) = msg.event {
-                            let mut ev = events.write();
-                            if ev.len() >= MAX_EVENTS {
-                                ev.pop();
+                            let mut buf = streamed.write();
+                            if buf.len() >= MAX_EVENTS {
+                                buf.pop();
                             }
-                            ev.insert(0, event);
+                            buf.insert(0, event);
                         }
                     }
                     Ok(None) | Err(_) => {
@@ -85,211 +127,231 @@ pub fn Store() -> Element {
 
     let run_query = use_callback(move |_: ()| {
         querying.set(true);
-        let host = crate::CATALYST_DOMAIN.clone();
-        // peek() reads the current value without creating a reactive subscription,
-        // preventing use_effect from re-firing whenever sort_dir changes.
-        let order_by = match sort_dir.peek().clone() {
-            SortDir::Asc => OrderDirection::Asc as i32,
-            SortDir::Desc => OrderDirection::Desc as i32,
+        fetch_error.set(None);
+        status.set(StreamStatus::Snapshot);
+        let order_by = match *order.peek() {
+            Order::Newest => OrderDirection::Desc as i32,
+            Order::Oldest => OrderDirection::Asc as i32,
         };
+        let after = after();
         spawn(async move {
-            let mut client = QueryClient::new(WasmClient::new(host));
-            if let Ok(resp) = client
-                .query(QueryRequest {
-                    expression: None,
-                    limit: 0,
-                    after: String::new(),
-                    order_by,
-                })
-                .await
-            {
-                query_results.set(resp.into_inner().events);
+            match client().query(QueryRequest { expression: None, limit: 0, after, order_by }).await {
+                Ok(resp) => stored.set(resp.into_inner().events),
+                Err(e) => fetch_error.set(Some(e.message().to_string())),
             }
             querying.set(false);
         });
     });
 
-    // On first render: default is query mode, fetch historical events immediately.
+    // First render: pick up a filter handed off from another view (Topology's "Query these
+    // events"), then load the default snapshot.
     use_effect(move || {
+        if let Some(query) = crate::PENDING_EVENT_QUERY.write().take() {
+            draft.set(query.clone());
+            applied.set(query);
+        }
         run_query.call(());
     });
 
-    let stream_events = events.read();
-    let static_events = query_results.read();
-    let all_events: &Vec<CloudEvent> = if streaming() {
-        &stream_events
-    } else {
-        &static_events
+    // Re-fetch under whichever mode is active.
+    let refresh = use_callback(move |_: ()| {
+        if streaming() {
+            start_stream.call(());
+        } else {
+            run_query.call(());
+        }
+    });
+
+    let apply = use_callback(move |_: ()| applied.set(draft.peek().clone()));
+
+    // Derived ---------------------------------------------------------------------------------
+    let source: Vec<CloudEvent> = if streaming() { streamed() } else { stored() };
+    let (filter, filter_error) = match Filter::parse(&applied()) {
+        Ok(f) => (f, None),
+        Err(e) => (Filter::All, Some(e)),
     };
-    let filter = expression.read();
+    let matched: Vec<&CloudEvent> = source.iter().filter(|e| filter.matches(*e)).collect();
+    let facets = type_facets(matched.iter().copied());
+    let chosen = types();
+    let shown: Vec<&CloudEvent> = matched.iter().copied().filter(|e| chosen.is_empty() || chosen.contains(&e.r#type)).collect();
+    let now = Utc::now();
+    let selected_id = selected().map(|e| e.id);
+    let summary = format!("{} matched · last {}", shown.len(), range_label(range()));
+    let waiting = source.is_empty() && ((!streaming() && querying()) || (streaming() && status() == StreamStatus::Connecting));
 
-    let filtered: Vec<&CloudEvent> = all_events
-        .iter()
-        .filter(|e| matches_filter(&filter, e))
-        .collect();
+    use_page_chrome(move || {
+        let live = match (streaming(), status()) {
+            (true, StreamStatus::Connected) => ChromeStatus::live("Streaming"),
+            (true, StreamStatus::Connecting) => ChromeStatus::new(StatusKind::Warn, "Connecting"),
+            (true, StreamStatus::Disconnected) => ChromeStatus::new(StatusKind::Err, "Catalyst disconnected"),
+            _ => ChromeStatus::new(StatusKind::Idle, "Snapshot"),
+        };
+        Chrome {
+            crumbs: vec!["Blueprint".into(), "Events".into(), "Query".into()],
+            status: Some(live),
+            left: vec![BarItem::kv("Source", "catalyst")],
+            right: vec![BarItem::kv("Streaming", if streaming() { "on" } else { "off" })],
+        }
+    });
 
-    // Precomputed (not inlined into the rsx! string below, per this codebase's own
-    // established gotcha: rsx! format-string positions only accept simple
-    // `{identifier}` interpolation, not `{if ... }` expressions) transition classes for
-    // the details drawer -- always mounted (see `selected`'s own comment for why),
-    // toggled purely by drawer_open.
-    // Invisible (no dimming of the main page behind it) -- exists purely to catch a
-    // click outside the panel and close it; pointer-events-none while closed so it
-    // never blocks the page underneath.
-    let backdrop_class = format!(
-        "fixed inset-0 z-40 {}",
-        if drawer_open() { "" } else { "pointer-events-none" }
-    );
-    let panel_class = format!(
-        "fixed top-0 right-0 h-full w-full max-w-md bg-base-100 shadow-2xl z-50 \
-         flex flex-col transition-transform duration-300 {}",
-        if drawer_open() { "translate-x-0" } else { "translate-x-full" }
-    );
+    let drawer = selected().map(|event| {
+        rsx! {
+            EventDrawer {
+                key: "{event.id}",
+                event,
+                on_close: move |_| selected.set(None),
+                on_add_filter: move |fragment: String| {
+                    let next = GrammarId::Cesql.grammar().combine(&applied.peek(), Connector::And, &fragment);
+                    draft.set(next.clone());
+                    applied.set(next);
+                },
+            }
+        }
+    });
 
     rsx! {
-        div { class: "p-4 flex flex-col gap-3 h-screen",
-
-            div { class: "flex items-center gap-2",
-                label { class: "flex items-center gap-2 cursor-pointer select-none shrink-0",
-                    input {
-                        r#type: "checkbox",
-                        class: "toggle toggle-xs toggle-primary",
-                        checked: streaming(),
-                        onchange: move |_| {
-                            let was_streaming = streaming();
-                            streaming.toggle();
-                            if was_streaming {
-                                // turned off — cancel the stream task and fetch a snapshot
-                                if let Some(t) = stream_task.write().take() {
-                                    t.cancel();
-                                }
-                                events.set(Vec::new());
-                                run_query.call(());
-                            } else {
-                                // turned on — discard static snapshot and open the stream
-                                query_results.set(Vec::new());
-                                start_stream.call(());
+        Split { flush: true, drawer,
+            PageHead { inline: true, title: "Events".to_string(),
+                span { class: "d-label", "{summary}" }
+                span { class: "d-spacer" }
+                Toggle {
+                    checked: streaming(),
+                    on_change: move |on| {
+                        streaming.set(on);
+                        if on {
+                            stored.set(Vec::new());
+                            start_stream.call(());
+                        } else {
+                            if let Some(t) = stream_task.write().take() {
+                                t.cancel();
                             }
-                        },
-                    }
-                    span { class: "text-xs text-base-content/50", "Stream" }
+                            streamed.set(Vec::new());
+                            run_query.call(());
+                        }
+                    },
+                    "Stream"
                 }
-                CesqlBar {
-                    expression,
-                    on_run: move |_| {
-                        if !streaming() { run_query.call(()); }
+                Seg::<Order> {
+                    options: vec![(Order::Newest, "Newest first".to_string()), (Order::Oldest, "Oldest first".to_string())],
+                    value: order(),
+                    // A stream always arrives newest first; the order applies to snapshots.
+                    on_change: move |o| {
+                        order.set(o);
+                        if !streaming() {
+                            run_query.call(());
+                        }
                     },
-                    on_clear: move |_| {
-                        expression.set(String::new());
-                        query_results.set(Vec::new());
+                    label: "Order".to_string(),
+                }
+                Seg::<i64> {
+                    options: PRESETS.iter().map(|&m| (m, range_label(m))).collect::<Vec<_>>(),
+                    value: range(),
+                    on_change: move |m| {
+                        range.set(m);
+                        refresh.call(());
                     },
+                    label: "Time range".to_string(),
                 }
             }
 
-            QueryBuilder {
-                has_expression: !expression.read().is_empty(),
-                sort_dir: sort_dir(),
-                on_sort_change: move |dir: SortDir| {
-                    sort_dir.set(dir);
-                    if !streaming() { run_query.call(()); }
+            QueryBar {
+                grammar: GrammarId::Cesql,
+                value: draft,
+                on_run: move |_| {
+                    apply.call(());
+                    refresh.call(());
                 },
-                // QueryBuilder builds its own already-prefixed ("AND "/"OR ", per its own
-                // connector toggle) fragment before calling this -- appending here is just
-                // concatenation, no prefix decision to make.
-                on_add: move |fragment: String| {
-                    let current = expression.read().clone();
-                    let new_expr = if current.trim().is_empty() {
-                        fragment
-                    } else {
-                        format!("{current} {fragment}")
-                    };
-                    expression.set(new_expr);
+                on_clear: move |_| {
+                    draft.set(String::new());
+                    applied.set(String::new());
                 },
+                error: filter_error,
             }
+            QueryFilters { grammar: GrammarId::Cesql, expression: draft, on_run: move |_| apply.call(()) }
 
-            div { class: "flex items-center gap-2",
-                match (streaming(), status()) {
-                    (true, StreamStatus::Disconnected) => rsx! {
-                        span {
-                            class: "tooltip tooltip-right",
-                            "data-tip": "Catalyst server disconnected",
-                            svg {
-                                class: "w-4 h-4 text-error",
-                                xmlns: "http://www.w3.org/2000/svg",
-                                view_box: "0 0 20 20",
-                                fill: "currentColor",
-                                path {
-                                    fill_rule: "evenodd",
-                                    clip_rule: "evenodd",
-                                    d: "M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z",
+            if !facets.is_empty() {
+                div { class: "eq-facets", role: "group", aria_label: "Event types",
+                    span { class: "d-label", "Types" }
+                    for (name , count) in facets.into_iter().take(12) {
+                        {
+                            let pressed = chosen.contains(&name);
+                            let toggle_name = name.clone();
+                            let label = short_type_name(&name).to_string();
+                            rsx! {
+                                Chip {
+                                    key: "{name}",
+                                    pressed,
+                                    count: count as u32,
+                                    dot: type_tone(&name),
+                                    onclick: move |_| {
+                                        let mut set = types.write();
+                                        if !set.remove(&toggle_name) {
+                                            set.insert(toggle_name.clone());
+                                        }
+                                    },
+                                    "{label}"
                                 }
                             }
                         }
-                    },
-                    _ => rsx! {},
+                    }
                 }
             }
 
-            div { class: "flex-1 overflow-auto min-h-0",
-                if all_events.is_empty() && (!streaming() && querying() || streaming() && status() == StreamStatus::Connecting) {
-                    div { style: "position:fixed;top:50%;left:0;right:0;width:fit-content;margin-inline:auto;",
-                        WaveLoader { width: 80, height: 28 }
+            if let Some(err) = fetch_error() {
+                div { style: "margin-top:12px",
+                    draft_ui::ui::Alert { kind: StatusKind::Err, "Could not reach Catalyst: {err}" }
+                }
+            }
+
+            div { style: "margin-top:16px",
+                if waiting {
+                    Loading {}
+                } else if shown.is_empty() {
+                    Empty { title: "No events".to_string(),
+                        if source.is_empty() { "Nothing in this window yet. Events appear here as services publish them." } else { "No event matches the filters." }
                     }
                 } else {
-                table { class: "table table-xs",
-                    thead {
-                        tr {
-                            th { "TIME (UTC)" }
-                            th { "FORWARDED AT" }
-                            th { "TYPE" }
-                            th { "SOURCE" }
-                            th { "SUBJECT" }
-                            th { "ID" }
-                            th { "BODY" }
-                        }
-                    }
-                    tbody {
-                        if filtered.is_empty() {
-                            tr {
-                                td {
-                                    colspan: "7",
-                                    class: "text-center text-base-content/40 py-6",
-                                    if all_events.is_empty() { "Waiting for events…" } else { "No events match the filter." }
+                    div { class: "d-panel d-table-wrap",
+                        table { class: "d-table eq-table",
+                            thead {
+                                tr {
+                                    th { if streaming() || order() == Order::Newest { "Time (UTC) ↓" } else { "Time (UTC) ↑" } }
+                                    th { "Type" }
+                                    th { "Source" }
+                                    th { "Subject" }
+                                    th { "ID" }
+                                    th { "Data" }
                                 }
                             }
-                        }
-                        for event in filtered.iter() {
-                            {
-                                let time         = event_time(event);
-                                let forwarded_at = event_forwarded_at(event);
-                                let subject      = event_subject(event);
-                                let etype        = event.r#type.clone();
-                                let source       = event.source.clone();
-                                let id           = event.id.clone();
-                                let body         = event_text_data(event).to_string();
-                                // event is &&CloudEvent (filtered: Vec<&CloudEvent>, .iter() adds
-                                // another layer) -- a bare `.clone()` would resolve to the
-                                // reference's own Clone impl and just copy the pointer, not the
-                                // event. Double-deref first to reach the owned CloudEvent.
-                                let ev_click: CloudEvent = (**event).clone();
-                                rsx! {
-                                    tr {
-                                        class: "hover:bg-base-300 cursor-pointer",
-                                        onclick: move |_| {
-                                            selected.set(Some(ev_click.clone()));
-                                            drawer_open.set(true);
-                                        },
-                                        td { class: "font-mono text-xs text-base-content/60 whitespace-nowrap", "{time}" }
-                                        td { class: "font-mono text-xs text-base-content/60 whitespace-nowrap", "{forwarded_at}" }
-                                        td { TypeBadge { event_type: etype } }
-                                        td { class: "text-xs", "{source}" }
-                                        td { class: "font-mono text-xs", "{subject}" }
-                                        td { class: "font-mono text-xs text-base-content/40", "{id}" }
-                                        td {
-                                            class: "font-mono text-xs text-base-content/60",
-                                            style: "max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;",
-                                            title: "{body}",
-                                            "{body}"
+                            tbody {
+                                for e in shown {
+                                    {
+                                        let event = e.clone();
+                                        let event_for_key = e.clone();
+                                        let is_selected = selected_id.as_deref() == Some(e.id.as_str());
+                                        let time = row_time(&event_time(e), now);
+                                        let subject = attr(e, "subject").unwrap_or_else(|| "—".to_string());
+                                        let id = truncate_middle(&e.id, 8, 0);
+                                        let data = text_data(e).to_string();
+                                        let tone = type_tone(&e.r#type);
+                                        rsx! {
+                                            tr {
+                                                key: "{e.id}",
+                                                aria_selected: "{is_selected}",
+                                                tabindex: "0",
+                                                onclick: move |_| selected.set(Some(event.clone())),
+                                                onkeydown: move |k| {
+                                                    if k.key() == Key::Enter {
+                                                        selected.set(Some(event_for_key.clone()));
+                                                    }
+                                                },
+                                                td { class: "t", "{time}" }
+                                                td { class: "type", span { class: "d-row", style: "gap:8px", Dot { tone } "{e.r#type}" } }
+                                                td { class: "src", "{e.source}" }
+                                                td { "{subject}" }
+                                                td { class: "id", title: "{e.id}", "{id}" }
+                                                td { class: "body", span { class: "d-trunc", title: "{data}", "{data}" } }
+                                            }
                                         }
                                     }
                                 }
@@ -297,142 +359,83 @@ pub fn Store() -> Element {
                         }
                     }
                 }
-                }
-            }
-
-            // ── Event details drawer ────────────────────────────────────────
-            div { class: "{backdrop_class}", onclick: move |_| drawer_open.set(false) }
-            div {
-                class: "{panel_class}",
-                onclick: move |ev| ev.stop_propagation(),
-                if let Some(ev) = selected() {
-                    EventDetailsDrawer {
-                        event: ev,
-                        on_close: move |_| drawer_open.set(false),
-                        // Unlike QueryBuilder (which has its own AND/OR toggle and passes an
-                        // already-prefixed fragment), a body-value click has no UI for that
-                        // choice -- default to AND, narrowing the current query, since "find
-                        // more like this specific event" is the click's whole premise.
-                        on_add_filter: move |raw_fragment: String| {
-                            let current = expression.read().clone();
-                            let new_expr = if current.trim().is_empty() {
-                                raw_fragment
-                            } else {
-                                format!("{current} AND {raw_fragment}")
-                            };
-                            expression.set(new_expr);
-                        },
-                    }
-                }
             }
         }
     }
 }
 
-// ─── Event details drawer ───────────────────────────────────────────────────────
-
+/// The event drawer: envelope, extension attributes and the payload — as a tree whose values add
+/// a filter when clicked, when it is a JSON object.
 #[component]
-fn EventDetailsDrawer(
-    event: CloudEvent,
-    on_close: EventHandler<()>,
-    on_add_filter: EventHandler<String>,
-) -> Element {
-    let etype = event.r#type.clone();
-    let time = event_time(&event);
-    let forwarded_at = event_forwarded_at(&event);
-    let subject = event_subject(&event);
-    let body = event_text_data(&event).to_string();
-    // Parsed once: if it's a JSON object/array, the interactive JsonTree below renders
-    // it (with clickable leaves that build a body.<path> filter); anything else --
-    // invalid JSON, or a bare JSON scalar/string with nothing to click into -- falls
-    // back to the plain pretty-printed (or verbatim, if unparseable) text view.
-    let parsed_body = serde_json::from_str::<serde_json::Value>(&body).ok();
-    let body_tree = parsed_body.clone().filter(|v| v.is_object() || v.is_array());
-    let pretty_body = parsed_body
-        .and_then(|v| serde_json::to_string_pretty(&v).ok())
-        .unwrap_or(body);
-
-    // Every other attribute beyond the three already shown as their own fields above --
-    // the table only surfaces time/forwarded_at/subject, but a CloudEvent can carry
-    // arbitrary extension attributes worth seeing in the full-detail view.
-    let mut extra_attrs: Vec<(String, String)> = event
+fn EventDrawer(event: CloudEvent, on_close: EventHandler<()>, on_add_filter: EventHandler<String>) -> Element {
+    let time = full_time(&event_time(&event));
+    let delay = forward_delay_ms(&event).map(|ms| format!(" · forwarded +{ms} ms")).unwrap_or_default();
+    let subtitle = format!("{time} UTC{delay}");
+    let subject = attr(&event, "subject");
+    let mut extra: Vec<(String, String)> = event
         .attributes
         .iter()
         .filter(|(k, _)| !matches!(k.as_str(), "time" | "forwarded_at" | "subject"))
-        .map(|(k, v)| (k.clone(), format_attr_value(&v.attr)))
+        .filter_map(|(k, v)| attr_text(v).map(|t| (k.clone(), t)))
         .collect();
-    extra_attrs.sort_by(|a, b| a.0.cmp(&b.0));
+    extra.sort();
+
+    let body = text_data(&event).to_string();
+    let parsed = serde_json::from_str::<serde_json::Value>(&body).ok();
+    let tree = parsed.clone().filter(|v| v.is_object() || v.is_array());
+    let pretty = parsed.and_then(|v| serde_json::to_string_pretty(&v).ok()).unwrap_or(body);
+    let lead = rsx! {
+        span { class: "d-label", "CloudEvent · {event.spec_version}" }
+    };
 
     rsx! {
-        div { class: "flex items-center justify-between p-4 border-b border-base-300 shrink-0",
-            TypeBadge { event_type: etype }
-            button {
-                class: "btn btn-sm btn-circle btn-ghost",
-                onclick: move |_| on_close.call(()),
-                "✕"
-            }
-        }
-        div { class: "flex-1 overflow-auto p-4 flex flex-col gap-4",
-            DetailRow { label: "ID", value: event.id.clone() }
-            DetailRow { label: "SOURCE", value: event.source.clone() }
-            DetailRow { label: "SPEC VERSION", value: event.spec_version.clone() }
-            DetailRow { label: "TIME (UTC)", value: time }
-            DetailRow { label: "FORWARDED AT", value: forwarded_at }
-            DetailRow { label: "SUBJECT", value: subject }
-
-            if !extra_attrs.is_empty() {
-                div { class: "divider text-[10px] tracking-wider text-base-content/40", "ATTRIBUTES" }
-                for (key, value) in extra_attrs {
-                    DetailRow { label: key.to_uppercase(), value: value }
+        Drawer { label: "Event detail".to_string(), on_close: move |_| on_close.call(()), lead, title: event.r#type.clone(), subtitle,
+            DrawerBlock { title: "Envelope".to_string(),
+                Kv {
+                    KvItem { label: "id".to_string(), "{event.id}" }
+                    KvItem { label: "source".to_string(), "{event.source}" }
+                    if let Some(s) = subject {
+                        KvItem { label: "subject".to_string(), "{s}" }
+                    }
+                    for (k , v) in extra {
+                        KvItem { key: "{k}", label: k.clone(), "{v}" }
+                    }
                 }
             }
-
-            div { class: "divider text-[10px] tracking-wider text-base-content/40", "BODY" }
-            if let Some(root) = body_tree {
-                div { class: "text-[10px] text-base-content/40 mb-1",
-                    "Click a value to add it to the query"
-                }
-                JsonTree { value: root, path: String::new(), addressable: true, on_add: on_add_filter }
-            } else {
-                pre {
-                    class: "bg-base-200 rounded p-3 text-xs overflow-auto whitespace-pre-wrap break-all font-mono",
-                    "{pretty_body}"
+            DrawerBlock { title: "Data".to_string(),
+                if let Some(root) = tree {
+                    p { class: "d-hint", style: "margin:0 0 8px", "Click a value to add it to the query." }
+                    JsonTree { value: root, path: String::new(), addressable: true, on_add: on_add_filter }
+                } else if pretty.is_empty() {
+                    span { class: "d-muted", "No data" }
+                } else {
+                    CodeBlock { text: pretty, lang: CodeLang::Plain, wrap: true }
                 }
             }
         }
     }
 }
 
-// Recursively renders a JSON object/array as key/value rows. Every scalar leaf reached
-// through object keys only is clickable (there's a real body.<path> filter it can
-// build, per json_get_path). `addressable` tracks that: it starts true at the root and
-// latches false forever the moment recursion passes through an array, since dot-paths
-// don't address array elements -- without this latch, an object nested *inside* an
-// array (eg. one of a WideEvent's `logs` entries) would resume looking addressable to
-// its own descendants, building an incorrect path that skips the array entirely (a real
-// bug caught while writing this: clearing `path` at the array boundary alone isn't
-// enough, since a later object key would just rebuild a path from that empty point as
-// if it were still the root). Array contents still display, just as plain inert text.
+/// A JSON value as nested key / value rows. A scalar reached through object keys only is
+/// clickable — there is a real `body.<path>` filter for it. `addressable` latches false for good
+/// once the walk passes through an array, since dot paths cannot address array elements: without
+/// the latch an object nested inside an array would look addressable again to its own descendants
+/// and build a path that skips the array entirely. Array contents still show, as plain text.
 #[component]
-fn JsonTree(
-    value: serde_json::Value,
-    path: String,
-    addressable: bool,
-    on_add: EventHandler<String>,
-) -> Element {
+fn JsonTree(value: serde_json::Value, path: String, addressable: bool, on_add: EventHandler<String>) -> Element {
     match value {
         serde_json::Value::Object(map) => {
             let mut entries: Vec<(String, serde_json::Value)> = map.into_iter().collect();
             entries.sort_by(|a, b| a.0.cmp(&b.0));
             rsx! {
-                div { class: "flex flex-col gap-1.5 pl-3 border-l border-base-300",
-                    for (key, val) in entries {
+                div { class: "json-tree",
+                    for (key , val) in entries {
                         {
-                            let child_path = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
+                            let child = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
                             rsx! {
-                                div {
-                                    div { class: "text-[10px] text-base-content/40 font-mono", "{key}" }
-                                    JsonTree { value: val, path: child_path, addressable, on_add }
+                                div { key: "{key}",
+                                    div { class: "json-key", "{key}" }
+                                    JsonTree { value: val, path: child, addressable, on_add }
                                 }
                             }
                         }
@@ -440,307 +443,27 @@ fn JsonTree(
                 }
             }
         }
-        serde_json::Value::Array(items) => {
-            rsx! {
-                div { class: "flex flex-col gap-1.5 pl-3 border-l border-base-300",
-                    for (i, val) in items.into_iter().enumerate() {
-                        div {
-                            div { class: "text-[10px] text-base-content/40 font-mono", "[{i}]" }
-                            JsonTree { value: val, path: String::new(), addressable: false, on_add }
-                        }
+        serde_json::Value::Array(items) => rsx! {
+            div { class: "json-tree",
+                for (i , val) in items.into_iter().enumerate() {
+                    div { key: "{i}",
+                        div { class: "json-key", "[{i}]" }
+                        JsonTree { value: val, path: String::new(), addressable: false, on_add }
                     }
                 }
             }
-        }
+        },
         leaf => {
-            let display = json_leaf_display(&leaf);
-            if !addressable || path.is_empty() || matches!(leaf, serde_json::Value::Null) {
-                // Inside an array, a root-level scalar body, or null: nothing
-                // addressable to click into.
-                rsx! { span { class: "font-mono text-xs text-base-content/60 break-all", "{display}" } }
+            let display = json_leaf(&leaf);
+            if !addressable || path.is_empty() || leaf.is_null() {
+                rsx! { span { class: "json-leaf", "{display}" } }
             } else {
-                let frag = format!("body.{path} = '{display}'");
+                let fragment = format!("body.{path} = {}", string_literal(LiteralStyle::SingleQuote, &display));
+                let title = format!("Add {fragment} to the query");
                 rsx! {
-                    button {
-                        class: "font-mono text-xs text-left break-all hover:text-primary hover:underline",
-                        title: "Add \"{frag}\" to query",
-                        onclick: move |_| on_add.call(frag.clone()),
-                        "{display}"
-                    }
+                    button { class: "json-leaf is-action", r#type: "button", title: "{title}", onclick: move |_| on_add.call(fragment.clone()), "{display}" }
                 }
             }
         }
     }
-}
-
-fn json_leaf_display(v: &serde_json::Value) -> String {
-    match v {
-        serde_json::Value::String(s) => s.clone(),
-        serde_json::Value::Bool(b) => b.to_string(),
-        serde_json::Value::Number(n) => n.to_string(),
-        serde_json::Value::Null => "null".to_string(),
-        // Object/Array never reach here -- matched separately in JsonTree.
-        other => other.to_string(),
-    }
-}
-
-#[component]
-fn DetailRow(label: String, value: String) -> Element {
-    rsx! {
-        div {
-            div { class: "text-[10px] tracking-wider text-base-content/40", "{label}" }
-            div { class: "font-mono text-xs break-all", "{value}" }
-        }
-    }
-}
-
-// Stringifies any CloudEvent extension-attribute variant for display -- mirrors
-// event_time/event_forwarded_at's own timestamp formatting for CeTimestamp so a
-// custom timestamp-valued attribute renders the same way the built-in ones do.
-fn format_attr_value(attr: &Option<cloud_event_attribute_value::Attr>) -> String {
-    match attr {
-        Some(cloud_event_attribute_value::Attr::CeBoolean(b)) => b.to_string(),
-        Some(cloud_event_attribute_value::Attr::CeInteger(i)) => i.to_string(),
-        Some(cloud_event_attribute_value::Attr::CeString(s)) => s.clone(),
-        Some(cloud_event_attribute_value::Attr::CeBytes(b)) => format!("<{} bytes>", b.len()),
-        Some(cloud_event_attribute_value::Attr::CeUri(s)) => s.clone(),
-        Some(cloud_event_attribute_value::Attr::CeUriRef(s)) => s.clone(),
-        Some(cloud_event_attribute_value::Attr::CeTimestamp(ts)) => {
-            chrono::DateTime::from_timestamp(ts.seconds, ts.nanos as u32)
-                .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-                .unwrap_or_else(|| "—".to_string())
-        }
-        None => "—".to_string(),
-    }
-}
-
-// ─── Filter ───────────────────────────────────────────────────────────────────
-
-// Evaluates a CESQL-subset expression against a CloudEvent.
-// Supported forms:
-//   field = 'value'              exact match (case-insensitive)
-//   field LIKE '%pattern%'       contains (% wildcards stripped)
-//   body.field = 'value'                    JSON body field exact match
-//   body.field LIKE '%pattern%'             JSON body field contains
-//   body.nested.field = 'value'             dot-path into a nested JSON object
-//   body.nested.field LIKE '%pattern%'      same, LIKE form
-//   A OR B                       either branch matches
-//   A AND B                      both branches must match
-//   <text>                       fallback: substring across all fields including body
-fn matches_filter(filter: &str, event: &CloudEvent) -> bool {
-    let filter = filter.trim();
-    if filter.is_empty() {
-        return true;
-    }
-    let lower = filter.to_lowercase();
-    // OR has lower precedence — split first so AND binds tighter.
-    if let Some(pos) = lower.find(" or ") {
-        return matches_filter(&filter[..pos], event) || matches_filter(&filter[pos + 4..], event);
-    }
-    if let Some(pos) = lower.find(" and ") {
-        return matches_filter(&filter[..pos], event) && matches_filter(&filter[pos + 5..], event);
-    }
-    matches_single(filter, event)
-}
-
-fn matches_single(filter: &str, event: &CloudEvent) -> bool {
-    if let Some(val) = extract_eq(filter, "type") {
-        return event.r#type.eq_ignore_ascii_case(&val);
-    }
-    if let Some(val) = extract_eq(filter, "source") {
-        return event.source.eq_ignore_ascii_case(&val);
-    }
-    if let Some(val) = extract_eq(filter, "id") {
-        return event.id.eq_ignore_ascii_case(&val);
-    }
-    if let Some(val) = extract_like(filter, "type") {
-        return event.r#type.to_lowercase().contains(&val.to_lowercase());
-    }
-    if let Some(val) = extract_like(filter, "source") {
-        return event.source.to_lowercase().contains(&val.to_lowercase());
-    }
-    if let Some(val) = extract_like(filter, "subject") {
-        return event_subject(event)
-            .to_lowercase()
-            .contains(&val.to_lowercase());
-    }
-    // body.field = 'value' (field may be a dot-path into nested objects, eg.
-    // "businessAttributes.callerService" -- see json_get_path)
-    if let Some((field, val)) = extract_body_eq(filter) {
-        let body: serde_json::Value =
-            serde_json::from_str(event_text_data(event)).unwrap_or_default();
-        return json_get_path(&body, &field)
-            .map(|v| match v {
-                serde_json::Value::String(s) => s.eq_ignore_ascii_case(&val),
-                other => other.to_string().eq_ignore_ascii_case(&val),
-            })
-            .unwrap_or(false);
-    }
-    // body.field LIKE '%pattern%' (dot-path supported, same as the eq form above)
-    if let Some((field, pat)) = extract_body_like(filter) {
-        let body: serde_json::Value =
-            serde_json::from_str(event_text_data(event)).unwrap_or_default();
-        return json_get_path(&body, &field)
-            .map(|v| match v {
-                serde_json::Value::String(s) => s.to_lowercase().contains(&pat.to_lowercase()),
-                other => other
-                    .to_string()
-                    .to_lowercase()
-                    .contains(&pat.to_lowercase()),
-            })
-            .unwrap_or(false);
-    }
-    // Fallback: substring across all visible fields including the JSON body.
-    let lf = filter.to_lowercase();
-    event.r#type.to_lowercase().contains(&lf)
-        || event.source.to_lowercase().contains(&lf)
-        || event.id.to_lowercase().contains(&lf)
-        || event_subject(event).to_lowercase().contains(&lf)
-        || event_text_data(event).to_lowercase().contains(&lf)
-}
-
-// Parses `field = 'value'` or `field = "value"`, returns the inner value.
-fn extract_eq(filter: &str, field: &str) -> Option<String> {
-    let lower = filter.to_lowercase();
-    let field_lower = field.to_lowercase();
-    let offset = if let Some(s) = lower.strip_prefix(&format!("{field_lower} =")) {
-        filter.len() - s.len()
-    } else if let Some(s) = lower.strip_prefix(&format!("{field_lower}=")) {
-        filter.len() - s.len()
-    } else {
-        return None;
-    };
-    extract_quoted(&filter[offset..]).map(str::to_string)
-}
-
-// Parses `field LIKE '%pattern%'`, returns the inner pattern with % stripped.
-fn extract_like(filter: &str, field: &str) -> Option<String> {
-    let lower = filter.to_lowercase();
-    let prefix = format!("{} like ", field.to_lowercase());
-    if !lower.starts_with(&prefix) {
-        return None;
-    }
-    let rest = filter[prefix.len()..].trim();
-    let inner = extract_quoted(rest)?;
-    let stripped = inner.trim_matches('%');
-    if stripped.is_empty() {
-        None
-    } else {
-        Some(stripped.to_string())
-    }
-}
-
-// Parses `body.field = 'value'`, returns (field_name, value).
-// Field names from protojson are camelCase (e.g. "modelName", "userId").
-fn extract_body_eq(filter: &str) -> Option<(String, String)> {
-    let lower = filter.to_lowercase();
-    if !lower.starts_with("body.") {
-        return None;
-    }
-    let rest = &filter[5..]; // after "body."
-    let rest_lower = rest.to_lowercase();
-    let eq_pos = rest_lower.find('=')?;
-    // Reject if this is actually a LIKE expression.
-    if rest_lower[..eq_pos].contains("like") {
-        return None;
-    }
-    let field_name = rest[..eq_pos].trim().to_string();
-    if field_name.is_empty() {
-        return None;
-    }
-    let after_eq = rest[eq_pos + 1..].trim();
-    let val = extract_quoted(after_eq)?.to_string();
-    Some((field_name, val))
-}
-
-// Parses `body.field LIKE '%pattern%'`, returns (field_name, pattern_without_%).
-fn extract_body_like(filter: &str) -> Option<(String, String)> {
-    let lower = filter.to_lowercase();
-    if !lower.starts_with("body.") {
-        return None;
-    }
-    let rest = &filter[5..];
-    let rest_lower = rest.to_lowercase();
-    let like_pos = rest_lower.find(" like ")?;
-    let field_name = rest[..like_pos].trim().to_string();
-    if field_name.is_empty() {
-        return None;
-    }
-    let after_like = rest[like_pos + 6..].trim();
-    let inner = extract_quoted(after_like)?;
-    let stripped = inner.trim_matches('%');
-    if stripped.is_empty() {
-        return None;
-    }
-    Some((field_name, stripped.to_string()))
-}
-
-// Walks a dot-path into a JSON object, eg. "businessAttributes.callerService" ->
-// body["businessAttributes"]["callerService"]. A single-segment path (no dots) is just
-// a plain top-level `.get`, so this is a superset of the old body.field behavior, not a
-// separate case. Array indexing isn't supported (`serde_json::Value::get` only takes a
-// `&str` key for objects, never a numeric index parsed from a path segment) -- not
-// needed for the body shapes this is used against (WideEvent's attribute maps), and
-// keeps this from having to distinguish "field" from "field[0]" syntax.
-fn json_get_path<'a>(value: &'a serde_json::Value, path: &str) -> Option<&'a serde_json::Value> {
-    path.split('.').try_fold(value, |v, key| v.get(key))
-}
-
-// Returns the content inside the outermost single or double quotes.
-fn extract_quoted(s: &str) -> Option<&str> {
-    let s = s.trim();
-    if s.len() >= 2 {
-        if s.starts_with('\'') && s.ends_with('\'') {
-            return Some(&s[1..s.len() - 1]);
-        }
-        if s.starts_with('"') && s.ends_with('"') {
-            return Some(&s[1..s.len() - 1]);
-        }
-    }
-    None
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-fn event_time(event: &CloudEvent) -> String {
-    if let Some(attr) = event.attributes.get("time") {
-        if let Some(cloud_event_attribute_value::Attr::CeTimestamp(ts)) = &attr.attr {
-            let dt = chrono::DateTime::from_timestamp(ts.seconds, ts.nanos as u32);
-            if let Some(dt) = dt {
-                return dt.format("%Y-%m-%d %H:%M:%S").to_string();
-            }
-        }
-        if let Some(cloud_event_attribute_value::Attr::CeString(s)) = &attr.attr {
-            return s.clone();
-        }
-    }
-    "—".to_string()
-}
-
-fn event_forwarded_at(event: &CloudEvent) -> String {
-    if let Some(attr) = event.attributes.get("forwarded_at") {
-        if let Some(cloud_event_attribute_value::Attr::CeTimestamp(ts)) = &attr.attr {
-            let dt = chrono::DateTime::from_timestamp(ts.seconds, ts.nanos as u32);
-            if let Some(dt) = dt {
-                return dt.format("%Y-%m-%d %H:%M:%S").to_string();
-            }
-        }
-    }
-    "—".to_string()
-}
-
-fn event_text_data(event: &CloudEvent) -> &str {
-    match &event.data {
-        Some(CloudEventData::TextData(s)) => s.as_str(),
-        _ => "",
-    }
-}
-
-fn event_subject(event: &CloudEvent) -> String {
-    if let Some(attr) = event.attributes.get("subject") {
-        if let Some(cloud_event_attribute_value::Attr::CeString(s)) = &attr.attr {
-            return s.clone();
-        }
-    }
-    "—".to_string()
 }

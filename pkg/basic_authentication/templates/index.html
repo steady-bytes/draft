@@ -1,10 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="draft">
 <head>
-    <title>{{ block "title" . }}Golf Tracker{{ end }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ block "title" . }}Sign in{{ end }}</title>
+    <!-- The Draft design system. Serve its assets at /static/draft/ with
+         `mux.Handle("GET "+draftui.StaticPrefix, draftui.Static())`
+         (github.com/steady-bytes/draft/tools/draft-ui) or copy tools/draft-ui/dist there. -->
+    <link rel="stylesheet" href="/static/draft/fonts.css">
+    <link rel="stylesheet" href="/static/draft/draft.css">
+    <script src="/static/draft/draft.js"></script>
 </head>
 <body>
     {{ block "content" . }}{{ end }}

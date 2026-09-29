@@ -11,6 +11,10 @@ env:
   REGISTRY: ${{ vars.REGISTRY || 'ghcr.io' }}
   TARGET_PLATFORMS: linux/amd64
 
+# Bench and Foundry render through the design system's Go module (tools/draft-ui). Changes there
+# are built and tested against both by draft-ui-ci.yml's `consumers` job, since this workflow only
+# looks at what changed under services/.
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}

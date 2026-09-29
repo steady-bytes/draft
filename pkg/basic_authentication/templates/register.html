@@ -1,36 +1,26 @@
-{{ define "title" }}Login{{ end }}
+{{ define "title" }}Create an account{{ end }}
 
+{{/* The same card as draftui's `auth-card` partial (tools/draft-ui/templates/partials.html), written
+     out because this package renders with plain text/template. Keep the two in step. */}}
 {{ define "content" }}
-{{ if .IsAlreadyRegistered }}
-<div class="alert alert-error shadow-lg">
-    <div>
-        <span>User already exists. Please choose a different username.</span>
-    </div>
-</div>
-{{ end }}
-<div class="hero bg-base-200 min-h-screen">
-    <div class="hero-content text-center">
-        <div class="max-w-md">
-        <h1 class="text-5xl font-bold">Register</h1><br>
-
-        <form method="POST" action="/register">
-            <fieldset class="fieldset">
-                <input type="text" class="input" id="username" name="username" placeholder="hello@gmail.com">
-            </fieldset>
-
-            <fieldset class="fieldset">
-                <input type="password" class="input" id="password" name="password" placeholder="Password">
-            </fieldset>
-
-            <fieldset class="fieldset">
-                <input type="password" class="input" id="password-confirmation" name="password-confirmation" placeholder="Confirm Password">
-            </fieldset>
-
-            <br>
-
-            <button class="btn btn-success" type="submit">Register</button>
-        </form>
+<main class="d-auth">
+    <form class="d-panel d-auth-card" method="post" action="/register">
+        <div>
+            <span class="d-label">Account</span>
+            <h1>Create an account</h1>
         </div>
-    </div>
-</div>
+
+        {{ if .IsAlreadyRegistered }}<div class="d-alert d-alert--err" role="alert">That username is taken. Choose a different one.</div>{{ end }}
+
+        <label class="d-field"><span class="d-label">Username</span>
+            <input class="d-input" type="text" id="username" name="username" placeholder="you@example.com" autocomplete="username" required></label>
+        <label class="d-field"><span class="d-label">Password</span>
+            <input class="d-input" type="password" id="password" name="password" autocomplete="new-password" required></label>
+        <label class="d-field"><span class="d-label">Confirm password</span>
+            <input class="d-input" type="password" id="password-confirmation" name="password-confirmation" autocomplete="new-password" required></label>
+
+        <button class="d-btn d-btn--primary" type="submit">Create account</button>
+        <p class="d-note">Already registered? <a href="/login">Sign in</a></p>
+    </form>
+</main>
 {{ end }}

@@ -1,0 +1,50 @@
+// draft-daisyui.theme.css — the same tokens as `@plugin "daisyui/theme"` blocks, for projects that
+// compile daisyUI with Tailwind v4 (`@plugin "daisyui" { themes: false }`). Values are literals so
+// daisyUI can compute its derived shades; import draft.css as well when you want the `d-*` layer.
+@use "sass:map";
+@use "abstracts/tokens" as t;
+
+@mixin draft-theme($name, $map, $primary, $scheme, $default: false, $prefersdark: false) {
+  @plugin "daisyui/theme" {
+    name: "#{$name}";
+    default: $default;
+    prefersdark: $prefersdark;
+    color-scheme: $scheme;
+    --color-base-100: #{map.get($map, "bg")};
+    --color-base-200: #{map.get($map, "panel")};
+    --color-base-300: #{map.get($map, "panel-3")};
+    --color-base-content: #{map.get($map, "ink")};
+    --color-primary: #{$primary};
+    --color-primary-content: #{map.get($map, "primary-ink")};
+    --color-secondary: #{map.get($map, "bp")};
+    --color-secondary-content: #{map.get($map, "bg")};
+    --color-accent: #{map.get($map, "ca")};
+    --color-accent-content: #{map.get($map, "bg")};
+    --color-neutral: #{map.get($map, "panel-3")};
+    --color-neutral-content: #{map.get($map, "ink")};
+    --color-info: #{map.get($map, "ca")};
+    --color-info-content: #{map.get($map, "bg")};
+    --color-success: #{$primary};
+    --color-success-content: #{map.get($map, "primary-ink")};
+    --color-warning: #{map.get($map, "warn")};
+    --color-warning-content: #{map.get($map, "bg")};
+    --color-error: #{map.get($map, "err")};
+    --color-error-content: #{map.get($map, "bg")};
+    --radius-selector: 2px;
+    --radius-field: 2px;
+    --radius-box: 2px;
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+    --depth: 0;
+    --noise: 0;
+  }
+}
+
+@include draft-theme("draft", t.$dark, t.$primary-default, dark, $default: true, $prefersdark: true);
+@include draft-theme(
+  "draft-light",
+  t.$light,
+  color-mix(in oklab, #{t.$primary-default} #{t.$light-primary-mix}, #000),
+  light
+);

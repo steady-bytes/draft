@@ -157,19 +157,18 @@ func (h *rpc) ReportHealth(
 }
 
 func (h *rpc) Watch(ctx context.Context, req *connect.Request[sdv1.WatchRequest], stream *connect.ServerStream[sdv1.WatchResponse]) error {
-	id, ch := h.controller.Subscribe()
+	id, wake := h.controller.Subscribe()
 	defer h.controller.Unsubscribe(id)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case event, ok := <-ch:
-			if !ok {
-				return nil
-			}
-			if err := stream.Send(&sdv1.WatchResponse{Process: event.Process, Removed: event.Removed}); err != nil {
-				return err
+		case <-wake:
+			for _, event := range h.controller.Drain(id) {
+				if err := stream.Send(&sdv1.WatchResponse{Process: event.Process, Removed: event.Removed}); err != nil {
+					return err
+				}
 			}
 		}
 	}

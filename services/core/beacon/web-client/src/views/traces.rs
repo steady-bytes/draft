@@ -1,83 +1,121 @@
+//! Traces: a search list of trace roots (`SearchTraces`), the selected trace as a waterfall
+//! (`GetTrace`) and a drawer for the selected span. Both RPCs are unary — there is no
+//! `StreamTraces` — so the generated hooks are used directly.
+
+use chrono::Utc;
 use dioxus::prelude::*;
-
-use draft_api::hook::core_observability_traces_v1::{
-    use_traces_service_service, GetTraceRequest, SearchTracesRequest,
-};
+use draft_api::hook::core_observability_traces_v1::{use_traces_service_service, GetTraceRequest, SearchTracesRequest};
+use draft_api::hook::core_observability_wide_events_v1::use_wide_events_service_service;
 use draft_api::proto::core_observability_traces_v1::{Span, TraceRoot};
+use draft_api::proto::core_observability_wide_events_v1::{GetWideEventRequest, WideEvent};
+use draft_ui::data::{DurationCell, Kv, KvItem};
+use draft_ui::layout::{Drawer, DrawerBlock, PageHead, Split};
+use draft_ui::query::{GrammarId, QueryBar, QueryFilters};
+use draft_ui::shell::{use_page_chrome, BarItem, Chrome, ChromeStatus};
+use draft_ui::ui::{Alert, Btn, BtnVariant, Empty, Loading, Status, Svc, Toggle};
+use draft_ui::util::{format_duration_ns, truncate_middle};
+use draft_ui::viz::{Legend, Waterfall};
+use draft_ui::{StatusKind, Tone};
 
-use crate::components::{format_duration_ns, FlameGraph, QueryBar, QueryGrammar};
+use crate::components::{use_open_logs, AttrBlock, StatusText};
+use crate::data::{beaconql_string, full_time, row_time, sorted_attrs, ts_nanos, waterfall, window_clause, with_window, SpanLike, SpanStatus};
+use crate::range::{TimeRange, TimeRangePicker};
 
-/// Traces is Beacon's second visible product surface (Phase 6): a search list
-/// of trace roots (`SearchTraces`) plus a flame-graph detail view for the
-/// selected trace (`GetTrace`) — the SigNoz-style "trace list + flame graph"
-/// pattern described in the design doc's Traces view section. Both RPCs are
-/// unary (no StreamTraces — see TraceReceiver's doc comment in
-/// services/core/beacon/ingest/traces.go for why), so this view uses the
-/// generated `use_traces_service_service` hooks directly rather than a hand
-/// rolled streaming loop like Stream does.
+/// The time-range presets, in minutes.
+const PRESETS: [i64; 4] = [15, 60, 360, 1440];
+
+fn request(expression: &str, range: &TimeRange) -> SearchTracesRequest {
+    let (start, end) = range.bounds(Utc::now());
+    SearchTracesRequest { filter: with_window(expression, &window_clause(start, end)), limit: 0, before: String::new() }
+}
+
+fn to_span(s: &Span) -> SpanLike {
+    SpanLike {
+        id: s.span_id.clone(),
+        parent: s.parent_span_id.clone(),
+        service: s.service_name.clone(),
+        name: s.span_name.clone(),
+        start_ns: i128::from(ts_nanos(&s.start_time).unwrap_or(0)),
+        duration_ns: s.duration_ns,
+        err: SpanStatus::of(&s.status_code) == SpanStatus::Error,
+    }
+}
+
 #[component]
 pub fn Traces() -> Element {
     let mut expression = use_signal(String::new);
-    let mut search_req = use_signal(SearchTracesRequest::default);
+    let mut range = use_signal(|| TimeRange::minutes(60));
+    let mut errors_only = use_signal(|| false);
+    let mut search_req = use_signal(|| request("", &TimeRange::minutes(60)));
 
-    let mut selected_trace_id: Signal<Option<String>> = use_signal(|| None);
+    let mut selected_trace: Signal<Option<String>> = use_signal(|| None);
     let mut get_req = use_signal(GetTraceRequest::default);
-    let mut selected_span: Signal<Option<Span>> = use_signal(|| None);
+    let mut selected_span: Signal<Option<String>> = use_signal(|| None);
+    let mut wide_event_req = use_signal(GetWideEventRequest::default);
 
     let service = use_traces_service_service();
     let search_result = service.search_traces(search_req);
     let get_result = service.get_trace(get_req);
+    let wide_event_service = use_wide_events_service_service();
+    let wide_event_result = wide_event_service.get_wide_event(wide_event_req);
 
     let mut traces: Signal<Vec<TraceRoot>> = use_signal(Vec::new);
     let mut search_error: Signal<Option<String>> = use_signal(|| None);
     let mut spans: Signal<Vec<Span>> = use_signal(Vec::new);
     let mut get_error: Signal<Option<String>> = use_signal(|| None);
+    // The selected span's WideEvent, if one was recorded for it — see the field's own doc comment
+    // on why this is often None even for a span that clearly ran (WideEvent production is
+    // fire-and-forget and best-effort, unlike the trace/span data itself).
+    let mut wide_event: Signal<Option<WideEvent>> = use_signal(|| None);
+    let open_logs = use_open_logs();
 
-    // Consume a pending Trace-pill hand-off from the Logs view (Phase 14): if
-    // set, immediately filter the search list AND fetch+select that trace's
-    // flame graph — one click gets you the rendered flame graph, not just a
-    // filtered list needing a second click. Clearing the signal afterward
-    // means this only fires once per hand-off, not on every subsequent visit
-    // to /traces (including a plain nav-link click, which leaves it None).
+    // Selecting a span clears any previous span's WideEvent before asking for the new one's, so a
+    // stale "business attributes" panel never flashes under a freshly selected, different span
+    // while its own (possibly empty) result is still in flight — the same clear-then-refetch order
+    // select_trace below already uses for the trace's own spans.
+    let select_span = use_callback(move |span_id: String| {
+        wide_event.set(None);
+        wide_event_req.set(GetWideEventRequest { span_id: span_id.clone() });
+        selected_span.set(Some(span_id));
+    });
+
+    let select_trace = use_callback(move |trace_id: String| {
+        selected_span.set(None);
+        wide_event.set(None);
+        spans.set(Vec::new());
+        selected_trace.set(Some(trace_id.clone()));
+        get_req.set(GetTraceRequest { trace_id });
+    });
+
+    // A trace handed off from Logs or Wide events: filter the list to it and open its waterfall
+    // in one step, then clear the hand-off so it fires once rather than on every later visit. The
+    // list search skips the time window: the trace may be older than the default one.
     use_effect(move || {
         let Some(trace_id) = crate::PENDING_TRACE_ID.read().clone() else {
             return;
         };
         *crate::PENDING_TRACE_ID.write() = None;
-
-        let filter = format!("trace_id = \"{trace_id}\"");
+        let filter = format!("trace_id = {}", beaconql_string(&trace_id));
         expression.set(filter.clone());
-        search_req.set(SearchTracesRequest {
-            filter,
-            limit: 0,
-            before: String::new(),
-        });
-        selected_span.set(None);
-        selected_trace_id.set(Some(trace_id.clone()));
-        get_req.set(GetTraceRequest { trace_id });
+        search_req.set(SearchTracesRequest { filter, limit: 0, before: String::new() });
+        select_trace.call(trace_id);
     });
 
-    // Seed `traces` from the latest SearchTraces result. A new `search_req`
-    // (run/clear) re-triggers the hook's underlying use_resource, which lands
-    // here again.
-    use_effect(move || {
-        match &*search_result.read() {
-            Some(Ok(resp)) => {
-                traces.set(resp.traces.clone());
-                search_error.set(None);
-            }
-            Some(Err(e)) => search_error.set(Some(e.message().to_string())),
-            None => {}
+    // Seed the list from the latest search.
+    use_effect(move || match &*search_result.read() {
+        Some(Ok(resp)) => {
+            traces.set(resp.traces.clone());
+            search_error.set(None);
         }
+        Some(Err(e)) => search_error.set(Some(e.message().to_string())),
+        None => {}
     });
 
-    // Seed `spans` from the latest GetTrace result, but only once a trace has
-    // actually been selected — the hook's resource fires once on mount with
-    // GetTraceRequest::default() (empty trace_id), which the server rejects
-    // as CodeInvalidArgument; that's expected and not shown to the user.
+    // Seed the spans, but only once a trace is selected: the resource fires once on mount with an
+    // empty trace id, which the server rejects as InvalidArgument — expected, and not shown.
     use_effect(move || {
         let result = get_result.read();
-        if selected_trace_id.read().is_none() {
+        if selected_trace.read().is_none() {
             return;
         }
         match &*result {
@@ -90,91 +128,168 @@ pub fn Traces() -> Element {
         }
     });
 
-    let trace_list = traces.read();
-    let is_loading_search = search_result.read().is_none();
-    let selected = selected_trace_id.read().clone();
+    // Seed the selected span's WideEvent. A miss (no WideEvent was ever recorded for this span_id)
+    // comes back as `Ok` with an empty/default `event` rather than an error (see
+    // services/core/beacon/store/clickhouse.go's GetWideEvent: a query that matches no row is not
+    // itself a failure) — sorted_attrs on its empty maps then yields empty vecs, and AttrBlock
+    // renders nothing for them, so a plain miss draws no error and no empty section, just the
+    // ordinary attributes the span itself always has.
+    use_effect(move || {
+        if let Some(Ok(resp)) = &*wide_event_result.read() {
+            wide_event.set(resp.event.clone());
+        }
+    });
+
+    let run = use_callback(move |_: ()| search_req.set(request(&expression.peek(), &range.peek())));
+
+    // Derived ---------------------------------------------------------------------------------
+    let all = traces();
+    let loading = search_result.read().is_none();
+    let with_errors = all.iter().filter(|t| SpanStatus::of(&t.status_code) == SpanStatus::Error).count();
+    let shown: Vec<TraceRoot> = all
+        .iter()
+        .filter(|t| !errors_only() || SpanStatus::of(&t.status_code) == SpanStatus::Error)
+        .cloned()
+        .collect();
+    let summary = format!("{} traces · {} with errors · {}", all.len(), with_errors, range().label());
+    let max_duration = shown.iter().map(|t| t.duration_ns).max().unwrap_or(1).max(1);
+    let now = Utc::now();
+    let current = selected_trace();
+
+    use_page_chrome(move || {
+        let n = traces.read().len();
+        Chrome {
+            crumbs: vec!["Beacon".into(), "Signals".into(), "Traces".into()],
+            status: Some(ChromeStatus::new(StatusKind::Ok, format!("{n} traces loaded"))),
+            left: vec![BarItem::kv("Source", "clickhouse")],
+            right: vec![BarItem::Text("Search only".into())],
+        }
+    });
+
+    // The selected trace as a waterfall.
+    let trace_spans = spans();
+    let like: Vec<SpanLike> = trace_spans.iter().map(to_span).collect();
+    let layout = waterfall(&like);
+    let span_total = like.len();
+    let by_id: std::collections::HashMap<&str, &Span> = trace_spans.iter().map(|s| (s.span_id.as_str(), s)).collect();
+    let selected_id = selected_span();
+    let position = selected_id.as_deref().and_then(|id| layout.rows.iter().position(|r| r.id == id));
+    let mut services: Vec<String> = trace_spans.iter().map(|s| s.service_name.clone()).collect();
+    services.sort();
+    services.dedup();
+    let mut legend: Vec<(Tone, String)> = services.iter().map(|s| (Tone::for_name(s), s.clone())).collect();
+    if like.iter().any(|s| s.err) {
+        legend.push((Tone::Err, "error".to_string()));
+    }
+    let trace_label = current.as_deref().map(|id| truncate_middle(id, 8, 4)).unwrap_or_default();
+    let head = format!("Waterfall · trace {trace_label} · {span_total} spans · {}", format_duration_ns(layout.total_ns));
+
+    // The selected span's WideEvent business/runtime attributes, when one was recorded for this
+    // exact span (matched by span_id, not just "the most recently fetched one" — a stale response
+    // for a since-deselected or since-reselected span never gets here: wide_event is cleared by
+    // select_span/select_trace before the new fetch is even issued).
+    let we = wide_event();
+    let (business, runtime) = we
+        .as_ref()
+        .filter(|e| Some(e.span_id.as_str()) == selected_id.as_deref())
+        .map(|e| (sorted_attrs(&e.business_attributes), sorted_attrs(&e.runtime_attributes)))
+        .unwrap_or_default();
+
+    let drawer = selected_id.as_deref().and_then(|id| by_id.get(id).copied()).map(|span| {
+        let offset = layout.offsets.get(span.span_id.as_str()).copied().unwrap_or(0);
+        let parent = by_id.get(span.parent_span_id.as_str()).map(|p| format!("{} · {}", p.span_name, p.span_id));
+        let trace_id = span.trace_id.clone();
+        rsx! {
+            SpanDrawer {
+                key: "{span.span_id}",
+                span: span.clone(),
+                position: position.map(|p| p + 1).unwrap_or(0),
+                total: span_total,
+                offset_ns: offset,
+                parent,
+                business: business.clone(),
+                runtime: runtime.clone(),
+                on_close: move |_| selected_span.set(None),
+                on_open_logs: move |_| open_logs.call(format!("trace_id = {}", beaconql_string(&trace_id))),
+            }
+        }
+    });
 
     rsx! {
-        div { class: "p-4 flex flex-col gap-3 h-screen",
-            div { class: "flex items-center gap-2",
-                h1 { class: "text-lg font-bold shrink-0", "Traces" }
-                QueryBar {
-                    grammar: QueryGrammar::BeaconQl,
-                    expression,
-                    on_run: move |_| {
-                        search_req.set(SearchTracesRequest {
-                            filter: expression.peek().clone(),
-                            limit: 0,
-                            before: String::new(),
-                        });
-                    },
-                    on_clear: move |_| {
-                        expression.set(String::new());
-                        search_req.set(SearchTracesRequest::default());
+        Split { flush: true, drawer,
+            PageHead { inline: true, title: "Traces".to_string(),
+                span { class: "d-label", "{summary}" }
+                span { class: "d-spacer" }
+                Toggle { checked: errors_only(), on_change: move |on| errors_only.set(on), "Errors only" }
+                TimeRangePicker {
+                    value: range(),
+                    presets: PRESETS.to_vec(),
+                    on_change: move |r| {
+                        range.set(r);
+                        run.call(());
                     },
                 }
             }
 
-            if let Some(err) = search_error() {
-                div { class: "text-error font-mono text-xs", "{err}" }
+            QueryBar {
+                grammar: GrammarId::BeaconTraces,
+                value: expression,
+                on_run: move |_| run.call(()),
+                on_clear: move |_| {
+                    expression.set(String::new());
+                    run.call(());
+                },
+                error: search_error(),
             }
+            QueryFilters { grammar: GrammarId::BeaconTraces, expression, on_run: move |_| run.call(()) }
 
-            div { class: "flex-1 min-h-0 flex gap-4",
-                // Left: trace list (root span, service, duration, status).
-                div { class: "w-[420px] shrink-0 overflow-auto border border-base-300 rounded",
-                    table { class: "table table-xs",
-                        thead {
-                            tr {
-                                th { "ROOT SPAN" }
-                                th { "SERVICE" }
-                                th { "DURATION" }
-                                th { "STATUS" }
-                            }
-                        }
-                        tbody {
-                            if trace_list.is_empty() {
+            div { style: "margin-top:16px",
+                if loading && all.is_empty() {
+                    Loading {}
+                } else if shown.is_empty() {
+                    Empty { title: "No traces".to_string(), "Nothing matched this query in the selected range." }
+                } else {
+                    div { class: "d-panel d-table-wrap bc-scroll",
+                        table { class: "d-table bc-table",
+                            thead {
                                 tr {
-                                    td {
-                                        colspan: "4",
-                                        class: "text-center text-base-content/40 py-6",
-                                        if is_loading_search { "Searching…" } else { "No traces found" }
-                                    }
+                                    th { "Root span" }
+                                    th { "Service" }
+                                    th { "Duration" }
+                                    th { "Status" }
+                                    th { class: "is-right", "Started" }
                                 }
                             }
-                            for t in trace_list.iter() {
-                                {
-                                    let trace_id = t.trace_id.clone();
-                                    let trace_id_for_click = trace_id.clone();
-                                    let is_selected = selected.as_deref() == Some(trace_id.as_str());
-                                    let row_class = if is_selected {
-                                        "hover:bg-base-300 cursor-pointer bg-base-300"
-                                    } else {
-                                        "hover:bg-base-300 cursor-pointer"
-                                    };
-                                    let span_name = t.span_name.clone();
-                                    let service_name = t.service_name.clone();
-                                    let duration = format_duration_ns(t.duration_ns);
-                                    let status = t.status_code.clone();
-                                    let status_class = status_badge_class(&status);
-                                    rsx! {
-                                        tr {
-                                            class: "{row_class}",
-                                            onclick: move |_| {
-                                                selected_span.set(None);
-                                                selected_trace_id.set(Some(trace_id_for_click.clone()));
-                                                get_req
-                                                    .set(GetTraceRequest {
-                                                        trace_id: trace_id_for_click.clone(),
-                                                    });
-                                            },
-                                            td {
-                                                class: "font-mono text-xs",
-                                                title: "{trace_id}",
-                                                "{span_name}"
+                            tbody {
+                                for t in shown.iter() {
+                                    {
+                                        let id = t.trace_id.clone();
+                                        let id_for_key = t.trace_id.clone();
+                                        let is_selected = current.as_deref() == Some(t.trace_id.as_str());
+                                        let err = SpanStatus::of(&t.status_code) == SpanStatus::Error;
+                                        let duration = format_duration_ns(t.duration_ns);
+                                        let ratio = t.duration_ns as f64 / max_duration as f64;
+                                        let tone = if err { Some(Tone::Err) } else { None };
+                                        let started = row_time(&t.start_time, now);
+                                        rsx! {
+                                            tr {
+                                                key: "{t.trace_id}",
+                                                class: if err { "is-error" } else { "" },
+                                                aria_selected: "{is_selected}",
+                                                tabindex: "0",
+                                                onclick: move |_| select_trace.call(id.clone()),
+                                                onkeydown: move |k| {
+                                                    if k.key() == Key::Enter || k.key() == Key::Character(" ".to_string()) {
+                                                        k.prevent_default();
+                                                        select_trace.call(id_for_key.clone());
+                                                    }
+                                                },
+                                                td { class: "bc-body", span { class: "d-trunc", title: "{t.trace_id}", "{t.span_name}" } }
+                                                td { class: "bc-fit", Svc { name: t.service_name.clone() } }
+                                                td { class: "bc-fit", DurationCell { text: duration, ratio, tone } }
+                                                td { class: "bc-fit", StatusText { code: t.status_code.clone() } }
+                                                td { class: "bc-time is-right", "{started}" }
                                             }
-                                            td { class: "text-xs", "{service_name}" }
-                                            td { class: "font-mono text-xs", "{duration}" }
-                                            td { span { class: "{status_class}", "{status}" } }
                                         }
                                     }
                                 }
@@ -182,69 +297,94 @@ pub fn Traces() -> Element {
                         }
                     }
                 }
+            }
 
-                // Right: flame graph + span detail for the selected trace.
-                div { class: "flex-1 min-h-0 overflow-auto flex flex-col gap-3",
-                    if selected.is_none() {
-                        div { class: "text-center text-base-content/40 py-12 text-sm",
-                            "Select a trace to view its flame graph"
-                        }
+            if current.is_some() {
+                div { class: "d-panel", style: "margin-top:16px",
+                    div { class: "d-panel-head",
+                        span { class: "d-label", "{head}" }
+                        span { class: "d-spacer" }
+                        Legend { items: legend }
+                    }
+                    if let Some(err) = get_error() {
+                        div { class: "d-panel-body", Alert { kind: StatusKind::Err, "{err}" } }
+                    } else if like.is_empty() {
+                        div { class: "d-panel-body", Loading {} }
                     } else {
-                        if let Some(err) = get_error() {
-                            div { class: "text-error font-mono text-xs", "{err}" }
-                        }
-                        div { class: "border border-base-300 rounded p-3 bg-base-200",
-                            FlameGraph {
-                                spans: spans.read().clone(),
-                                on_select: move |s: Span| selected_span.set(Some(s)),
-                            }
-                        }
-                        if let Some(s) = selected_span() {
-                            SpanDetail { span: s }
+                        Waterfall {
+                            rows: layout.rows,
+                            ticks: layout.ticks,
+                            selected: selected_id.clone(),
+                            on_select: move |id: String| select_span.call(id),
                         }
                     }
                 }
+            } else if !shown.is_empty() {
+                p { class: "d-muted", style: "margin-top:16px", "Select a trace to see its waterfall." }
             }
         }
     }
 }
 
+/// The span drawer: identity, attributes, and a way to the trace's logs. `business`/`runtime` are
+/// the matching WideEvent's own attribute maps (see the Traces component's `wide_event` signal) —
+/// empty whenever no WideEvent was recorded for this span, which `AttrBlock` renders as no block at
+/// all rather than an empty one.
 #[component]
-fn SpanDetail(span: Span) -> Element {
-    let mut attrs: Vec<(String, String)> = span.attributes.clone().into_iter().collect();
-    attrs.sort();
-    let status_class = status_badge_class(&span.status_code);
-
+fn SpanDrawer(
+    span: Span,
+    position: usize,
+    total: usize,
+    offset_ns: u64,
+    parent: Option<String>,
+    business: Vec<(String, String)>,
+    runtime: Vec<(String, String)>,
+    on_close: EventHandler<()>,
+    on_open_logs: EventHandler<()>,
+) -> Element {
+    let status = SpanStatus::of(&span.status_code);
+    let attrs = sorted_attrs(&span.attributes);
+    let when = full_time(&span.start_time);
+    let subtitle = format!("{} · {} · starts at +{}", span.service_name, format_duration_ns(span.duration_ns), format_duration_ns(offset_ns));
+    let lead = rsx! {
+        Status { kind: status.kind(), "{status.label()}" }
+        span { class: "d-label", "Span {position} of {total}" }
+    };
     rsx! {
-        div { class: "border border-base-300 rounded p-3 flex flex-col gap-2 bg-base-200",
-            div { class: "flex items-center gap-2",
-                span { class: "font-bold text-sm", "{span.span_name}" }
-                span { class: "badge badge-ghost badge-sm", "{span.service_name}" }
-                span { class: "{status_class}", "{span.status_code}" }
+        Drawer {
+            label: "Span detail".to_string(),
+            on_close: move |_| on_close.call(()),
+            lead,
+            title: span.span_name.clone(),
+            subtitle,
+            DrawerBlock { title: "Identity".to_string(),
+                Kv {
+                    KvItem { label: "span_id".to_string(), "{span.span_id}" }
+                    if let Some(p) = parent {
+                        KvItem { label: "parent".to_string(), "{p}" }
+                    }
+                    if !span.kind.is_empty() {
+                        KvItem { label: "kind".to_string(), "{span.kind}" }
+                    }
+                    KvItem { label: "started".to_string(), "{when} UTC" }
+                }
             }
-            div { class: "text-xs text-base-content/60 font-mono", "span_id={span.span_id}" }
-            div { class: "text-xs text-base-content/60 font-mono", "parent_span_id={span.parent_span_id}" }
-            div { class: "text-xs text-base-content/60", "kind: {span.kind}" }
-            if attrs.is_empty() {
-                div { class: "text-xs text-base-content/40", "No attributes" }
-            } else {
-                div { class: "flex flex-col gap-1 mt-1",
-                    for (k , v) in attrs {
-                        div { class: "text-xs font-mono",
-                            span { class: "text-base-content/50", "{k}=" }
-                            span { "{v}" }
+            DrawerBlock { title: "Attributes".to_string(),
+                if attrs.is_empty() {
+                    span { class: "d-muted", "No attributes" }
+                } else {
+                    Kv {
+                        for (k , v) in attrs {
+                            KvItem { key: "{k}", label: k.clone(), "{v}" }
                         }
                     }
                 }
             }
+            AttrBlock { title: "Business attributes".to_string(), attrs: business }
+            AttrBlock { title: "Runtime attributes".to_string(), attrs: runtime }
+            div { class: "bc-actions",
+                Btn { variant: BtnVariant::Primary, onclick: move |_| on_open_logs.call(()), "Logs for this trace" }
+            }
         }
-    }
-}
-
-fn status_badge_class(status: &str) -> &'static str {
-    match status {
-        "STATUS_CODE_ERROR" => "badge badge-error badge-sm",
-        "STATUS_CODE_OK" => "badge badge-success badge-sm",
-        _ => "badge badge-ghost badge-sm",
     }
 }

@@ -18,6 +18,9 @@ replace github.com/steady-bytes/draft/pkg/chassis => ../../../pkg/chassis
 // so this also has to point at the local copy to satisfy it — same as heartbeat.
 replace github.com/steady-bytes/draft/pkg/loggers => ../../../pkg/loggers
 
+// The shared design system's Go side (shell, partials, embedded CSS/JS). Local, like chassis.
+replace github.com/steady-bytes/draft/tools/draft-ui => ../../../tools/draft-ui
+
 require (
 	connectrpc.com/connect v1.16.2
 	github.com/google/uuid v1.6.0
@@ -25,6 +28,7 @@ require (
 	github.com/steady-bytes/draft/pkg/chassis v0.6.1
 	github.com/steady-bytes/draft/pkg/loggers v0.2.5
 	github.com/steady-bytes/draft/pkg/repositories v0.0.4
+	github.com/steady-bytes/draft/tools/draft-ui v0.0.0-00010101000000-000000000000
 	github.com/uptrace/bun v1.1.16
 	github.com/uptrace/bun/dialect/pgdialect v1.1.16
 	github.com/uptrace/bun/driver/pgdriver v1.1.16

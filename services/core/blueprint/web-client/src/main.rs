@@ -1,27 +1,38 @@
 use dioxus::logger::tracing::{info, Level};
 use dioxus::prelude::*;
 use draft_api::hook::core_registry_key_value_v1::{
-    key_value_service_client::KeyValueServiceClient, GetRequest,
+    key_value_service_client::KeyValueServiceClient, GetRequest, ListKindsRequest,
 };
-use draft_api::proto::core_control_plane_networking_v1::networking_service_client::NetworkingServiceClient;
-use draft_api::proto::core_control_plane_networking_v1::ListRoutesRequest;
+use draft_api::hook::core_registry_service_discovery_v1::{filter, Filter, QueryRequest};
+use draft_api::proto::core_control_plane_networking_v1::{
+    networking_service_client::NetworkingServiceClient, ListRoutesRequest,
+};
+use draft_api::proto::core_registry_service_discovery_v1::service_discovery_service_client::ServiceDiscoveryServiceClient;
 use draft_api::proto::core_registry_key_value_v1::{
     NavigationConfig, NavigationItem, NavigationSection,
 };
+use draft_ui::kinds::AppKind;
+use draft_ui::shell::{use_app_links, AppShell, NavItem, NavSection};
+use draft_ui::ui::NotFound;
+use draft_ui::DraftStyles;
 use once_cell::sync::Lazy;
 use prost::Message as _;
 use prost_types::Any;
-use std::collections::HashSet;
 use tonic_web_wasm_client::Client as WasmClient;
 use web_sys::window;
 
-mod components;
+mod cesql;
+mod events;
+mod kv;
+mod raft;
+mod registry;
+mod routes;
+mod topology;
 mod views;
 
-use components::{navbar_icon, navbar_menu_button, navbar_secondary_menu_button};
 use views::{
-    Cluster, Gateway, KeyValueDetail, KeyValueView, Metrics, NewRoute, PageNotFound, RouteDetail,
-    ServiceDetail, ServiceRegistry, Settings, Store, Topology,
+    Cluster, Gateway, KeyValueDetail, KeyValueView, Metrics, NewRoute, RouteDetail, ServiceDetail,
+    ServiceRegistry, Settings, Store, Topology,
 };
 
 pub const NAV_CONFIG_KV_KEY: &str = "ui/navigation";
@@ -66,12 +77,9 @@ enum Route {
         Metrics{},
         #[route("/settings")]
         Settings{},
-    #[end_layout]
-
-    #[route("/:..route")]
-    PageNotFound {
-        route: Vec<String>,
-    },
+        // Unknown paths keep the shell, so the rail is still there to navigate from.
+        #[route("/:..route")]
+        NotFound { route: Vec<String> },
 }
 
 pub fn path_to_route(path: &str) -> Option<Route> {
@@ -139,32 +147,6 @@ fn get_domain() -> String {
     host
 }
 
-/// Builds the URL for a service's UI subdomain, reusing the current page's own protocol and
-/// port (so this works whether Fuse's listener is on :10000 locally or :80/:443 in a real
-/// deployment) and swapping in just the host.
-fn service_url(host: &str) -> String {
-    let window = window().expect("no global `window` exists");
-    let location = window.location();
-    let protocol = location.protocol().unwrap_or_else(|_| "http:".to_string());
-    let port = location.port().unwrap_or_default();
-    if port.is_empty() {
-        format!("{protocol}//{host}/")
-    } else {
-        format!("{protocol}//{host}:{port}/")
-    }
-}
-
-/// A short display label derived from a UI route's host, eg. "beacon.draft.localhost" ->
-/// "Beacon". Falls back to the raw host if it doesn't look like "<name>.<anything>".
-fn service_label(host: &str) -> String {
-    let name = host.split('.').next().unwrap_or(host);
-    let mut chars = name.chars();
-    match chars.next() {
-        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-        None => host.to_string(),
-    }
-}
-
 pub static API_DOMAIN: Lazy<String> = Lazy::new(|| {
     if let Some(api_domain) = option_env!("API_DOMAIN") {
         info!("API_DOMAIN: {}", api_domain);
@@ -213,6 +195,10 @@ pub static FUSE_DOMAIN: Lazy<String> = Lazy::new(|| {
 /// ("type.googleapis.com/...") which would collide with a path segment anyway, so this mirrors
 /// Beacon's own `PENDING_TRACE_ID` GlobalSignal for exactly this shape of one-shot cross-view
 /// hand-off. Read once and cleared on the detail page's mount.
+/// The Topology → Events hand-off: a CESQL filter (`type = '…'`) for the events view to apply on
+/// arrival. Same one-shot pattern as `PENDING_KV_KIND`.
+pub static PENDING_EVENT_QUERY: GlobalSignal<Option<String>> = Signal::global(|| None);
+
 pub static PENDING_KV_KIND: GlobalSignal<Option<String>> = Signal::global(|| None);
 
 fn main() {
@@ -223,26 +209,24 @@ fn main() {
             host: API_DOMAIN.clone(),
         });
         rsx! {
+            DraftStyles {}
+            // Blueprint's own few rules (the cluster canvas, KV drawer), on top of the shared design system.
+            document::Stylesheet { href: asset!("/assets/blueprint.css") }
             Router::<Route> {}
         }
     });
 }
 
-fn dashboard_layout() -> Element {
-    let mut nav_config: Signal<Option<NavigationConfig>> =
-        use_context_provider(|| Signal::new(None));
-    let mut open_sections: Signal<HashSet<String>> = use_signal(HashSet::new);
-
-    // Fetch nav config from KV once on mount; fall back to hardcoded default.
+/// The nav config, shared with Settings (which edits it) through context. Fetched from KV once;
+/// the hardcoded default stands in until it arrives and if there is none.
+fn use_nav_config() -> Signal<Option<NavigationConfig>> {
+    let mut nav_config: Signal<Option<NavigationConfig>> = use_context_provider(|| Signal::new(None));
     let _fetch = use_resource(move || async move {
         let mut client = KeyValueServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()));
         let config = match client
             .get(GetRequest {
                 key: NAV_CONFIG_KV_KEY.to_string(),
-                value: Some(Any {
-                    type_url: NAV_CONFIG_TYPE_URL.to_string(),
-                    value: vec![],
-                }),
+                value: Some(Any { type_url: NAV_CONFIG_TYPE_URL.to_string(), value: vec![] }),
             })
             .await
         {
@@ -255,145 +239,94 @@ fn dashboard_layout() -> Element {
         };
         nav_config.set(Some(config));
     });
+    nav_config
+}
 
-    // Self-service discovery (#3): rather than hand-maintaining a list of every service's UI,
-    // derive it from Fuse's own route table. Convention, not a dedicated flag: any route
-    // matching prefix "/" on a non-default (non-empty) host is a UI worth linking to -- exactly
-    // the shape every service's own "<name>.draft.localhost" WithRoute call in this repo uses
-    // (see eg. services/core/beacon/main.go). A route with an empty host or a non-"/" prefix is
-    // an RPC-only registration, not something to surface here.
-    let service_links = use_resource(|| async move {
-        let mut client = NetworkingServiceClient::new(WasmClient::new(crate::FUSE_DOMAIN.clone()));
-        client.list_routes(ListRoutesRequest {}).await.map(|r| {
-            let mut links: Vec<(String, String)> = r
-                .into_inner()
-                .routes
-                .into_iter()
-                .filter_map(|route| {
-                    let m = route.r#match?;
-                    // Blueprint is always excluded here -- this page IS Blueprint's own UI,
-                    // so linking to itself in the self-discovered "Services" list is just
-                    // noise (you're already looking at it).
-                    if m.prefix == "/" && !m.host.is_empty() && !m.host.starts_with("blueprint.") {
-                        Some((service_label(&m.host), service_url(&m.host)))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            links.sort();
-            links
-        })
+/// How many entries, services and routes there are, for the rail's count badges. Fetched once when
+/// the shell mounts; each is `None` until it arrives (or if its service is unreachable), and a
+/// missing count simply shows no badge.
+#[derive(Clone, Copy, Default, PartialEq)]
+struct RailCounts {
+    entries: Option<u32>,
+    services: Option<u32>,
+    routes: Option<u32>,
+}
+
+fn use_rail_counts() -> RailCounts {
+    let entries = use_resource(|| async {
+        let mut client = KeyValueServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()));
+        let kinds = client.list_kinds(ListKindsRequest {}).await.ok()?.into_inner().kinds;
+        Some(kinds.iter().find(|k| k.type_url == kv::VALUE_TYPE_URL).map(|k| k.count as u32).unwrap_or(0))
     });
+    let services = use_resource(|| async {
+        let mut client = ServiceDiscoveryServiceClient::new(WasmClient::new(crate::API_DOMAIN.clone()));
+        let all = QueryRequest { filter: Some(Filter { attribute: Some(filter::Attribute::All(String::new())) }) };
+        let data = client.query(all).await.ok()?.into_inner().data;
+        // One service per name: a restart or a replica adds a registry row, not a service.
+        let names: std::collections::HashSet<String> = data.values().map(|p| p.name.clone()).collect();
+        Some(names.len() as u32)
+    });
+    let routes = use_resource(|| async {
+        let mut client = NetworkingServiceClient::new(WasmClient::new(crate::FUSE_DOMAIN.clone()));
+        Some(client.list_routes(ListRoutesRequest {}).await.ok()?.into_inner().routes.len() as u32)
+    });
+    let (entries, services, routes) = (
+        entries.read().clone().flatten(),
+        services.read().clone().flatten(),
+        routes.read().clone().flatten(),
+    );
+    RailCounts { entries, services, routes }
+}
 
-    // Pre-process config for rendering so rsx! sees plain owned data.
+/// The shell: rail (the configured sections, System, and the Apps Fuse advertises), topbar and
+/// status bar around the views. Sections come from the `ui/navigation` KV entry, unchanged.
+fn dashboard_layout() -> Element {
+    let route = use_route::<Route>();
+    let nav_config = use_nav_config();
+    let _raft = raft::use_raft_provider();
+    let counts = use_rail_counts();
+    let apps = use_app_links(FUSE_DOMAIN.clone(), AppKind::Blueprint);
+
     let config = nav_config().unwrap_or_else(default_nav_config);
-    let open = open_sections();
-    let sections: Vec<(String, bool, Vec<(String, Option<Route>)>)> = config
+    let mut sections: Vec<NavSection> = config
         .sections
         .into_iter()
         .map(|s| {
-            let is_open = open.contains(&s.label);
+            // An item whose path is not a page of this app (a stale config) is dropped, as before.
             let items = s
                 .items
                 .into_iter()
-                .map(|i| (i.label, path_to_route(&i.path)))
+                .filter(|i| path_to_route(&i.path).is_some())
+                .map(|i| {
+                    let count = match i.path.as_str() {
+                        "/" => counts.entries,
+                        "/service-registry" => counts.services,
+                        "/gateway" => counts.routes,
+                        _ => None,
+                    };
+                    let item = NavItem::new(i.label, i.path.clone());
+                    let item = if i.path == "/" { item.exact() } else { item };
+                    match count {
+                        Some(n) => item.count(n),
+                        None => item,
+                    }
+                })
                 .collect();
-            (s.label, is_open, items)
+            NavSection::new(s.label, items)
         })
         .collect();
+    sections.push(NavSection::new("System", vec![NavItem::new("Settings", "/settings")]));
+
+    // A key's detail page is the Key/Value list with its drawer open, so it keeps that item lit.
+    let current = match &route {
+        Route::KeyValueDetail { .. } => "/".to_string(),
+        other => other.to_string(),
+    };
+
+    // The cluster canvas fills the whole main area.
+    let flush = matches!(route, Route::Cluster {});
 
     rsx! {
-        div { class: "drawer lg:drawer-open",
-            input { class: "drawer-toggle", id: "my-drawer", r#type: "checkbox" }
-            div { class: "drawer-content flex flex-col",
-
-                div { class: "navbar bg-base-300 shadow-sm w-full",
-                    div { class: "flex-none lg:hidden",
-                        navbar_menu_button {}
-                    }
-                    div { class: "flex-1 lg:hidden",
-                        navbar_icon {}
-                    }
-                    div { class: "hidden flex-1 lg:block" }
-                    div { class: "flex-none",
-                        navbar_secondary_menu_button {}
-                    }
-                }
-
-                Outlet::<Route> {}
-            }
-
-            div { class: "drawer-side",
-                label {
-                    aria_label: "close sidebar",
-                    class: "drawer-overlay",
-                    r#for: "my-drawer",
-                }
-
-                ul { class: "menu bg-base-200 min-h-full w-80 p-4",
-                    navbar_icon {}
-                    div { class: "divider", style: "margin: 0px;" }
-
-                    for (label, is_open, items) in sections {
-                        {
-                            let toggle_label = label.clone();
-                            rsx! {
-                                li {
-                                    button {
-                                        class: "font-bold",
-                                        onclick: move |_| {
-                                            let lbl = toggle_label.clone();
-                                            let mut set = open_sections();
-                                            if set.contains(&lbl) {
-                                                set.remove(&lbl);
-                                            } else {
-                                                set.insert(lbl);
-                                            }
-                                            open_sections.set(set);
-                                        },
-                                        "{label}"
-                                    }
-                                    if is_open {
-                                        ul {
-                                            for (item_label, route) in items {
-                                                {
-                                                    if let Some(r) = route {
-                                                        rsx! { li { Link { to: r, "{item_label}" } } }
-                                                    } else {
-                                                        rsx! {}
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if let Some(Ok(links)) = &*service_links.read() {
-                        if !links.is_empty() {
-                            div { class: "divider", style: "margin: 0px;" }
-                            li {
-                                span { class: "menu-title", "Services" }
-                                ul {
-                                    for (label, url) in links.clone() {
-                                        li {
-                                            a { href: "{url}", target: "_blank", rel: "noopener noreferrer", "{label}" }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    div { class: "divider", style: "margin: 0px;" }
-                    li {
-                        Link { to: Route::Settings {}, "Settings" }
-                    }
-                }
-            }
-        }
+        AppShell { app: AppKind::Blueprint, current, sections, apps, flush, Outlet::<Route> {} }
     }
 }

@@ -1,37 +1,64 @@
-use dioxus::prelude::*;
+//! Metrics: a PromQL-subset query, four stat tiles derived from the result, a time-series chart
+//! with a crosshair and toggleable series, and a per-series table. Nothing runs until the
+//! operator names a metric: the grammar needs one (as in real PromQL there is no "list every
+//! metric"), so there is nothing sensible to default to.
 
+use chrono::Utc;
+use dioxus::prelude::*;
 use draft_api::hook::core_observability_metrics_v1::{use_metrics_service_service, QueryMetricsRequest};
 use draft_api::proto::core_observability_metrics_v1::TimeSeries;
+use draft_ui::data::{Delta, StatTile};
+use draft_ui::layout::PageHead;
+use draft_ui::query::{GrammarId, QueryBar, QueryFilters};
+use draft_ui::shell::{use_page_chrome, BarItem, Chrome, ChromeStatus};
+use draft_ui::ui::{Empty, Loading, Toggle};
+use draft_ui::util::format_clock;
+use draft_ui::viz::{ChartSeries, SeriesTable, TimeSeriesChart};
+use draft_ui::{StatusKind, Tone};
+use gloo_timers::future::TimeoutFuture;
 
-use crate::components::{label_signature, MetricCard, MetricIcon, QueryBar, QueryGrammar, TimeSeriesChart};
+use crate::data::{format_value, label_signature};
+use crate::range::{TimeRange, TimeRangePicker};
 
-/// Metrics is Beacon's third visible product surface (Phase 9): a stat-tile
-/// grid — one `MetricCard` per distinct time series a `QueryMetrics` call
-/// returns — plus a `TimeSeriesChart` drill-down below it, per the design
-/// doc's Metrics view description. Unlike Stream/Traces, this view does not
-/// auto-run a query on mount: the PromQL-subset grammar requires a concrete
-/// metric name (there is no "list every metric" wildcard query — the same is
-/// true of real PromQL), so there is nothing sensible to default to until the
-/// operator names one.
+/// The time-range presets, in minutes.
+const PRESETS: [i64; 4] = [15, 60, 180, 1440];
+
+/// How often the Live switch re-runs the query.
+const LIVE_INTERVAL_MS: u32 = 15_000;
+
+fn request(query: &str, range: &TimeRange) -> QueryMetricsRequest {
+    let (start, end) = range.bounds(Utc::now());
+    QueryMetricsRequest {
+        query: query.to_string(),
+        start: start.to_rfc3339(),
+        end: end.map(|e| e.to_rfc3339()).unwrap_or_default(),
+        step: String::new(),
+    }
+}
+
+/// One `QueryMetrics` series as a chart series: samples as `(unix seconds, value)`.
+fn chart_series(index: usize, s: &TimeSeries, visible: bool) -> ChartSeries {
+    let points = s.samples.iter().filter_map(|p| p.timestamp.as_ref().map(|t| (t.seconds as f64, p.value))).collect();
+    ChartSeries { name: label_signature(&s.metric_name, &s.labels), tone: Tone::series(index), points, visible }
+}
+
 #[component]
 pub fn Metrics() -> Element {
     let mut expression = use_signal(String::new);
+    let mut range = use_signal(|| TimeRange::minutes(180));
+    let mut live = use_signal(|| false);
     let mut query_req = use_signal(QueryMetricsRequest::default);
     let mut has_run = use_signal(|| false);
+    // Series switched off in the table, by index. Reset whenever a new query is run.
+    let mut hidden: Signal<Vec<usize>> = use_signal(Vec::new);
 
     let service = use_metrics_service_service();
     let result = service.query_metrics(query_req);
-
     let mut series: Signal<Vec<TimeSeries>> = use_signal(Vec::new);
     let mut error: Signal<Option<String>> = use_signal(|| None);
 
-    // Seed `series`/`error` from the latest QueryMetrics result, but only
-    // once the operator has actually run a query — the hook's underlying
-    // use_resource fires once on mount with QueryMetricsRequest::default()
-    // (an empty query string), which the server rejects as
-    // CodeInvalidArgument ("query is empty"); that's expected and not shown
-    // as an error. Mirrors views/traces.rs's `selected_trace_id.is_none()`
-    // guard for the same reason.
+    // Seed from the latest result, but only once a query has been run: the resource fires once on
+    // mount with an empty query, which the server rejects ("query is empty") — expected, not shown.
     use_effect(move || {
         let r = result.read();
         if !*has_run.read() {
@@ -47,138 +74,135 @@ pub fn Metrics() -> Element {
         }
     });
 
-    let run_query = move |_| {
+    let run = use_callback(move |_: ()| {
         has_run.set(true);
-        query_req.set(QueryMetricsRequest {
-            query: expression.peek().clone(),
-            start: String::new(),
-            end: String::new(),
-            step: String::new(),
-        });
-    };
+        hidden.set(Vec::new());
+        query_req.set(request(&expression.peek(), &range.peek()));
+    });
 
-    let series_list = series.read();
-    let is_loading = *has_run.read() && result.read().is_none();
+    // Live: re-run on an interval while the switch is on and a query has been run. The request
+    // carries a fresh window start each time, so the resource sees a new value and refetches; the
+    // hidden-series choice is kept.
+    use_future(move || async move {
+        loop {
+            TimeoutFuture::new(LIVE_INTERVAL_MS).await;
+            if *live.peek() && *has_run.peek() && range.peek().is_trailing() {
+                query_req.set(request(&expression.peek(), &range.peek()));
+            }
+        }
+    });
+
+    // Derived ---------------------------------------------------------------------------------
+    let list = series();
+    let loading = *has_run.read() && result.read().is_none() && list.is_empty();
+    let hidden_now = hidden();
+    let chart: Vec<ChartSeries> =
+        list.iter().enumerate().map(|(i, s)| chart_series(i, s, !hidden_now.contains(&i))).collect();
+
+    let samples: usize = list.iter().map(|s| s.samples.len()).sum();
+    let steps = list.iter().map(|s| s.samples.len()).max().unwrap_or(0);
+    let total_now: f64 = list.iter().filter_map(|s| s.samples.last()).map(|p| p.value).sum();
+    let peak = list
+        .iter()
+        .flat_map(|s| s.samples.iter())
+        .filter_map(|p| p.timestamp.as_ref().map(|t| (t.seconds, p.value)))
+        .fold(None::<(i64, f64)>, |best, cur| match best {
+            Some(b) if b.1 >= cur.1 => Some(b),
+            _ => Some(cur),
+        });
+    let peak_text = peak.map(|p| format_value(p.1)).unwrap_or_else(|| "—".to_string());
+    let peak_at = peak.map(|p| format!("at {} UTC", format_clock(p.0)));
+    let summary = format!("{} series · {}", list.len(), range().label());
+
+    use_page_chrome(move || {
+        let status = if *has_run.read() { ChromeStatus::new(StatusKind::Ok, format!("{} series", series.read().len())) } else { ChromeStatus::new(StatusKind::Idle, "No query") };
+        Chrome {
+            crumbs: vec!["Beacon".into(), "Signals".into(), "Metrics".into()],
+            status: Some(status),
+            left: vec![BarItem::kv("Source", "clickhouse")],
+            right: vec![BarItem::kv("Live", if live() { "on" } else { "off" })],
+        }
+    });
 
     rsx! {
-        div { class: "p-4 flex flex-col gap-4 h-screen overflow-auto",
-            div { class: "flex items-center gap-2",
-                h1 { class: "text-lg font-bold shrink-0", "Metrics" }
-                QueryBar {
-                    grammar: QueryGrammar::PromQl,
-                    expression,
-                    on_run: run_query,
-                    on_clear: move |_| {
-                        expression.set(String::new());
-                        has_run.set(false);
-                        series.set(Vec::new());
-                        error.set(None);
+        PageHead { inline: true, title: "Metrics".to_string(),
+            span { class: "d-label", "{summary}" }
+            span { class: "d-spacer" }
+            Toggle { checked: live(), disabled: !range().is_trailing(), on_change: move |on| live.set(on), "Live" }
+            TimeRangePicker {
+                value: range(),
+                presets: PRESETS.to_vec(),
+                on_change: move |r| {
+                    range.set(r);
+                    if *has_run.peek() {
+                        run.call(());
+                    }
+                },
+            }
+        }
+
+        QueryBar {
+            grammar: GrammarId::PromQl,
+            value: expression,
+            on_run: move |_| run.call(()),
+            on_clear: move |_| {
+                expression.set(String::new());
+                has_run.set(false);
+                series.set(Vec::new());
+                error.set(None);
+            },
+            error: error(),
+        }
+        QueryFilters { grammar: GrammarId::PromQl, expression, on_run: move |_| run.call(()) }
+
+        if !*has_run.read() {
+            Empty { title: "Run a query".to_string(),
+                "Name a metric — a bare selector such as my_metric_name, or rate(my_counter[5m]) — to see stat tiles and a chart."
+            }
+        } else if loading {
+            Loading {}
+        } else if list.is_empty() {
+            Empty { title: "No time series matched".to_string(), "The query ran, but returned no series in this range." }
+        } else {
+            div { class: "d-stats", style: "margin-top:16px",
+                StatTile { label: "Total now".to_string(), value: format_value(total_now) }
+                StatTile {
+                    label: "Peak".to_string(),
+                    value: peak_text,
+                    delta: peak_at.map(Delta::neutral),
+                }
+                StatTile { label: "Series".to_string(), value: list.len().to_string() }
+                StatTile {
+                    label: "Samples".to_string(),
+                    value: samples.to_string(),
+                    delta: Delta::neutral(format!("{steps} steps × {} series", list.len())),
+                }
+            }
+
+            div { class: "d-panel", style: "margin-top:12px",
+                div { class: "d-panel-head",
+                    span { class: "d-label", "Time series" }
+                    span { class: "d-spacer" }
+                    span { class: "d-label", "Hover for values" }
+                }
+                div { class: "d-panel-body",
+                    TimeSeriesChart { series: chart.clone(), label: "Line chart of the query's series over time".to_string() }
+                }
+            }
+
+            div { style: "margin-top:12px",
+                SeriesTable {
+                    series: chart,
+                    on_toggle: move |i: usize| {
+                        let mut h = hidden.write();
+                        if let Some(pos) = h.iter().position(|&x| x == i) {
+                            h.remove(pos);
+                        } else {
+                            h.push(i);
+                        }
                     },
                 }
             }
-
-            if let Some(err) = error() {
-                div { class: "text-error font-mono text-xs", "{err}" }
-            }
-
-            if !*has_run.read() {
-                div { class: "text-center text-base-content/40 py-12 text-sm max-w-lg mx-auto",
-                    "Run a PromQL-subset query — e.g. a bare selector like "
-                    span { class: "font-mono", "my_metric_name" }
-                    " or "
-                    span { class: "font-mono", "rate(my_counter[5m])" }
-                    " — to see live stat tiles and a chart."
-                }
-            } else if is_loading {
-                div { class: "text-center text-base-content/40 py-12 text-sm", "Querying…" }
-            } else if series_list.is_empty() {
-                div { class: "text-center text-base-content/40 py-12 text-sm", "No time series matched" }
-            } else {
-                div {
-                    class: "grid gap-3",
-                    style: "grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));",
-                    for s in series_list.iter() {
-                        MetricStatTile { series: s.clone() }
-                    }
-                }
-                div { class: "flex flex-col gap-2",
-                    h2 { class: "text-sm font-semibold text-base-content/60", "Time series" }
-                    TimeSeriesChart { series: series_list.clone() }
-                }
-            }
         }
-    }
-}
-
-/// MetricStatTile adapts one QueryMetrics TimeSeries into Blueprint's
-/// MetricCard shape: current value = the series' most recent sample, trend =
-/// delta from the sample before it, sparkline = every sample's value in
-/// order.
-#[component]
-fn MetricStatTile(series: TimeSeries) -> Element {
-    let label = label_signature(&series.metric_name, &series.labels);
-    let samples = &series.samples;
-    let last = samples.last();
-    let prev = if samples.len() >= 2 {
-        samples.get(samples.len() - 2)
-    } else {
-        None
-    };
-
-    let value = last.map(|s| format_value(s.value)).unwrap_or_else(|| "—".to_string());
-    let (trend_up, trend_delta) = match (last, prev) {
-        (Some(l), Some(p)) => {
-            let delta = l.value - p.value;
-            (delta >= 0.0, format_value(delta.abs()))
-        }
-        _ => (true, "—".to_string()),
-    };
-    let sparkline_data: Vec<f32> = samples.iter().map(|s| s.value as f32).collect();
-    let icon = icon_for_metric(&series.metric_name);
-
-    rsx! {
-        MetricCard {
-            icon,
-            label,
-            value,
-            unit: None,
-            trend_up,
-            trend_good: trend_up,
-            trend_delta,
-            sparkline_data,
-            sparkline_color: "#58a6ff".to_string(),
-        }
-    }
-}
-
-/// icon_for_metric picks a MetricCard icon from a lightweight keyword match
-/// on the metric name — purely cosmetic, no query-language meaning — falling
-/// back to a generic server icon for anything unrecognized.
-fn icon_for_metric(metric_name: &str) -> MetricIcon {
-    let name = metric_name.to_lowercase();
-    if name.contains("error") || name.contains("warn") || name.contains("fail") {
-        MetricIcon::Warning
-    } else if name.contains("duration") || name.contains("latency") || name.contains("time") {
-        MetricIcon::Clock
-    } else if name.contains("request") || name.contains("message") || name.contains("event") {
-        MetricIcon::Messages
-    } else if name.contains("user") || name.contains("session") || name.contains("connection") {
-        MetricIcon::Users
-    } else if name.ends_with("_count") || name.ends_with("_total") {
-        MetricIcon::ArrowUp
-    } else {
-        MetricIcon::Server
-    }
-}
-
-fn format_value(v: f64) -> String {
-    if v.abs() >= 1_000_000.0 {
-        format!("{:.2}M", v / 1_000_000.0)
-    } else if v.abs() >= 1_000.0 {
-        format!("{:.2}k", v / 1_000.0)
-    } else if v.abs() >= 100.0 {
-        format!("{v:.1}")
-    } else {
-        format!("{v:.3}")
     }
 }

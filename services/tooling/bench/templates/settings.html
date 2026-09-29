@@ -1,48 +1,34 @@
-{{define "title"}}Bench — Settings{{end}}
 {{define "content"}}
-<div class="flex flex-col gap-8 max-w-3xl">
-  <div class="flex flex-col gap-1">
-    <span class="font-mono text-xs uppercase tracking-widest text-primary">Settings</span>
-    <h1 class="font-display text-4xl font-bold tracking-tight">Plugin registries</h1>
-    <p class="text-base-content/60 max-w-xl">Every foundry-compatible registry a <span class="font-mono">foundry://</span> step or the workflow editor's search sidebar can resolve against. Seeded from <span class="font-mono">bench.plugin_registries</span> on first startup; edits here live only in the database from then on.</p>
-  </div>
-
-  {{if not .Registries}}
-  <p class="text-base-content/50 text-sm">No registries configured yet.</p>
-  {{else}}
-  <div class="flex flex-col divide-y divide-base-300 border border-base-300 bg-base-200">
-    {{range .Registries}}
-    <div class="flex items-center justify-between gap-4 px-4 py-3">
-      <div class="min-w-0">
-        <div class="font-display text-sm font-semibold">{{.Name}}</div>
-        <div class="font-mono text-xs text-base-content/50 truncate">{{.Address}}</div>
-      </div>
-      <form method="POST" action="/settings/{{.Name}}/delete" onsubmit="return confirm('Remove registry {{.Name}}? foundry:// steps that only resolve there will start failing.');">
-        <button type="submit" class="btn btn-ghost btn-xs font-display text-error">Remove</button>
-      </form>
-    </div>
-    {{end}}
-  </div>
-  {{end}}
-
-  <div class="flex flex-col gap-3">
-    <h2 class="font-display text-base font-semibold">Add a registry</h2>
-    {{if .Error}}
-    <div class="alert alert-error text-xs font-mono whitespace-pre-wrap items-start">
-      <span>{{.Error}}</span>
-    </div>
-    {{end}}
-    <form method="POST" action="/settings" class="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-      <div class="flex flex-col gap-1">
-        <label class="font-mono text-xs text-base-content/50">name</label>
-        <input type="text" name="name" value="{{.FormName}}" placeholder="foundry" class="input input-bordered input-sm font-mono w-40" />
-      </div>
-      <div class="flex flex-col gap-1 flex-1">
-        <label class="font-mono text-xs text-base-content/50">address</label>
-        <input type="text" name="address" value="{{.FormAddress}}" placeholder="http://localhost:9301" class="input input-bordered input-sm font-mono w-full" />
-      </div>
-      <button type="submit" class="btn btn-primary btn-sm font-display">Add</button>
-    </form>
+<div class="d-page-head">
+  <div>
+    <span class="d-label">Settings</span>
+    <h1>Plugin registries</h1>
+    <p>Every foundry-compatible registry a <code>foundry://</code> step or the workflow editor's plugin search can resolve against. Seeded from <code>bench.plugin_registries</code> on first startup; edits here live only in the database from then on.</p>
   </div>
 </div>
+
+{{if .Registries}}
+<div class="d-panel d-list">
+  {{range .Registries}}
+  <div class="d-list-row">
+    <b>{{.Name}}</b>
+    <span class="d-muted d-trunc">{{.Address}}</span>
+    <span class="d-spacer"></span>
+    <form method="post" action="/settings/{{.Name}}/delete" data-confirm="Remove registry {{.Name}}? foundry:// steps that only resolve there will start failing.">
+      <button class="d-btn d-btn--ghost d-btn--sm" type="submit">Remove</button>
+    </form>
+  </div>
+  {{end}}
+</div>
+{{else}}
+{{template "d-empty" (empty "No registries yet" "Add a foundry-compatible registry so foundry:// steps can resolve.")}}
+{{end}}
+
+<div class="d-section-title"><span class="d-label">Add a registry</span></div>
+{{if .Error}}<div class="d-alert d-alert--err d-alert--mono" role="alert">{{.Error}}</div>{{end}}
+<form method="post" action="/settings" class="d-toolbar d-toolbar--end">
+  <label class="d-field"><span class="d-label">Name</span><input class="d-input" type="text" name="name" value="{{.FormName}}" placeholder="foundry" autocomplete="off"></label>
+  <label class="d-field"><span class="d-label">Address</span><input class="d-input" type="text" name="address" value="{{.FormAddress}}" placeholder="http://localhost:9301" autocomplete="off"></label>
+  <button class="d-btn d-btn--primary" type="submit">Add</button>
+</form>
 {{end}}

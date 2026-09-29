@@ -142,6 +142,21 @@ free_docker_container() {
 # the real leader, the same join path a production multi-node deployment would use, not a second
 # bootstrap of its own (which would create a second, separate single-node cluster instead of
 # joining the first).
+#
+# entrypoint is node_1's fixed address (localhost:2221), NOT this node's own $bind_port -- every
+# other service in this script already uses node_1's address here (chassis's own client-side
+# design already handles "node_1 isn't up/leader yet" via Register's existing retry budget, and
+# switches to whichever node is actually current leader afterward via the live Synchronize
+# stream's ClusterDetails acks -- see pkg/chassis/builder.go's blueprintCluster/receiveAck; the
+# static entrypoint only ever matters for a process's very first connection). Pointing a follower's
+# entrypoint at ITSELF instead was a real, confirmed-live bug: a self-connection never "fails" the
+# way a request to a non-leader node would, so the client-side reconnect-to-a-different-node logic
+# never triggers, and that node's own heartbeats stay forever invisible outside its own in-process
+# Broadcaster (see service_discovery/broadcaster.go) -- reachable via Query (which reads the
+# raft-replicated KV store directly) but never pushed to any Watch subscriber connected to a
+# different node, i.e. every node but itself. Confirmed live: querying Blueprint directly showed
+# fresh, correct heartbeats for every node while the Service Registry UI (watching node_1) showed
+# 4 of 5 raft nodes as permanently stale.
 write_blueprint_node_config() {
   local path="$1" bind_port="$2" node_id="$3" raft_port="$4" data_dir="$5"
   mkdir -p "$data_dir"
@@ -149,7 +164,7 @@ write_blueprint_node_config() {
 service:
   name: blueprint
   domain: core
-  entrypoint: http://localhost:$bind_port
+  entrypoint: http://localhost:2221
 
   logging:
     level: debug
@@ -474,6 +489,18 @@ start_watched crud "$REPO_ROOT/services/examples/crud" \
   -w .
 wait_for_tcp localhost 9090 crud
 
+log "Starting crud-event (examples, watched)"
+start_watched crud-event "$REPO_ROOT/services/examples/crud-event" \
+  "go build -o $BIN_DIR/crud-event . && exec $BIN_DIR/crud-event" \
+  -w .
+wait_for_tcp localhost 9098 crud-event
+
+log "Starting crud-audit (examples, watched)"
+start_watched crud-audit "$REPO_ROOT/services/examples/crud-audit" \
+  "go build -o $BIN_DIR/crud-audit . && exec $BIN_DIR/crud-audit" \
+  -w .
+wait_for_tcp localhost 9099 crud-audit
+
 log "Starting echo (examples, watched)"
 start_watched echo "$REPO_ROOT/services/examples/echo" \
   "go build -o $BIN_DIR/echo . && exec $BIN_DIR/echo" \
@@ -551,6 +578,8 @@ Full local Draft cluster is up, with hot rebuild+restart on source changes.
   catalyst-produce (RPC only)   localhost:9306
   Lineman UI                    http://localhost:9307/
   crud (examples, RPC only)     localhost:9090
+  crud-event (examples, RPC only, emits examples.crud.v1.ModelEvent) localhost:9098
+  crud-audit (examples, background consumer, audits examples.crud.v1.ModelEvent) localhost:9099
   echo (examples, RPC only)     localhost:9091
   Documentation site (Hugo)     http://localhost:1313/
   Fuse data plane (native reverse proxy)  localhost:10000

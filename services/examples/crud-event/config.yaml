@@ -1,0 +1,31 @@
+service:
+  name: crud-event
+  domain: examples
+  env: local
+  entrypoint: http://localhost:2221
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9098
+    internal:
+      host: localhost
+      port: 9098
+    external:
+      host: localhost:10000
+
+telemetry:
+  enabled: true
+  wide_events:
+    enabled: true
+
+repositories:
+  postgres:
+    url: postgres://draft:draft@localhost:5432/draft?sslmode=disable
+
+# catalyst.address is where this service opens its own Produce stream to emit ModelEvent
+# CloudEvents after every repository operation completes (see service/events.go) — same config
+# key and default (http://localhost:2220) services/examples/producer/main.go uses.
+catalyst:
+  address: http://localhost:2220

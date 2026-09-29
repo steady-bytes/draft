@@ -1,0 +1,252 @@
+@use "../abstracts/tokens" as t;
+@use "../abstracts/mixins" as m;
+
+// Master / detail. Hoisted from the twelve per-page `*-layout` grids in the mockups.
+//
+//   <div class="d-split [d-split--wide|--narrow] [d-split--flush]">
+//     <section class="d-split-main"> … </section>
+//     <aside class="d-drawer"> … </aside>          (optional — omit for "nothing selected")
+//   </div>
+//
+// `--flush` lets the split fill `main` edge to edge (negative margins cancel `.d-main` padding).
+.d-split {
+  --drawer: 380px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+
+  &:has(> .d-drawer) {
+    grid-template-columns: minmax(0, 1fr) var(--drawer);
+  }
+
+  &--wide {
+    --drawer: 420px;
+  }
+
+  &--narrow {
+    --drawer: 320px;
+  }
+
+  &--flush {
+    margin: -28px -32px -48px;
+    min-height: calc(100% + 76px);
+    align-items: stretch;
+  }
+}
+
+.d-split-main {
+  min-width: 0;
+  padding: 28px 32px 48px;
+
+  // Data-heavy pages (Beacon) stack their blocks with a uniform gap instead of per-block margins.
+  &--stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    // Blocks must not be squeezed by the flex column.
+    > * {
+      flex: none;
+    }
+  }
+}
+
+// Drawer (detail panel) ----------------------------------------------------------------------------
+.d-drawer {
+  padding: 20px;
+  border-left: 1px solid var(--rule);
+  background: var(--panel);
+  overflow: auto;
+}
+
+// Drag handle for resizing the drawer (layout/split.rs's Split, not Drawer itself — it has to sit
+// in the .d-split grid, alongside .d-drawer, not inside it, since --drawer lives on .d-split).
+// Placed in .d-drawer's own grid cell (column 2) with a negative margin so it straddles that
+// column's left edge without needing a third grid column.
+.d-drawer-resize {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+  align-self: stretch;
+  width: 7px;
+  margin-left: -4px;
+  cursor: col-resize;
+  z-index: 5;
+  touch-action: none; // otherwise a touch drag also tries to scroll/pan the page underneath it
+
+  &:hover,
+  &:active {
+    background: var(--primary);
+    opacity: 0.35;
+  }
+}
+
+.d-split > .d-drawer {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+// Present only while a drawer resize is in progress (Split's drag_from signal): a full-viewport
+// layer so pointermove/pointerup keep firing even once the cursor has outrun the handle's own few
+// pixels of width, not just while it happens to still be over d-drawer-resize.
+.d-resize-capture {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  cursor: col-resize;
+  // Dragging a resize handle across text elsewhere on the page must not also start a text
+  // selection.
+  user-select: none;
+}
+
+// Beside a list, the drawer stays in view while the list scrolls and scrolls on its own if it is
+// taller than the screen: as tall as the visible main area (48px topbar + 28px status bar).
+.d-split > .d-drawer {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: calc(100vh - 76px);
+}
+
+.d-split--flush > .d-drawer {
+  height: calc(100vh - 76px);
+}
+
+// An input at the top of a drawer (plugin search) fills its width.
+.d-drawer > .d-input {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.d-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.d-drawer-title {
+  margin: 10px 0 4px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+// A titled section inside a drawer (Attributes, Logs, Match, Upstream …).
+.d-block {
+  margin-top: 18px;
+
+  > .d-section-title {
+    margin: 0 0 10px;
+  }
+}
+
+.d-kv {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+
+  dt {
+    color: var(--dim);
+  }
+
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+@include m.below(t.$bp-drawer) {
+  .d-split,
+  .d-split--wide,
+  .d-split--narrow {
+    &:has(> .d-drawer) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    > .d-drawer {
+      position: fixed;
+      top: 48px;
+      right: 0;
+      bottom: 28px;
+      z-index: 20;
+      width: min(var(--drawer), 100%);
+      height: auto;
+      max-height: none;
+      align-self: auto;
+      box-shadow: -12px 0 32px rgba(0, 0, 0, 0.35);
+      animation: d-drawer-in 160ms ease-out;
+    }
+  }
+
+  // The drawer is a fixed overlay sized by min(var(--drawer), 100%) down here, not a grid column
+  // any more (the drawer/main grid collapses to one column above), so the handle's grid placement
+  // no longer lines up with anything real -- and dragging a 7px target with a finger on a screen
+  // this narrow, on a drawer already near full width, isn't an interaction worth keeping.
+  .d-drawer-resize {
+    display: none;
+  }
+
+  .d-split--flush {
+    margin: -20px -16px -32px;
+  }
+
+  // A drawer that is part of the page (the workflow editor's plugin search), not a detail that opens
+  // on selection: below the breakpoint it follows the content instead of covering it.
+  .d-split > .d-drawer.d-drawer--inline {
+    position: static;
+    width: auto;
+    height: auto;
+    max-height: none;
+    box-shadow: none;
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+    animation: none;
+  }
+
+  .d-split-main {
+    padding: 20px 16px 32px;
+  }
+
+  @include m.reduced-motion {
+    .d-split > .d-drawer {
+      animation: none;
+    }
+  }
+}
+
+@keyframes d-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+// Two columns inside a padded page: the main content and a narrower side column of panels
+// (Foundry's plugin page, Bench's workflow and run pages). Stacks below 1100px.
+.d-cols {
+  --side: 380px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--side);
+  gap: 24px;
+  align-items: start;
+
+  > aside {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+  }
+
+  &--wide {
+    --side: 460px;
+  }
+
+  @media (max-width: 1100px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

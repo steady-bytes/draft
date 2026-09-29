@@ -9,6 +9,9 @@ on:
       - .gitmodules
       - .github/workflows/hugo.yaml
       - docs/website/**
+      # The docs theme and its fonts come from the design system (docs/website/hugo.yaml mounts them).
+      - tools/draft-ui/dist/docs/**
+      - tools/draft-ui/dist/fonts/**
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:

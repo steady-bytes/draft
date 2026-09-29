@@ -1,0 +1,141 @@
+@use "../abstracts/mixins" as m;
+
+.d-input,
+.d-select,
+.d-textarea {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  // Placeholders are text: --dim clears 4.5 : 1 (the mockup used --dimmer, which does not).
+  &::placeholder {
+    color: var(--dim);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--err);
+  }
+}
+
+.d-textarea {
+  height: auto;
+  min-height: 96px;
+  padding: 8px 10px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.d-check {
+  accent-color: var(--primary);
+}
+
+// Label + control + hint/error, stacked.
+.d-field {
+  display: grid;
+  gap: 6px;
+}
+
+.d-hint {
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.d-error-text {
+  font-size: 12px;
+  color: var(--err);
+}
+
+// Toggle switch (Stream, Snap, Flow, Live). A real <button role="switch"> so it is keyboard
+// reachable; the mockup used a bare <span>.
+.d-toggle {
+  // Reset first: `font: inherit` would otherwise wipe the label voice.
+  @include m.button-reset;
+  @include m.label-voice;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dim);
+  user-select: none;
+
+  i {
+    position: relative;
+    width: 26px;
+    height: 14px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 8px;
+    background: var(--bg);
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--dim);
+      transition: transform 120ms, background-color 120ms;
+    }
+  }
+
+  &[aria-checked="true"] {
+    color: var(--primary);
+
+    i {
+      border-color: var(--primary);
+
+      &::after {
+        transform: translateX(12px);
+        background: var(--primary);
+      }
+    }
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+// Two fields side by side (a short one and a wide one), stacking when narrow: the workflow
+// editor's Name + Description.
+.d-fields {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+
+  .d-input {
+    width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// A checkbox with its label on one line ("Remember me").
+.d-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dim);
+  font-size: 13px;
+  cursor: pointer;
+}

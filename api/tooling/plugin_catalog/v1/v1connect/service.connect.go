@@ -50,6 +50,16 @@ const (
 	PluginCatalogServiceSearchProcedure = "/tooling.plugin_catalog.v1.PluginCatalogService/Search"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	pluginCatalogServiceServiceDescriptor       = v1.File_tooling_plugin_catalog_v1_service_proto.Services().ByName("PluginCatalogService")
+	pluginCatalogServicePublishMethodDescriptor = pluginCatalogServiceServiceDescriptor.Methods().ByName("Publish")
+	pluginCatalogServiceRetractMethodDescriptor = pluginCatalogServiceServiceDescriptor.Methods().ByName("Retract")
+	pluginCatalogServiceGetMethodDescriptor     = pluginCatalogServiceServiceDescriptor.Methods().ByName("Get")
+	pluginCatalogServiceListMethodDescriptor    = pluginCatalogServiceServiceDescriptor.Methods().ByName("List")
+	pluginCatalogServiceSearchMethodDescriptor  = pluginCatalogServiceServiceDescriptor.Methods().ByName("Search")
+)
+
 // PluginCatalogServiceClient is a client for the tooling.plugin_catalog.v1.PluginCatalogService
 // service.
 type PluginCatalogServiceClient interface {
@@ -76,36 +86,35 @@ type PluginCatalogServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewPluginCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PluginCatalogServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	pluginCatalogServiceMethods := v1.File_tooling_plugin_catalog_v1_service_proto.Services().ByName("PluginCatalogService").Methods()
 	return &pluginCatalogServiceClient{
 		publish: connect.NewClient[v1.PublishRequest, v1.PublishResponse](
 			httpClient,
 			baseURL+PluginCatalogServicePublishProcedure,
-			connect.WithSchema(pluginCatalogServiceMethods.ByName("Publish")),
+			connect.WithSchema(pluginCatalogServicePublishMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		retract: connect.NewClient[v1.RetractRequest, v1.RetractResponse](
 			httpClient,
 			baseURL+PluginCatalogServiceRetractProcedure,
-			connect.WithSchema(pluginCatalogServiceMethods.ByName("Retract")),
+			connect.WithSchema(pluginCatalogServiceRetractMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		get: connect.NewClient[v1.GetPluginRequest, v1.Plugin](
 			httpClient,
 			baseURL+PluginCatalogServiceGetProcedure,
-			connect.WithSchema(pluginCatalogServiceMethods.ByName("Get")),
+			connect.WithSchema(pluginCatalogServiceGetMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		list: connect.NewClient[v1.ListPluginsRequest, v1.ListPluginsResponse](
 			httpClient,
 			baseURL+PluginCatalogServiceListProcedure,
-			connect.WithSchema(pluginCatalogServiceMethods.ByName("List")),
+			connect.WithSchema(pluginCatalogServiceListMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 		search: connect.NewClient[v1.SearchPluginsRequest, v1.SearchPluginsResponse](
 			httpClient,
 			baseURL+PluginCatalogServiceSearchProcedure,
-			connect.WithSchema(pluginCatalogServiceMethods.ByName("Search")),
+			connect.WithSchema(pluginCatalogServiceSearchMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -167,35 +176,34 @@ type PluginCatalogServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewPluginCatalogServiceHandler(svc PluginCatalogServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	pluginCatalogServiceMethods := v1.File_tooling_plugin_catalog_v1_service_proto.Services().ByName("PluginCatalogService").Methods()
 	pluginCatalogServicePublishHandler := connect.NewUnaryHandler(
 		PluginCatalogServicePublishProcedure,
 		svc.Publish,
-		connect.WithSchema(pluginCatalogServiceMethods.ByName("Publish")),
+		connect.WithSchema(pluginCatalogServicePublishMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	pluginCatalogServiceRetractHandler := connect.NewUnaryHandler(
 		PluginCatalogServiceRetractProcedure,
 		svc.Retract,
-		connect.WithSchema(pluginCatalogServiceMethods.ByName("Retract")),
+		connect.WithSchema(pluginCatalogServiceRetractMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	pluginCatalogServiceGetHandler := connect.NewUnaryHandler(
 		PluginCatalogServiceGetProcedure,
 		svc.Get,
-		connect.WithSchema(pluginCatalogServiceMethods.ByName("Get")),
+		connect.WithSchema(pluginCatalogServiceGetMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	pluginCatalogServiceListHandler := connect.NewUnaryHandler(
 		PluginCatalogServiceListProcedure,
 		svc.List,
-		connect.WithSchema(pluginCatalogServiceMethods.ByName("List")),
+		connect.WithSchema(pluginCatalogServiceListMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	pluginCatalogServiceSearchHandler := connect.NewUnaryHandler(
 		PluginCatalogServiceSearchProcedure,
 		svc.Search,
-		connect.WithSchema(pluginCatalogServiceMethods.ByName("Search")),
+		connect.WithSchema(pluginCatalogServiceSearchMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/tooling.plugin_catalog.v1.PluginCatalogService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

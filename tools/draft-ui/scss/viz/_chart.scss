@@ -1,0 +1,169 @@
+// Charts (SVG) ---------------------------------------------------------------------------------------------------
+// Hoisted from the two per-page `#chart` rule sets. Markup: `.d-chart > svg` plus an optional
+// `.d-chart-tip` positioned by the component.
+.d-chart {
+  position: relative;
+  padding: 8px 16px 12px;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .grid line {
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+
+  .axis text {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    fill: var(--dim);
+  }
+
+  .series path {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+
+    &.area {
+      stroke: none;
+      opacity: 0.08;
+    }
+  }
+
+  .end {
+    stroke: var(--panel);
+    stroke-width: 2;
+  }
+
+  .end-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    fill: var(--ink);
+  }
+
+  .xhair {
+    stroke: var(--dim);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .hover-dot {
+    stroke: var(--panel);
+    stroke-width: 2;
+  }
+}
+
+.d-chart-tip {
+  position: absolute;
+  top: 8px;
+  min-width: 180px;
+  padding: 8px 10px;
+  background: var(--panel-3);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  pointer-events: none;
+
+  b {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--dim);
+    font-weight: 500;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+  }
+
+  > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 1px 0;
+
+    i {
+      width: 8px;
+      height: 2px;
+      background: var(--c);
+    }
+
+    span:last-child {
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// Stacked histogram (log volume by severity, event volume by status) -------------------------------------------------
+.d-histo {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 72px;
+}
+
+.d-histo-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column-reverse;
+  min-width: 3px;
+
+  span {
+    display: block;
+  }
+
+  &:hover {
+    filter: brightness(1.25);
+  }
+}
+
+.d-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--dim);
+}
+
+.d-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+
+    &::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--c);
+      border-radius: 1px;
+    }
+  }
+
+  // Line-style key for line charts: a 12×2 stroke, sentence-case text.
+  &--line span {
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: 0;
+
+    &::before {
+      width: 12px;
+      height: 2px;
+      border-radius: 0;
+    }
+  }
+}

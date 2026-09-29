@@ -1,0 +1,80 @@
+@use "../abstracts/mixins" as m;
+
+// Empty state: something was asked for and nothing came back.
+.d-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 64px 16px;
+  text-align: center;
+  color: var(--dim);
+
+  > b {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  > span {
+    max-width: 46ch;
+  }
+
+  &--compact {
+    padding: 24px 16px;
+  }
+}
+
+// Loading: the sound-wave bars.
+.d-loading {
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+  color: var(--dim);
+}
+
+.d-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 30px;
+
+  > i {
+    display: block;
+    width: 3px;
+    height: 100%;
+    background: var(--ink);
+    border-radius: 1px;
+    animation: d-wave 1s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 90ms);
+    transform-origin: center;
+  }
+
+  @include m.reduced-motion {
+    > i {
+      animation: none;
+      transform: scaleY(0.6);
+    }
+  }
+}
+
+@keyframes d-wave {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+// Skeleton line while a value loads.
+.d-skel {
+  display: inline-block;
+  min-width: 48px;
+  height: 1em;
+  vertical-align: middle;
+  background: var(--panel-3);
+  border-radius: var(--radius);
+}

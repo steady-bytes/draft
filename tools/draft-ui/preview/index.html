@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{draft} component gallery</title>
+  <link rel="stylesheet" href="../dist/fonts.css">
+  <link rel="stylesheet" href="../dist/draft.css">
+  <script src="../dist/draft.js"></script>
+  <style>
+    /* gallery chrome only */
+    .g { max-width: 1160px; margin: 0 auto; padding: 0 32px 96px; }
+    .g-top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 16px; height: 56px; margin: 0 -32px 8px; padding: 0 32px; background: color-mix(in oklab, var(--bg) 90%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--rule); }
+    .g-top nav { display: flex; gap: 4px; margin-left: 16px; flex-wrap: wrap; }
+    .g-swatches { display: flex; gap: 6px; align-items: center; }
+    .g-swatches button { width: 18px; height: 18px; padding: 0; border: 1px solid var(--rule-strong); border-radius: var(--radius); background: var(--s); cursor: pointer; }
+    .g-swatches button[aria-pressed="true"] { outline: 1px solid var(--ink); outline-offset: 2px; }
+    .g-hero { padding: 48px 0 8px; }
+    .g-hero h1 { margin: 10px 0 12px; font-family: var(--font-mono); font-size: 36px; letter-spacing: -0.02em; line-height: 1.1; }
+    .g-hero p { max-width: 68ch; color: var(--dim); font-size: 15px; margin: 0; }
+    .g-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .g-token { overflow: hidden; }
+    .g-token i { display: block; height: 48px; background: var(--v); border-bottom: 1px solid var(--rule); }
+    .g-token div { padding: 8px 10px; }
+    .g-token code { display: block; font-size: 12px; }
+    .g-token small { display: block; color: var(--dim); font-size: 11.5px; }
+    .g-demo { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .g-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .g-note { margin: 8px 0 0; color: var(--dim); font-size: 12.5px; max-width: 80ch; }
+    .g-frame { position: relative; height: 320px; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius); }
+    .g-frame .d-scrim, .g-frame .d-menu, .g-frame .d-toast { position: absolute; }
+    .g-node { width: 188px; padding: 10px 12px; }
+    .g-node b { display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; }
+    .g-node small { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+    .g-node .d-row + .d-row { margin-top: 10px; justify-content: space-between; }
+    @media (max-width: 760px) { .g-two { grid-template-columns: 1fr; } .g-top nav { display: none; } }
+  </style>
+</head>
+<body>
+<div class="g">
+
+  <header class="g-top">
+    <span class="d-wordmark"><b>{</b>draft<b>}</b><small>component gallery</small></span>
+    <nav aria-label="Sections">
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#tokens">Tokens</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#controls">Controls</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#status">Status</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#data">Data</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#viz">Viz</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#flow">Flow</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="#overlays">Overlays</a>
+      <a class="d-btn d-btn--ghost d-btn--sm" href="shell.html">Shell ↗</a>
+    </nav>
+    <span class="d-spacer"></span>
+    <span class="d-label">Primary</span>
+    <div class="g-swatches" role="group" aria-label="Primary colour">
+      <button style="--s:#4db380" data-primary="#4db380" title="#4db380 (default)" aria-label="#4db380"></button>
+      <button style="--s:#3ddc97" data-primary="#3ddc97" aria-label="#3ddc97"></button>
+      <button style="--s:#4fb3d9" data-primary="#4fb3d9" aria-label="#4fb3d9"></button>
+      <button style="--s:#b48cff" data-primary="#b48cff" aria-label="#b48cff"></button>
+      <button style="--s:#ffb454" data-primary="#ffb454" aria-label="#ffb454"></button>
+    </div>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <section class="g-hero">
+    <span class="d-label">draft-ui · every component, every state</span>
+    <h1>Circuit board, not dashboard.</h1>
+    <p>Review artifact for the shared design system. Switch theme and primary above: every component must read correctly in both themes and all five swatches. Rendered from <code>dist/draft.css</code>; the same classes are emitted by the Dioxus components and the Go templates.</p>
+  </section>
+
+  <!-- TOKENS -->
+  <h2 id="tokens" class="d-section-title"><span class="d-label">01 · Surfaces, ink and meaning</span></h2>
+  <div class="g-grid">
+    <div class="d-panel g-token" style="--v:var(--bg)"><i></i><div><code>--bg</code><small>Page, grid underlay</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--panel)"><i></i><div><code>--panel</code><small>Surfaces, rail, tables</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--panel-2)"><i></i><div><code>--panel-2</code><small>Hover, raised</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--panel-3)"><i></i><div><code>--panel-3</code><small>Active nav, pressed</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--rule-strong)"><i></i><div><code>--rule / --rule-strong</code><small>1px borders only</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--ink)"><i></i><div><code>--ink</code><small>Primary text</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--dim)"><i></i><div><code>--dim</code><small>Labels, secondary text</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--dimmer)"><i></i><div><code>--dimmer</code><small>Decoration only. Not text.</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--primary)"><i></i><div><code>--primary</code><small>Swatchable. Active, focus, live</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--ca)"><i></i><div><code>--ca</code><small>Catalyst · info</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--bp)"><i></i><div><code>--bp</code><small>Blueprint · agents</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--fs)"><i></i><div><code>--fs</code><small>Fuse</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--sv)"><i></i><div><code>--sv</code><small>Generic service</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--warn)"><i></i><div><code>--warn</code><small>Degraded, medium</small></div></div>
+    <div class="d-panel g-token" style="--v:var(--err)"><i></i><div><code>--err</code><small>Failed, destructive, high</small></div></div>
+  </div>
+  <p class="g-note">Healthy is the quietest state on screen. Text is <code>--ink</code>, <code>--dim</code>, a kind colour or a status colour — <code>tests/contrast.rs</code> enforces ≥ 4.5 : 1 for all of them in both themes and all swatches.</p>
+
+  <!-- CONTROLS -->
+  <h2 id="controls" class="d-section-title"><span class="d-label">02 · Buttons and controls</span></h2>
+  <div class="g-demo">
+    <button class="d-btn d-btn--primary">+ Add entry</button>
+    <button class="d-btn">Edit</button>
+    <button class="d-btn d-btn--ghost">Cancel</button>
+    <button class="d-btn d-btn--danger">Delete</button>
+    <button class="d-btn d-btn--sm">Small</button>
+    <button class="d-btn d-btn--sm d-btn--icon" aria-label="Close">✕</button>
+    <button class="d-btn" disabled>Disabled</button>
+    <button class="d-btn d-btn--primary">Run <span class="d-kbd">↵</span></button>
+    <a class="d-btn" href="#controls">Link button</a>
+  </div>
+  <div class="g-demo" style="margin-top:14px">
+    <span class="d-seg" role="group" aria-label="Range"><button aria-pressed="false">15m</button><button aria-pressed="false">1h</button><button aria-pressed="true">3h</button><button aria-pressed="false">24h</button></span>
+    <span class="d-seg" role="group" aria-label="Server-driven"><a href="#controls" aria-current="page">All</a><a href="#controls">Core</a><a href="#controls">Tooling</a></span>
+    <button class="d-toggle" role="switch" aria-checked="true"><i></i>Stream</button>
+    <button class="d-toggle" role="switch" aria-checked="false"><i></i>Snap</button>
+    <button class="d-toggle" role="switch" aria-checked="false" disabled><i></i>Disabled</button>
+    <span class="d-row" style="gap:6px"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></span>
+  </div>
+  <div class="g-demo" style="margin-top:14px; align-items:flex-start">
+    <label class="d-field"><span class="d-label">Input</span><input class="d-input" placeholder="Filter keys…"></label>
+    <label class="d-field"><span class="d-label">Select</span><select class="d-select"><option>Value · 6</option><option>Loop · 1</option></select></label>
+    <label class="d-field"><span class="d-label">Invalid</span><input class="d-input" aria-invalid="true" value="bad value"><span class="d-error-text">Name is required</span></label>
+    <label class="d-field"><span class="d-label">Disabled</span><input class="d-input" disabled value="read only"></label>
+    <label class="d-field" style="min-width:260px"><span class="d-label">Textarea</span><textarea class="d-textarea" placeholder="Details…"></textarea><span class="d-hint">Free text, shown to the agent.</span></label>
+    <label class="d-row" style="gap:8px"><input class="d-check" type="checkbox" checked> Remember me</label>
+  </div>
+
+  <h3 class="d-section-title"><span class="d-label">Query bar · chips · facets</span></h3>
+  <div class="d-query">
+    <span class="d-query-lang">BEACONQL</span>
+    <input placeholder='severity = "error" AND service_name = "beacon"' aria-label="Query">
+    <button class="d-btn d-btn--primary">Run <span class="d-kbd">↵</span></button>
+  </div>
+  <div class="d-chips">
+    <button class="d-chip">severity = "error"</button>
+    <button class="d-chip">duration_ms &gt; 500</button>
+    <button class="d-chip">trace_id EXISTS</button>
+    <button class="d-chip">Filter…</button>
+  </div>
+  <div class="d-chips" style="margin-top:12px">
+    <button class="d-chip" aria-pressed="true"><span class="d-dot" style="--c:var(--ca)"></span>order.created <span class="d-count">42</span></button>
+    <button class="d-chip" aria-pressed="true"><span class="d-dot" style="--c:var(--bp)"></span>user.registered <span class="d-count">17</span></button>
+    <button class="d-chip" aria-pressed="false"><span class="d-dot" style="--c:var(--fs)"></span>heartbeat <span class="d-count">3</span></button>
+  </div>
+  <div style="position:relative; margin-top:14px; height:150px">
+    <div class="d-query" aria-invalid="true"><span class="d-query-lang">CESQL</span><input value="type = 'order" aria-label="Query with error"></div>
+    <div class="d-suggest" role="listbox">
+      <div role="option" aria-selected="true">type = <small>field</small></div>
+      <div role="option" aria-selected="false">order.created <small>event type</small></div>
+      <div role="option" aria-selected="false">order.cancelled <small>event type</small></div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <h2 id="status" class="d-section-title"><span class="d-label">03 · Tags, status, glyphs</span></h2>
+  <div class="g-demo">
+    <span class="d-tag d-tag--ca">HTTP</span><span class="d-tag d-tag--sv">HTTP2</span><span class="d-tag d-tag--bp">gRPC</span><span class="d-tag d-tag--fs">WS</span>
+    <span class="d-tag d-tag--primary">v2</span><span class="d-tag d-tag--quiet">bypass</span><span class="d-tag d-tag--err">High</span><span class="d-tag d-tag--warn">Medium</span>
+    <span class="d-tag d-tag--err d-tag--solid">Failed</span><span class="d-tag d-tag--primary d-tag--solid">Passed</span><span class="d-tag d-tag--lg d-tag--ca">Large</span>
+  </div>
+  <div class="g-demo" style="margin-top:14px">
+    <span class="d-status d-status--live">Online</span><span class="d-status">5 / 5 healthy</span><span class="d-status d-status--warn">Degraded</span>
+    <span class="d-status d-status--err">Failed</span><span class="d-status d-status--info d-status--live">Running · 1.1s</span><span class="d-status d-status--idle">Never run</span>
+  </div>
+  <div class="g-demo" style="margin-top:14px">
+    <span class="d-glyph d-glyph--ca">Ca</span><span class="d-glyph d-glyph--bp">Bp</span><span class="d-glyph d-glyph--fs">Fs</span><span class="d-glyph">Sv</span><span class="d-glyph d-glyph--primary">Pl</span><span class="d-glyph d-glyph--bp d-glyph--lg">Lm</span>
+    <span class="d-svc" style="--c:var(--fs)">fuse</span><span class="d-svc">foundry</span>
+    <span class="d-dot" style="--c:var(--ca)"></span><span class="d-count">6</span><span class="d-count d-count--err">1</span>
+    <a class="d-tracelink" href="#status">5ca1ef52…d68c</a>
+  </div>
+  <div class="d-verdict" style="margin-top:20px"><b>Mostly.</b><span>4 of 5 workflows passed their last run. fuse-proxy-e2e-10x failed at step 14.</span></div>
+
+  <h3 class="d-section-title"><span class="d-label">Panels · brackets · nodes</span></h3>
+  <div class="g-demo">
+    <div class="d-panel g-node"><div class="d-row"><span class="d-glyph d-glyph--ca">Ca</span><div><b>CATALYST</b><small>Event bus</small></div></div><div class="d-row"><span class="d-status">Online</span><span class="d-label">3 evt</span></div></div>
+    <div class="d-panel d-brackets is-active g-node" style="border-color:color-mix(in oklab,var(--primary) 40%,var(--rule))"><div class="d-row"><span class="d-glyph d-glyph--bp">Bp</span><div><b>BLUEPRINT</b><small>Service registry</small></div></div><div class="d-row"><span class="d-status">Online</span><span class="d-label">Selected</span></div></div>
+    <div class="d-panel d-brackets g-node" style="--bk:var(--warn)"><div class="d-row"><span class="d-glyph d-glyph--fs">Fs</span><div><b>FUSE</b><small>API gateway</small></div></div><div class="d-row"><span class="d-status d-status--warn">Stale 42s</span><span class="d-label">1 route</span></div></div>
+    <div class="d-panel g-node"><div class="d-row"><span class="d-glyph">Sv</span><div><b>LINEMAN</b><small>Workload</small></div></div><div class="d-row"><span class="d-status d-status--idle">Offline</span><span class="d-label">2 links</span></div></div>
+  </div>
+  <p class="g-note">Bracket corners mark focus and selection. A panel at rest is a plain 1px rule.</p>
+
+  <!-- DATA -->
+  <h2 id="data" class="d-section-title"><span class="d-label">04 · Data</span></h2>
+  <div class="d-stats">
+    <div class="d-panel d-stat"><span class="d-label">Messages / min</span><div class="d-stat-value">312</div><div class="d-stat-foot"><span class="d-delta is-good">▲ 8% vs prev</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--primary)"><path d="M0 18 L12 16 L24 17 L36 12 L48 13 L60 9 L72 10 L84 6 L96 5"/></svg></div></div>
+    <div class="d-panel d-stat"><span class="d-label">P95 latency</span><div class="d-stat-value">94<small>ms</small></div><div class="d-stat-foot"><span class="d-delta is-bad">▲ 12ms vs prev</span><svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--fs)"><path d="M0 16 L16 15 L32 14 L48 12 L64 6 L80 11 L96 13"/></svg></div></div>
+    <div class="d-panel d-stat"><span class="d-label">Queue depth</span><div class="d-stat-value">0<small>/ 100,000</small></div><div class="d-stat-foot"><span class="d-delta">No change</span></div></div>
+  </div>
+
+  <div class="d-panel d-table-wrap" style="margin-top:16px">
+    <table class="d-table">
+      <thead><tr><th>Route</th><th>Match</th><th>Protocols</th><th>Auth</th><th aria-sort="descending">Status</th><th></th></tr></thead>
+      <tbody>
+        <tr class="is-group"><td colspan="6">UI · host routes · 2</td></tr>
+        <tr><td class="is-key">beacon-ui</td><td>beacon.draft.localhost</td><td><span class="d-tag d-tag--ca">HTTP</span> <span class="d-tag d-tag--bp">gRPC</span></td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td><td class="is-act"><button class="d-btn d-btn--danger d-btn--sm">Delete</button></td></tr>
+        <tr aria-selected="true"><td class="is-key">core-blueprint-ui</td><td>blueprint.draft.localhost</td><td><span class="d-tag d-tag--ca">HTTP</span> <span class="d-tag d-tag--fs">WS</span></td><td><span class="d-tag d-tag--quiet">bypass</span></td><td><span class="d-status">Valid</span></td><td class="is-act"><button class="d-btn d-btn--danger d-btn--sm">Delete</button></td></tr>
+        <tr class="is-group"><td colspan="6">RPC · prefix routes · 1</td></tr>
+        <tr class="is-open"><td><span class="d-row" style="gap:10px"><span class="d-caret">▼</span><span class="d-glyph d-glyph--bp">Bp</span>blueprint</span></td><td class="is-dim">Core</td><td><span class="d-strip d-strip--xs"><i></i><i></i><i></i><i></i><i class="is-none"></i></span> 4 / 5</td><td>—</td><td><span class="d-status d-status--warn">Degraded</span></td><td></td></tr>
+        <tr class="is-child"><td>node_1</td><td>Raft leader</td><td></td><td></td><td><span class="d-status">Healthy</span></td><td></td></tr>
+        <tr class="is-child"><td>node_5</td><td>Follower</td><td></td><td></td><td><span class="d-status d-status--warn">Stale · 42s</span></td><td></td></tr>
+        <tr><td class="is-key">file_host</td><td class="is-fill"><span class="d-trunc">a very long value that keeps going and going and must be truncated to a single line with an ellipsis</span></td><td><span class="d-secret"><span class="d-tag d-tag--warn">Secret</span><span class="d-secret-mask">••••••••</span><button class="d-btn d-btn--ghost d-btn--sm">Reveal</button></span></td><td></td><td class="is-right">42s ago</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="g-demo" style="margin-top:20px; align-items:flex-start">
+    <div><span class="d-label">Strip · runs</span><br><span class="d-strip"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="is-err"></i></span></div>
+    <div><span class="d-label">Strip · in flight / never run</span><br><span class="d-strip"><i class="is-none"></i><i class="is-none"></i><i></i><i></i><i class="is-run"></i></span></div>
+    <div style="min-width:280px; flex:1"><span class="d-label">Strip · step results</span><span class="d-strip d-strip--stretch" style="margin-top:8px"><i></i><i></i><i></i><i class="is-err"></i><i class="is-skip"></i><i class="is-skip"></i></span></div>
+    <div style="min-width:280px; flex:1"><span class="d-label">Progress</span><div class="d-progress d-progress--lg" style="margin-top:8px"><span style="--c:var(--primary); width:4.5%"></span><span style="--c:var(--ca); width:4.5%"></span><span style="--c:var(--rule-strong); width:91%"></span></div></div>
+    <div style="min-width:220px"><span class="d-label">Meter</span><div class="d-meter"><i style="width:36%"></i></div></div>
+  </div>
+  <div class="g-demo" style="margin-top:16px">
+    <div class="d-dur" style="width:220px"><span>2.21 s</span><i><b style="width:100%; --c:var(--err)"></b></i></div>
+    <div class="d-dur" style="width:220px"><span>59.7 ms</span><i><b style="width:12%"></b></i></div>
+    <div class="d-rate-row" style="width:300px"><span>fuse</span><i style="width:70%"></i><span>312/m</span></div>
+  </div>
+
+  <h3 class="d-section-title"><span class="d-label">Cards · board · list · kv · code</span></h3>
+  <div class="d-board">
+    <section>
+      <div class="d-col-head" style="--c:var(--dim)"><span class="d-label" style="color:var(--ink)">Queued</span><span class="d-count">2</span></div>
+      <article class="d-panel d-card"><div class="d-card-meta"><span class="d-tag d-tag--warn">Medium</span><span class="d-spacer"></span><span class="id">T-104</span></div><div class="d-card-title">Rotate crud-e2e webhook secret</div><div class="d-card-meta"><span>Due Sep 28</span><span class="d-spacer"></span><span class="d-avatar">AM</span></div></article>
+      <article class="d-panel d-card d-card--group"><div class="d-card-meta"><span class="d-tag d-tag--quiet">Low</span><span class="d-tag d-tag--bp">Loop</span><span class="d-spacer"></span><span class="id">×17</span></div><div class="d-card-title"><b>Nightly log rotation check</b> · daily at 09:00</div></article>
+      <button class="d-add">+ Add task</button>
+    </section>
+    <section>
+      <div class="d-col-head is-drop" style="--c:var(--ca)"><span class="d-label" style="color:var(--ink)">In flight</span><span class="d-count">1</span></div>
+      <article class="d-panel d-card d-brackets is-locked" style="--bk:var(--ca)"><div class="d-card-meta"><span class="d-tag d-tag--err">High</span><span class="d-spacer"></span><span class="id">T-101</span></div><div class="d-card-title">Migrate Bench webhook secret</div><div class="d-card-meta"><span class="d-status d-status--info d-status--live">Running 14m</span><span class="d-spacer"></span><span class="d-avatar d-avatar--agent">A3</span></div></article>
+    </section>
+    <section>
+      <div class="d-col-head" style="--c:var(--primary)"><span class="d-label" style="color:var(--ink)">Done</span><span class="d-count">1</span></div>
+      <article class="d-panel d-card is-dragging"><div class="d-card-meta"><span class="d-tag d-tag--quiet">Medium</span><span class="d-spacer"></span><span class="id">T-100</span></div><div class="d-card-title">Verify webhook HMAC flow (dragging)</div></article>
+    </section>
+  </div>
+
+  <div class="g-two" style="margin-top:16px">
+    <div class="d-panel">
+      <div class="d-panel-head"><span class="d-label">Used by · 3 workflows</span></div>
+      <div class="d-list">
+        <a class="d-list-row" href="#data"><span class="d-status">Passing</span>crud-e2e<span class="d-spacer"></span><small>step 2</small></a>
+        <a class="d-list-row" href="#data"><span class="d-status d-status--err">Failing</span>fuse-proxy-e2e-10x<span class="d-spacer"></span><small>step 1</small></a>
+        <div class="d-list-row" aria-current="true"><span class="d-status">Passing</span>fuse-proxy-e2e (current)</div>
+      </div>
+      <div class="d-panel-body"><dl class="d-kv"><dt>Type</dt><dd>core.registry.key_value.v1.Value</dd><dt>Size</dt><dd>612 B</dd><dt>Updated</dt><dd>2 min ago · 01:45:18 UTC</dd></dl></div>
+    </div>
+    <div class="d-stack">
+      <pre class="d-code"><span class="tk-com"># workflow snippet</span>
+- <span class="tk-key">name</span>: <span class="tk-ph">query-name</span>
+  <span class="tk-key">uses</span>: <span class="tk-url">foundry://grpc-call@v1</span>
+  <span class="tk-key">with</span>:
+    <span class="tk-key">timeout</span>: <span class="tk-num">5</span>   <span class="tk-com"># seconds</span>
+    <span class="tk-key">tls</span>: <span class="tk-val">false</span></pre>
+      <details class="d-details" open><summary>Troubleshooting detail</summary><div class="d-details-body"><pre class="d-code d-code--bare d-code--wrap">GET /health → 503 upstream connect error</pre></div></details>
+    </div>
+  </div>
+
+  <div class="d-uses" style="margin-top:16px; max-width:360px">uses: <b>foundry://grpc-call@v1</b></div>
+
+  <!-- VIZ -->
+  <h2 id="viz" class="d-section-title"><span class="d-label">05 · Charts and timelines</span></h2>
+  <div class="d-panel">
+    <div class="d-panel-head"><span class="d-label">Volume by status · 5 min buckets</span><span class="d-spacer"></span><div class="d-legend"><span style="--c:var(--err)">Error 3</span><span style="--c:var(--primary)">OK 4,029</span></div></div>
+    <div class="d-panel-body"><div class="d-histo" id="histo" aria-label="Stacked histogram"></div><div class="d-axis"><span>22:50</span><span>00:20</span><span>01:50 UTC</span></div></div>
+  </div>
+  <div class="d-panel" style="margin-top:12px">
+    <div class="d-panel-head"><span class="d-label">Requests per second</span><span class="d-spacer"></span><div class="d-legend d-legend--line"><span style="--c:var(--bp)">core-blueprint-ui</span><span style="--c:var(--ca)">beacon-ui</span></div></div>
+    <div class="d-chart">
+      <svg viewBox="0 0 960 200" role="img" aria-label="Sample line chart">
+        <g class="grid"><line x1="40" x2="944" y1="20" y2="20"/><line x1="40" x2="944" y1="80" y2="80"/><line x1="40" x2="944" y1="140" y2="140"/></g>
+        <g class="axis"><text x="32" y="24" text-anchor="end">4</text><text x="32" y="84" text-anchor="end">2</text><text x="32" y="144" text-anchor="end">0</text><text x="40" y="190">22:50</text><text x="944" y="190" text-anchor="end">01:50 UTC</text></g>
+        <g class="series"><path d="M40 90 L200 70 L360 95 L520 60 L680 75 L840 40 L944 50" stroke="var(--bp)"/><path d="M40 120 L200 110 L360 118 L520 100 L680 108 L840 95 L944 98" stroke="var(--ca)"/></g>
+        <line class="xhair" x1="520" x2="520" y1="20" y2="150"/><circle class="hover-dot" cx="520" cy="60" r="4" fill="var(--bp)"/><circle class="hover-dot" cx="520" cy="100" r="4" fill="var(--ca)"/>
+      </svg>
+      <div class="d-chart-tip" style="left:540px"><b>00:20 UTC</b><div style="--c:var(--bp)"><i></i><span>core-blueprint-ui</span><span>3.10</span></div><div style="--c:var(--ca)"><i></i><span>beacon-ui</span><span>1.50</span></div></div>
+    </div>
+  </div>
+
+  <div class="g-two" style="margin-top:12px">
+    <div class="d-panel">
+      <div class="d-panel-head"><span class="d-label">Waterfall · trace 5ca1ef52…d68c</span></div>
+      <div class="d-wf-head"><div class="d-label">Span</div><div><div class="d-wf-ticks"><span style="left:0">0</span><span style="left:50%">1.10 s</span><span style="left:100%">2.21 s</span></div></div></div>
+      <div class="d-wf-row" style="--c:var(--sv)"><div class="d-wf-name"><span class="t">call-7</span><span class="s">bench</span></div><div class="d-wf-lane"><span class="d-wf-bar is-err" style="left:0;width:100%"></span></div></div>
+      <div class="d-wf-row" style="--c:var(--fs); --d:1" aria-selected="true"><div class="d-wf-name"><span class="t">ingress</span><span class="s">fuse</span></div><div class="d-wf-lane"><span class="d-wf-bar is-err" style="left:1%;width:98%"></span></div></div>
+      <div class="d-wf-row" style="--c:var(--fs); --d:2"><div class="d-wf-name"><span class="t">upstream attempt 1</span><span class="s">fuse</span></div><div class="d-wf-lane"><span class="d-wf-bar is-err" style="left:2%;width:27%"><em>610 ms</em></span></div></div>
+      <div class="d-wf-row" style="--c:var(--fs); --d:2"><div class="d-wf-name"><span class="t">upstream attempt 3</span><span class="s">fuse</span></div><div class="d-wf-lane"><span class="d-wf-bar is-err is-right" style="left:61%;width:38%"><em>840 ms</em></span></div></div>
+    </div>
+    <div class="d-panel d-panel-body">
+      <span class="d-label">Compact · in a drawer</span>
+      <div class="d-wf--compact" style="margin-top:12px">
+        <div class="d-wf-row" style="--c:var(--fs)"><span>fuse ingress</span><div class="d-wf-lane"><i style="left:0;width:100%"></i></div><span>2.21 s</span></div>
+        <div class="d-wf-row" style="--c:var(--fs)"><span>route match</span><div class="d-wf-lane"><i style="left:0;width:2%"></i></div><span>0.4 ms</span></div>
+        <div class="d-wf-row" style="--c:var(--err)"><span>upstream ×3</span><div class="d-wf-lane"><i style="left:2%;width:98%"></i></div><span>2.20 s</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOW -->
+  <h2 id="flow" class="d-section-title"><span class="d-label">06 · Wires, pipeline, trace, editor</span></h2>
+  <div class="d-panel d-panel-body">
+    <svg viewBox="0 0 520 90" style="width:100%; max-width:520px" aria-label="Wire vocabulary">
+      <path class="d-wire" d="M10 30 H120 M120 30 V60 H200"/><circle class="d-via" cx="120" cy="30" r="3"/><circle class="d-pad" cx="10" cy="30" r="2.5"/><circle class="d-pad" cx="200" cy="60" r="2.5"/>
+      <path class="d-wire d-wire--dim" d="M250 30 H330"/>
+      <path class="d-evt" d="M250 60 H480"/><circle class="d-via d-via--e" cx="365" cy="60" r="3"/><circle class="d-pad d-pad--e" cx="480" cy="60" r="2.5"/>
+      <text class="d-wire-label" x="20" y="20">routes</text><text class="d-wire-label" x="250" y="80">events</text>
+    </svg>
+  </div>
+  <div class="d-panel" style="margin-top:12px">
+    <div class="d-panel-head"><span class="d-label">Pipeline · from the YAML below</span></div>
+    <div class="d-pipe"><span class="d-pipe-node is-trigger"><small>Webhook</small>/webhooks/crud-e2e</span><span class="d-pipe-wire"></span><span class="d-pipe-node"><small>01</small>create-name</span><span class="d-pipe-wire"></span><span class="d-pipe-node is-current"><small>02</small>query-name</span><button class="d-btn d-btn--ghost d-btn--sm">+ Step</button></div>
+  </div>
+  <div class="g-two" style="margin-top:12px; align-items:start">
+    <div class="d-trace" style="--fail-at: 96px">
+      <div class="d-step"><div class="d-step-head"><span class="d-step-no">01</span><span class="d-step-name">register-route</span><span class="d-step-uses">foundry://grpc-call@v1</span><span class="d-spacer"></span><span class="d-step-dur">212 ms</span></div></div>
+      <div class="d-step is-group"><div class="d-step-head"><span class="d-step-no">02–12</span><span class="d-step-name">wait-1 … call-6 · 10 steps passed</span><span class="d-spacer"></span><span class="d-step-dur">30.3 s</span></div></div>
+      <div class="d-step is-fail"><div class="d-step-head"><span class="d-step-no">14</span><span class="d-step-name" style="color:var(--err)">call-7</span><span class="d-step-uses">foundry://http-call@v1</span><span class="d-spacer"></span><span class="d-step-dur" style="color:var(--err)">2.01 s · timeout</span></div></div>
+      <div class="d-step is-skip"><div class="d-step-head"><span class="d-step-no">15–21</span><span class="d-step-name">7 steps skipped</span><span class="d-spacer"></span><span class="d-step-dur">—</span></div></div>
+    </div>
+    <div class="d-panel d-fail" style="margin:0">
+      <div class="d-fail-err">expect.status: wanted 200, got 503 — upstream connect error</div>
+      <div class="d-fail-cols">
+        <div><span class="d-label">Request</span><pre class="d-code"><span class="tk-key">GET</span> http://files.draft.localhost:10000/health
+<span class="tk-key">x-bench-run</span>: r-0409</pre></div>
+        <div><span class="d-label">Response</span><pre class="d-code"><span class="tk-err">HTTP/1.1 503 Service Unavailable</span>
+<span class="tk-key">server</span>: envoy</pre></div>
+      </div>
+    </div>
+  </div>
+  <div class="d-panel" style="margin-top:12px">
+    <div class="d-editor">
+      <pre class="d-editor-gutter">1
+2
+3
+<span class="is-err">4</span>
+5</pre>
+      <pre class="d-editor-code"><span class="tk-key">steps</span>:
+  - <span class="tk-key">name</span>: create-name
+    <span class="tk-key">uses</span>: <span class="tk-url">foundry://grpc-call@v1</span>
+<span class="hl">    <span class="tk-key">methd</span>: <span class="sq">Read</span>    <span class="tk-com"># ← unknown field</span></span>
+    <span class="tk-key">request</span>: { <span class="tk-key">id</span>: <span class="tk-val">1</span> }</pre>
+    </div>
+    <div class="d-problems"><div class="d-panel-head"><span class="d-label">Problems · 1</span></div><div class="d-problem"><span class="d-tag d-tag--err">Error</span><span class="ln">4:5</span><span><code>methd</code> is not a field of grpc-call@v1.</span></div></div>
+  </div>
+
+  <!-- OVERLAYS -->
+  <h2 id="overlays" class="d-section-title"><span class="d-label">07 · Overlays and states</span></h2>
+  <div class="g-two">
+    <div class="d-stack">
+      <div class="d-alert d-alert--err"><span>Failed to load workflow: connection refused</span></div>
+      <div class="d-alert d-alert--warn"><span>Route conflicts with examples-file_host</span></div>
+      <div class="d-alert d-alert--ok"><span>Saved.</span></div>
+      <div class="d-alert d-alert--err d-alert--mono">line 24: unknown field "methd"</div>
+      <div class="d-alert"><span>Informational message.</span></div>
+    </div>
+    <div class="g-frame">
+      <div class="d-scrim"><div class="d-modal d-brackets is-active">
+        <header><h2>Add entry</h2><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm d-btn--icon" aria-label="Close">✕</button></header>
+        <div class="d-modal-body"><label class="d-field"><span class="d-label">Key</span><input class="d-input" placeholder="cluster/layout"></label><label class="d-field"><span class="d-label">Value</span><textarea class="d-textarea"></textarea></label></div>
+        <footer><button class="d-btn d-btn--ghost">Cancel</button><button class="d-btn d-btn--primary">Save</button></footer>
+      </div></div>
+      <div class="d-toast" style="left:12px; bottom:12px">Moved to Done <button class="d-btn d-btn--ghost d-btn--sm">Undo</button></div>
+    </div>
+  </div>
+  <div class="g-two" style="margin-top:16px">
+    <div class="g-frame" style="height:190px">
+      <div class="d-menu" style="left:16px; top:16px">
+        <div class="d-menu-label">Move to</div>
+        <button class="d-menu-item" aria-checked="true" role="menuitemradio">Queued</button>
+        <button class="d-menu-item" role="menuitemradio">In flight</button>
+        <button class="d-menu-item" role="menuitemradio">Done</button>
+        <div class="d-menu-sep"></div>
+        <button class="d-menu-item d-menu-item--danger">Delete</button>
+      </div>
+    </div>
+    <div class="d-stack">
+      <div class="d-panel d-empty"><b>Nothing matches “fuse”</b><span>Try a different name or description, or clear the search.</span></div>
+      <div class="d-panel d-loading"><span class="d-wave" aria-label="Loading"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i></span></div>
+      <div class="d-panel d-panel-body">Loading value <span class="d-skel" style="width:120px"></span></div>
+    </div>
+  </div>
+
+</div>
+<script>
+  // Illustrative stacked histogram.
+  (function () {
+    var el = document.getElementById("histo"), n = 37, max = 180;
+    for (var i = 0; i < n; i++) {
+      var ok = Math.round(96 + 30 * Math.sin(i / 4) + 14 * Math.sin(i * 1.3) + (i > 26 && i < 31 ? 40 : 0));
+      var err = (i === 16 || i === 36) ? (i === 36 ? 2 : 1) : 0;
+      var bar = document.createElement("div"); bar.className = "d-histo-bar"; bar.title = "ok " + ok + (err ? " · error " + err : "");
+      [["var(--primary)", ok, ".55", 0], ["var(--err)", err, "1", 3]].forEach(function (s) {
+        if (!s[1]) return; var seg = document.createElement("span");
+        seg.style.height = Math.max(s[3], s[1] / max * 72) + "px"; seg.style.background = s[0]; seg.style.opacity = s[2]; bar.appendChild(seg);
+      });
+      el.appendChild(bar);
+    }
+  })();
+</script>
+</body>
+</html>

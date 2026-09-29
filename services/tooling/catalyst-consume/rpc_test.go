@@ -138,6 +138,70 @@ func TestExecute_Success(t *testing.T) {
 	}
 }
 
+func TestExecute_ExpectPasses(t *testing.T) {
+	srv := newFakeConsumerServer(t, &acv1.CloudEvent{
+		Type:   "examples.crud.v1.ModelEvent",
+		Source: "/services/examples/crud-event",
+		Id:     "evt-1",
+		Data:   &acv1.CloudEvent_TextData{TextData: `{"operation":"OPERATION_CREATE","model":{"id":"n-1","firstName":"Ada","lastName":"Lovelace"}}`},
+	})
+
+	h := NewHandler(noopLogger{}, func() string { return srv.URL })
+
+	resp, err := h.Execute(context.Background(), connect.NewRequest(&stepexecutorv1.StepRequest{
+		Config: stepConfig(t, map[string]interface{}{
+			"event_type": "examples.crud.v1.ModelEvent",
+			"timeout":    "2s",
+			"expect": map[string]interface{}{
+				"operation": map[string]interface{}{"equals": "OPERATION_CREATE"},
+				"model": map[string]interface{}{
+					"firstName": map[string]interface{}{"equals": "Ada"},
+					"lastName":  map[string]interface{}{"matches": "^Love.*"},
+				},
+			},
+		}),
+	}))
+	if err != nil {
+		t.Fatalf("Execute returned unexpected error: %v", err)
+	}
+	if !resp.Msg.GetSuccess() {
+		t.Fatalf("Success = false, Error = %q, want a passing expect", resp.Msg.GetError())
+	}
+}
+
+func TestExecute_ExpectFails(t *testing.T) {
+	srv := newFakeConsumerServer(t, &acv1.CloudEvent{
+		Type: "examples.crud.v1.ModelEvent",
+		Id:   "evt-1",
+		Data: &acv1.CloudEvent_TextData{TextData: `{"operation":"OPERATION_CREATE","model":{"id":"n-1","firstName":"Ada","lastName":"Lovelace"}}`},
+	})
+
+	h := NewHandler(noopLogger{}, func() string { return srv.URL })
+
+	resp, err := h.Execute(context.Background(), connect.NewRequest(&stepexecutorv1.StepRequest{
+		Config: stepConfig(t, map[string]interface{}{
+			"event_type": "examples.crud.v1.ModelEvent",
+			"timeout":    "2s",
+			"expect": map[string]interface{}{
+				// Wrong operation on purpose -- this must fail the step, not just
+				// get silently ignored, or a workflow using this to guard a real
+				// regression (the model.go bug fixed the same session this was
+				// written) would pass even when the event's contents are wrong.
+				"operation": map[string]interface{}{"equals": "OPERATION_DELETE"},
+			},
+		}),
+	}))
+	if err != nil {
+		t.Fatalf("Execute returned unexpected error: %v", err)
+	}
+	if resp.Msg.GetSuccess() {
+		t.Fatal("Success = true, want false: expect.operation did not match the received event")
+	}
+	if !strings.Contains(resp.Msg.GetError(), "expect.operation") {
+		t.Errorf("Error = %q, want it to mention expect.operation", resp.Msg.GetError())
+	}
+}
+
 func TestExecute_SkipsNonMatchingTypesThenMatches(t *testing.T) {
 	srv := newFakeConsumerServer(t,
 		&acv1.CloudEvent{Type: "tooling.workflow.v1.RunStarted", Data: &acv1.CloudEvent_TextData{TextData: `{}`}},
@@ -250,7 +314,7 @@ func TestExtractPath(t *testing.T) {
 }
 
 func TestParseConfig_Defaults(t *testing.T) {
-	eventType, timeout, fields, err := parseConfig(stepConfig(t, map[string]interface{}{
+	eventType, timeout, fields, expect, err := parseConfig(stepConfig(t, map[string]interface{}{
 		"event_type": "tooling.workflow.v1.RunFinished",
 	}))
 	if err != nil {
@@ -265,14 +329,35 @@ func TestParseConfig_Defaults(t *testing.T) {
 	if len(fields) != 0 {
 		t.Errorf("fields = %v, want empty", fields)
 	}
+	if expect != nil {
+		t.Errorf("expect = %v, want nil when config.expect is unset", expect)
+	}
 }
 
 func TestParseConfig_InvalidTimeout(t *testing.T) {
-	_, _, _, err := parseConfig(stepConfig(t, map[string]interface{}{
+	_, _, _, _, err := parseConfig(stepConfig(t, map[string]interface{}{
 		"event_type": "x",
 		"timeout":    "not-a-duration",
 	}))
 	if err == nil {
 		t.Fatal("parseConfig returned nil error for an invalid timeout, want an error")
+	}
+}
+
+func TestParseConfig_Expect(t *testing.T) {
+	_, _, _, expect, err := parseConfig(stepConfig(t, map[string]interface{}{
+		"event_type": "x",
+		"expect": map[string]interface{}{
+			"status": map[string]interface{}{"equals": "ok"},
+		},
+	}))
+	if err != nil {
+		t.Fatalf("parseConfig returned unexpected error: %v", err)
+	}
+	if expect == nil {
+		t.Fatal("expect = nil, want the configured struct")
+	}
+	if got := expect.GetFields()["status"].GetStructValue().GetFields()["equals"].GetStringValue(); got != "ok" {
+		t.Errorf("expect.status.equals = %q, want %q", got, "ok")
 	}
 }

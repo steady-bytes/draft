@@ -7,7 +7,7 @@ Router: Each project might have a different http router that is being used so a 
 Finally, the storage layer follows the same pattern a reusable interface with a default implementation using [Blueprint](https://github.com/steady-bytes/draft?tab=readme-ov-file#blueprint)
 
 ## How to use
-1. Copy, and modify the `html/templates` into your service directory at the root in a template folder `./template`
+1. Copy, and modify the `html/templates` into your service directory at the root in a template folder `./template`. They are styled with the Draft design system (`d-*` classes), so serve its assets at `/static/draft/` — `mux.Handle("GET "+draftui.StaticPrefix, draftui.Static())` with `github.com/steady-bytes/draft/tools/draft-ui`, or copy `tools/draft-ui/dist` there. A service that already renders through the `draftui` kit can use its `auth-card` partial and `bare` layout instead of these files (`draftui.LoginCard`, `draftui.RegisterCard`).
 
 2. Initialize the basic_authentication with the repo, and router configuration. Once initialized add to your service router, and configure your middleware (optionally if authenticating your endpoints) a middleware function has already been included.
 

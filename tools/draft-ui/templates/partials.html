@@ -1,0 +1,48 @@
+{{/*
+Partials: the Go twins of the Rust components. Each takes a small view model built with a template
+function or in Go (funcs.go), because html/template has no parameter lists:
+
+  {{template "d-tag" (tag "err" "Failed")}}
+  {{template "d-status" (live "info" "Running")}}
+  {{template "d-strip" (strip .History "")}}
+  {{template "d-stat" .Stat}}
+  {{template "d-empty" (empty "Nothing here" "Try again")}}
+  {{template "d-code" (code "yaml" .YAML)}}
+  {{template "auth-card" (loginCard "/login")}}
+*/}}
+{{define "d-tag"}}<span class="{{.Class}}"{{if .Title}} title="{{.Title}}"{{end}}>{{.Text}}</span>{{end}}
+
+{{define "d-status"}}<span class="{{.Class}}">{{.Text}}</span>{{end}}
+
+{{define "d-strip"}}<span class="{{.Class}}" role="img"{{if .Label}} aria-label="{{.Label}}"{{end}}>{{range .Cells}}<i{{with .Class}} class="{{.}}"{{end}}{{with .Title}} title="{{.}}"{{end}}></i>{{end}}</span>{{end}}
+
+{{define "d-stat"}}<div class="d-panel d-stat">
+  <span class="d-label">{{.Label}}</span>
+  <div class="d-stat-value"{{if .ValueTone}} style="color:var(--{{.ValueTone}})"{{end}}>{{.Value}}{{with .Unit}}<small>{{.}}</small>{{end}}</div>
+  {{if or .Delta .Spark}}<div class="d-stat-foot">
+    {{if .Delta}}<span class="{{.DeltaClass}}">{{.Delta}}</span>{{else}}<span></span>{{end}}
+    {{if .Spark}}<svg class="d-spark" viewBox="0 0 96 24" style="--c:var(--{{if .SparkTone}}{{.SparkTone}}{{else}}primary{{end}})" aria-hidden="true"><path d="{{.SparkPath}}"/></svg>{{end}}
+  </div>{{end}}
+</div>{{end}}
+
+{{define "d-empty"}}<div class="d-empty{{if .Compact}} d-empty--compact{{end}}"><b>{{.Title}}</b><span>{{.Text}}</span></div>{{end}}
+
+{{define "d-code"}}<pre class="{{.Class}}"{{if .ID}} id="{{.ID}}"{{end}}>{{.HTML}}</pre>{{end}}
+
+
+{{/* auth-card is a centred sign-in / register card (see auth.go: LoginCard, RegisterCard). The
+starter templates in pkg/basic_authentication/templates write out the same markup, because that
+package renders with plain text/template and cannot call these; keep the two in step. */}}
+{{define "auth-card"}}<main class="d-auth">
+  <form class="d-panel d-auth-card" method="post" action="{{.Action}}">
+    <div>
+      <span class="d-label">{{.Eyebrow}}</span>
+      <h1>{{.Title}}</h1>
+    </div>
+    {{with .Error}}<div class="d-alert d-alert--err" role="alert">{{.}}</div>{{end}}
+    {{range .Fields}}<label class="d-field"><span class="d-label">{{.Label}}</span><input class="d-input" type="{{.Type}}" id="{{.Name}}" name="{{.Name}}"{{with .Placeholder}} placeholder="{{.}}"{{end}}{{with .Autocomplete}} autocomplete="{{.}}"{{end}}{{if .Required}} required{{end}}></label>{{end}}
+    {{if .Remember}}<label class="d-check-row"><input class="d-check" type="checkbox" id="remember-me" name="remember-me"><span>Remember me</span></label>{{end}}
+    <button class="d-btn d-btn--primary" type="submit">{{.Submit}}</button>
+    {{if .AltHref}}<p class="d-note">{{.AltText}} <a href="{{.AltHref}}">{{.AltLabel}}</a></p>{{end}}
+  </form>
+</main>{{end}}

@@ -1,63 +1,69 @@
-{{define "title"}}Foundry — {{.Name}}{{end}}
+{{define "head"}}
+<style>
+  .schema td.f { width: 1%; color: var(--ca); }
+  .schema td.t { width: 1%; color: var(--dim); }
+  .schema td.r { width: 1%; }
+  .schema td.d { white-space: normal; font-family: var(--font-sans); color: var(--dim); line-height: 1.45; padding-block: 8px; }
+  .schema td.d code { color: var(--ink); font-size: 12px; }
+</style>
+{{end}}
+
 {{define "content"}}
-<div class="flex flex-col gap-8">
+<div class="d-page-head">
   <div>
-    <div class="breadcrumbs text-xs font-mono text-base-content/40">
-      <ul><li><a href="/" class="hover:text-primary">catalog</a></li><li>{{.Name}}</li></ul>
-    </div>
-    <div class="flex items-start justify-between flex-wrap gap-4 mt-2">
-      <div>
-        <h1 class="font-display text-3xl font-bold tracking-tight">{{.Name}}</h1>
-        <p class="text-base-content/60 mt-1 max-w-xl">{{.Description}}</p>
-      </div>
-      <div class="text-sm text-right font-mono">
-        <div class="text-base-content/50">maintainer <span class="text-base-content/90">{{.Maintainer}}</span></div>
-        {{if .Source}}<div class="mt-1"><a class="link link-primary no-underline hover:underline" href="{{.Source}}" target="_blank" rel="noopener noreferrer">source &#8599;</a></div>{{end}}
-      </div>
+    <span class="d-label">Plugin · step executor</span>
+    <h1>{{.Name}}</h1>
+    <p>{{.Description}}</p>
+    <div class="d-meta">
+      <span>Maintainer <b>{{.Maintainer}}</b></span>
+      {{if .Published}}<span>Published <b>{{.Published}}</b></span>{{end}}
     </div>
   </div>
+  <div class="d-actions">
+    <span class="d-seg" role="group" aria-label="Version">{{range .Versions}}<a href="/plugins/{{$.Name}}/{{.Version}}"{{if .Current}} aria-current="true"{{end}}>{{.Version}}</a>{{end}}</span>
+    {{if .Source}}<a class="d-btn" href="{{.Source}}" target="_blank" rel="noopener noreferrer">Source ↗</a>{{end}}
+  </div>
+</div>
 
-  {{if gt (len .Versions) 1}}
-  <div role="tablist" class="tabs tabs-lifted font-mono text-sm">
-    {{range .Versions}}
-    <a role="tab" href="/plugins/{{$.Name}}/{{.}}" class="tab {{if eq . $.Version}}tab-active tab-primary font-semibold{{end}}">{{.}}</a>
+<div class="d-cols">
+  <section>
+    {{if .SchemaFields}}
+    <div class="d-panel d-table-wrap">
+      <div class="d-panel-head">
+        <span class="d-label">Config schema · <code>with:</code></span>
+        <span class="d-spacer"></span>
+        <span class="d-label">{{.RequiredCount}} required · {{.OptionalCount}} optional</span>
+      </div>
+      <table class="d-table schema">
+        <thead><tr><th>Field</th><th>Type</th><th></th><th>Description</th></tr></thead>
+        <tbody>
+        {{range .SchemaFields}}
+          <tr>
+            <td class="f">{{.Name}}</td>
+            <td class="t">{{.Type}}</td>
+            <td class="r">{{if .Required}}{{template "d-tag" (tag "warn" "required")}}{{else}}{{template "d-tag" (tag "quiet" "optional")}}{{end}}</td>
+            <td class="d">{{.Description}}{{if .Default}}{{if .Description}} {{end}}Default <code>{{.Default}}</code>.{{end}}</td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+    {{template "d-empty" (empty "No config schema" (printf "Version %s of %s didn't publish a config schema." .Version .Name))}}
     {{end}}
-  </div>
-  {{end}}
+  </section>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="flex flex-col gap-3">
-      <h2 class="font-display text-base font-semibold">Config schema <span class="text-base-content/40 font-normal font-mono text-xs">with:</span></h2>
-      {{if .SchemaFields}}
-      <div class="overflow-x-auto border border-base-300 bg-base-200">
-        <table class="table">
-          <thead>
-            <tr class="font-mono text-xs uppercase tracking-wider text-base-content/45 border-base-300">
-              <th>Field</th><th>Type</th><th>Required</th>
-            </tr>
-          </thead>
-          <tbody>
-          {{range .SchemaFields}}
-            <tr class="border-base-300">
-              <td class="font-mono text-sm text-primary">{{.Name}}</td>
-              <td class="font-mono text-sm text-base-content/70">{{.Type}}</td>
-              <td>{{if .Required}}<span class="badge badge-warning badge-sm font-mono">required</span>{{else}}<span class="text-base-content/35 font-mono text-xs">optional</span>{{end}}</td>
-            </tr>
-          {{end}}
-          </tbody>
-        </table>
-      </div>
-      {{else}}
-      <p class="text-base-content/50 text-sm">Version {{.Version}} of {{.Name}} didn't publish a config schema.</p>
-      {{end}}
+  <aside>
+    <div class="d-panel">
+      <div class="d-panel-head"><span class="d-label">Use it in a workflow</span><span class="d-spacer"></span><button class="d-btn d-btn--sm" type="button" data-copy="#snippet">Copy</button></div>
+      {{template "d-code" (panelcode "yaml" "snippet" .UsesSnippet)}}
     </div>
-
-    <div class="flex flex-col gap-3">
-      <h2 class="font-display text-base font-semibold">Use it in a workflow</h2>
-      <div class="mockup-code bg-base-300 text-sm">
-        <pre data-prefix="" class="whitespace-pre-wrap"><code class="font-mono">{{.UsesSnippet}}</code></pre>
+    <div class="d-panel">
+      <div class="d-panel-head"><span class="d-label">Versions</span></div>
+      <div class="d-list">
+        {{range .Versions}}<a class="d-list-row" href="/plugins/{{$.Name}}/{{.Version}}"{{if .Current}} aria-current="true"{{end}}>{{if .Current}}{{template "d-tag" (tag "primary" .Version)}}{{else}}{{template "d-tag" (tag "quiet" .Version)}}{{end}}{{if .Current}}current{{end}}<span class="d-spacer"></span><small>{{.Published}}</small></a>{{end}}
       </div>
     </div>
-  </div>
+  </aside>
 </div>
 {{end}}

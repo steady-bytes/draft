@@ -1,0 +1,27 @@
+service:
+  name: crud-audit
+  domain: examples
+  env: local
+  entrypoint: http://localhost:2221
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9099
+    internal:
+      host: localhost
+      port: 9099
+    external:
+      host: localhost:10000
+
+telemetry:
+  enabled: true
+  wide_events:
+    enabled: true
+
+# catalyst.address is where this service opens its standing Consume subscription for
+# examples.crud.v1.ModelEvent (see main.go) -- same config key and default
+# (http://localhost:2220) every other Catalyst client in this repo uses.
+catalyst:
+  address: http://localhost:2220

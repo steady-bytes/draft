@@ -1,51 +1,34 @@
-{{define "title"}}Bench — {{.Name}}{{end}}
 {{define "content"}}
-<div class="flex flex-col gap-8">
+<div class="d-page-head">
   <div>
-    <div class="breadcrumbs text-xs font-mono text-base-content/40">
-      <ul><li><a href="/workflows" class="hover:text-primary">workflows</a></li><li>{{.Name}}</li></ul>
-    </div>
-    <div class="flex items-start justify-between flex-wrap gap-4 mt-2">
-      <div>
-        <h1 class="font-display text-3xl font-bold tracking-tight">{{.Name}}</h1>
-        {{if .Description}}<p class="text-base-content/60 mt-1 max-w-xl">{{.Description}}</p>{{end}}
-        {{if .WebhookSlug}}<p class="font-mono text-xs text-primary/70 mt-2">POST /webhooks/{{.WebhookSlug}}</p>{{end}}
-      </div>
-      <div class="flex items-center gap-2">
-        <a href="/workflows/{{.Name}}/edit" class="btn btn-ghost font-display btn-sm">Edit</a>
-        <form method="POST" action="/workflows/{{.Name}}/delete" onsubmit="return confirm('Delete {{.Name}}? Its run history is kept, but the definition is gone.');">
-          <button type="submit" class="btn btn-ghost font-display btn-sm text-error">Delete</button>
-        </form>
-        <form method="POST" action="/workflows/{{.Name}}/run">
-          <button type="submit" class="btn btn-primary font-display btn-sm">Run now</button>
-        </form>
-      </div>
+    <span class="d-label">Workflow</span>
+    <h1>{{.Name}}</h1>
+    {{if .Description}}<p>{{.Description}}</p>{{end}}
+    <div class="d-meta">
+      <span>Steps <b>{{.Steps}}</b></span>
+      {{if .WebhookSlug}}<span>Webhook <b>POST /webhooks/{{.WebhookSlug}}</b></span>{{else}}<span>Trigger <b>manual</b></span>{{end}}
     </div>
   </div>
-
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="flex flex-col gap-3">
-      <h2 class="font-display text-base font-semibold">Definition</h2>
-      <pre class="font-mono text-sm bg-base-300 rounded p-4 overflow-x-auto whitespace-pre-wrap break-words">{{.YAML}}</pre>
-    </div>
-
-    <div class="flex flex-col gap-3">
-      <h2 class="font-display text-base font-semibold">Run history</h2>
-      {{if not .Runs}}
-      <p class="text-base-content/50 text-sm">No runs yet.</p>
-      {{else}}
-      <div class="flex flex-col divide-y divide-base-300 border border-base-300 bg-base-200 rounded-box overflow-hidden">
-        {{range .Runs}}
-        <a href="/runs/{{.RunID}}" class="flex items-center gap-3 px-4 py-3 hover:bg-base-300/50 transition-colors">
-          <span class="signal {{.SignalClass}}"></span>
-          <span class="font-mono text-xs text-base-content/40 flex-1">{{.StartedAt}}</span>
-          <span class="font-mono text-xs text-base-content/60">{{.Status}}</span>
-          <span class="font-mono text-xs text-base-content/40 w-16 text-right">{{.Duration}}</span>
-        </a>
-        {{end}}
-      </div>
-      {{end}}
-    </div>
+  <div class="d-actions">
+    <a class="d-btn" href="/workflows/{{.Name}}/edit">Edit</a>
+    <form method="post" action="/workflows/{{.Name}}/delete" data-confirm="Delete {{.Name}}? Its run history is kept, but the definition is gone."><button class="d-btn d-btn--danger" type="submit">Delete</button></form>
+    <form method="post" action="/workflows/{{.Name}}/run"><button class="d-btn d-btn--primary" type="submit">Run now</button></form>
   </div>
+</div>
+
+<div class="d-cols d-cols--wide">
+  <section>
+    <div class="d-panel">
+      <div class="d-panel-head"><span class="d-label">Definition</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm" type="button" data-copy="#definition">Copy</button></div>
+      {{template "d-code" (panelcode "yaml" "definition" .YAML)}}
+    </div>
+  </section>
+  <aside>
+    {{if .Runs.Rows}}<div class="d-panel d-panel-body">
+      <div class="d-row"><span class="d-label">Last 12 runs</span><span class="d-spacer"></span><span class="d-label">{{.HistoryPassed}}</span></div>
+      {{template "d-strip" .History}}
+    </div>{{end}}
+    {{template "runs-table" .Runs}}
+  </aside>
 </div>
 {{end}}

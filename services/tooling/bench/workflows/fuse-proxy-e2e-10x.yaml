@@ -27,7 +27,7 @@ steps:
             prefix: /examples.echo.v1.EchoService/Speak
             match_type: MATCH_TYPE_EXACT
           endpoint:
-            host: host.docker.internal
+            host: localhost
             port: 9091
     expect:
       status: OK

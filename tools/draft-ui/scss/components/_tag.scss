@@ -1,0 +1,72 @@
+@use "../abstracts/tokens" as t;
+@use "../abstracts/mixins" as m;
+
+// Tags — outlined chips in a meaning colour.
+.d-tag {
+  --c: var(--dim);
+  @include m.label-voice(10.5px, 0.06em);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid color-mix(in oklab, var(--c) 45%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--c) 9%, transparent);
+  color: var(--c);
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+
+  @each $tone in t.$tones {
+    &--#{$tone} {
+      --c: var(--#{$tone});
+    }
+  }
+
+  // Quiet: neutral by design. The border and wash use the decorative tone; the text stays --dim.
+  &--quiet {
+    --c: var(--dimmer);
+    color: var(--dim);
+  }
+
+  &--solid {
+    background: var(--c);
+    border-color: var(--c);
+    color: var(--bg);
+  }
+
+  &--lg {
+    height: 24px;
+    font-size: 11px;
+  }
+}
+
+// Kind glyph colours (Ca, Bp, Fs, Sv, primary) — same modifiers as tags, generated once.
+@each $tone in t.$tones {
+  .d-glyph--#{$tone} {
+    --c: var(--#{$tone});
+  }
+}
+
+// A link styled like a tag (e.g. a trace-id pill in a log row).
+.d-tracelink {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in oklab, var(--ca) 40%, transparent);
+  border-radius: var(--radius);
+  color: var(--ca);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-decoration: none;
+  // Also used on a <button> (an in-app hand-off rather than a navigation).
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in oklab, var(--ca) 12%, transparent);
+    text-decoration: none;
+  }
+}

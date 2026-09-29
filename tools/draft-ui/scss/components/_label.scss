@@ -1,0 +1,26 @@
+@use "../abstracts/mixins" as m;
+
+// The all-caps monospace voice used for every heading-like label.
+.d-label {
+  @include m.label;
+}
+
+// Wordmark: {draft} — the braces take the primary colour.
+.d-wordmark {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  white-space: nowrap;
+
+  b {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  small {
+    margin-left: 8px;
+    @include m.label;
+  }
+}

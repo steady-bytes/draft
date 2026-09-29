@@ -62,7 +62,8 @@ type (
 		Query(ctx context.Context, log chassis.Logger) (map[string]*sdv1.Process, error)
 		Reap(ctx context.Context, log chassis.Logger)
 
-		Subscribe() (string, <-chan *ProcessEvent)
+		Subscribe() (string, <-chan struct{})
+		Drain(id string) []*ProcessEvent
 		Unsubscribe(id string)
 
 		GetClusterDetails() *sdv1.ClusterDetails
@@ -86,8 +87,12 @@ func NewController(kvController kv.Controller, raftController chassis.RaftContro
 	}
 }
 
-func (c *controller) Subscribe() (string, <-chan *ProcessEvent) {
+func (c *controller) Subscribe() (string, <-chan struct{}) {
 	return c.broadcaster.Subscribe()
+}
+
+func (c *controller) Drain(id string) []*ProcessEvent {
+	return c.broadcaster.Drain(id)
 }
 
 func (c *controller) Unsubscribe(id string) {

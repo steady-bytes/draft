@@ -1,0 +1,47 @@
+@use "sass:map";
+@use "../abstracts/tokens" as t;
+
+// Emits a token map as CSS custom properties.
+@mixin emit($map) {
+  @each $name, $value in $map {
+    --#{$name}: #{$value};
+  }
+}
+
+// 1. Dark (default) ---------------------------------------------------------------------------
+:root,
+[data-theme="draft"] {
+  color-scheme: dark;
+
+  // Primary is swatchable: set --primary-base on :root (or any element).
+  --primary-base: #{t.$primary-default};
+  --primary: var(--primary-base);
+  --primary-soft: color-mix(in oklab, var(--primary) 14%, transparent); // tinted fills
+
+  @include emit(t.$dark);
+
+  --info: var(--ca);
+  --ok: var(--primary);
+
+  --font-mono: #{t.$font-mono};
+  --font-sans: #{t.$font-sans};
+
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 16px;
+  --fs-lg: 24px;
+
+  --radius: 2px;
+  --bracket: 8px;
+  --row: 34px;
+}
+
+// 2. Light --------------------------------------------------------------------------------------
+[data-theme="draft-light"] {
+  color-scheme: light;
+
+  --primary: color-mix(in oklab, var(--primary-base) #{t.$light-primary-mix}, #000);
+  --primary-soft: color-mix(in oklab, var(--primary) 10%, transparent);
+
+  @include emit(t.$light);
+}

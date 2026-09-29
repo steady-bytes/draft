@@ -1,104 +1,93 @@
 package broker
 
 import (
-	"context"
-	"encoding/base64"
 	"sync"
 
-	"connectrpc.com/connect"
 	acv1 "github.com/steady-bytes/draft/api/core/message_broker/actors/v1"
 )
 
+// subChanCapacity buffers a consumer's own delivery channel so a brief pause (a slow network
+// write, a GC pause) doesn't drop a message that would have been delivered a moment later —
+// matching observerRegistry's own QueryStream subscriber channels (controller.go) at the same
+// size.
+const subChanCapacity = 64
+
 type (
+	// consumerSub is one open Consume stream's own delivery channel, and the event type it
+	// declared when it registered. An empty eventType is a wildcard — every event reaches it,
+	// matching a debug/catch-all consumer such as `dctl broker consume` run with no --type flag.
+	consumerSub struct {
+		eventType string
+		ch        chan *acv1.CloudEvent
+	}
+
+	// atomicMap holds the live Consume subscriptions Broadcast delivers into, plus the
+	// (event_type → consumer source names) bookkeeping GetTopology reads. The two are unrelated:
+	// the subscriptions below are what a message is actually delivered to; registrations is purely
+	// descriptive, keyed by each consumer's own declared identity.
 	atomicMap struct {
-		mu sync.RWMutex
-		// Store the routine client connection
-		m map[string][]*connect.ServerStream[acv1.ConsumeResponse]
-		// yield the client connection to a thread, and then send events to it
-		n map[string]chan *acv1.CloudEvent
-		// registrations maps event_type → []consumer_source_names for topology tracking
+		mu      sync.RWMutex
+		subs    map[uint64]*consumerSub
+		counter uint64
+
 		registrations map[string][]string
 	}
 )
 
 func newAtomicMap() *atomicMap {
 	return &atomicMap{
-		mu:            sync.RWMutex{},
-		m:             make(map[string][]*connect.ServerStream[acv1.ConsumeResponse]),
-		n:             make(map[string]chan *acv1.CloudEvent),
+		subs:          make(map[uint64]*consumerSub),
 		registrations: make(map[string][]string),
 	}
 }
 
-// hash to calculate the same key for two strings
-func (am *atomicMap) hash(msgKindName string) string {
-	bs := []byte(msgKindName)
-	return base64.StdEncoding.EncodeToString(bs)
-}
-
-func (am *atomicMap) Insert(key string, resStream *connect.ServerStream[acv1.ConsumeResponse]) {
+// Subscribe registers a new consumer for eventType (empty = every type) and returns its own
+// delivery channel, plus the id to Unsubscribe it with once the consumer disconnects.
+func (am *atomicMap) Subscribe(eventType string) (uint64, chan *acv1.CloudEvent) {
+	ch := make(chan *acv1.CloudEvent, subChanCapacity)
 	am.mu.Lock()
-	defer am.mu.Unlock()
-	am.m[key] = append(am.m[key], resStream)
+	id := am.counter
+	am.counter++
+	am.subs[id] = &consumerSub{eventType: eventType, ch: ch}
+	am.mu.Unlock()
+	return id, ch
 }
 
-func (am *atomicMap) Broker(ctx context.Context, key string, resStream *connect.ServerStream[acv1.ConsumeResponse]) {
+// Unsubscribe removes one consumer's delivery channel. Idempotent — safe to call once a consumer
+// has already been removed (or was never added).
+func (am *atomicMap) Unsubscribe(id uint64) {
+	am.mu.Lock()
+	delete(am.subs, id)
+	am.mu.Unlock()
+}
+
+// Broadcast delivers msg to every consumer subscribed to msg.GetType(), plus every wildcard
+// consumer (declared with an empty type) — see this method's own history for why "every", not
+// "one": until 2026-09-27 this delivered to exactly one arbitrarily-chosen subscriber per message,
+// not every interested one (docs/website/content/docs/architecture/core-services.md's "Known
+// issues" documented it; see that section's git history for the original writeup). The two bugs
+// combining to cause it are both gone now: routing used to key on the CloudEvent envelope's own Go
+// type name (always the same value, "CloudEvent", for every message regardless of its actual
+// `.Type`), collapsing every producer and consumer in the cluster onto one shared bucket; and that
+// bucket delivered through one shared, unbuffered channel read by every open Consume stream's own
+// forwarding goroutine, so a single `ch <- msg` was received by whichever goroutine happened to be
+// ready first — not fanned out to the rest. Each subscriber now has its own buffered channel (see
+// Subscribe), so a message reaches every one of them independently. A slow or stalled consumer is
+// skipped rather than blocking the producer loop or the other consumers, the same non-blocking-drop
+// discipline observerRegistry.broadcast already uses for QueryStream subscribers, just above.
+func (am *atomicMap) Broadcast(msg *acv1.CloudEvent) {
+	typ := msg.GetType()
 	am.mu.RLock()
-	ch, found := am.n[key]
-	if !found {
-		// create the channel to add to map
-		ch := make(chan *acv1.CloudEvent)
-		// store channel in map for future connections
-		am.mu.RUnlock()
-		am.mu.Lock()
-		am.n[key] = ch
-		am.mu.Unlock()
-		// now start a new routine and keep it open as long as the `ch` channel has connected clients
-		go am.send(ctx, ch, resStream)
-
-		return
-	} else {
-		// the channel is already made and shared with other consumers, and producers so we can just use `ch`
-		go am.send(ctx, ch, resStream)
-		am.mu.RUnlock()
-	}
-}
-
-func (am *atomicMap) send(ctx context.Context, ch chan *acv1.CloudEvent, stream *connect.ServerStream[acv1.ConsumeResponse]) {
-	for {
+	defer am.mu.RUnlock()
+	for _, sub := range am.subs {
+		if sub.eventType != "" && sub.eventType != typ {
+			continue
+		}
 		select {
-		case <-ctx.Done():
-			return
-		case m := <-ch:
-			if err := stream.Send(&acv1.ConsumeResponse{Message: m}); err != nil {
-				return
-			}
+		case sub.ch <- msg:
+		default:
 		}
 	}
-}
-
-// Broadcast is misnamed as of 2026-08-23 -- see "Known issues" under Catalyst in
-// docs/website/content/docs/architecture/core-services.md for the full writeup.
-// Short version: key (built by controller.go via am.hash(descriptorName)) is
-// always the same value for every event, since it hashes the *CloudEvent Go
-// struct's own proto type name, not the event's .Type field -- so every
-// producer/consumer in the cluster shares one bucket in am.n regardless of
-// declared event type. And that one shared channel is unbuffered, read by every
-// open Consume stream's am.send goroutine, so a single `ch <- msg` here is
-// received by exactly one of them (first ready wins), not all of them. With
-// more than one Consume stream open concurrently, each event reaches exactly
-// one subscriber, not every interested one, despite the name. Fixing this needs
-// keying on msg.GetType() (not the envelope's own descriptor name) and
-// per-consumer delivery instead of one shared channel.
-func (am *atomicMap) Broadcast(key string, msg *acv1.CloudEvent) {
-	am.mu.RLock()
-	ch, ok := am.n[key]
-	am.mu.RUnlock()
-	if ok {
-		ch <- msg
-	}
-	// No consumers registered for this key — drop silently.
-	// TODO: consider a dead-letter queue.
 }
 
 // AddRegistration records that source is subscribed to eventType.

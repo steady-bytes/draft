@@ -1,0 +1,78 @@
+{{/*
+run_fragment.html defines the run page's swappable body and the pieces around it:
+
+  - "run-detail-fragment": the whole run (head, progress, timeline, side panels), parsed with the
+    shell as runTemplate for a normal page load and alone as runFragmentTemplate for the poll.
+    While the run is in flight (runFragment.Polling) its wrapping div carries the
+    hx-get/hx-trigger that re-fetches and replaces itself every 2s — and, critically, *stops* on its
+    own: once a poll response reflects a terminal status, the freshly swapped-in div carries no
+    hx-trigger at all, so htmx has nothing left to re-fire. No separate "stop polling" signal is
+    needed; the fragment's own content decides whether it keeps polling.
+  - "run-response": what the poll endpoint returns — the fragment plus out-of-band updates for the
+    topbar pill and the status bar, which live outside the swapped div.
+*/}}
+{{define "step"}}<div class="d-step{{.StateClass}}">
+  <div class="d-step-head"><span class="d-step-no">{{printf "%02d" .No}}</span><span class="d-step-name">{{.Name}}</span>{{with .Uses}}<span class="d-step-uses">{{.}}</span>{{end}}<span class="d-spacer"></span><span class="d-step-dur">{{.Duration}}</span></div>
+  {{if .Failed}}
+  <div class="d-panel d-fail">
+    {{if .Error}}<div class="d-fail-err">{{.Error}}</div>{{end}}
+    {{if .HasIO}}<div class="d-fail-cols">
+      <div><span class="d-label">Request</span>{{if .Request}}{{template "d-code" (panelcode "json" "" .Request)}}{{else}}<p class="d-note">Nothing was sent.</p>{{end}}</div>
+      <div><span class="d-label">Response</span>{{if .Response}}{{template "d-code" (panelcode "json" "" .Response)}}{{else}}<p class="d-note">No response.</p>{{end}}</div>
+    </div>{{end}}
+  </div>
+  {{if .Detail}}<details class="d-step-more"><summary>Executor detail</summary>{{template "d-code" (code "json" .Detail)}}</details>{{end}}
+  {{else if .HasDiagnostics}}
+  <details class="d-step-more"><summary>Troubleshooting detail</summary>
+    {{if .Request}}<span class="d-label">Request</span>{{template "d-code" (code "json" .Request)}}{{end}}
+    {{if .Response}}<span class="d-label">Response</span>{{template "d-code" (code "json" .Response)}}{{end}}
+    {{if .Detail}}<span class="d-label">Detail</span>{{template "d-code" (code "json" .Detail)}}{{end}}
+  </details>
+  {{else if .Error}}<div class="d-fail-err" style="margin-left:50px">{{.Error}}</div>{{end}}
+</div>{{end}}
+
+{{define "run-detail-fragment"}}<div id="run-detail"{{if .Polling}} hx-get="/partials/runs/{{.RunID}}" hx-trigger="every 2s" hx-swap="outerHTML"{{end}}>
+  <div class="d-page-head">
+    <div>
+      <span class="d-label">{{.Label}}</span>
+      <h1>{{.Workflow}}</h1>
+      <div class="d-meta"><span>Started <b>{{.Started}}</b></span><span>Duration <b>{{.Duration}}</b></span>{{if .StepSummary}}<span>Steps <b>{{.StepSummary}}</b></span>{{end}}</div>
+    </div>
+    <div class="d-actions">
+      {{template "d-tag" .Status}}
+      {{if .HasWorkflow}}<a class="d-btn" href="/workflows/{{.Workflow}}">Definition</a>
+      <form method="post" action="/workflows/{{.Workflow}}/run"><button class="d-btn d-btn--primary" type="submit">Re-run</button></form>{{end}}
+    </div>
+  </div>
+
+  {{template "d-strip" .Progress}}
+
+  <div class="d-cols">
+    <section>
+      <div class="d-trace">
+        {{range .Timeline}}{{if .Group}}
+        <details class="d-step is-group{{if .Skipped}} is-skip{{end}}">
+          <summary class="d-step-head"><span class="d-step-no">{{.Range}}</span><span class="d-step-name">{{.Names}} · {{.Summary}}</span><span class="d-spacer"></span><span class="d-step-toggle" aria-hidden="true"><span class="is-closed">Expand</span><span class="is-open">Collapse</span></span><span class="d-step-dur">{{.Duration}}</span></summary>
+          {{range .Steps}}{{template "step" .}}{{end}}
+        </details>
+        {{else}}{{template "step" .Step}}{{end}}{{end}}
+      </div>
+    </section>
+
+    <aside>
+      {{if .History.Cells}}<div class="d-panel d-panel-body">
+        <div class="d-row"><span class="d-label">Last 12 runs</span><span class="d-spacer"></span><span class="d-label">{{.HistoryPassed}}</span></div>
+        {{template "d-strip" .History}}
+        {{with .LastPass}}<p class="d-note">{{.Key}} <a href="{{.Href}}">{{.Value}}</a>.</p>{{end}}
+      </div>{{end}}
+      <div class="d-panel d-panel-body">
+        <span class="d-label">Run</span>
+        <dl class="d-kv">{{range .Run}}<dt>{{.Key}}</dt><dd>{{if .Href}}<a href="{{.Href}}">{{.Value}}</a>{{else}}{{.Value}}{{end}}</dd>{{end}}</dl>
+      </div>
+    </aside>
+  </div>
+</div>{{end}}
+
+{{define "run-oob"}}{{with .Pill}}<span id="d-status" class="d-status{{with .Class}} {{.}}{{end}}{{if .Live}} d-status--live{{end}}" hx-swap-oob="true">{{.Text}}</span>{{end}}<b id="run-finished" hx-swap-oob="true">{{.Finished}}</b><b id="run-polling" hx-swap-oob="true">{{if .Polling}}on · every 2s{{else}}off · run finished{{end}}</b>{{end}}
+
+{{define "run-response"}}{{template "run-detail-fragment" .}}{{template "run-oob" .}}{{end}}

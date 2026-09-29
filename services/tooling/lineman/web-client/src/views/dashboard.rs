@@ -1,59 +1,92 @@
 use dioxus::prelude::*;
-use draft_api::hook::tooling_lineman_v1::use_lineman_service_service;
-use draft_api::proto::tooling_lineman_v1::ListObjectivesRequest;
+use draft_ui::data::{Progress, ProgressSegment, StatTile};
+use draft_ui::layout::PageHead;
+use draft_ui::shell::use_page_chrome;
+use draft_ui::ui::{Btn, BtnVariant, Empty, Loading, RouteLink, Tag};
+use draft_ui::Tone;
 
-use crate::Route;
+use crate::components::format_date;
+use crate::rail::use_rail;
+use crate::state::Summary;
 
-/// Page 1 -- Dashboard. A simple HUD listing every objective, per idea.md
-/// ("basic metrics of tasks being completed for objectives and objectives
-/// that are in flight").
+/// Every objective at a glance: totals, then one card per objective with its progress.
 #[component]
 pub fn Dashboard() -> Element {
-    let service = use_lineman_service_service();
-    let req = use_signal(ListObjectivesRequest::default);
-    let result = service.list_objectives(req);
+    let rail = use_rail();
+    use_page_chrome(move || rail.chrome(&["Lineman", "Overview"]));
+
+    let snapshot = rail.get();
 
     rsx! {
-        div { class: "flex flex-col gap-4",
-            div { class: "flex items-center justify-between",
-                h1 { class: "text-2xl font-bold", "Objectives" }
-                Link { to: Route::CreateObjective {}, class: "btn btn-primary btn-sm", "+ Create Objective" }
-            }
+        PageHead {
+            title: "Objectives".to_string(),
+            eyebrow: "Overview".to_string(),
+            description: "Every objective and how far along its tasks are.".to_string(),
+            actions: rsx! {
+                Btn { variant: BtnVariant::Primary, to: "/objectives/new".to_string(), "+ New objective" }
+            },
+        }
 
-            match &*result.read() {
-                Some(Ok(resp)) if !resp.objectives.is_empty() => rsx! {
-                    div { class: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4",
-                        for obj in resp.objectives.clone() {
-                            Link {
-                                key: "{obj.id}",
-                                to: Route::ObjectiveDetail { id: obj.id.clone() },
-                                class: "card bg-base-200 border border-base-300 shadow-sm hover:border-info/50",
-                                div { class: "card-body p-4 gap-1",
-                                    h3 { class: "card-title text-base", "{obj.name}" }
-                                    p { class: "text-sm text-base-content/70", "{obj.description}" }
-                                    div { class: "flex gap-1 flex-wrap mt-1",
-                                        for state in obj.states.clone() {
-                                            span { key: "{state}", class: "badge badge-ghost badge-xs", "{state}" }
-                                        }
-                                    }
-                                }
-                            }
+        match snapshot {
+            None => rsx! { Loading {} },
+            Some(s) if s.objectives.is_empty() => rsx! {
+                Empty { title: "No objectives yet".to_string(),
+                    "Create one to start tracking tasks and the agents working them."
+                }
+            },
+            Some(s) => {
+                let total: u32 = s.objectives.iter().map(|o| o.total).sum();
+                let open: u32 = s.objectives.iter().map(|o| o.queued + o.in_flight).sum();
+                let in_flight: u32 = s.objectives.iter().map(|o| o.in_flight).sum();
+                let done: u32 = s.objectives.iter().map(|o| o.done).sum();
+                rsx! {
+                    div { class: "d-stats",
+                        StatTile { label: "Objectives".to_string(), value: s.objectives.len().to_string() }
+                        StatTile { label: "Open tasks".to_string(), value: open.to_string(), unit: format!("/ {total}") }
+                        StatTile { label: "In flight".to_string(), value: in_flight.to_string() }
+                        StatTile { label: "Done".to_string(), value: done.to_string() }
+                    }
+                    div { class: "d-card-grid", style: "margin-top:20px",
+                        for o in s.objectives {
+                            ObjectiveCard { key: "{o.id}", summary: o }
                         }
                     }
-                },
-                Some(Ok(_)) => rsx! {
-                    div { class: "text-center text-base-content/50 py-12",
-                        "No objectives yet. "
-                        Link { to: Route::CreateObjective {}, class: "link", "Create one" }
-                        "."
-                    }
-                },
-                Some(Err(err)) => rsx! {
-                    div { class: "text-error text-sm", "Failed to load objectives: {err}" }
-                },
-                None => rsx! {
-                    div { class: "text-base-content/50 text-sm", "Loading…" }
-                },
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn ObjectiveCard(summary: Summary) -> Element {
+    let (done, in_flight, queued) = summary.percents();
+    let segments = vec![
+        ProgressSegment::new(Tone::Primary, done),
+        ProgressSegment::new(Tone::Ca, in_flight),
+        ProgressSegment::new(Tone::Quiet, queued),
+    ];
+    let label = format!("{} done, {} in flight, {} queued", summary.done, summary.in_flight, summary.queued);
+    let created = format_date(summary.created_at);
+    let counts = format!("{} done · {} in flight · {} queued", summary.done, summary.in_flight, summary.queued);
+    let to = format!("/objectives/{}", summary.id);
+    rsx! {
+        RouteLink { to, class: "d-panel d-card d-card--link".to_string(),
+            div { class: "d-card-meta",
+                Tag { "{summary.total} tasks" }
+                span { class: "d-spacer" }
+                span { "{created}" }
+            }
+            div { class: "d-card-title", style: "font-family:var(--font-mono);font-weight:600", "{summary.name}" }
+            if !summary.description.is_empty() {
+                p { style: "margin:0;color:var(--dim)", "{summary.description}" }
+            }
+            Progress { segments, label }
+            div { class: "d-card-meta",
+                span { "{counts}" }
+                span { class: "d-spacer" }
+                if summary.high_open > 0 {
+                    Tag { tone: Tone::Err, "{summary.high_open} high" }
+                }
             }
         }
     }

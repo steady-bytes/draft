@@ -1,0 +1,36 @@
+/* Lineman-only styles: the pieces of the objective view that no other Draft app uses. Everything
+   else comes from the shared design system (draft-ui). */
+
+/* Progress and counts under an objective's title. */
+.ob-progress { margin: 18px 0 8px; }
+.ob-stats { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 10px; }
+.ob-stats div { display: grid; gap: 2px; }
+.ob-stats b { font-family: var(--font-mono); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.ob-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 24px 0 16px; }
+.ob-bar .d-input { width: 240px; max-width: 100%; }
+
+/* The loop card's title: the description is quiet, the name is not. */
+.loop-card .d-card-title { color: var(--dim); }
+
+/* A card's "Move to…" button sits in the meta row. */
+.ob-card-menu { position: relative; }
+
+/* Automation panels under the board. */
+.ob-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 32px; }
+.ob-auto small { white-space: nowrap; }
+
+/* Task detail: the main column and a narrow metadata column that stacks on small screens. */
+.td-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; margin-top: 8px; }
+.td-main { display: grid; gap: 20px; min-width: 0; }
+.td-block { padding: 14px 16px; }
+.td-details { white-space: pre-wrap; font-size: 13.5px; line-height: 1.6; }
+.td-needs { display: grid; gap: 12px; }
+.td-question { margin: 0; }
+.td-answers { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 900px) { .td-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* Create-objective form and the two-up rows inside create modals. */
+.form-panel { display: grid; gap: 16px; max-width: 560px; padding: 20px; }
+.form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }

@@ -1,0 +1,156 @@
+html:root {
+  --primary: #306f4f;
+  --primary-hsl: 150, 40%, 31%;
+  --primary-50: #eef3f1;
+  --primary-50-hsl: 156, 17%, 94%;
+  --primary-100: #dae5df;
+  --primary-100-hsl: 147, 17%, 88%;
+  --primary-200: #b7cdc1;
+  --primary-200-hsl: 147, 18%, 76%;
+  --primary-300: #83a995;
+  --primary-300-hsl: 148, 18%, 59%;
+  --primary-400: #55896f;
+  --primary-400-hsl: 150, 23%, 44%;
+  --primary-800: #122a1e;
+  --primary-800-hsl: 150, 40%, 12%;
+  --body-bg: #f3f5f7;
+  --text-default: #111820;
+  --text-default-inv: #f3f5f7;
+  --text-muted: #56636f;
+  --dark: #0a0d10;
+  --dark-alt: #0e1318;
+  --dark-secondary: #121920;
+  --link-color: #306f4f;
+  --sidebar-bg: #f3f5f7;
+  --top-header-bg: rgba(255, 255, 255, 0.88);
+  --sidebar-border-color: #dde2e7;
+  --sidebar-text-color: #56636f;
+  --sidebar-primary: #306f4f;
+  --sidebar-menu-active-bg: #eaeef2;
+  --sidebar-dropdown-hover-bg: #f6f8fa;
+  --sidebar-icon-bg: #eaeef2;
+  --sidebar-scrollbar-thumb-color: #c3cbd3;
+  --icon-color: #56636f;
+  --card-border-color: #c3cbd3;
+  --card-border-hover-color: #306f4f;
+  --btn-soft-color: #56636f;
+  --btn-soft-border: #c3cbd3;
+  --btn-primary-color: #306f4f;
+  --btn-primary-border: #c3cbd3;
+  --btn-default-color: #111820;
+  --btn-default-hover-color: #306f4f;
+  --prism-code-bg: #f6f8fa;
+  --prism-code-scrollbar-thumb-color: #c3cbd3;
+  --draft-code-ink: #111820;
+  --draft-code-dim: #56636f;
+  --draft-code-key: #1a63bd;
+  --draft-code-str: #306f4f;
+  --draft-code-num: #9a5508;
+  --draft-code-fn: #7447d6;
+  --draft-code-err: #bd2f2f;
+  color-scheme: light;
+}
+
+html[data-dark-mode] {
+  --primary: #4db380;
+  --primary-hsl: 150, 40%, 50%;
+  --primary-50: #f1f9f5;
+  --primary-50-hsl: 150, 40%, 96%;
+  --primary-100: #dff1e8;
+  --primary-100-hsl: 150, 39%, 91%;
+  --primary-200: #c1e4d3;
+  --primary-200-hsl: 151, 39%, 83%;
+  --primary-300: #94d1b3;
+  --primary-300-hsl: 150, 40%, 70%;
+  --primary-400: #6dc197;
+  --primary-400-hsl: 150, 40%, 59%;
+  --primary-800: #1d4431;
+  --primary-800-hsl: 151, 40%, 19%;
+  --body-bg: #0a0d10;
+  --text-default: #d7e0e8;
+  --text-default-inv: #0a0d10;
+  --text-muted: #8795a2;
+  --dark: #0a0d10;
+  --dark-alt: #0e1318;
+  --dark-secondary: #121920;
+  --link-color: #4db380;
+  --sidebar-bg: #0a0d10;
+  --top-header-bg: rgba(14, 19, 24, 0.88);
+  --sidebar-border-color: #1d262f;
+  --sidebar-text-color: #8795a2;
+  --sidebar-primary: #4db380;
+  --sidebar-menu-active-bg: #18212a;
+  --sidebar-dropdown-hover-bg: #121920;
+  --sidebar-icon-bg: #18212a;
+  --sidebar-scrollbar-thumb-color: #2b3641;
+  --icon-color: #8795a2;
+  --card-border-color: #2b3641;
+  --card-border-hover-color: #4db380;
+  --btn-soft-color: #8795a2;
+  --btn-soft-border: #2b3641;
+  --btn-primary-color: #4db380;
+  --btn-primary-border: #2b3641;
+  --btn-default-color: #d7e0e8;
+  --btn-default-hover-color: #4db380;
+  --prism-code-bg: #121920;
+  --prism-code-scrollbar-thumb-color: #2b3641;
+  --draft-code-ink: #d7e0e8;
+  --draft-code-dim: #8795a2;
+  --draft-code-key: #58a6ff;
+  --draft-code-str: #4db380;
+  --draft-code-num: #ffb454;
+  --draft-code-fn: #b48cff;
+  --draft-code-err: #ff6b6b;
+  color-scheme: dark;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/draft/fonts/inter-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/draft/fonts/jetbrains-mono-latin.woff2") format("woff2");
+}
+html code[class*=language-],
+html pre[class*=language-] {
+  color: var(--draft-code-ink) !important;
+  background: var(--prism-code-bg) !important;
+  border: 1px solid var(--sidebar-border-color);
+}
+
+html pre[class*=language-] {
+  border-radius: 2px;
+}
+
+html :not(pre) > code[class*=language-] {
+  background: var(--prism-code-bg) !important;
+}
+
+html .token.comment, html .token.block-comment, html .token.prolog, html .token.doctype, html .token.cdata, html .token.punctuation {
+  color: var(--draft-code-dim);
+}
+html .token.tag, html .token.attr-name, html .token.namespace, html .token.property, html .token.keyword, html .token.selector, html .token.atrule {
+  color: var(--draft-code-key);
+}
+html .token.string, html .token.attr-value, html .token.char, html .token.builtin, html .token.inserted {
+  color: var(--draft-code-str);
+}
+html .token.number, html .token.boolean, html .token.constant, html .token.symbol, html .token.regex {
+  color: var(--draft-code-num);
+}
+html .token.function, html .token.class-name, html .token.variable {
+  color: var(--draft-code-fn);
+}
+html .token.deleted, html .token.important {
+  color: var(--draft-code-err);
+}
+html .token.operator, html .token.entity, html .token.url {
+  color: var(--draft-code-ink);
+}

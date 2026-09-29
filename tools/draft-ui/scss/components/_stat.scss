@@ -1,0 +1,64 @@
+// Stat tile ----------------------------------------------------------------------------------------------
+.d-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.d-stat {
+  padding: 14px 16px 12px;
+}
+
+.d-stat-value {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+
+  small {
+    margin-left: 2px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dim);
+    letter-spacing: 0;
+  }
+}
+
+.d-stat-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.d-delta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--dim);
+  white-space: nowrap;
+
+  &.is-good {
+    color: var(--ok);
+  }
+
+  &.is-bad {
+    color: var(--err);
+  }
+}
+
+.d-spark {
+  width: 96px;
+  height: 24px;
+  flex: none;
+
+  path {
+    fill: none;
+    stroke: var(--c, var(--primary));
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+}

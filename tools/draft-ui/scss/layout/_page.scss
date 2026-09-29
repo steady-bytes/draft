@@ -1,0 +1,212 @@
+@use "../abstracts/mixins" as m;
+@use "../abstracts/tokens" as t;
+
+// Page head: eyebrow label, h1, description, actions -------------------------------------------------
+.d-page-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 24px;
+
+  > div:first-child {
+    flex: 1;
+    min-width: 0;
+  }
+
+  h1 {
+    margin: 4px 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: var(--dim);
+    max-width: 72ch;
+  }
+
+  // Metadata line under the title ("Maintainer x · Published y").
+  .d-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--dim);
+
+    b {
+      color: var(--ink);
+      font-weight: 500;
+    }
+  }
+}
+
+// Inline variant: title, summary label and controls on one row (data-heavy pages).
+.d-page-head--inline {
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+
+  // Title, summary and controls sit in one row; a spacer pushes the controls right.
+  > div:first-child {
+    flex: none;
+  }
+
+  h1 {
+    margin: 0;
+  }
+}
+
+.d-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.d-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 32px 0 12px;
+
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+}
+
+// A row of controls above a table or board.
+.d-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+
+  .d-input {
+    width: 260px;
+    max-width: 100%;
+  }
+
+  // A toolbar of labelled fields: the button lines up with the inputs, not the labels.
+  &--end {
+    align-items: flex-end;
+  }
+}
+
+// The step-result strip under a run's head, before its columns.
+.d-page-head + .d-strip--stretch {
+  margin-bottom: 24px;
+}
+
+// A toolbar that follows the stat tiles gets the gap the mockups leave there.
+.d-stats + .d-toolbar {
+  margin-top: 28px;
+}
+
+// Footnote under a table.
+.d-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  color: var(--dim);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+
+// Verdict line: a lamp plus a sentence ("Mostly. 4 of 5 workflows passed their last run.").
+.d-verdict {
+  --c: var(--warn);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 24px;
+
+  &--ok {
+    --c: var(--ok);
+  }
+
+  &--err {
+    --c: var(--err);
+  }
+
+  &--idle {
+    --c: var(--dim);
+  }
+
+  &::before {
+    content: "";
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--c) 16%, transparent);
+  }
+
+  b {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--c);
+  }
+
+  span {
+    color: var(--dim);
+  }
+}
+
+// Narrow: the actions drop under the title instead of squeezing it into a sliver.
+@include m.below(t.$bp-narrow) {
+  .d-page-head:not(.d-page-head--inline) {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px 16px;
+
+    > div:first-child {
+      flex: 1 1 100%;
+    }
+  }
+}
+
+// A page that stands alone (sign in, register): one centred card, no app frame around it. Render it
+// with the Go kit's `bare` layout.
+.d-auth {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+
+.d-auth-card {
+  display: grid;
+  gap: 16px;
+  width: min(380px, 100%);
+  padding: 28px;
+
+  h1 {
+    margin: 4px 0 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .d-btn {
+    justify-content: center;
+    height: 36px;
+  }
+
+  .d-note {
+    text-align: center;
+  }
+}

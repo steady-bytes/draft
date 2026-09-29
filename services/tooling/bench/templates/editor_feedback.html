@@ -1,0 +1,19 @@
+{{/*
+The editor's feedback blocks: the pipeline strip, the problems list and the topbar pill. Each is
+rendered into the page once, and again as an out-of-band swap by POST /workflows/validate (the
+"editor-feedback" fragment) — editorFeedback.OOB says which.
+*/}}
+{{define "wf-pipeline"}}<div id="wf-pipeline" class="d-panel"{{if .OOB}} hx-swap-oob="true"{{end}}>
+  <div class="d-panel-head"><span class="d-label">Pipeline · from the YAML below</span></div>
+  <div class="d-pipe">{{range $i, $n := .Pipe}}{{if $i}}<span class="d-pipe-wire"></span>{{end}}<span class="d-pipe-node{{if $n.Trigger}} is-trigger{{end}}{{if $n.Err}} is-err{{end}}"><small>{{$n.Label}}</small>{{$n.Name}}</span>{{end}}<button class="d-btn d-btn--ghost d-btn--sm" type="button" data-focus="#plugin-q">+ Step</button></div>
+</div>{{end}}
+
+{{define "wf-problems"}}<div id="wf-problems" class="d-panel d-problems"{{if .OOB}} hx-swap-oob="true"{{end}}>
+  <div class="d-panel-head"><span class="d-label">Problems · {{len .Problems}}</span><span class="d-spacer"></span><span class="d-label">{{.Subtitle}}</span></div>
+  {{range .Problems}}<div class="d-problem">{{if .Warn}}{{template "d-tag" (tag "warn" "Warning")}}{{else}}{{template "d-tag" (tag "err" "Error")}}{{end}}<span class="ln">{{.Pos}}</span><span>{{.Message}}</span></div>{{else}}<div class="d-problem"><span class="d-muted">Nothing to fix.</span></div>{{end}}
+  <div hidden data-error-lines-for="workflow-yaml">{{.ErrorLines}}</div>
+</div>{{end}}
+
+{{define "wf-status"}}<span id="wf-status" class="d-status{{with .Status.Class}} {{.}}{{end}}"{{if .OOB}} hx-swap-oob="true"{{end}}>{{.Status.Text}}</span>{{end}}
+
+{{define "editor-feedback"}}{{template "wf-pipeline" .}}{{template "wf-problems" .}}{{template "wf-status" .}}{{end}}

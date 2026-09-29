@@ -1,0 +1,41 @@
+// daisyUI 5 theme mapping.
+//
+// daisyUI 5 reads `--color-*`, `--radius-*`, `--size-*`, `--border`, `--depth` and `--noise` from
+// the active `data-theme`. Mapping them onto the Draft tokens re-themes every daisyUI component
+// (`btn`, `badge`, `table`, `modal`, `select`, …) without touching markup. Works with daisyUI
+// loaded from a CDN or compiled by Tailwind — see dist/draft-daisyui.theme.css for the
+// `@plugin "daisyui/theme"` form of the same values.
+//
+// Policy: shipped views use `d-*` classes. Use a daisyUI class only when no `d-*` equivalent
+// exists, and file a follow-up to add one.
+[data-theme="draft"],
+[data-theme="draft-light"] {
+  --color-base-100: var(--bg);
+  --color-base-200: var(--panel);
+  --color-base-300: var(--panel-3);
+  --color-base-content: var(--ink);
+  --color-primary: var(--primary);
+  --color-primary-content: var(--primary-ink);
+  --color-secondary: var(--bp);
+  --color-secondary-content: var(--bg);
+  --color-accent: var(--ca);
+  --color-accent-content: var(--bg);
+  --color-neutral: var(--panel-3);
+  --color-neutral-content: var(--ink);
+  --color-info: var(--ca);
+  --color-info-content: var(--bg);
+  --color-success: var(--primary);
+  --color-success-content: var(--primary-ink);
+  --color-warning: var(--warn);
+  --color-warning-content: var(--bg);
+  --color-error: var(--err);
+  --color-error-content: var(--bg);
+  --radius-selector: var(--radius);
+  --radius-field: var(--radius);
+  --radius-box: var(--radius);
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}

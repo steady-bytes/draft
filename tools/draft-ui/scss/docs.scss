@@ -1,0 +1,201 @@
+// The docs site's theme (dist/docs/_draft.scss), generated from the design tokens.
+//
+// The docs site is Hugo with the lotusdocs theme. lotusdocs styles itself with CSS custom
+// properties (`:root { --primary … }`, `[data-dark-mode] { … }`) and imports a colour file chosen by
+// `params.docs.themeColor` — `custom/colors/_<name>.scss`. This file is that colour file: set
+// `themeColor: draft` and mount `dist/docs` at `assets/docs/scss/custom/colors` (see hugo.yaml) and
+// the docs take the palette, the fonts and the code colours of the Draft apps. Nothing in the theme
+// is copied or restructured; this only overrides its variables.
+//
+// Everything is compiled to literal values (no `color-mix`), because Hugo's Sass runs them through
+// libsass. lotusdocs' own `:root` rules come later in the stylesheet, so each block below raises its
+// specificity (`html:root`, `html[data-dark-mode]`) instead of relying on order.
+@use "sass:color";
+@use "sass:map";
+@use "sass:math";
+@use "abstracts/tokens" as t;
+
+$primary-dark: t.$primary-default;
+$primary-light: color.mix(t.$primary-default, #000000, t.$light-primary-mix);
+
+// `hsl()` parts for the theme's `--primary-hsl` (it writes `hsl(var(--primary-hsl))` and
+// `hsla(var(--primary-hsl), .2)`).
+@function hsl-parts($c) {
+  @return "#{math.round(math.div(color.hue($c), 1deg))}, #{math.round(color.saturation($c))}, #{math.round(color.lightness($c))}";
+}
+
+// The theme's primary ramp: 50 (palest) to 400 for tints, 800 for the dark shade.
+@function ramp($c) {
+  @return (
+    "50": color.mix(#ffffff, $c, 92%),
+    "100": color.mix(#ffffff, $c, 82%),
+    "200": color.mix(#ffffff, $c, 65%),
+    "300": color.mix(#ffffff, $c, 40%),
+    "400": color.mix(#ffffff, $c, 18%),
+    "800": color.mix(#000000, $c, 62%)
+  );
+}
+
+@mixin mode($tokens, $primary) {
+  $bg: map.get($tokens, "bg");
+  $panel: map.get($tokens, "panel");
+  $panel-2: map.get($tokens, "panel-2");
+  $panel-3: map.get($tokens, "panel-3");
+  $rule: map.get($tokens, "rule");
+  $rule-strong: map.get($tokens, "rule-strong");
+  $ink: map.get($tokens, "ink");
+  $dim: map.get($tokens, "dim");
+  $ca: map.get($tokens, "ca");
+  $bp: map.get($tokens, "bp");
+  $fs: map.get($tokens, "fs");
+  $err: map.get($tokens, "err");
+
+  --primary: #{$primary};
+  --primary-hsl: #{hsl-parts($primary)};
+  @each $step, $value in ramp($primary) {
+    --primary-#{$step}: #{$value};
+    --primary-#{$step}-hsl: #{hsl-parts($value)};
+  }
+
+  // Surfaces and text.
+  --body-bg: #{$bg};
+  --text-default: #{$ink};
+  --text-default-inv: #{$bg};
+  --text-muted: #{$dim};
+  // The theme's "dark" surfaces stay dark in both modes (a hero band, the footer): they are not the
+  // page background.
+  --dark: #{map.get(t.$dark, "bg")};
+  --dark-alt: #{map.get(t.$dark, "panel")};
+  --dark-secondary: #{map.get(t.$dark, "panel-2")};
+  --link-color: #{$primary};
+
+  // Sidebar and top bar.
+  --sidebar-bg: #{$bg};
+  --top-header-bg: #{rgba($panel, 0.88)};
+  --sidebar-border-color: #{$rule};
+  --sidebar-text-color: #{$dim};
+  --sidebar-primary: #{$primary};
+  --sidebar-menu-active-bg: #{$panel-3};
+  --sidebar-dropdown-hover-bg: #{$panel-2};
+  --sidebar-icon-bg: #{$panel-3};
+  --sidebar-scrollbar-thumb-color: #{$rule-strong};
+  --icon-color: #{$dim};
+
+  // Cards and buttons.
+  --card-border-color: #{$rule-strong};
+  --card-border-hover-color: #{$primary};
+  --btn-soft-color: #{$dim};
+  --btn-soft-border: #{$rule-strong};
+  --btn-primary-color: #{$primary};
+  --btn-primary-border: #{$rule-strong};
+  --btn-default-color: #{$ink};
+  --btn-default-hover-color: #{$primary};
+
+  // Code blocks (prism): the same colours the editors use — keys and keywords blue, strings in the
+  // primary, numbers amber, functions violet, comments quiet.
+  --prism-code-bg: #{$panel-2};
+  --prism-code-scrollbar-thumb-color: #{$rule-strong};
+  --draft-code-ink: #{$ink};
+  --draft-code-dim: #{$dim};
+  --draft-code-key: #{$ca};
+  --draft-code-str: #{$primary};
+  --draft-code-num: #{$fs};
+  --draft-code-fn: #{$bp};
+  --draft-code-err: #{$err};
+  color-scheme: #{if($primary == $primary-dark, dark, light)};
+}
+
+html:root {
+  @include mode(t.$light, $primary-light);
+}
+
+html[data-dark-mode] {
+  @include mode(t.$dark, $primary-dark);
+}
+
+// Fonts: the apps' own, self-hosted (mounted from dist/fonts at /draft/fonts by hugo.yaml).
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/draft/fonts/inter-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/draft/fonts/jetbrains-mono-latin.woff2") format("woff2");
+}
+
+// lotusdocs' prism theme paints code with fixed colours (and `!important`); these follow the mode.
+html code[class*="language-"],
+html pre[class*="language-"] {
+  color: var(--draft-code-ink) !important;
+  background: var(--prism-code-bg) !important;
+  border: 1px solid var(--sidebar-border-color);
+}
+
+html pre[class*="language-"] {
+  border-radius: 2px;
+}
+
+html :not(pre) > code[class*="language-"] {
+  background: var(--prism-code-bg) !important;
+}
+
+html .token {
+  &.comment,
+  &.block-comment,
+  &.prolog,
+  &.doctype,
+  &.cdata,
+  &.punctuation {
+    color: var(--draft-code-dim);
+  }
+
+  &.tag,
+  &.attr-name,
+  &.namespace,
+  &.property,
+  &.keyword,
+  &.selector,
+  &.atrule {
+    color: var(--draft-code-key);
+  }
+
+  &.string,
+  &.attr-value,
+  &.char,
+  &.builtin,
+  &.inserted {
+    color: var(--draft-code-str);
+  }
+
+  &.number,
+  &.boolean,
+  &.constant,
+  &.symbol,
+  &.regex {
+    color: var(--draft-code-num);
+  }
+
+  &.function,
+  &.class-name,
+  &.variable {
+    color: var(--draft-code-fn);
+  }
+
+  &.deleted,
+  &.important {
+    color: var(--draft-code-err);
+  }
+
+  &.operator,
+  &.entity,
+  &.url {
+    color: var(--draft-code-ink);
+  }
+}

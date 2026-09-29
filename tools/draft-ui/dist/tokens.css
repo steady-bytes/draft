@@ -1,0 +1,58 @@
+:root,
+[data-theme=draft] {
+  color-scheme: dark;
+  --primary-base: #4db380;
+  --primary: var(--primary-base);
+  --primary-soft: color-mix(in oklab, var(--primary) 14%, transparent);
+  --primary-ink: #04110a;
+  --bg: #0a0d10;
+  --panel: #0e1318;
+  --panel-2: #121920;
+  --panel-3: #18212a;
+  --rule: #1d262f;
+  --rule-strong: #2b3641;
+  --grid: rgba(215, 224, 232, 0.035);
+  --ink: #d7e0e8;
+  --dim: #8795a2;
+  --dimmer: #56626e;
+  --ca: #58a6ff;
+  --bp: #b48cff;
+  --fs: #ffb454;
+  --sv: #9fb3c2;
+  --err: #ff6b6b;
+  --warn: #f2c14e;
+  --info: var(--ca);
+  --ok: var(--primary);
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 16px;
+  --fs-lg: 24px;
+  --radius: 2px;
+  --bracket: 8px;
+  --row: 34px;
+}
+
+[data-theme=draft-light] {
+  color-scheme: light;
+  --primary: color-mix(in oklab, var(--primary-base) 62%, #000);
+  --primary-soft: color-mix(in oklab, var(--primary) 10%, transparent);
+  --primary-ink: #ffffff;
+  --bg: #f3f5f7;
+  --panel: #ffffff;
+  --panel-2: #f6f8fa;
+  --panel-3: #eaeef2;
+  --rule: #dde2e7;
+  --rule-strong: #c3cbd3;
+  --grid: rgba(16, 22, 28, 0.045);
+  --ink: #111820;
+  --dim: #56636f;
+  --dimmer: #97a2ad;
+  --ca: #1a63bd;
+  --bp: #7447d6;
+  --fs: #9a5508;
+  --sv: #52606d;
+  --err: #bd2f2f;
+  --warn: #8a5c00;
+}

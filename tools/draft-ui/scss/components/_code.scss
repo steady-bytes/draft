@@ -1,0 +1,66 @@
+@use "../abstracts/mixins" as m;
+
+// Code / JSON / YAML / HTTP block, with syntax token colours (tk-*) shared by every renderer.
+// Hoisted from `.kv-drawer pre`, `.eq-drawer pre`, `.snip pre`, `.code`, `.fail-card pre`.
+.d-code {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  max-height: 360px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre;
+
+  &--wrap {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  &--bare {
+    max-height: none;
+    border: 0;
+    background: transparent;
+  }
+
+  .tk-key {
+    color: var(--ca);
+  }
+
+  .tk-str {
+    color: var(--ink);
+  }
+
+  .tk-num,
+  .tk-val {
+    color: var(--fs);
+  }
+
+  .tk-com {
+    color: var(--dim);
+  }
+
+  .tk-url {
+    color: var(--primary);
+  }
+
+  .tk-ph {
+    color: var(--fs);
+  }
+
+  .tk-err {
+    color: var(--err);
+    background: color-mix(in oklab, var(--err) 12%, transparent);
+  }
+}
+
+// Plain inline code inside prose.
+.d-code-inline {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--ink);
+}

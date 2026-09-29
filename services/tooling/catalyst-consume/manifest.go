@@ -36,6 +36,10 @@ func buildManifest() (*plugincatalogv1.PublishRequest, error) {
 				"additionalProperties": map[string]interface{}{"type": "string"},
 				"description":          "output_key -> dot-path into the matched event's decoded JSON payload, e.g. {\"run_id\": \"runId\"}. Each resolved value is copied to that key on the step's result.",
 			},
+			"expect": map[string]interface{}{
+				"type":        "object",
+				"description": "Optional assertions against the matched event's decoded JSON payload, evaluated before the step is reported as successful -- same nested exists/equals/matches vocabulary services/tooling/http-call@v1's own with.expect uses, e.g. {\"operation\": {\"equals\": \"OPERATION_CREATE\"}, \"model\": {\"firstName\": {\"equals\": \"Ada\"}}}. Any failed assertion fails the step (Success: false), with a joined Error message naming every assertion that didn't hold.",
+			},
 		},
 	})
 	if err != nil {

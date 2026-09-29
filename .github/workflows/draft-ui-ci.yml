@@ -1,0 +1,122 @@
+name: draft-ui - CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tools/draft-ui/**
+      - pkg/basic_authentication/templates/**
+      - docs/website/hugo.yaml
+      - docs/website/go.mod
+      - .github/workflows/draft-ui-ci.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  rust:
+    name: SCSS build, tests, wasm check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/draft-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/draft-ui
+
+      # dist/ is committed (Go's go:embed cannot build CSS): fail if it is stale.
+      - name: dist/ is up to date
+        run: cargo run --features cli --bin draft-ui-css -- --check
+
+      # contrast (WCAG, apps and docs), class contract, dist drift, component render tests. The class
+      # contract also scans every consumer: a `d-*` class an app uses but the CSS lacks fails here.
+      - name: Test
+        env:
+          DRAFT_UI_SCAN: >-
+            ../../services/tooling/bench/templates:../../services/tooling/foundry/templates:../../pkg/basic_authentication/templates:../../services/core/blueprint/web-client/src:../../services/core/beacon/web-client/src:../../services/tooling/lineman/web-client/src
+        run: cargo test --features cli,dioxus
+
+      - name: Check wasm32 build
+        run: cargo check --target wasm32-unknown-unknown --features dioxus,discovery
+
+  # The Go kit (`draftui`): shell, partials, auth card, static handler.
+  go:
+    name: Go kit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/draft-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
+
+  # The shared browser scripts: theme preference storage, the editor's YAML fields and colouring.
+  js:
+    name: Shared JS
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/draft-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test
+        run: node --test tests/*.test.mjs
+
+  # The Go services that embed the kit must still build and pass against it.
+  consumers:
+    name: Consumer (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [services/tooling/bench, services/tooling/foundry]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: ${{ matrix.service }}/go.sum
+      - name: Vet
+        working-directory: ${{ matrix.service }}
+        run: go vet ./...
+      - name: Test
+        working-directory: ${{ matrix.service }}
+        run: go test ./...
+
+  # The docs site takes its theme from this module (dist/docs): it must still build.
+  docs:
+    name: Docs site builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: Install Hugo CLI
+        env:
+          HUGO_VERSION: 0.142.0
+        run: |
+          wget -O ${{ runner.temp }}/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb \
+          && sudo dpkg -i ${{ runner.temp }}/hugo.deb
+      - name: Build
+        working-directory: docs/website
+        run: hugo --minify --destination ${{ runner.temp }}/docs-out

@@ -59,23 +59,18 @@ func (h *rpc) RegisterRPC(server chassis.Rpcer) {
 	server.AddHandler(resourceMetricsPattern, resourceMetricsHandler, true)
 }
 
-// Consume accepts a request containing a `Message` type to subscribe to
-// to keep the connection open a `sync.WaitGroup` is created and the response
-// stream, and message are passed to the `broker.Consume`
-// Since the server stream can only return an error to close the connection
-// the `wg.Done()` method is called after the error is logged closing the
-// server connection with the client
+// Consume accepts a request containing a `Message` type to subscribe to, then delegates the
+// whole subscription lifetime to `broker.Consume` — which registers it, delivers into stream as
+// events arrive, and returns only once ctx is cancelled (the client disconnected — expected, not
+// logged) or a Send fails (a real delivery problem, logged).
 func (h *rpc) Consume(ctx context.Context, req *connect.Request[acv1.ConsumeRequest], stream *connect.ServerStream[acv1.ConsumeResponse]) error {
 	msg := req.Msg.GetMessage()
 
-	if err := h.controller.Consume(ctx, msg, stream); err != nil {
+	err := h.controller.Consume(ctx, msg, stream)
+	if err != nil && ctx.Err() == nil {
 		h.logger.Error(err.Error())
-		return err
 	}
-
-	<-ctx.Done()
-
-	return ctx.Err()
+	return err
 }
 
 func (h *rpc) Produce(ctx context.Context, inputStream *connect.BidiStream[acv1.ProduceRequest, acv1.ProduceResponse]) error {

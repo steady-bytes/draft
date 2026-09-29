@@ -7,20 +7,34 @@
 // Connect client services/examples/consumer/main.go demonstrates — see
 // services/tooling/bench/catalyst.go's own file comment for why Catalyst's
 // chassis.Broker interface isn't the right fit here either), waits for the
-// next CloudEvent matching config.event_type, decodes its JSON payload, and
-// copies the dot-paths named in config.fields into the step's result.
+// next CloudEvent matching config.event_type, decodes its JSON payload,
+// copies the dot-paths named in config.fields into the step's result, and —
+// if config.expect is set — evaluates assertions against that decoded
+// payload before reporting success, the same with.expect convention
+// services/tooling/http-call/rpc.go documents and implements (assertions
+// live under this plugin's own config rather than the workflow's top-level
+// expect: keyword bench://grpc-call@v1 uses, for the same reason given
+// there: StepRequest's contract is fixed and minimal, so a plugin that
+// wants assertions scopes them under its own with: block instead). The
+// evaluateExpect/evaluateBodyExpect/evaluateLeaf/valuesEqual functions below
+// are a deliberate duplicate of http-call's and grpc_call.go's — see
+// http-call/rpc.go's header comment for why duplicating this small amount
+// of logic is this repo's established precedent over a shared package
+// neither module could import from the others anyway (three separate Go
+// modules).
 //
-// Known Catalyst limitation this plugin inherits (see "Known issues" under
-// Catalyst in docs/website/content/docs/architecture/core-services.md):
-// Consume delivers each event to exactly one of the currently-open Consume
-// streams, not to every one of them. If more than one consumer (another
-// catalyst-consume step running concurrently, Bench's own future live-UI
-// consumer, ...) is subscribed at the same moment, this step's wait can miss
-// an event that went to a different subscriber instead — not something this
-// plugin can work around client-side.
+// Consume used to deliver each event to exactly one of the currently-open
+// Consume streams, not to every one of them (see "Known issues" under
+// Catalyst in docs/website/content/docs/architecture/core-services.md,
+// fixed 2026-09-27) — if more than one consumer (another catalyst-consume
+// step running concurrently, Bench's own future live-UI consumer, ...) was
+// subscribed at the same moment, this step's wait could miss an event that
+// went to a different subscriber instead. Every open Consume subscriber now
+// gets its own delivery, so that's no longer a caveat.
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -28,6 +42,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -86,7 +101,7 @@ func (h *handler) Execute(ctx context.Context, req *connect.Request[stepexecutor
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("config is required"))
 	}
 
-	eventType, timeout, fields, err := parseConfig(msg.GetConfig())
+	eventType, timeout, fields, expect, err := parseConfig(msg.GetConfig())
 	if err != nil {
 		return connect.NewResponse(&stepexecutorv1.StepResponse{
 			Success: false,
@@ -109,27 +124,43 @@ func (h *handler) Execute(ctx context.Context, req *connect.Request[stepexecutor
 		}), nil
 	}
 
-	result, err := buildResult(event, fields)
+	payload, err := decodePayload(event)
+	if err != nil {
+		h.logger.WithError(err).WithField("event_type", eventType).Warn("catalyst-consume step matched an event with an undecodable payload")
+		return connect.NewResponse(&stepexecutorv1.StepResponse{
+			Success: false,
+			Error:   err.Error(),
+		}), nil
+	}
+
+	var reasons []string
+	if expect != nil {
+		reasons = evaluateBodyExpect("", expect, payload)
+	}
+
+	result, err := buildResult(event, payload, fields)
 	if err != nil {
 		h.logger.WithError(err).Warn("failed to build result struct from matched event; returning empty result")
 		result = &structpb.Struct{}
 	}
 
 	return connect.NewResponse(&stepexecutorv1.StepResponse{
-		Success: true,
+		Success: len(reasons) == 0,
 		Result:  result,
+		Error:   strings.Join(reasons, "; "),
 	}), nil
 }
 
 // parseConfig extracts event_type (required), timeout (optional, defaults
-// to defaultWaitTimeout), and fields (optional, defaults to empty — see
-// manifest.go's config_schema for the shape each matches).
-func parseConfig(config *structpb.Struct) (eventType string, timeout time.Duration, fields map[string]string, err error) {
+// to defaultWaitTimeout), fields (optional, defaults to empty), and expect
+// (optional, nil if unset) — see manifest.go's config_schema for the shape
+// each matches.
+func parseConfig(config *structpb.Struct) (eventType string, timeout time.Duration, fields map[string]string, expect *structpb.Struct, err error) {
 	fieldsIn := config.GetFields()
 
 	eventTypeVal, ok := fieldsIn["event_type"]
 	if !ok || eventTypeVal.GetStringValue() == "" {
-		return "", 0, nil, errors.New("config.event_type is required")
+		return "", 0, nil, nil, errors.New("config.event_type is required")
 	}
 	eventType = eventTypeVal.GetStringValue()
 
@@ -137,7 +168,7 @@ func parseConfig(config *structpb.Struct) (eventType string, timeout time.Durati
 	if timeoutVal, ok := fieldsIn["timeout"]; ok && timeoutVal.GetStringValue() != "" {
 		d, err := time.ParseDuration(timeoutVal.GetStringValue())
 		if err != nil {
-			return "", 0, nil, fmt.Errorf("config.timeout: invalid duration %q: %w", timeoutVal.GetStringValue(), err)
+			return "", 0, nil, nil, fmt.Errorf("config.timeout: invalid duration %q: %w", timeoutVal.GetStringValue(), err)
 		}
 		timeout = d
 	}
@@ -151,7 +182,11 @@ func parseConfig(config *structpb.Struct) (eventType string, timeout time.Durati
 		}
 	}
 
-	return eventType, timeout, fields, nil
+	if expectVal, ok := fieldsIn["expect"]; ok {
+		expect = expectVal.GetStructValue()
+	}
+
+	return eventType, timeout, fields, expect, nil
 }
 
 // waitForEvent opens a Consume stream against catalystAddr and returns the
@@ -182,19 +217,25 @@ func waitForEvent(ctx context.Context, catalystAddr, eventType string) (*acv1.Cl
 	return nil, fmt.Errorf("catalyst consume stream closed before a matching event arrived")
 }
 
-// buildResult decodes event's JSON payload and copies each configured
-// output_key -> dot-path into the step's result, alongside _event metadata
-// and the full decoded payload (so a step that forgot to declare a field it
-// needs isn't blocked from the raw data — the same "return everything, let
-// templating pick" shape bench://grpc-call@v1's own Result already uses).
-func buildResult(event *acv1.CloudEvent, fields map[string]string) (*structpb.Struct, error) {
+// decodePayload decodes event's JSON text payload once, shared by buildResult
+// (below) and Execute's config.expect evaluation, which both need the same
+// decoded map rather than re-parsing it twice.
+func decodePayload(event *acv1.CloudEvent) (map[string]interface{}, error) {
 	payload := map[string]interface{}{}
 	if body := event.GetTextData(); body != "" {
 		if err := json.Unmarshal([]byte(body), &payload); err != nil {
 			return nil, fmt.Errorf("event payload was not valid JSON: %w", err)
 		}
 	}
+	return payload, nil
+}
 
+// buildResult copies each configured output_key -> dot-path into the step's
+// result, alongside _event metadata and the full decoded payload (so a step
+// that forgot to declare a field it needs isn't blocked from the raw data —
+// the same "return everything, let templating pick" shape
+// bench://grpc-call@v1's own Result already uses).
+func buildResult(event *acv1.CloudEvent, payload map[string]interface{}, fields map[string]string) (*structpb.Struct, error) {
 	out := map[string]interface{}{
 		"_event": map[string]interface{}{
 			"type":    event.GetType(),
@@ -266,4 +307,105 @@ func h2cClient() *http.Client {
 			},
 		},
 	}
+}
+
+// evaluateBodyExpect recursively walks a config.expect struct against the
+// matched event's decoded JSON payload — logic duplicated from
+// services/tooling/http-call/rpc.go's function of the same name (itself
+// duplicated from services/tooling/bench/grpc_call.go); see this file's
+// header comment for why it's duplicated here too rather than shared. One
+// deliberate difference from http-call's version: http-call's assertions
+// live under with.expect.body (an extra level, since a response has both a
+// status and a body to assert on), so it calls this with path="body" and
+// every message below ends up "expect.body.<field>: ...". This plugin's
+// assertions are directly under with.expect (there's no second thing to
+// assert alongside the payload), so Execute calls this with path="" — the
+// path!="" guard below is what keeps that from rendering "expect..<field>"
+// (or, worse, passing path="expect" to sidestep that would have rendered
+// "expect.expect.<field>": the "expect." each message below is hardcoded,
+// not derived from path, exactly as in http-call's copy).
+func evaluateBodyExpect(path string, assertion *structpb.Struct, actual map[string]interface{}) []string {
+	var problems []string
+	for field, av := range assertion.GetFields() {
+		fieldPath := field
+		if path != "" {
+			fieldPath = path + "." + field
+		}
+		sub := av.GetStructValue()
+		if sub == nil {
+			problems = append(problems, fmt.Sprintf("expect.%s: assertion must be an object", fieldPath))
+			continue
+		}
+
+		actualVal, exists := actual[field]
+
+		if isLeafAssertion(sub) {
+			problems = append(problems, evaluateLeaf(fieldPath, sub, actualVal, exists)...)
+			continue
+		}
+
+		nested, ok := actualVal.(map[string]interface{})
+		if !exists || !ok {
+			nested = nil
+		}
+		problems = append(problems, evaluateBodyExpect(fieldPath, sub, nested)...)
+	}
+	return problems
+}
+
+func isLeafAssertion(s *structpb.Struct) bool {
+	fields := s.GetFields()
+	_, hasExists := fields["exists"]
+	_, hasEquals := fields["equals"]
+	_, hasMatches := fields["matches"]
+	return hasExists || hasEquals || hasMatches
+}
+
+func evaluateLeaf(path string, assertion *structpb.Struct, actual interface{}, exists bool) []string {
+	var problems []string
+
+	if existsField, ok := assertion.GetFields()["exists"]; ok {
+		want := existsField.GetBoolValue()
+		if exists != want {
+			problems = append(problems, fmt.Sprintf("expect.%s: exists = %v, want %v", path, exists, want))
+		}
+	}
+
+	if equalsField, ok := assertion.GetFields()["equals"]; ok {
+		want := equalsField.AsInterface()
+		if !exists {
+			problems = append(problems, fmt.Sprintf("expect.%s: field does not exist, want equals %v", path, want))
+		} else if !valuesEqual(actual, want) {
+			problems = append(problems, fmt.Sprintf("expect.%s: got %v, want %v", path, actual, want))
+		}
+	}
+
+	if matchesField, ok := assertion.GetFields()["matches"]; ok {
+		pattern := matchesField.GetStringValue()
+		str, isStr := actual.(string)
+		switch {
+		case !exists:
+			problems = append(problems, fmt.Sprintf("expect.%s: field does not exist, want matches %q", path, pattern))
+		case !isStr:
+			problems = append(problems, fmt.Sprintf("expect.%s: matches requires a string field, got %T", path, actual))
+		default:
+			re, err := regexp.Compile(pattern)
+			if err != nil {
+				problems = append(problems, fmt.Sprintf("expect.%s: invalid matches pattern %q: %v", path, pattern, err))
+			} else if !re.MatchString(str) {
+				problems = append(problems, fmt.Sprintf("expect.%s: %q does not match pattern %q", path, str, pattern))
+			}
+		}
+	}
+
+	return problems
+}
+
+func valuesEqual(actual, want interface{}) bool {
+	actualJSON, err1 := json.Marshal(actual)
+	wantJSON, err2 := json.Marshal(want)
+	if err1 != nil || err2 != nil {
+		return false
+	}
+	return bytes.Equal(actualJSON, wantJSON)
 }

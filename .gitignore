@@ -13,6 +13,9 @@ node_modules
 target/
 main
 dist
+# tools/draft-ui/dist is committed on purpose: it is compiled CSS/JS that Go's go:embed cannot build
+# itself (CI verifies it is fresh: `draft-ui-css --check`).
+!tools/draft-ui/dist
 
 go.work
 go.work.sum

@@ -1,0 +1,216 @@
+@use "../abstracts/mixins" as m;
+
+// Data table -------------------------------------------------------------------------------------------
+.d-table-wrap {
+  overflow: auto;
+}
+
+.d-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+
+  th {
+    @include m.label;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    height: 34px;
+    padding: 0 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--rule-strong);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    height: var(--row);
+    padding: 0 12px;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  tbody tr:hover td {
+    background: var(--panel-2);
+  }
+
+  tbody tr[aria-selected="true"] {
+    td {
+      background: var(--primary-soft);
+    }
+
+    td:first-child {
+      box-shadow: inset 2px 0 0 var(--primary);
+    }
+  }
+
+  // Sortable header.
+  th[aria-sort] {
+    cursor: pointer;
+
+    &::after {
+      content: "↕";
+      margin-left: 6px;
+      color: var(--dimmer); // decorative
+    }
+
+    &[aria-sort="ascending"]::after {
+      content: "↑";
+      color: var(--primary);
+    }
+
+    &[aria-sort="descending"]::after {
+      content: "↓";
+      color: var(--primary);
+    }
+  }
+
+  // Column and row helpers -------------------------------------------------------------------------------
+  .is-dim {
+    color: var(--dim);
+  }
+
+  .is-ink {
+    color: var(--ink);
+  }
+
+  .is-right {
+    text-align: right;
+  }
+
+  .is-shrink {
+    width: 1%;
+  }
+
+  // Takes the remaining width and truncates (pair with a `.d-trunc` child).
+  .is-fill {
+    max-width: 0;
+    width: 100%;
+  }
+
+  .is-key {
+    color: var(--ink);
+  }
+
+  // Group header row ("UI · host routes · 5").
+  tr.is-group td {
+    height: 28px;
+    background: var(--bg);
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  // Expandable row: a caret in the first cell, indented child rows beneath.
+  tr.is-open .d-caret {
+    color: var(--primary);
+  }
+
+  tr.is-child td {
+    height: 30px;
+    background: var(--panel-2);
+    font-size: 12px;
+
+    &:first-child {
+      padding-left: 44px;
+      color: var(--dim);
+    }
+  }
+
+  tr.is-child:hover td {
+    background: var(--panel-3);
+  }
+
+  // Row-level states.
+  tr.is-err td.is-key,
+  tr.is-err td.is-err-text {
+    color: var(--err);
+  }
+
+  tr.is-off td {
+    opacity: 0.45;
+  }
+
+  // Two-line cell: a title over a truncated description (Bench workflows, Foundry plugins).
+  // Give the column its share with `is-title`; the description is set in the sans face.
+  td.is-title {
+    width: 34%;
+    max-width: 0;
+    height: 52px;
+
+    > b {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 600;
+      color: var(--ink);
+
+      > a {
+        color: inherit;
+      }
+    }
+
+    > span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      color: var(--dim);
+    }
+  }
+
+  // Actions that only appear on hover/selection (Delete).
+  td.is-act {
+    width: 1%;
+    text-align: right;
+    opacity: 0;
+  }
+
+  tr:hover td.is-act,
+  tr[aria-selected="true"] td.is-act,
+  tr:focus-within td.is-act {
+    opacity: 1;
+  }
+}
+
+.d-caret {
+  display: inline-block;
+  width: 14px;
+  color: var(--dim);
+  font-size: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+// Truncated cell: single line, ellipsis, full value on hover/title.
+.d-trunc {
+  display: block;
+  max-width: 100%;
+  @include m.truncate;
+}
+
+// Secret value: masked by default, reveal on click.
+.d-secret {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--dim);
+}
+
+.d-secret-mask {
+  letter-spacing: 0.18em;
+  color: var(--dimmer); // decorative bullets
+}
+
+// `key=` prefix inside an attribute cell.
+.d-attr-k {
+  color: var(--dim);
+}
+
+.d-attr-v {
+  color: var(--ink);
+}

@@ -1,5 +1,7 @@
 **/node_modules
 **/dist
+# the design system's compiled assets are embedded into the Go services
+!tools/draft-ui/dist
 .vscode
 **/.vscode
 .git

@@ -9,6 +9,14 @@ module:
       disable: false
     - path: github.com/gohugoio/hugo-mod-bootstrap-scss/v5
       disable: false
+    # The design system's docs theme (tools/draft-ui/dist/docs) and the fonts it names. The module
+    # is a local directory: go.mod's `replace` points at it.
+    - path: github.com/steady-bytes/draft/tools/draft-ui
+      mounts:
+        - source: dist/docs
+          target: assets/docs/scss/custom/colors
+        - source: dist/fonts
+          target: static/draft/fonts
   mounts:
     - source: static
       target: static
@@ -16,8 +24,13 @@ module:
       target: static/images
 
 params:
+  # Body and code fonts (lotusdocs reads these into its Sass); the @font-face rules ship with the
+  # docs theme above.
+  sans_serif_font: "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif"
+  secondary_font: "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif"
+  mono_font: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace"
   docs:
-    themeColor: orange
+    themeColor: draft   # custom/colors/_draft.scss, from tools/draft-ui
     darkMode: true
     descriptions: true
     sidebarIcons: true

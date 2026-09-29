@@ -2,41 +2,54 @@ package main
 
 import (
 	"embed"
-	"html/template"
+
+	draftui "github.com/steady-bytes/draft/tools/draft-ui"
 )
 
-// templatesFS embeds the html/template sources under templates/ into the
-// compiled binary, so the UI doesn't depend on a working directory relative
-// to the source tree at runtime (mirrors staticFS in static.go).
+// templatesFS embeds the page templates under templates/. The shared frame (shell, rail, topbar,
+// status bar) and the component partials come from the design system module (tools/draft-ui), so
+// there is no base.html here any more — each page only defines its own `content` (and, if it
+// needs page-local CSS, `head`).
 //
 //go:embed templates/*.html
 var templatesFS embed.FS
 
-// Each page is its own *template.Template combining templates/base.html
-// (the shared layout: DaisyUI theme setup, htmx script tag, header — see
-// its doc comment) with that one page's own {{define "content"}} block. A
-// single combined template.Template covering every page isn't used because
-// "title"/"content" are deliberately reused block names across pages (each
-// page overrides them) — parsing them all into one shared set would let the
-// last-parsed page silently win for every page. card_grid.html's
-// "card-grid" block is the one truly shared define: it's parsed into both
-// catalogTemplate (as part of the full page) and cardGridTemplate (rendered
-// alone, as the htmx-swapped search fragment).
+// kit is Foundry's view of the shared design system: its identity and rail.
+//
+// The rail's Maintainers section is added per request (it is derived from the data), and the Apps
+// block is derived from the request host (bench.draft.localhost ↔ foundry.draft.localhost) with
+// direct-port fallbacks for a plain `localhost:9301`.
+var kit = draftui.New(draftui.App{
+	Kind: draftui.KindFoundry,
+	Name: "foundry",
+	Rail: []draftui.NavSection{
+		{Label: "Catalog", Items: []draftui.NavItem{
+			{Label: "All plugins", Path: "/", Exact: true},
+			{Label: "Recently published", Path: "/?sort=newest"},
+		}},
+	},
+	Fallback: []draftui.NavItem{
+		draftui.AppItem(draftui.KindBench, "http://localhost:9300/"),
+		draftui.AppItem(draftui.KindBlueprint, "http://localhost:2221/"),
+	},
+})
+
+// Each page is its own template set (see draftui.Kit.Page): `content` is deliberately redefined
+// per page, so parsing them into one shared set would let the last-parsed page win for all.
+// card_grid.html's "card-grid" block is the one truly shared define: it is part of the full
+// catalog page and, alone, the htmx-swapped search fragment.
 var (
-	catalogTemplate = template.Must(template.ParseFS(templatesFS,
-		"templates/base.html",
+	catalogTemplate = kit.Page(templatesFS,
 		"templates/card_grid.html",
 		"templates/catalog.html",
-	))
-	cardGridTemplate = template.Must(template.ParseFS(templatesFS,
+	)
+	cardGridTemplate = kit.Fragment(templatesFS,
 		"templates/card_grid.html",
-	))
-	detailTemplate = template.Must(template.ParseFS(templatesFS,
-		"templates/base.html",
+	)
+	detailTemplate = kit.Page(templatesFS,
 		"templates/detail.html",
-	))
-	notFoundTemplate = template.Must(template.ParseFS(templatesFS,
-		"templates/base.html",
+	)
+	notFoundTemplate = kit.Page(templatesFS,
 		"templates/not_found.html",
-	))
+	)
 )

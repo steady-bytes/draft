@@ -1,0 +1,46 @@
+{{/*
+The workflow editor: New and Edit are this one page. The YAML text area is the source of truth — the
+form posts only it — and everything around it is feedback drawn from it (editor_feedback.html),
+refreshed by POST /workflows/validate a moment after typing stops. Name and Description are bound to
+the metadata lines of the text by draft.js (data-yaml-field), so they are a convenience, not a second
+copy of the data.
+*/}}
+{{define "topbar"}}
+{{template "wf-status" .Feedback}}
+<a class="d-btn d-btn--ghost d-btn--sm d-hide-narrow" href="{{.CancelHref}}">Cancel</a>
+<button class="d-btn d-btn--sm" type="button" hx-post="/workflows/validate" hx-include="#wf-form" hx-swap="none">Validate</button>
+<button class="d-btn d-btn--primary d-btn--sm" type="submit" form="wf-form">Save</button>
+{{end}}
+
+{{define "content"}}
+<div class="d-split d-split--flush d-split--narrow">
+  <form id="wf-form" class="d-split-main d-split-main--stack" method="post" action="{{.FormAction}}">
+    <input type="hidden" name="run" value="">
+    <div class="d-fields">
+      <label class="d-field"><span class="d-label">Name</span><input class="d-input" id="wf-name" value="{{.Name}}" autocomplete="off" data-yaml-field="metadata.name" data-yaml-target="#workflow-yaml"{{if .IsEdit}} readonly aria-describedby="wf-name-hint"{{end}}>{{if .IsEdit}}<span class="d-hint" id="wf-name-hint">A workflow cannot be renamed.</span>{{end}}</label>
+      <label class="d-field"><span class="d-label">Description</span><input class="d-input" id="wf-desc" value="{{.Description}}" autocomplete="off" data-yaml-field="metadata.description" data-yaml-target="#workflow-yaml"></label>
+    </div>
+
+    {{template "wf-pipeline" .Feedback}}
+
+    <div class="d-panel d-editor">
+      <pre class="d-editor-gutter" id="wf-gutter" aria-hidden="true"></pre>
+      <div class="d-editor-body">
+        <pre class="d-editor-hl" id="wf-hl" aria-hidden="true"></pre>
+        <textarea id="workflow-yaml" name="yaml" class="d-editor-code" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-label="Workflow YAML"
+          data-editor data-gutter="wf-gutter" data-highlight="#wf-hl" data-cursor="#wf-cursor" data-lines="#wf-lines"
+          hx-post="/workflows/validate" hx-trigger="input changed delay:500ms, load" hx-swap="none" hx-include="#wf-form">{{.YAML}}</textarea>
+      </div>
+    </div>
+
+    {{template "wf-problems" .Feedback}}
+  </form>
+
+  <aside class="d-drawer d-drawer--inline" aria-label="Plugin search">
+    <span class="d-label">Insert a step · from the plugin registries</span>
+    <input class="d-input" id="plugin-q" type="search" name="q" placeholder="Search plugins…" aria-label="Search plugins" autocomplete="off"
+      hx-get="/workflows/plugins/search" hx-trigger="input changed delay:300ms, search" hx-target="#plugin-results" hx-swap="innerHTML">
+    <div id="plugin-results" hx-get="/workflows/plugins/search" hx-trigger="load" hx-swap="innerHTML"></div>
+  </aside>
+</div>
+{{end}}
