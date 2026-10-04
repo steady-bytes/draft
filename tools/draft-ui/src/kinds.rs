@@ -124,6 +124,8 @@ pub enum AppKind {
     Bench,
     Foundry,
     Lineman,
+    Relay,
+    Allele,
     /// Any other service.
     Service,
 }
@@ -138,6 +140,8 @@ impl AppKind {
             AppKind::Bench => "Bn",
             AppKind::Foundry => "Fd",
             AppKind::Lineman => "Lm",
+            AppKind::Relay => "Rl",
+            AppKind::Allele => "Al",
             AppKind::Service => "Sv",
         }
     }
@@ -151,18 +155,27 @@ impl AppKind {
             AppKind::Bench => "bench",
             AppKind::Foundry => "foundry",
             AppKind::Lineman => "lineman",
+            AppKind::Relay => "relay",
+            AppKind::Allele => "allele",
             AppKind::Service => "service",
         }
     }
 
     /// Glyph colour, as in the mockups: Blueprint violet, Catalyst blue, Fuse amber, Beacon blue,
-    /// Lineman violet, Bench and Foundry slate.
+    /// Lineman violet, Bench and Foundry slate. Relay has no dedicated hue of its own in the
+    /// mockups (unlike the others, every existing `Tone` variant is already claimed by one of
+    /// them) -- `Primary` is the theme's own accent colour, a reasonable default for a new app
+    /// rather than overloading `Err`/`Warn`'s error/warning semantics just because Relay's own
+    /// Record page happens to use `--err` for its record button. Allele is infrastructure/tooling
+    /// in the same sense Bench/Foundry already are (a git server, not a user-facing colored app),
+    /// so it joins their shared slate `Sv` rather than claiming yet another dedicated hue.
     pub const fn tone(self) -> Tone {
         match self {
             AppKind::Blueprint | AppKind::Lineman => Tone::Bp,
             AppKind::Catalyst | AppKind::Beacon => Tone::Ca,
             AppKind::Fuse => Tone::Fs,
-            AppKind::Bench | AppKind::Foundry | AppKind::Service => Tone::Sv,
+            AppKind::Relay => Tone::Primary,
+            AppKind::Bench | AppKind::Foundry | AppKind::Allele | AppKind::Service => Tone::Sv,
         }
     }
 
@@ -182,6 +195,8 @@ impl AppKind {
             "bench" => AppKind::Bench,
             "foundry" => AppKind::Foundry,
             "lineman" => AppKind::Lineman,
+            "relay" => AppKind::Relay,
+            "allele" => AppKind::Allele,
             _ => AppKind::Service,
         }
     }
@@ -215,6 +230,7 @@ mod tests {
         assert_eq!(AppKind::from_name("core-blueprint-ui"), AppKind::Blueprint);
         assert_eq!(AppKind::from_name("tooling-bench-ui"), AppKind::Bench);
         assert_eq!(AppKind::from_name("examples-crud"), AppKind::Service);
+        assert_eq!(AppKind::from_name("allele.draft.localhost"), AppKind::Allele);
     }
 
     #[test]

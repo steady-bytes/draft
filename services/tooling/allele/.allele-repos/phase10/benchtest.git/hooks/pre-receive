@@ -1,0 +1,4 @@
+#!/bin/sh
+export ALLELE_REPOSITORY_ID='677d2be7-5835-4830-a806-2e8be5191e23'
+export ALLELE_SERVER_ADDR='http://localhost:9311'
+exec '/Users/andrew/Projects/steady-bytes/github/draft/.local-stack/bin/allele-pre-receive-hook'

@@ -1,0 +1,71 @@
+service:
+  name: relay
+  domain: tooling
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9308
+    internal:
+      host: localhost
+      port: 9308
+    # route.host overrides internal.host for Fuse's route-endpoint auto-fill only (see
+    # pkg/chassis/networking.go's getConfigInternalHost). localhost, not host.docker.internal --
+    # Fuse's native proxy backend runs on the host, like this process, not in Docker -- see
+    # docs/architecture/fuse-native-proxy-implementation-plan.md's Phase 9 notes. Now used by
+    # Phase 3's WithRoute call (main.go) so the port this instance binds and the port Fuse routes
+    # to never drift apart.
+    route:
+      host: localhost
+      port: 9308
+
+telemetry:
+  enabled: true
+  wide_events:
+    enabled: true
+
+# Own role/database, same convention as bench/foundry -- see
+# docs/architecture/relay-implementation-plan.md's "Postgres, not Blueprint KV" decision.
+repositories:
+  postgres:
+    url: postgres://relay:relay@localhost:5432/relay?sslmode=disable
+
+# storage_dir holds this instance's audio bytes on local disk -- no object-store service exists in
+# this repo (see the plan's Data Model decision). Phase 3's uploaded library files
+# (<storage_dir>/<track_id>.wav) live here; later phases add recordings under the same root.
+# Relative paths resolve against this process's working directory (scripts/run-local*.sh both cd
+# into services/tooling/relay before launching it, so this stays alongside go.mod in local dev).
+relay:
+  storage_dir: ./.relay-storage
+  # whisper.address is where Phase 4's live transcription pipeline (service/transcribe.go) sends
+  # each ~3s recording window as a WAV file for whisper.cpp's server example (POST /inference,
+  # response_format=verbose_json) to transcribe. Native binary for local dev, Kubernetes sidecar
+  # container in production -- see the plan's Speech-to-text pipeline section. Not started by this
+  # process itself; scripts/run-local-watch.sh starts/watches it like every other local-dev
+  # process, matching whisper.cpp's own treatment as an external prerequisite (alongside
+  # buf/watchexec/dctl), not something Relay vendors or manages the lifecycle of.
+  whisper:
+    address: http://127.0.0.1:9309
+  # lineman.address is where Phase 6's CreateLinemanTasks calls Lineman's own real CreateTask RPC
+  # to promote a selected ActionItem into a real task on a real Lineman board. Same default port
+  # (9307) run-local.sh/run-local-watch.sh already start Lineman on.
+  lineman:
+    address: http://localhost:9307
+  # pyannote.address is where Phase 8's batch diarization pass (service/diarize.go) sends a
+  # finalized recording's full audio (POST /diarize) once StopRecording finishes. There is no
+  # off-the-shelf pyannote.audio server -- pyannote-wrapper/server.py is this service's own small
+  # HTTP wrapper around it, following the same native-dev/container-prod sidecar treatment as
+  # whisper.cpp. Its pretrained model is gated on HuggingFace (a one-time account + access token
+  # setup, separate from this config value) -- see the plan's Speech-to-text pipeline section.
+  pyannote:
+    address: http://127.0.0.1:9310
+
+# catalyst.address is where this service opens its own Produce stream to emit a
+# tooling.relay.v1.TranscriptSegment CloudEvent after each transcript segment is finalized (see
+# service/events.go) -- same config key and default (http://localhost:2220) every other
+# Catalyst-producing service in this repo uses (e.g. services/examples/crud-event/config.yaml).
+catalyst:
+  address: http://localhost:2220

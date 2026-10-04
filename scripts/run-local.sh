@@ -57,6 +57,7 @@
 #   http-call (RPC only)                http://localhost:9304/
 #   grpc-call (RPC only)                http://localhost:9305/
 #   catalyst-produce (RPC only)         http://localhost:9306/
+#   Relay UI (recording + live transcription) http://localhost:9308/
 #   crud (examples, RPC only)           http://localhost:9090/
 #   crud-event (examples, RPC only, emits examples.crud.v1.ModelEvent) http://localhost:9098/
 #   crud-audit (examples, background consumer, audits examples.crud.v1.ModelEvent) http://localhost:9099/
@@ -78,6 +79,10 @@ CLICKHOUSE_CONTAINER="draft-local-clickhouse"
 CLICKHOUSE_NATIVE_PORT=9000
 CLICKHOUSE_HTTP_PORT=8123
 DOCS_PORT=1313
+WHISPER_PORT=9309
+WHISPER_DIR="$RUN_DIR/whisper.cpp"
+WHISPER_BIN="$WHISPER_DIR/build/bin/whisper-server"
+WHISPER_MODEL="$WHISPER_DIR/models/ggml-tiny.en.bin"
 
 mkdir -p "$BIN_DIR" "$LOG_DIR"
 
@@ -147,8 +152,8 @@ start_bg() {
 # 10000 is Fuse's own native-backend data-plane listener (fuse.listener.port,
 # services/core/fuse/config.yaml) -- a plain host process, not a separate
 # Envoy container, now that Fuse is the reverse proxy directly.
-for p in 2221 2220 18000 2222 4317 9090 9091 9300 9301 9302 9303 9304 9305 9306 \
-         10000 "$DOCS_PORT" \
+for p in 2221 2220 18000 2222 4317 9090 9091 9300 9301 9302 9303 9304 9305 9306 9308 9311 \
+         10000 "$DOCS_PORT" "$WHISPER_PORT" \
          "$POSTGRES_PORT" "$CLICKHOUSE_NATIVE_PORT" "$CLICKHOUSE_HTTP_PORT"; do
   if port_in_use "$p"; then
     die "port $p is already in use — stop whatever's using it (or a previous run of this script, or run-tooling-stack.sh, that didn't get torn down) before retrying"
@@ -158,6 +163,15 @@ done
 command -v docker >/dev/null 2>&1 || die "docker is required (for Postgres/ClickHouse) but isn't on PATH"
 docker info >/dev/null 2>&1 || die "docker daemon isn't running"
 command -v hugo >/dev/null 2>&1 || die "hugo is required (for the docs site — brew install hugo) but isn't on PATH"
+
+# whisper.cpp is Relay's Phase 4 speech-to-text sidecar -- see run-local-watch.sh's identical
+# check for the full one-time setup command and reasoning (external prerequisite, built once into
+# $RUN_DIR, not vendored or globally PATH-installed).
+if [ ! -x "$WHISPER_BIN" ] || [ ! -f "$WHISPER_MODEL" ]; then
+  die "whisper.cpp isn't built yet (required for Relay's Phase 4 live transcription) -- see
+  scripts/run-local-watch.sh's identical check for the one-time setup command, or
+  docs/architecture/relay-implementation-plan.md's Speech-to-text pipeline section"
+fi
 
 # ---------------------------------------------------------------------------
 # Postgres — one instance, two databases (bench, foundry), matching each
@@ -179,13 +193,21 @@ done
 docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres >/dev/null 2>&1 \
   || die "postgres never became ready"
 
-log "Creating bench/foundry/crud roles and databases"
+log "Creating bench/foundry/relay/allele/crud roles and databases"
 docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null \
-  || die "failed to create bench/foundry/crud roles/databases"
+  || die "failed to create bench/foundry/relay/allele/crud roles/databases"
 CREATE ROLE bench LOGIN PASSWORD 'bench';
 CREATE DATABASE bench OWNER bench;
 CREATE ROLE foundry LOGIN PASSWORD 'foundry';
 CREATE DATABASE foundry OWNER foundry;
+-- Own role/database, same convention as bench/foundry -- see
+-- docs/architecture/relay-implementation-plan.md's Phase 1.
+CREATE ROLE relay LOGIN PASSWORD 'relay';
+CREATE DATABASE relay OWNER relay;
+-- Own role/database, same convention as bench/foundry/relay -- see
+-- docs/architecture/allele-implementation-plan.md's "Postgres, not Blueprint KV" decision.
+CREATE ROLE allele LOGIN PASSWORD 'allele';
+CREATE DATABASE allele OWNER allele;
 -- examples/crud's checked-in config.yaml (repositories.postgres.url) points at
 -- role/database "draft" specifically, not "crud" -- matching that exactly
 -- rather than overriding it via DRAFT_ env vars like bench/foundry's
@@ -272,6 +294,14 @@ log "Building tooling services"
 (cd "$REPO_ROOT/services/tooling/http-call" && go build -o "$BIN_DIR/http-call" .) || die "http-call build failed"
 (cd "$REPO_ROOT/services/tooling/grpc-call" && go build -o "$BIN_DIR/grpc-call" .) || die "grpc-call build failed"
 (cd "$REPO_ROOT/services/tooling/catalyst-produce" && go build -o "$BIN_DIR/catalyst-produce" .) || die "catalyst-produce build failed"
+(cd "$REPO_ROOT/services/tooling/relay" && go build -o "$BIN_DIR/relay" .) || die "relay build failed"
+(cd "$REPO_ROOT/services/tooling/allele" && go build -o "$BIN_DIR/allele" .) || die "allele build failed"
+# allele-{pre,post}-receive-hook are built as allele's own siblings in $BIN_DIR -- see main.go's
+# resolveHookBinaryPath -- so every repository CreateRepository makes from this run gets real
+# push-permission enforcement (Phase 8) and push telemetry (Phase 9), not just the service binary
+# itself.
+(cd "$REPO_ROOT/services/tooling/allele" && go build -o "$BIN_DIR/allele-pre-receive-hook" ./cmd/pre-receive-hook) || die "allele-pre-receive-hook build failed"
+(cd "$REPO_ROOT/services/tooling/allele" && go build -o "$BIN_DIR/allele-post-receive-hook" ./cmd/post-receive-hook) || die "allele-post-receive-hook build failed"
 
 # ---------------------------------------------------------------------------
 # Start order: Blueprint first (everything else registers with it), then
@@ -374,6 +404,24 @@ log "Starting catalyst-produce (publishes itself to Foundry's catalog on startup
 start_bg catalyst-produce "$REPO_ROOT/services/tooling/catalyst-produce" "$BIN_DIR/catalyst-produce"
 wait_for_tcp localhost 9306 catalyst-produce
 
+log "Starting whisper.cpp sidecar (Relay's Phase 4 speech-to-text)"
+(
+  cd "$WHISPER_DIR" || exit 1
+  exec "$WHISPER_BIN" -m "$WHISPER_MODEL" --host 127.0.0.1 --port "$WHISPER_PORT"
+) >"$LOG_DIR/whisper.log" 2>&1 &
+WHISPER_PID=$!
+PIDS+=("$WHISPER_PID")
+log "whisper.cpp started (pid $WHISPER_PID), logs: $LOG_DIR/whisper.log"
+wait_for_tcp localhost "$WHISPER_PORT" whisper.cpp
+
+log "Starting Relay (Phase 4: recording + live transcription, see docs/architecture/relay-implementation-plan.md)"
+start_bg relay "$REPO_ROOT/services/tooling/relay" "$BIN_DIR/relay"
+wait_for_tcp localhost 9308 relay
+
+log "Starting Allele (Phase 1: scaffolding only, see docs/architecture/allele-implementation-plan.md)"
+start_bg allele "$REPO_ROOT/services/tooling/allele" "$BIN_DIR/allele"
+wait_for_tcp localhost 9311 allele
+
 cat <<EOF
 
 --------------------------------------------------------------------
@@ -388,6 +436,9 @@ Full local Draft cluster is up.
   http-call (RPC only)          localhost:9304
   grpc-call (RPC only)          localhost:9305
   catalyst-produce (RPC only)   localhost:9306
+  Relay UI (recording + live transcription)   http://localhost:9308/
+  whisper.cpp sidecar (Relay's speech-to-text)   localhost:9309
+  Allele (Phase 1 scaffolding only, no RPC/route yet)   localhost:9311
   crud (examples, RPC only)     localhost:9090
   crud-event (examples, RPC only, emits examples.crud.v1.ModelEvent) localhost:9098
   crud-audit (examples, background consumer, audits examples.crud.v1.ModelEvent) localhost:9099

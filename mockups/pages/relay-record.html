@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{relay} Record</title>
+  <link rel="stylesheet" href="../../tools/draft-ui/dist/fonts.css">
+  <link rel="stylesheet" href="../../tools/draft-ui/dist/draft.css">
+  <script src="../../tools/draft-ui/dist/draft.js"></script>
+  <style>
+    .rc-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .rc-main { padding: 24px 32px 40px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+
+    .deck { display: grid; grid-template-columns: 100px minmax(0, 1fr) 230px; }
+    .deck > div { padding: 14px 16px; }
+    .deck > div + div { border-left: 1px solid var(--rule); }
+    .meters { display: grid; grid-template-columns: 1fr 1fr auto; gap: 5px; height: 180px; }
+    .meters canvas { width: 100%; height: 100%; display: block; }
+    .scale { position: relative; width: 20px; font-family: var(--font-mono); font-size: 9px; color: var(--dim); }
+    .scale span { position: absolute; right: 0; transform: translateY(-50%); line-height: 1; }
+    .scale span:first-child { transform: none; }
+    .scale span:last-child { transform: translateY(-100%); }
+    .live { position: relative; height: 180px; }
+    .live canvas { width: 100%; height: 100%; display: block; }
+    .live .d-label { position: absolute; top: 0; left: 0; }
+    .live .mark { position: absolute; top: 0; right: 0; }
+
+    .ctl { display: flex; flex-direction: column; gap: 12px; }
+    .rec-row { display: flex; align-items: center; gap: 14px; }
+    .rec { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--err); background: transparent; display: grid; place-items: center; cursor: pointer; flex: none; }
+    .rec i { width: 18px; height: 18px; background: var(--err); border-radius: 2px; }
+    .rec.idle i { border-radius: 50%; width: 22px; height: 22px; }
+    .elapsed { font-family: var(--font-mono); font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+    .elapsed small { display: block; font-size: 10.5px; font-weight: 500; color: var(--err); letter-spacing: .08em; }
+    .ctl .d-select { width: 100%; }
+    .gain { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
+    .gain input { width: 100%; accent-color: var(--primary); }
+
+    .tx-body { padding: 6px 18px 18px; max-height: 360px; overflow: auto; }
+    .seg { display: grid; grid-template-columns: 64px 92px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+    .seg time { font-family: var(--font-mono); font-size: 11.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+    .seg p { margin: 0; font-size: 14.5px; line-height: 1.6; max-width: 72ch; }
+    .low { text-decoration: underline dotted var(--warn); text-underline-offset: 4px; cursor: help; }
+    .seg.partial p { color: var(--dim); }
+    .caret { display: inline-block; width: 2px; height: 1em; background: var(--primary); vertical-align: -2px; margin-left: 2px; animation: caret 1s steps(1) infinite; }
+    @keyframes caret { 50% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+    .spk { justify-self: start; }
+
+    .side { padding: 20px; }
+    .side .d-section-title { margin: 20px 0 10px; }
+    .side .d-section-title:first-of-type { margin-top: 0; }
+    .opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 13px; }
+    .opt .d-select { width: 170px; height: 28px; font-size: 12px; }
+    .side .d-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .side .d-stat { padding: 10px 12px; }
+    .side .d-stat-value { font-size: 20px; margin-top: 6px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>relay</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Relay</span><i>/</i><span>Capture</span><i>/</i><span>Record</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--err d-status--live">Recording · transcribing live</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Listen</span>
+    <a class="d-nav-item" href="relay-library.html">Library <span class="d-count">1,284</span></a>
+    <a class="d-nav-item" href="#">Queue <span class="d-count">4</span></a>
+    <a class="d-nav-item" href="#">Playlists <span class="d-count">6</span></a>
+
+    <span class="d-label">Capture</span>
+    <a class="d-nav-item" aria-current="page" href="relay-record.html"><span style="width:7px;height:7px;border-radius:50%;background:var(--err)"></span>Record <span class="d-count" style="color:var(--err)">REC</span></a>
+    <a class="d-nav-item" href="relay-transcripts.html">Transcripts <span class="d-count">38</span></a>
+
+    <span class="d-label">Devices</span>
+    <a class="d-nav-item" href="#">Inputs <span class="d-count">2</span></a>
+    <a class="d-nav-item" href="#">Outputs <span class="d-count">3</span></a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="blueprint-events-query.html"><span class="d-glyph" style="--c:var(--ca)">Ca</span>Events</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="rc-layout">
+      <section class="rc-main">
+        <div class="d-page-head" style="margin-bottom:0">
+          <div>
+            <span class="d-label">Capture · voice to text</span>
+            <h1>Design review · Relay UI</h1>
+            <p>Started 10:02 CDT. Audio is saved as it records; the transcript streams in below and is published to Catalyst as it's finalized.</p>
+          </div>
+          <div class="d-actions"><button class="d-btn">Add marker</button><button class="d-btn d-btn--danger">Discard</button></div>
+        </div>
+
+        <div class="d-panel deck">
+          <div>
+            <div class="meters" aria-label="Input level, left and right">
+              <canvas id="mL"></canvas><canvas id="mR"></canvas>
+              <div class="scale"><span style="top:0">0</span><span style="top:10%">−6</span><span style="top:20%">−12</span><span style="top:40%">−24</span><span style="top:80%">−48</span><span style="top:100%">−60</span></div>
+            </div>
+          </div>
+          <div class="live">
+            <span class="d-label">Input · last 30 s</span>
+            <span class="d-label mark">Peak −4.2 dBFS · no clipping</span>
+            <canvas id="live" aria-label="Scrolling waveform of the microphone input"></canvas>
+          </div>
+          <div class="ctl">
+            <div class="rec-row">
+              <button class="rec" id="rec" aria-label="Stop recording"><i></i></button>
+              <div class="elapsed" id="elapsed">04:17.3<small>● REC</small></div>
+            </div>
+            <label class="d-field"><span class="d-label">Input</span>
+              <select class="d-select" id="input" aria-label="Input device"><option>USB mic · node-2 · mono</option><option>MacBook mic · browser</option></select>
+            </label>
+            <label class="gain"><span>GAIN</span><input type="range" id="gain" min="-12" max="24" value="6" aria-label="Input gain"><span id="gainv">+6 dB</span></label>
+            <span class="d-toggle" role="switch" aria-checked="false"><i></i>Monitor input</span>
+          </div>
+        </div>
+
+        <div class="d-panel">
+          <div class="d-panel-head">
+            <span class="d-label">Transcript · live</span>
+            <span class="d-spacer"></span>
+            <div class="d-legend"><span style="--c:var(--ca)">Andrew</span><span style="--c:var(--bp)">Speaker 2</span></div>
+            <span class="d-label" style="color:var(--warn)">⋯ underlined = low confidence</span>
+          </div>
+          <div class="tx-body" id="tx">
+            <div class="seg"><time>00:00:04</time><span class="d-tag d-tag--ca spk">Andrew</span><p>Okay, let's start with the Relay player. I want playback and capture to live in the same plugin.</p></div>
+            <div class="seg"><time>00:00:12</time><span class="d-tag d-tag--bp spk">Speaker 2</span><p>So one service owns every input and every output, and other services ask it for audio instead of opening devices themselves?</p></div>
+            <div class="seg"><time>00:00:21</time><span class="d-tag d-tag--ca spk">Andrew</span><p>Right. Relay registers with Blueprint like everything else, and transcripts go out on Catalyst as <span class="low" title="Confidence 0.61 · alternatives: relay.transcript.segments">relay.transcript.segment</span> events.</p></div>
+            <div class="seg"><time>00:02:48</time><span class="d-tag d-tag--bp spk">Speaker 2</span><p>Then Lineman could turn action items into tasks straight from a meeting. That's a nice loop.</p></div>
+            <div class="seg"><time>00:03:55</time><span class="d-tag d-tag--ca spk">Andrew</span><p>Exactly. The meters should read in dBFS, and the waveform needs to stay legible in light mode too.</p></div>
+            <div class="seg partial"><time>00:04:14</time><span class="d-tag d-tag--ca spk">Andrew</span><p>Let's also make sure the archive can search across every <span class="caret" aria-hidden="true"></span></p></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="d-drawer side" aria-label="Transcription settings">
+        <div class="d-section-title"><span class="d-label">Session</span></div>
+        <div class="d-stats">
+          <div class="d-panel d-stat"><span class="d-label">Words</span><div class="d-stat-value">612</div></div>
+          <div class="d-panel d-stat"><span class="d-label">Latency</span><div class="d-stat-value">420<small>ms</small></div></div>
+          <div class="d-panel d-stat"><span class="d-label">Speakers</span><div class="d-stat-value">2</div></div>
+          <div class="d-panel d-stat"><span class="d-label">Size</span><div class="d-stat-value">24.6<small>MB</small></div></div>
+        </div>
+
+        <div class="d-section-title"><span class="d-label">Speech to text</span></div>
+        <div class="opt"><span>Model</span><select class="d-select" id="model"><option>whisper · small.en</option><option>whisper · medium</option></select></div>
+        <div class="opt"><span>Language</span><select class="d-select" id="lang"><option>English (US)</option><option>Auto-detect</option></select></div>
+        <div class="opt"><span>Speaker labels</span><span class="d-toggle" role="switch" aria-checked="true"><i></i>On</span></div>
+        <div class="opt"><span>Skip silence</span><span class="d-toggle" role="switch" aria-checked="true"><i></i>On</span></div>
+        <div class="opt"><span>Punctuation</span><span class="d-toggle" role="switch" aria-checked="true"><i></i>On</span></div>
+
+        <div class="d-section-title"><span class="d-label">Where it goes</span></div>
+        <dl class="d-kv">
+          <dt>audio</dt><dd>relay-recordings / 2026-09-29-1002.wav</dd>
+          <dt>events</dt><dd style="color:var(--ca)">relay.transcript.segment</dd>
+          <dt>consumers</dt><dd>beacon, lineman</dd>
+          <dt>format</dt><dd>WAV · 48 kHz · 24-bit · mono</dd>
+        </dl>
+        <div class="d-row" style="margin-top:16px; gap:8px"><button class="d-btn d-btn--sm">Copy transcript</button><a class="d-btn d-btn--sm" href="relay-transcripts.html">All transcripts</a></div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Input <b>USB mic · node-2</b></span>
+    <span>48 kHz · 24-bit</span>
+    <span>Buffer <b>512 · 10.7 ms</b></span>
+    <span class="d-spacer"></span>
+    <span><span class="d-kbd">R</span> stop</span>
+    <span><span class="d-kbd">M</span> marker</span>
+  </footer>
+</div>
+
+<script>
+  // Simulated input: scrolling waveform, L/R meters with peak hold, running clock.
+  (function () {
+    function tok(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var live = document.getElementById("live"), mL = document.getElementById("mL"), mR = document.getElementById("mR");
+    var hist = [], t = 0, recording = true, secs = 257.3, peak = [0, 0];
+    function level(k) { // speech-like envelope: syllables with pauses
+      var syl = Math.max(0, Math.sin(k * 0.21) * Math.sin(k * 0.047 + 1));
+      return Math.min(1, 0.04 + syl * (0.55 + 0.35 * Math.sin(k * 1.7)) * (Math.sin(k * 0.013) > -0.6 ? 1 : 0.1));
+    }
+    for (var i = 0; i < 240; i++) hist.push(level(i));
+    t = 240;
+    function size(c) { var d = window.devicePixelRatio || 1; c.width = c.clientWidth * d; c.height = c.clientHeight * d; var g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); return g; }
+    function drawLive() {
+      var g = size(live), w = live.clientWidth, h = live.clientHeight, mid = h / 2 + 8;
+      g.strokeStyle = tok("--rule"); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(0, mid); g.lineTo(w, mid); g.stroke();
+      var bw = w / hist.length;
+      hist.forEach(function (v, i) {
+        var a = v * (h / 2 - 16);
+        g.fillStyle = v > 0.92 ? tok("--err") : tok("--primary");
+        g.globalAlpha = 0.35 + 0.65 * (i / hist.length);
+        g.fillRect(i * bw, mid - a, Math.max(1, bw - 1), a * 2 || 1);
+      });
+      g.globalAlpha = 1;
+    }
+    function db2y(db, h) { var n = Math.max(0, Math.min(1, (db + 60) / 60)); return h - n * h; }
+    function drawMeter(c, v, ch) {
+      var g = size(c), w = c.clientWidth, h = c.clientHeight;
+      g.fillStyle = tok("--panel-2"); g.fillRect(0, 0, w, h);
+      var db = v > 0 ? 20 * Math.log10(v) : -60;
+      var y = db2y(db, h), yWarn = db2y(-12, h), yHot = db2y(-3, h);
+      for (var yy = h; yy > y; yy -= 4) {
+        g.fillStyle = yy < yHot ? tok("--err") : yy < yWarn ? tok("--warn") : tok("--primary");
+        g.fillRect(1, yy - 3, w - 2, 3);
+      }
+      peak[ch] = Math.max(peak[ch] - 0.6, db);
+      g.fillStyle = tok("--ink"); g.fillRect(1, db2y(peak[ch], h), w - 2, 2);
+    }
+    function frame() {
+      if (recording) {
+        t++; hist.push(level(t)); if (hist.length > 240) hist.shift();
+        secs += 1 / 20;
+        var m = Math.floor(secs / 60), s = (secs % 60).toFixed(1).padStart(4, "0");
+        document.getElementById("elapsed").innerHTML = String(m).padStart(2, "0") + ":" + s + "<small>● REC</small>";
+      }
+      var v = hist[hist.length - 1];
+      drawLive(); drawMeter(mL, v * 0.9, 0); drawMeter(mR, v * 0.84, 1);
+    }
+    frame();
+    if (!reduce) setInterval(frame, 50);
+
+    var rec = document.getElementById("rec");
+    rec.addEventListener("click", function () {
+      recording = !recording; rec.classList.toggle("idle", !recording);
+      rec.setAttribute("aria-label", recording ? "Stop recording" : "Start recording");
+    });
+    var gain = document.getElementById("gain"), gv = document.getElementById("gainv");
+    gain.addEventListener("input", function () { var v = +gain.value; gv.textContent = (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v) + " dB"; });
+    window.addEventListener("resize", frame);
+    new MutationObserver(frame).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  })();
+</script>
+</body>
+</html>

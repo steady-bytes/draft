@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package tooling.relay.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/tooling/relay/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// See docs/website/content/docs/architecture/relay-implementation-plan.md's Data Model section
+// for the full reasoning behind every message here.
+
+message Track {
+    string id           = 1;
+    string title        = 2;
+    string artist       = 3;
+    string album        = 4;
+    string format       = 5;  // "FLAC 24/96", "MP3 320", "WAV 48k/24-bit", ... -- display only
+    int64  duration_ms   = 6;
+    int64  size_bytes    = 7;
+    string storage_node  = 8;  // the Relay instance (Pid) whose local disk holds the bytes
+    string storage_path  = 9;  // path under that instance's relay-library/ or relay-recordings/
+    google.protobuf.Timestamp added_at = 10;
+    // Set only for a track that originated from a Relay recording, not an added library file.
+    string recording_id  = 11;
+    // The raw PCM16LE format StreamAudioOut's AudioChunks actually carry for this track --
+    // structured, not parsed back out of `format` above (which is display text, e.g. never even
+    // states channel count). Added in Phase 10 once the web client needed a reliable way to
+    // configure its own Web Audio decode without guessing: AudioChunk itself carries no format
+    // fields (fixed "per stream at open" per its own doc, but nothing ever named where "at open"
+    // actually put that information until now).
+    int32 sample_rate_hz   = 12;
+    int32 channels         = 13;
+    int32 bits_per_sample  = 14;
+}
+
+message Recording {
+    string    id           = 1;
+    string    name         = 2;   // "Design review · Relay UI"
+    string    track_id     = 3;   // the playable Track this recording became once finalized
+    RecordingStatus status  = 4;
+    int64     duration_ms   = 5;
+    int32     word_count    = 6;
+    repeated Speaker speakers = 7;
+    google.protobuf.Timestamp started_at   = 8;
+    google.protobuf.Timestamp finished_at  = 9; // unset while still recording
+}
+
+enum RecordingStatus {
+    RECORDING_STATUS_UNSPECIFIED = 0;
+    RECORDING_STATUS_LIVE        = 1;
+    RECORDING_STATUS_COMPLETE    = 2;
+    RECORDING_STATUS_LOW_CONFIDENCE = 3; // finished, but STT confidence was low throughout
+}
+
+message Speaker {
+    string id    = 1;
+    string label = 2; // "Andrew", "Speaker 2" -- user-renameable
+}
+
+message TranscriptSegment {
+    string id           = 1;
+    string recording_id = 2;
+    int64  start_ms      = 3;
+    int64  end_ms        = 4;
+    string speaker_id    = 5;
+    string text          = 6;
+    float  confidence    = 7;
+    bool   is_partial     = 8; // live/streaming segment, not yet finalized
+}
+
+message Marker {
+    string id           = 1;
+    string recording_id = 2;
+    int64  at_ms         = 3;
+    string label         = 4; // user-added via "Add marker" during Record
+}
+
+message ActionItem {
+    string id             = 1;
+    string recording_id   = 2;
+    string text           = 3;
+    string source_segment_id = 4;
+    int64  at_ms           = 5;
+    string speaker_label   = 6;
+    string lineman_task_id = 7; // set once promoted via CreateLinemanTasks
+}
+
+// Device is never stored -- it's always a live read of one Relay instance's own local hardware
+// (see ListDevices), included here only to name the shape every instance returns.
+message Device {
+    string id   = 1;
+    string name = 2; // "USB mic · node-2 · mono", "Studio monitors · node-2 · 48 kHz"
+    DeviceKind kind = 3;
+    int32 channels   = 4;
+    int32 sample_rate_hz = 5;
+}
+
+enum DeviceKind {
+    DEVICE_KIND_UNSPECIFIED = 0;
+    DEVICE_KIND_INPUT       = 1;
+    DEVICE_KIND_OUTPUT      = 2;
+}

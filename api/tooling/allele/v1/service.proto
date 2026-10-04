@@ -1,0 +1,332 @@
+syntax = "proto3";
+
+package tooling.allele.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/tooling/allele/v1";
+
+import "tooling/allele/v1/models.proto";
+import "google/protobuf/timestamp.proto";
+
+// AlleleService is Allele's RPC surface over its *derived* state (worktrees, diffs, provenance,
+// linkage) -- it deliberately does not include the actual git read/write path. git clone/fetch/push
+// speak git's own smart-HTTP protocol (plain HTTP, not Connect-framed) against
+// /{repo}/info/refs, /{repo}/git-upload-pack, /{repo}/git-receive-pack, mounted separately via
+// chassis.AddHandler. See
+// docs/website/content/docs/architecture/allele-implementation-plan.md's RPC Interface section.
+service AlleleService {
+    // Repositories
+    rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse) {}
+    rpc CreateRepository(CreateRepositoryRequest) returns (Repository) {}
+    rpc GetRepository(GetRepositoryRequest) returns (Repository) {}
+
+    // Worktrees -- opening one is observed, not commanded: the first push of a new branch is what
+    // creates its row (Phase 7). GetWorktreeOverlap backs the pairwise matrix.
+    rpc ListWorktrees(ListWorktreesRequest) returns (ListWorktreesResponse) {}
+    rpc GetWorktreeOverlap(GetWorktreeOverlapRequest) returns (GetWorktreeOverlapResponse) {}
+    rpc CloseWorktree(CloseWorktreeRequest) returns (CloseWorktreeResponse) {} // abandon, no merge
+
+    // Changes -- a Change is the live, continuously-reindexed diff of one worktree's branch
+    // against its base. EnqueueMerge enters the merge queue; it does not merge immediately -- see
+    // the plan's "Agent worktrees are branches, and verification is queue-gated" section.
+    rpc ListChanges(ListChangesRequest) returns (ListChangesResponse) {}
+    rpc GetChange(GetChangeRequest) returns (Change) {}
+    rpc RebaseChange(RebaseChangeRequest) returns (Change) {}
+    rpc EnqueueMerge(EnqueueMergeRequest) returns (MergeQueueEntry) {}
+
+    // Merge queue
+    rpc ListMergeQueue(ListMergeQueueRequest) returns (ListMergeQueueResponse) {}
+    rpc HoldMergeQueueEntry(HoldMergeQueueEntryRequest) returns (MergeQueueEntry) {}
+    rpc ResumeMergeQueueEntry(ResumeMergeQueueEntryRequest) returns (MergeQueueEntry) {}
+
+    // Live feed -- backs the symbol-changes drawer and the queue's own live status. Dedicated
+    // streaming RPC, not a Catalyst Consume subscription -- same reasoning as Relay's
+    // WatchTranscript; see the plan's Decisions.
+    rpc WatchChanges(WatchChangesRequest) returns (stream SymbolChangeEvent) {}
+
+    // NotifyPush is called by the post-receive hook (cmd/post-receive-hook), once per accepted ref
+    // update -- unlike CheckPushPermission's pre-receive hook, post-receive runs *after* objects are
+    // committed to the real object store, which is what makes it safe to diff here (pre-receive's
+    // own quarantined objects are only visible inside the hook's own process, not this server's).
+    // Not called by UI/API clients. Publishes tooling.allele.v1.SymbolChanged for every symbol-level
+    // change the push introduced (see Telemetry).
+    rpc NotifyPush(NotifyPushRequest) returns (NotifyPushResponse) {}
+
+    // Provenance
+    rpc GetProvenance(GetProvenanceRequest) returns (Provenance) {}
+    rpc ListPathPermissions(ListPathPermissionsRequest) returns (ListPathPermissionsResponse) {}
+    rpc SetPathPermissions(SetPathPermissionsRequest) returns (SetPathPermissionsResponse) {}
+    // CheckPushPermission is called by the pre-receive hook installed in every bare repo (see
+    // store.go's installHook), not by UI/API clients -- modeled as an ordinary RPC rather than a
+    // separate ad hoc endpoint, consistent with how every other operation in this domain is
+    // represented, and reachable at the same address the hook already runs alongside (localhost).
+    // On an allowed push it also records a Provenance row for ref/new_commit_sha (R4.1) -- one
+    // round trip from the hook rather than two, since the hook only ever needs this check-and-record
+    // done together, never separately.
+    rpc CheckPushPermission(CheckPushPermissionRequest) returns (CheckPushPermissionResponse) {}
+
+    // Signing keys -- humans register their own (see the plan's Decisions); agents/evolution runs
+    // never call these, since Allele mints and holds their keys itself.
+    rpc RegisterSigningKey(RegisterSigningKeyRequest) returns (SigningKey) {}
+    rpc ListSigningKeys(ListSigningKeysRequest) returns (ListSigningKeysResponse) {}
+    rpc RevokeSigningKey(RevokeSigningKeyRequest) returns (RevokeSigningKeyResponse) {}
+
+    // Linkage manifest
+    rpc GetLinkageManifest(GetLinkageManifestRequest) returns (LinkageManifest) {}
+    rpc DiffLinkageManifest(DiffLinkageManifestRequest) returns (DiffLinkageManifestResponse) {}
+    rpc SetBreakingChangePolicy(SetBreakingChangePolicyRequest) returns (LinkageManifest) {}
+    rpc ApproveLinkageChange(ApproveLinkageChangeRequest) returns (ApproveLinkageChangeResponse) {}
+}
+
+message SymbolChangeEvent {
+    string repository_id = 1;
+    string worktree_id    = 2;
+    SymbolChange change    = 3;
+    google.protobuf.Timestamp at = 4;
+}
+
+// ConflictDetectedEvent/VerificationCompletedEvent are the Catalyst CloudEvent payloads for their
+// own rows in Telemetry -- same "id/context plus the inner message" shape SymbolChangeEvent already
+// established above, not a new convention. VerificationRun already carries its own change_id (see
+// models.proto), so VerificationCompletedEvent doesn't repeat it at the wrapper level the way
+// ConflictDetectedEvent needs to (ConflictReport has no change_id of its own).
+
+message ConflictDetectedEvent {
+    string repository_id   = 1;
+    string change_id        = 2;
+    ConflictReport conflict  = 3;
+    google.protobuf.Timestamp at = 4;
+}
+
+message VerificationCompletedEvent {
+    string repository_id = 1;
+    VerificationRun run    = 2;
+    google.protobuf.Timestamp at = 3;
+}
+
+message NotifyPushRequest {
+    string repository_id  = 1;
+    string ref              = 2; // full ref, e.g. "refs/heads/wt-09" -- same form the hook receives
+    string new_commit_sha  = 3;
+}
+
+message NotifyPushResponse {}
+
+// MergeQueueEntry is the merge queue's own row -- one per Change currently queued, enqueued via
+// EnqueueMerge, not defined directly in models.proto since nothing stores it independently of the
+// queue itself (unlike Change/Worktree, which persist after leaving the queue).
+message MergeQueueEntry {
+    string id             = 1;
+    int32  position        = 2; // 1-indexed, matches the mockup's own numbered rows
+    string change_id       = 3;
+    string repository_id   = 4;
+    VerificationStatus status = 5;
+    repeated VerificationStep checks = 6;
+    bool   held             = 7; // true while on hold via HoldMergeQueueEntry
+    google.protobuf.Timestamp queued_at = 8;
+}
+
+// -- Repositories -----------------------------------------------------------------------------
+
+message ListRepositoriesRequest {}
+
+message ListRepositoriesResponse {
+    repeated Repository repositories = 1;
+}
+
+message CreateRepositoryRequest {
+    string name        = 1;
+    string description = 2;
+    // default_branch, languages, and symbol_count are never client-supplied -- default_branch is
+    // always "main", the other two are derived from the repository's own content once it has any.
+}
+
+message GetRepositoryRequest {
+    string id = 1;
+}
+
+// -- Worktrees ----------------------------------------------------------------------------------
+
+message ListWorktreesRequest {
+    string repository_id = 1; // empty matches every repository
+}
+
+message ListWorktreesResponse {
+    repeated Worktree worktrees = 1;
+}
+
+enum OverlapKind {
+    OVERLAP_KIND_UNSPECIFIED                  = 0;
+    OVERLAP_KIND_NONE                         = 1;
+    OVERLAP_KIND_SAME_FILES_DIFFERENT_SYMBOLS = 2; // merges cleanly
+    OVERLAP_KIND_SEMANTIC_CONFLICT            = 3;
+}
+
+// OverlapPair is one cell of allele-worktrees.html's own pairwise matrix -- only pairs with
+// OVERLAP_KIND_NONE are typically omitted by a server implementation (nothing to show), included
+// in this message shape for completeness.
+message OverlapPair {
+    string worktree_id_a = 1;
+    string worktree_id_b = 2;
+    OverlapKind kind       = 3;
+    string detail          = 4; // e.g. "Same file beacon/exporter.go; different symbols · auto-merge"
+}
+
+message GetWorktreeOverlapRequest {
+    string repository_id = 1;
+}
+
+message GetWorktreeOverlapResponse {
+    repeated OverlapPair pairs = 1;
+}
+
+message CloseWorktreeRequest {
+    string worktree_id = 1;
+}
+
+message CloseWorktreeResponse {}
+
+// -- Changes ------------------------------------------------------------------------------------
+
+message ListChangesRequest {
+    string repository_id = 1; // empty matches every repository
+}
+
+message ListChangesResponse {
+    repeated Change changes = 1;
+}
+
+message GetChangeRequest {
+    string id = 1;
+}
+
+message RebaseChangeRequest {
+    string change_id        = 1;
+    string onto_worktree_id = 2; // e.g. "wt-04", matching the mockup's "Rebase on wt-04" button
+}
+
+message EnqueueMergeRequest {
+    string change_id = 1;
+}
+
+// -- Merge queue --------------------------------------------------------------------------------
+
+message ListMergeQueueRequest {
+    string repository_id = 1;
+}
+
+message ListMergeQueueResponse {
+    repeated MergeQueueEntry entries = 1;
+}
+
+message HoldMergeQueueEntryRequest {
+    string entry_id = 1;
+}
+
+message ResumeMergeQueueEntryRequest {
+    string entry_id = 1;
+}
+
+// -- Live feed ----------------------------------------------------------------------------------
+
+message WatchChangesRequest {
+    string repository_id = 1;
+}
+
+// -- Provenance -----------------------------------------------------------------------------------
+
+message GetProvenanceRequest {
+    string change_id = 1;
+}
+
+message ListPathPermissionsRequest {
+    string repository_id = 1;
+}
+
+message ListPathPermissionsResponse {
+    repeated PathPermission permissions = 1;
+}
+
+message SetPathPermissionsRequest {
+    string repository_id              = 1;
+    repeated PathPermission permissions = 2; // full replace, not incremental add
+}
+
+message CheckPushPermissionRequest {
+    string repository_id = 1;
+    string identity        = 2; // X-Authentik-Username, as read by the pre-receive hook
+    repeated string paths  = 3; // every path this push touches, across all its commits
+    string ref              = 4; // branch being pushed to, e.g. "wt-09" -- used to resolve an
+                                  // existing worktree's OwnerKind for the recorded Provenance row,
+                                  // not used by the permission check itself
+    string new_commit_sha  = 5; // the ref's post-push commit; the hook has this for free (it's
+                                 // stdin's own <new-sha>) -- the key for the recorded Provenance row
+}
+
+message CheckPushPermissionResponse {
+    bool   allowed = 1;
+    string reason   = 2; // set when allowed = false -- which path, which rule
+}
+
+message SetPathPermissionsResponse {
+    repeated PathPermission permissions = 1;
+}
+
+// -- Signing keys ---------------------------------------------------------------------------------
+
+message RegisterSigningKeyRequest {
+    string identity   = 1;
+    string public_key = 2;
+}
+
+message ListSigningKeysRequest {
+    string identity = 1; // empty matches every identity (admin view)
+}
+
+message ListSigningKeysResponse {
+    repeated SigningKey keys = 1;
+}
+
+message RevokeSigningKeyRequest {
+    string id = 1;
+}
+
+message RevokeSigningKeyResponse {}
+
+// -- Linkage manifest -----------------------------------------------------------------------------
+
+message GetLinkageManifestRequest {
+    string repository_id = 1;
+    string ref            = 2; // branch or commit to read from; empty means the default branch
+}
+
+message DiffLinkageManifestRequest {
+    string repository_id = 1;
+    string base_ref       = 2;
+    string compare_ref    = 3;
+}
+
+// LinkageManifestChange is one structural edge/node difference between base_ref and compare_ref --
+// e.g. allele-linkage.html's own "beacon-exporter: static -> sidecar" row.
+message LinkageManifestChange {
+    string component      = 1;
+    LinkMode mode_before    = 2;
+    LinkMode mode_after     = 3;
+    bool   added            = 4; // component/link exists only on compare_ref
+    bool   removed          = 5; // component/link exists only on base_ref
+}
+
+message DiffLinkageManifestResponse {
+    repeated LinkageManifestChange changes = 1;
+}
+
+message SetBreakingChangePolicyRequest {
+    string repository_id      = 1;
+    BreakingChangePolicy policy = 2;
+}
+
+message ApproveLinkageChangeRequest {
+    string repository_id = 1;
+    string change_id      = 2;
+}
+
+message ApproveLinkageChangeResponse {}

@@ -1,0 +1,40 @@
+service:
+  name: allele
+  domain: tooling
+  entrypoint: http://localhost:2221
+
+  logging:
+    level: debug
+
+  network:
+    bind_address: localhost
+    bind_port: 9311
+    internal:
+      host: localhost
+      port: 9311
+    # route.host overrides internal.host for Fuse's route-endpoint auto-fill only (see
+    # pkg/chassis/networking.go's getConfigInternalHost). localhost, not host.docker.internal --
+    # Fuse's native proxy backend runs on the host, like this process, not in Docker -- see
+    # docs/architecture/fuse-native-proxy-implementation-plan.md's Phase 9 notes. Not used until
+    # Phase 3's WithRoute call exists.
+    route:
+      host: localhost
+      port: 9311
+
+telemetry:
+  enabled: true
+  wide_events:
+    enabled: true
+
+# Own role/database, same convention as bench/foundry/relay -- see
+# docs/architecture/allele-implementation-plan.md's "Postgres, not Blueprint KV" decision.
+repositories:
+  postgres:
+    url: postgres://allele:allele@localhost:5432/allele?sslmode=disable
+
+# repos_dir holds the real bare git repositories this instance hosts on local disk -- see the
+# plan's Decisions ("a single active Allele instance owns the bare repos on local disk"). Relative
+# paths resolve against this process's working directory (scripts/run-local*.sh both cd into
+# services/tooling/allele before launching it, matching Relay's relay.storage_dir convention).
+allele:
+  repos_dir: ./.allele-repos

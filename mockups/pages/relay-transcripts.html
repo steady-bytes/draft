@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{relay} Transcripts</title>
+  <link rel="stylesheet" href="../../tools/draft-ui/dist/fonts.css">
+  <link rel="stylesheet" href="../../tools/draft-ui/dist/draft.css">
+  <script src="../../tools/draft-ui/dist/draft.js"></script>
+  <style>
+    .ta-layout { display: grid; grid-template-columns: minmax(0, 1fr) 460px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .ta-list { padding: 24px 32px 48px; min-width: 0; }
+    .ta-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 12px; }
+    .recs td.title { max-width: 0; width: 38%; }
+    .recs td.title b { display: block; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recs td.title small { display: block; font-family: var(--font-sans); font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recs td { height: 52px; }
+    .recs td.hits { width: 1%; }
+    .recs mark, .ta-drawer mark { background: color-mix(in oklab, var(--primary) 28%, transparent); color: var(--ink); padding: 0 2px; border-radius: 1px; }
+    .spk { display: inline-flex; gap: 3px; }
+    .spk i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+
+    .ta-drawer { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .ta-drawer h2 { margin: 6px 0 2px; font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
+    .mini { position: relative; height: 44px; }
+    .mini canvas { width: 100%; height: 100%; display: block; }
+    .mini .hit { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fs); cursor: pointer; }
+    .mini .hit::after { content: ""; position: absolute; top: -4px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--fs); }
+    .mini-axis { position: relative; height: 14px; font-family: var(--font-mono); font-size: 10.5px; color: var(--dim); margin-top: 6px; }
+    .mini-axis span { position: absolute; top: 0; transform: translateX(-50%); }
+    .mini-axis span:first-child { transform: none; }
+    .mini-axis span:last-child { transform: translateX(-100%); }
+    .excerpt { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--rule); }
+    .excerpt time { font-family: var(--font-mono); font-size: 11.5px; color: var(--ca); cursor: pointer; }
+    .excerpt p { margin: 0; font-size: 13.5px; line-height: 1.55; }
+    .excerpt p b { font-weight: 500; color: var(--dim); font-family: var(--font-mono); font-size: 11px; margin-right: 6px; text-transform: uppercase; letter-spacing: .06em; }
+    .actions-list { display: grid; gap: 6px; }
+    .actions-list label { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; }
+    .actions-list input { accent-color: var(--primary); margin-top: 3px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>relay</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Relay</span><i>/</i><span>Capture</span><i>/</i><span>Transcripts</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">1 transcribing</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Listen</span>
+    <a class="d-nav-item" href="relay-library.html">Library <span class="d-count">1,284</span></a>
+    <a class="d-nav-item" href="#">Queue <span class="d-count">4</span></a>
+    <a class="d-nav-item" href="#">Playlists <span class="d-count">6</span></a>
+
+    <span class="d-label">Capture</span>
+    <a class="d-nav-item" href="relay-record.html"><span style="width:7px;height:7px;border-radius:50%;background:var(--err)"></span>Record</a>
+    <a class="d-nav-item" aria-current="page" href="relay-transcripts.html">Transcripts <span class="d-count">38</span></a>
+
+    <span class="d-label">Devices</span>
+    <a class="d-nav-item" href="#">Inputs <span class="d-count">2</span></a>
+    <a class="d-nav-item" href="#">Outputs <span class="d-count">3</span></a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="blueprint-events-query.html"><span class="d-glyph" style="--c:var(--ca)">Ca</span>Events</a>
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="ta-layout">
+      <section class="ta-list">
+        <div class="d-page-head">
+          <div>
+            <span class="d-label">Capture · archive</span>
+            <h1>Transcripts</h1>
+            <p>Every recording Relay has made, searchable by what was said.</p>
+          </div>
+          <div class="d-actions"><a class="d-btn d-btn--primary" href="relay-record.html">● New recording</a></div>
+        </div>
+
+        <div class="d-query">
+          <span class="d-query-lang">SEARCH</span>
+          <input id="tx-search" value='"leader election"' aria-label="Search transcripts">
+          <button class="d-btn d-btn--primary">Search</button>
+        </div>
+        <div class="ta-bar">
+          <button class="d-chip">Speaker: Andrew</button>
+          <button class="d-chip">Last 30 days</button>
+          <button class="d-chip">Has action items</button>
+          <span class="d-spacer"></span>
+          <span class="d-label">7 hits in 3 of 38 recordings</span>
+        </div>
+
+        <div class="d-panel d-table-wrap">
+          <table class="d-table recs">
+            <thead><tr><th>Recording</th><th>Date</th><th class="is-right">Length</th><th>Speakers</th><th class="is-right">Words</th><th>Hits</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr aria-selected="true">
+                <td class="title"><b>Architecture sync · Raft and Fuse</b><small>…the <mark>leader election</mark> timeout is too short for node-4 on wifi…</small></td>
+                <td class="is-dim">Sep 26 · 14:30</td><td class="is-right">38:12</td>
+                <td><span class="spk"><i style="--c:var(--ca)"></i><i style="--c:var(--bp)"></i><i style="--c:var(--fs)"></i></span></td>
+                <td class="is-right is-dim">5,904</td><td class="hits"><span class="d-count" style="color:var(--fs);border-color:color-mix(in oklab,var(--fs) 50%,transparent)">4</span></td>
+                <td><span class="d-status">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="title"><b>Standup</b><small>…after the <mark>leader election</mark> change Blueprint recovered in 2 s…</small></td>
+                <td class="is-dim">Sep 24 · 09:00</td><td class="is-right">14:02</td>
+                <td><span class="spk"><i style="--c:var(--ca)"></i><i style="--c:var(--bp)"></i></span></td>
+                <td class="is-right is-dim">2,118</td><td class="hits"><span class="d-count" style="color:var(--fs);border-color:color-mix(in oklab,var(--fs) 50%,transparent)">2</span></td>
+                <td><span class="d-status">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="title"><b>Voice note · Draft docs outline</b><small>…a page on <mark>leader election</mark> under Architecture…</small></td>
+                <td class="is-dim">Sep 19 · 21:14</td><td class="is-right">3:40</td>
+                <td><span class="spk"><i style="--c:var(--ca)"></i></span></td>
+                <td class="is-right is-dim">541</td><td class="hits"><span class="d-count" style="color:var(--fs);border-color:color-mix(in oklab,var(--fs) 50%,transparent)">1</span></td>
+                <td><span class="d-status">Complete</span></td>
+              </tr>
+              <tr style="opacity:.7">
+                <td class="title"><b>Design review · Relay UI</b><small>Recording in progress · 04:17</small></td>
+                <td class="is-dim">Today · 10:02</td><td class="is-right">4:17</td>
+                <td><span class="spk"><i style="--c:var(--ca)"></i><i style="--c:var(--bp)"></i></span></td>
+                <td class="is-right is-dim">612</td><td class="hits"><span class="d-muted">—</span></td>
+                <td><span class="d-status d-status--live" style="--c:var(--err);color:var(--err)">Live</span></td>
+              </tr>
+              <tr style="opacity:.7">
+                <td class="title"><b>Customer call · import flow</b><small>No matches</small></td>
+                <td class="is-dim">Sep 23 · 16:00</td><td class="is-right">52:08</td>
+                <td><span class="spk"><i style="--c:var(--ca)"></i><i style="--c:var(--bp)"></i><i style="--c:var(--fs)"></i><i style="--c:var(--primary)"></i></span></td>
+                <td class="is-right is-dim">8,337</td><td class="hits"><span class="d-muted">—</span></td>
+                <td><span class="d-status d-status--warn">Low confidence · 3 min</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="d-drawer ta-drawer" aria-label="Recording detail">
+        <div>
+          <div class="d-row"><span class="d-label">Sep 26 · 14:30 · 38:12 · 3 speakers</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm d-btn--icon" aria-label="Close">✕</button></div>
+          <h2>Architecture sync · Raft and Fuse</h2>
+        </div>
+
+        <div>
+          <div class="d-row" style="margin-bottom:8px"><button class="d-btn d-btn--primary d-btn--sm">▶ Play from first hit</button><span class="d-spacer"></span><span class="d-label" style="color:var(--fs)">4 hits</span></div>
+          <div class="mini" id="mini">
+            <canvas id="miniwave" aria-label="Waveform of the recording with search hits marked"></canvas>
+            <span class="hit" style="left:18.6%" title="07:06"></span>
+            <span class="hit" style="left:19.9%" title="07:36"></span>
+            <span class="hit" style="left:61.2%" title="23:23"></span>
+            <span class="hit" style="left:88.4%" title="33:46"></span>
+          </div>
+          <div class="mini-axis"><span style="left:0">0:00</span><span style="left:26.2%">10:00</span><span style="left:52.4%">20:00</span><span style="left:78.5%">30:00</span><span style="left:100%">38:12</span></div>
+        </div>
+
+        <div>
+          <span class="d-label">Matches</span>
+          <div style="margin-top:6px">
+            <div class="excerpt"><time>07:06</time><p><b>Andrew</b>The <mark>leader election</mark> timeout is too short for node-4 on wifi. It flaps every few minutes.</p></div>
+            <div class="excerpt"><time>07:36</time><p><b>Speaker 2</b>We could raise the election timeout to 1.5 seconds and keep heartbeats at 150 ms.</p></div>
+            <div class="excerpt"><time>23:23</time><p><b>Speaker 3</b>Fuse shouldn't care; it reads routes from whoever wins the <mark>leader election</mark>.</p></div>
+            <div class="excerpt"><time>33:46</time><p><b>Andrew</b>Let's document <mark>leader election</mark> properly before the alpha.</p></div>
+          </div>
+        </div>
+
+        <div class="d-panel d-panel-body">
+          <span class="d-label">Action items found · 2</span>
+          <div class="actions-list" style="margin-top:10px">
+            <label><input type="checkbox" id="ai-1" checked>Raise Raft election timeout to 1.5 s (Speaker 2, 07:36)</label>
+            <label><input type="checkbox" id="ai-2" checked>Write the leader election docs page before alpha (Andrew, 33:46)</label>
+          </div>
+          <div class="d-row" style="margin-top:12px"><a class="d-btn d-btn--sm d-btn--primary" href="lineman-board.html">Create 2 Lineman tasks</a></div>
+        </div>
+
+        <div class="d-row" style="gap:8px; flex-wrap:wrap">
+          <button class="d-btn d-btn--sm">Export .txt</button>
+          <button class="d-btn d-btn--sm">Export .srt</button>
+          <button class="d-btn d-btn--sm">Export .json</button>
+          <span class="d-spacer"></span>
+          <button class="d-btn d-btn--danger d-btn--sm">Delete</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Index <b>38 recordings · 71,402 words</b></span>
+    <span>Storage <b>relay-recordings · 1.9 GB</b></span>
+    <span class="d-spacer"></span>
+    <span><span class="d-kbd">/</span> search</span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    function tok(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+    var c = document.getElementById("miniwave");
+    function draw() {
+      var d = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+      c.width = w * d; c.height = h * d; var g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0);
+      var n = 180, bw = w / n, seed = 7;
+      for (var i = 0; i < n; i++) {
+        seed = (seed * 16807) % 2147483647;
+        var v = 0.15 + 0.85 * Math.abs(Math.sin(i / 6)) * (0.4 + 0.6 * seed / 2147483647);
+        var a = v * (h / 2 - 2);
+        g.fillStyle = tok("--rule-strong");
+        g.fillRect(i * bw, h / 2 - a, Math.max(1, bw - 1), a * 2);
+      }
+    }
+    draw(); window.addEventListener("resize", draw);
+    new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  })();
+</script>
+</body>
+</html>

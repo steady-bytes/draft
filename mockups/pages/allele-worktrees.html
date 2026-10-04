@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{allele} Worktrees</title>
+  <link rel="stylesheet" href="../../tools/draft-ui/dist/fonts.css">
+  <link rel="stylesheet" href="../../tools/draft-ui/dist/draft.css">
+  <script src="../../tools/draft-ui/dist/draft.js"></script>
+  <style>
+    .wt-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .wts td.id { width: 1%; color: var(--ink); font-weight: 600; }
+    .wts td.task { max-width: 0; width: 40%; }
+    .wts td.task b { display: block; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-sans); }
+    .wts td.task small { display: block; color: var(--dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wts td { height: 50px; }
+    .who { display: inline-flex; align-items: center; gap: 8px; }
+
+    .matrix { padding: 14px 16px 16px; overflow-x: auto; }
+    .matrix table { border-collapse: separate; border-spacing: 3px; font-family: var(--font-mono); font-size: 11px; }
+    .matrix th { color: var(--dim); font-weight: 500; padding: 0 4px; text-align: center; }
+    .matrix th.row { text-align: right; padding-right: 8px; }
+    .matrix td { width: 34px; height: 34px; border-radius: var(--radius); background: var(--panel-2); text-align: center; vertical-align: middle; cursor: pointer; }
+    .matrix td.self { background: transparent; }
+    .matrix td.line { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); outline: 1px solid color-mix(in oklab, var(--warn) 35%, transparent); }
+    .matrix td.sem { background: color-mix(in oklab, var(--err) 22%, transparent); color: var(--err); outline: 1px solid var(--err); font-weight: 700; }
+    .matrix td.ok { background: color-mix(in oklab, var(--primary) 12%, transparent); color: var(--primary); }
+    .matrix td:hover { filter: brightness(1.25); }
+    .mx-key { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
+    .mx-key span { display: inline-flex; align-items: center; gap: 6px; }
+    .mx-key i { width: 14px; height: 14px; border-radius: 2px; display: inline-block; }
+    .compare { display: flex; gap: 24px; padding: 14px 16px; border-top: 1px solid var(--rule); }
+    .compare div { display: grid; gap: 2px; }
+    .compare b { font-family: var(--font-mono); font-size: 22px; font-weight: 600; }
+
+    .queue { margin-top: 16px; }
+    .q { display: grid; grid-template-columns: 36px minmax(0, 1fr) 260px 120px; gap: 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--rule); }
+    .q:first-of-type { border-top: 0; }
+    .q .pos { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--dim); }
+    .q .t b { display: block; font-weight: 500; }
+    .q .t small { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
+    .checks { display: flex; gap: 3px; }
+    .checks i { flex: 1; height: 8px; border-radius: 1px; background: var(--primary); }
+    .checks i.f { background: var(--err); } .checks i.w { background: var(--rule-strong); }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dim); font-family: var(--font-mono); font-size: 11px; }
+    @media (max-width: 1200px) { .wt-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>allele</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Allele</span><i>/</i><span>steady-bytes/draft</span><i>/</i><span>Worktrees</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">7 open · 1 blocked</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Code</span>
+    <a class="d-nav-item" href="allele-repos.html">Repositories <span class="d-count">4</span></a>
+    <a class="d-nav-item" href="allele-change.html">Changes <span class="d-count">12</span></a>
+    <a class="d-nav-item" aria-current="page" href="allele-worktrees.html">Worktrees <span class="d-count">7</span></a>
+    <a class="d-nav-item" href="#queue">Merge queue <span class="d-count">3</span></a>
+
+    <span class="d-label">Composition</span>
+    <a class="d-nav-item" href="allele-linkage.html">Linkage manifest</a>
+
+    <span class="d-label">Evolution</span>
+    <a class="d-nav-item" href="allele-evolution.html">Runs <span class="d-count">2</span></a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="lineman-board.html"><span class="d-glyph" style="--c:var(--bp)">Lm</span>Lineman</a>
+      <a class="d-nav-item" href="blueprint-events-query.html"><span class="d-glyph" style="--c:var(--ca)">Ca</span>Events</a>
+      <a class="d-nav-item" href="bench-overview.html"><span class="d-glyph">Bn</span>Bench</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="d-page-head">
+      <div>
+        <span class="d-label">steady-bytes/draft · parallel work</span>
+        <h1>Worktrees</h1>
+        <p>Every agent works in its own worktree. Allele compares them symbol by symbol as they change, so overlaps are found while the work is happening, not at merge time.</p>
+      </div>
+      <div class="d-actions"><button class="d-btn d-btn--primary">+ Worktree for a task</button></div>
+    </div>
+
+    <div class="wt-grid">
+      <div class="d-panel d-table-wrap">
+        <table class="d-table wts">
+          <thead><tr><th>ID</th><th>Task</th><th>Agent</th><th class="is-right">Symbols</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="id">wt-02</td><td class="task"><b>Relay transcript proto</b><small>draft-api · relay/v1</small></td><td><span class="who"><span class="d-avatar">AM</span>Andrew</span></td><td class="is-right">6</td><td><span class="d-status">Ready</span></td></tr>
+            <tr><td class="id">wt-03</td><td class="task"><b>Beacon metric browser RPC</b><small>beacon · MetricsService</small></td><td><span class="who"><span class="d-avatar d-avatar--agent">A2</span>agent-2</span></td><td class="is-right">11</td><td><span class="d-status d-status--live" style="--c:var(--ca);color:var(--ca)">Verifying</span></td></tr>
+            <tr><td class="id">wt-04</td><td class="task"><b>Upstream endpoints list</b><small>fuse · route</small></td><td><span class="who"><span class="d-avatar d-avatar--agent">A1</span>agent-1</span></td><td class="is-right">9</td><td><span class="d-status">Ready</span></td></tr>
+            <tr><td class="id">wt-05</td><td class="task"><b>Beacon exporter as sidecar</b><small>linkage manifest</small></td><td><span class="who"><span class="d-avatar d-avatar--agent">A2</span>agent-2</span></td><td class="is-right">2</td><td><span class="d-status d-status--warn">Needs review · link mode</span></td></tr>
+            <tr><td class="id">wt-06</td><td class="task"><b>KV revision + updated_at</b><small>blueprint · key_value</small></td><td><span class="who"><span class="d-avatar d-avatar--agent">A4</span>agent-4</span></td><td class="is-right">14</td><td><span class="d-status d-status--live" style="--c:var(--ca);color:var(--ca)">Editing</span></td></tr>
+            <tr aria-selected="true"><td class="id">wt-07</td><td class="task"><b>Weighted upstream pools</b><small>fuse · balancer · CH-219</small></td><td><span class="who"><span class="d-avatar d-avatar--agent">A3</span>agent-3</span></td><td class="is-right">8</td><td><span class="d-status d-status--err">Blocked · conflict</span></td></tr>
+            <tr><td class="id">ev-2</td><td class="task"><b>Evolve p2c balancer · gen 14</b><small>fuse-balancers · 24 candidates</small></td><td><span class="who"><span class="d-avatar d-avatar--agent" style="color:var(--primary);border-color:color-mix(in oklab,var(--primary) 50%,transparent)">GA</span>evolution</span></td><td class="is-right">—</td><td><span class="d-status d-status--live">Evolving</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-panel">
+        <div class="d-panel-head"><span class="d-label">Overlap between worktrees</span><span class="d-spacer"></span><span class="d-label">click a cell to compare</span></div>
+        <div class="matrix">
+          <table aria-label="Pairwise overlap between worktrees">
+            <thead><tr><th></th><th>02</th><th>03</th><th>04</th><th>05</th><th>06</th><th>07</th></tr></thead>
+            <tbody>
+              <tr><th class="row">wt-02</th><td class="self"></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr><th class="row">wt-03</th><td></td><td class="self"></td><td></td><td class="line" title="Same file beacon/exporter.go; different symbols · auto-merge">2</td><td></td><td></td></tr>
+              <tr><th class="row">wt-04</th><td></td><td></td><td class="self"></td><td></td><td class="line" title="Same file route/table.go; different symbols · auto-merge">1</td><td class="sem" title="wt-04 removes route.Upstream.Address, which wt-07 reads">!</td></tr>
+              <tr><th class="row">wt-05</th><td></td><td class="line">2</td><td></td><td class="self"></td><td></td><td></td></tr>
+              <tr><th class="row">wt-06</th><td></td><td></td><td class="line">1</td><td></td><td class="self"></td><td class="line" title="Same import block in fuse/config/load.go · auto-merge">3</td></tr>
+              <tr><th class="row">wt-07</th><td></td><td></td><td class="sem">!</td><td></td><td class="line">3</td><td class="self"></td></tr>
+            </tbody>
+          </table>
+          <div class="mx-key">
+            <span><i style="background:var(--panel-2)"></i>No overlap</span>
+            <span><i style="background:color-mix(in oklab,var(--warn) 14%,transparent);outline:1px solid color-mix(in oklab,var(--warn) 35%,transparent)"></i>Same files, different symbols · merges cleanly</span>
+            <span><i style="background:color-mix(in oklab,var(--err) 22%,transparent);outline:1px solid var(--err)"></i>Semantic conflict</span>
+          </div>
+        </div>
+        <div class="compare">
+          <div><span class="d-label">Text git would flag</span><b style="color:var(--warn)">6</b></div>
+          <div><span class="d-label">Real conflicts</span><b style="color:var(--err)">1</b></div>
+          <div><span class="d-label">Silent breaks caught</span><b>1</b></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="queue" class="d-section-title"><span class="d-label">Merge queue · main</span></h2>
+    <div class="d-panel queue">
+      <div class="q"><span class="pos">1</span><div class="t"><b>Upstream endpoints list · wt-04</b><small>CH-217 · agent-1 · 9 symbols</small></div><div><div class="checks" aria-label="5 of 5 checks passed"><i></i><i></i><i></i><i></i><i></i></div><span class="d-label" style="margin-top:6px;display:block">5 / 5 checks · merging next</span></div><button class="d-btn d-btn--sm">Hold</button></div>
+      <div class="q"><span class="pos">2</span><div class="t"><b>Relay transcript proto · wt-02</b><small>CH-218 · Andrew · 6 symbols</small></div><div><div class="checks"><i></i><i></i><i></i><i></i><i></i></div><span class="d-label" style="margin-top:6px;display:block">5 / 5 checks · independent of 1</span></div><button class="d-btn d-btn--sm">Hold</button></div>
+      <div class="q"><span class="pos">3</span><div class="t"><b>Weighted upstream pools · wt-07</b><small>CH-219 · agent-3 · rebase on wt-04 required</small></div><div><div class="checks"><i></i><i></i><i></i><i class="f"></i><i class="w"></i></div><span class="d-label" style="margin-top:6px;display:block;color:var(--err)">3 / 5 · semantic conflict</span></div><a class="d-btn d-btn--sm d-btn--primary" href="allele-change.html">Resolve</a></div>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Repo <b>steady-bytes/draft</b></span>
+    <span>Rescan <b>on every save</b></span>
+    <span class="d-spacer"></span>
+    <span>Queue merges <b>in order, re-verified after each</b></span>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+[application]
+name = "allele ui"
+default_platform = "web"
+out_dir = "dist"
+asset_dir = "public"
+
+[web.app]
+title = "{allele}"
+
+[web.watcher]
+reload_html = true
+watch_path = ["src", "public"]
+
+[web.resource.dev]
+
+[[web.proxy]]
+backend = "http://localhost:9311/tooling.allele.v1.AlleleService/"

@@ -47,6 +47,10 @@ CLICKHOUSE_CONTAINER="draft-local-clickhouse"
 CLICKHOUSE_NATIVE_PORT=9000
 CLICKHOUSE_HTTP_PORT=8123
 DOCS_PORT=1313
+WHISPER_PORT=9309
+WHISPER_DIR="$RUN_DIR/whisper.cpp"
+WHISPER_BIN="$WHISPER_DIR/build/bin/whisper-server"
+WHISPER_MODEL="$WHISPER_DIR/models/ggml-tiny.en.bin"
 
 # Extra Blueprint raft nodes -- node_1 (the existing single instance) bootstraps the cluster on
 # its usual port 2221 / raft port 1111; these four join it as raft voters (not separate
@@ -303,9 +307,9 @@ done
 # service's port is (kill whatever's stale there), not the "die if anything's
 # on it" treatment below, which is reserved for ports owned by a container
 # this script itself doesn't manage the lifecycle of.
-for p in 2221 2220 18000 2222 4317 9090 9091 9300 9301 9302 9303 9304 9305 9306 9307 \
+for p in 2221 2220 18000 2222 4317 9090 9091 9300 9301 9302 9303 9304 9305 9306 9307 9308 9311 \
          10000 1111 "${BLUEPRINT_NODE_HTTP_PORTS[@]}" "${BLUEPRINT_NODE_RAFT_PORTS[@]}" \
-         "$DOCS_PORT"; do
+         "$DOCS_PORT" "$WHISPER_PORT"; do
   free_process_port "$p"
 done
 
@@ -318,6 +322,23 @@ done
 command -v docker >/dev/null 2>&1 || die "docker is required (for Postgres/ClickHouse) but isn't on PATH"
 docker info >/dev/null 2>&1 || die "docker daemon isn't running"
 command -v hugo >/dev/null 2>&1 || die "hugo is required (for the docs site — brew install hugo) but isn't on PATH"
+
+# whisper.cpp is Relay's Phase 4 speech-to-text sidecar (see
+# docs/architecture/relay-implementation-plan.md's Speech-to-text pipeline section) -- an external
+# prerequisite like buf/watchexec/dctl, not vendored, built once into $RUN_DIR (gitignored, the
+# same treatment .local-stack's other untracked runtime state gets) rather than a global PATH
+# install, since there's nothing else on this machine that would want a second copy.
+if [ ! -x "$WHISPER_BIN" ] || [ ! -f "$WHISPER_MODEL" ]; then
+  die "whisper.cpp isn't built yet (required for Relay's Phase 4 live transcription) -- one-time setup:
+    cd $RUN_DIR
+    git clone --branch v1.7.4 --depth 1 https://github.com/ggml-org/whisper.cpp.git
+    cd whisper.cpp
+    cmake -B build -DGGML_METAL=ON -DWHISPER_BUILD_SERVER=ON -DCMAKE_BUILD_TYPE=Release
+    cmake --build build --config Release -j 8
+    bash ./models/download-ggml-model.sh tiny.en
+  (requires cmake — brew install cmake — and Xcode command line tools; GGML_METAL=ON is macOS/Apple
+  Silicon-specific, see the plan's Speech-to-text pipeline section for the Linux/production path)"
+fi
 
 # ---------------------------------------------------------------------------
 # Postgres / ClickHouse — identical to run-local.sh, see that script's
@@ -338,13 +359,21 @@ done
 docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres >/dev/null 2>&1 \
   || die "postgres never became ready"
 
-log "Creating bench/foundry/crud roles and databases"
+log "Creating bench/foundry/relay/allele/crud roles and databases"
 docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null \
-  || die "failed to create bench/foundry/crud roles/databases"
+  || die "failed to create bench/foundry/relay/allele/crud roles/databases"
 CREATE ROLE bench LOGIN PASSWORD 'bench';
 CREATE DATABASE bench OWNER bench;
 CREATE ROLE foundry LOGIN PASSWORD 'foundry';
 CREATE DATABASE foundry OWNER foundry;
+-- Own role/database, same convention as bench/foundry -- see
+-- docs/architecture/relay-implementation-plan.md's Phase 1.
+CREATE ROLE relay LOGIN PASSWORD 'relay';
+CREATE DATABASE relay OWNER relay;
+-- Own role/database, same convention as bench/foundry/relay -- see
+-- docs/architecture/allele-implementation-plan.md's "Postgres, not Blueprint KV" decision.
+CREATE ROLE allele LOGIN PASSWORD 'allele';
+CREATE DATABASE allele OWNER allele;
 CREATE ROLE draft LOGIN PASSWORD 'draft';
 CREATE DATABASE draft OWNER draft;
 SQL
@@ -561,6 +590,50 @@ start_watched lineman "$REPO_ROOT/services/tooling/lineman" \
   -w web-client/Dioxus.toml -w web-client/Cargo.toml -w web-client/Cargo.lock
 wait_for_tcp localhost 9307 lineman
 
+log "Starting whisper.cpp sidecar (Relay's Phase 4 speech-to-text)"
+(
+  cd "$WHISPER_DIR" || exit 1
+  exec "$WHISPER_BIN" -m "$WHISPER_MODEL" --host 127.0.0.1 --port "$WHISPER_PORT"
+) >"$LOG_DIR/whisper.log" 2>&1 &
+WHISPER_PID=$!
+PIDS+=("$WHISPER_PID")
+log "whisper.cpp started (pid $WHISPER_PID), logs: $LOG_DIR/whisper.log"
+wait_for_tcp localhost "$WHISPER_PORT" whisper.cpp
+
+log "Starting Relay (watched: source + web-client — Phase 4: recording + live transcription, see docs/architecture/relay-implementation-plan.md)"
+# Explicit -w paths, not -w . -- Phase 3 writes uploaded track files into ./.relay-storage under
+# this same directory (config.yaml's relay.storage_dir); sweeping that into the watch would make
+# every UploadTrack call restart the service mid-upload (confirmed live: it did, killing an
+# in-flight StreamAudioOut with a "connection refused"). Same reasoning already documented above
+# for Blueprint's tmp/ (badger) and node_1/ (raft log) dirs. web-client's own release build is
+# rebuilt first (same as Lineman's own entry above) since main.go's //go:embed expects
+# web-client/target/dx/relay-pwa/release/web/public to already exist -- added once Phase 10's
+# web-client finally got a real UI route registered with Fuse (relay-ui below), not present when
+# this entry was first written.
+start_watched relay "$REPO_ROOT/services/tooling/relay" \
+  "(cd web-client && dx build --release) && go build -o $BIN_DIR/relay . && exec $BIN_DIR/relay" \
+  -w main.go -w go.mod -w go.sum -w config.yaml -w service \
+  -w web-client/src -w web-client/public -w web-client/index.html \
+  -w web-client/Dioxus.toml -w web-client/Cargo.toml -w web-client/Cargo.lock
+wait_for_tcp localhost 9308 relay
+
+log "Starting Allele (watched: source -- see docs/architecture/allele-implementation-plan.md)"
+# One -w per top-level .go file plus one per subpackage directory (watchexec watches a directory
+# recursively, confirmed by Relay's own "-w service" entry above) -- cmd/{parse,diff,merge} are
+# diagnostic tools built separately (see each one's own doc comment), not part of this binary, but
+# still worth rebuild-checking on save since a broken one would fail `go build ./...` the same way.
+# cmd/{pre,post}-receive-hook are different: each is a real, separately-built artifact every
+# repository's installed hooks exec (see main.go's resolveHookBinaryPath), so the restart command
+# below rebuilds both alongside allele itself, not just type-checks them.
+start_watched allele "$REPO_ROOT/services/tooling/allele" \
+  "go build -o $BIN_DIR/allele . && go build -o $BIN_DIR/allele-pre-receive-hook ./cmd/pre-receive-hook && go build -o $BIN_DIR/allele-post-receive-hook ./cmd/post-receive-hook && exec $BIN_DIR/allele" \
+  -w main.go -w go.mod -w go.sum -w config.yaml \
+  -w model.go -w store.go -w rpc.go -w githttp.go -w worktree_model.go -w worktree_store.go \
+  -w provenance_model.go -w provenance_store.go -w events.go -w foundry.go -w verification.go \
+  -w linkage_model.go -w linkage_store.go \
+  -w diff -w merge -w gitutil -w parsing -w linkage -w cmd
+wait_for_tcp localhost 9311 allele
+
 cat <<EOF
 
 --------------------------------------------------------------------
@@ -577,6 +650,9 @@ Full local Draft cluster is up, with hot rebuild+restart on source changes.
   grpc-call (RPC only)          localhost:9305
   catalyst-produce (RPC only)   localhost:9306
   Lineman UI                    http://localhost:9307/
+  Relay UI (recording + live transcription)   http://localhost:9308/
+  whisper.cpp sidecar (Relay's speech-to-text)   localhost:9309
+  Allele (Phase 1 scaffolding only, no RPC/route yet)   localhost:9311
   crud (examples, RPC only)     localhost:9090
   crud-event (examples, RPC only, emits examples.crud.v1.ModelEvent) localhost:9098
   crud-audit (examples, background consumer, audits examples.crud.v1.ModelEvent) localhost:9099

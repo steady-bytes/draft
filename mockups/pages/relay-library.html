@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en" data-theme="draft">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{relay} Library</title>
+  <link rel="stylesheet" href="../../tools/draft-ui/dist/fonts.css">
+  <link rel="stylesheet" href="../../tools/draft-ui/dist/draft.css">
+  <script src="../../tools/draft-ui/dist/draft.js"></script>
+  <style>
+    .rl-layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; margin: -28px -32px -48px; min-height: calc(100% + 76px); }
+    .rl-list { padding: 24px 32px 48px; min-width: 0; }
+    .rl-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 18px 0 12px; }
+    .rl-bar .d-input { width: 260px; }
+    .tracks td.n { width: 1%; color: var(--dimmer); text-align: right; }
+    .tracks td.title { max-width: 0; width: 34%; }
+    .tracks td.title b { font-weight: 500; color: var(--ink); }
+    .tracks td.artist, .tracks td.album { color: var(--dim); max-width: 0; }
+    .tracks td.fmt { width: 1%; }
+    .tracks td.len { width: 1%; text-align: right; color: var(--dim); }
+    .tracks tr[aria-selected="true"] td.title b { color: var(--primary); }
+    .eq { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; width: 14px; }
+    .eq i { width: 3px; background: var(--primary); animation: eq 0.9s ease-in-out infinite; }
+    .eq i:nth-child(2) { animation-delay: -.3s; } .eq i:nth-child(3) { animation-delay: -.6s; }
+    @keyframes eq { 0%,100% { height: 3px; } 50% { height: 12px; } }
+    .paused .eq i { animation-play-state: paused; }
+    @media (prefers-reduced-motion: reduce) { .eq i { animation: none; height: 8px; } }
+
+    .np { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .cover { aspect-ratio: 1; width: 100%; max-width: 100%; border: 1px solid var(--rule-strong); border-radius: var(--radius); display: block; }
+    .np h2 { margin: 0; font-family: var(--font-mono); font-size: 17px; font-weight: 600; }
+    .np .by { color: var(--dim); font-size: 13px; margin-top: 2px; }
+    .wave { width: 100%; height: 56px; display: block; cursor: pointer; }
+    .times { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; margin-top: 4px; }
+    .transport { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .transport .d-btn { width: 36px; height: 36px; padding: 0; font-size: 13px; }
+    .transport .play { width: 52px; height: 52px; border-radius: 50%; font-size: 16px; }
+    .vol { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
+    .vol input[type=range] { width: 100%; accent-color: var(--primary); }
+    .queue { display: grid; }
+    .queue div { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--rule); font-size: 12.5px; }
+    .queue div span:first-child { font-family: var(--font-mono); color: var(--dimmer); width: 16px; }
+    .queue div span.t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .queue div span:last-child { font-family: var(--font-mono); color: var(--dim); font-size: 11px; }
+    .rail-apps .d-nav-item::after { content: "↗"; margin-left: auto; color: var(--dimmer); font-family: var(--font-mono); font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="d-app">
+
+  <div class="d-brand"><span class="d-wordmark"><b>{</b>draft<b>}</b><small>relay</small></span></div>
+
+  <header class="d-topbar">
+    <nav class="d-crumbs" aria-label="Breadcrumb"><span>Relay</span><i>/</i><span>Listen</span><i>/</i><span>Library</span></nav>
+    <span class="d-spacer"></span>
+    <span class="d-status d-status--live">Out · Studio monitors · 48 kHz</span>
+    <button class="d-btn d-btn--ghost d-btn--sm"><span class="d-kbd">⌘</span><span class="d-kbd">K</span></button>
+    <button class="d-btn d-btn--sm" data-theme-toggle>Light</button>
+  </header>
+
+  <aside class="d-rail">
+    <span class="d-label">Listen</span>
+    <a class="d-nav-item" aria-current="page" href="relay-library.html">Library <span class="d-count">1,284</span></a>
+    <a class="d-nav-item" href="#">Queue <span class="d-count">4</span></a>
+    <a class="d-nav-item" href="#">Playlists <span class="d-count">6</span></a>
+
+    <span class="d-label">Capture</span>
+    <a class="d-nav-item" href="relay-record.html"><span style="width:7px;height:7px;border-radius:50%;background:var(--err)"></span>Record</a>
+    <a class="d-nav-item" href="relay-transcripts.html">Transcripts <span class="d-count">38</span></a>
+
+    <span class="d-label">Devices</span>
+    <a class="d-nav-item" href="#">Inputs <span class="d-count">2</span></a>
+    <a class="d-nav-item" href="#">Outputs <span class="d-count">3</span></a>
+
+    <span class="d-label">Apps</span>
+    <div class="rail-apps">
+      <a class="d-nav-item" href="blueprint-key-value.html"><span class="d-glyph" style="--c:var(--bp)">Bp</span>Blueprint</a>
+      <a class="d-nav-item" href="foundry-catalog.html"><span class="d-glyph">Fd</span>Foundry</a>
+    </div>
+  </aside>
+
+  <main class="d-main">
+    <div class="rl-layout">
+      <section class="rl-list">
+        <div class="d-page-head" style="margin-bottom:0">
+          <div>
+            <span class="d-label">Relay · stored audio</span>
+            <h1>Library</h1>
+            <p>Music and audio files Relay can play to any output in the cluster. Stored in the object store bucket <code>relay-library</code>.</p>
+          </div>
+          <div class="d-actions"><button class="d-btn">Rescan</button><button class="d-btn d-btn--primary">+ Add files</button></div>
+        </div>
+
+        <div class="rl-bar">
+          <input class="d-input" id="lib-search" placeholder="Search title, artist, album…" aria-label="Search library">
+          <span class="d-seg" role="group" aria-label="View"><button aria-pressed="true">Tracks</button><button aria-pressed="false">Albums</button><button aria-pressed="false">Artists</button></span>
+          <button class="d-chip">Lossless</button>
+          <button class="d-chip">Added this week</button>
+          <span class="d-spacer"></span>
+          <span class="d-label">1,284 tracks · 84 h 12 m · 41.6 GB</span>
+        </div>
+
+        <div class="d-panel d-table-wrap">
+          <table class="d-table tracks" id="tracks">
+            <thead><tr><th class="is-right">#</th><th>Title</th><th>Artist</th><th>Album</th><th>Format</th><th class="is-right">Length</th></tr></thead>
+            <tbody>
+              <tr><td class="n">1</td><td class="title"><span class="d-trunc"><b>Low Orbit</b></span></td><td class="artist"><span class="d-trunc">The Quiet Rooms</span></td><td class="album"><span class="d-trunc">Northbound Signal</span></td><td class="fmt"><span class="d-tag d-tag--primary">FLAC 24/96</span></td><td class="len">4:12</td></tr>
+              <tr aria-selected="true"><td class="n"><span class="eq" aria-label="Now playing"><i></i><i></i><i></i></span></td><td class="title"><span class="d-trunc"><b>Copper Traces</b></span></td><td class="artist"><span class="d-trunc">The Quiet Rooms</span></td><td class="album"><span class="d-trunc">Northbound Signal</span></td><td class="fmt"><span class="d-tag d-tag--primary">FLAC 24/96</span></td><td class="len">5:38</td></tr>
+              <tr><td class="n">3</td><td class="title"><span class="d-trunc"><b>Heartbeat Interval</b></span></td><td class="artist"><span class="d-trunc">The Quiet Rooms</span></td><td class="album"><span class="d-trunc">Northbound Signal</span></td><td class="fmt"><span class="d-tag d-tag--primary">FLAC 24/96</span></td><td class="len">3:47</td></tr>
+              <tr><td class="n">4</td><td class="title"><span class="d-trunc"><b>Leader Election</b></span></td><td class="artist"><span class="d-trunc">Mara Venn</span></td><td class="album"><span class="d-trunc">Consensus</span></td><td class="fmt"><span class="d-tag d-tag--quiet">MP3 320</span></td><td class="len">4:05</td></tr>
+              <tr><td class="n">5</td><td class="title"><span class="d-trunc"><b>Quorum</b></span></td><td class="artist"><span class="d-trunc">Mara Venn</span></td><td class="album"><span class="d-trunc">Consensus</span></td><td class="fmt"><span class="d-tag d-tag--quiet">MP3 320</span></td><td class="len">6:21</td></tr>
+              <tr><td class="n">6</td><td class="title"><span class="d-trunc"><b>Backpressure</b></span></td><td class="artist"><span class="d-trunc">Field Unit</span></td><td class="album"><span class="d-trunc">Queue Depth</span></td><td class="fmt"><span class="d-tag d-tag--primary">FLAC 16/44</span></td><td class="len">3:58</td></tr>
+              <tr><td class="n">7</td><td class="title"><span class="d-trunc"><b>Idempotent</b></span></td><td class="artist"><span class="d-trunc">Field Unit</span></td><td class="album"><span class="d-trunc">Queue Depth</span></td><td class="fmt"><span class="d-tag d-tag--primary">FLAC 16/44</span></td><td class="len">2:44</td></tr>
+              <tr><td class="n">8</td><td class="title"><span class="d-trunc"><b>Standup · 2026-09-24</b></span></td><td class="artist"><span class="d-trunc">Recorded in Relay</span></td><td class="album"><span class="d-trunc">Recordings</span></td><td class="fmt"><span class="d-tag d-tag--err">WAV · voice</span></td><td class="len">14:02</td></tr>
+              <tr><td class="n">9</td><td class="title"><span class="d-trunc"><b>Soft Start</b></span></td><td class="artist"><span class="d-trunc">Oda Linnea</span></td><td class="album"><span class="d-trunc">Warm Boot</span></td><td class="fmt"><span class="d-tag d-tag--quiet">AAC 256</span></td><td class="len">4:30</td></tr>
+              <tr><td class="n">10</td><td class="title"><span class="d-trunc"><b>Graceful Shutdown</b></span></td><td class="artist"><span class="d-trunc">Oda Linnea</span></td><td class="album"><span class="d-trunc">Warm Boot</span></td><td class="fmt"><span class="d-tag d-tag--quiet">AAC 256</span></td><td class="len">5:09</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="d-drawer np" aria-label="Now playing">
+        <div class="d-row"><span class="d-label">Now playing</span><span class="d-spacer"></span><span class="d-tag d-tag--primary">24-bit · 96 kHz</span></div>
+        <canvas class="cover" id="cover" width="720" height="720" aria-label="Album cover: Northbound Signal"></canvas>
+        <div><h2>Copper Traces</h2><div class="by">The Quiet Rooms · Northbound Signal</div></div>
+        <div>
+          <canvas class="wave" id="wave" aria-label="Track waveform; click to seek"></canvas>
+          <div class="times"><span id="pos">1:52</span><span>5:38</span></div>
+        </div>
+        <div class="transport">
+          <button class="d-btn d-btn--ghost" aria-label="Shuffle">⤮</button>
+          <button class="d-btn" aria-label="Previous">⏮</button>
+          <button class="d-btn d-btn--primary play" id="play" aria-label="Pause">❚❚</button>
+          <button class="d-btn" aria-label="Next">⏭</button>
+          <button class="d-btn d-btn--ghost" aria-label="Repeat">↻</button>
+        </div>
+        <label class="vol"><span>VOL</span><input type="range" id="volume" min="0" max="100" value="72" aria-label="Volume"><span id="volv">−6 dB</span></label>
+        <label class="d-field"><span class="d-label">Output</span>
+          <select class="d-select" id="output" aria-label="Output device">
+            <option>Studio monitors · node-2 · 48 kHz</option>
+            <option>Office speakers · node-4</option>
+            <option>Stream to browser</option>
+          </select>
+        </label>
+        <div>
+          <div class="d-row"><span class="d-label">Up next · 3</span><span class="d-spacer"></span><button class="d-btn d-btn--ghost d-btn--sm">Clear</button></div>
+          <div class="queue" style="margin-top:6px">
+            <div><span>1</span><span class="t">Heartbeat Interval · The Quiet Rooms</span><span>3:47</span></div>
+            <div><span>2</span><span class="t">Leader Election · Mara Venn</span><span>4:05</span></div>
+            <div><span>3</span><span class="t">Backpressure · Field Unit</span><span>3:58</span></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="d-statusbar">
+    <span>Output <b>studio monitors</b></span>
+    <span>Buffer <b>256 · 5.3 ms</b></span>
+    <span>Decoder <b>flac</b></span>
+    <span class="d-spacer"></span>
+    <span><span class="d-kbd">Space</span> play / pause</span>
+    <span><span class="d-kbd">←</span><span class="d-kbd">→</span> seek 10 s</span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var css = getComputedStyle(document.documentElement);
+    function tok(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+    function rnd(seed) { return function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
+
+    // Generative cover: a small circuit-board pattern, deterministic per album.
+    function drawCover() {
+      var c = document.getElementById("cover"), g = c.getContext("2d"), r = rnd(4242), W = c.width;
+      g.fillStyle = tok("--panel-2"); g.fillRect(0, 0, W, W);
+      g.strokeStyle = tok("--rule-strong"); g.lineWidth = 1;
+      for (var i = 0; i <= W; i += 40) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, W); g.moveTo(0, i); g.lineTo(W, i); g.globalAlpha = .35; g.stroke(); }
+      g.globalAlpha = 1; g.lineWidth = 4; g.lineCap = "round";
+      var colors = [tok("--primary"), tok("--ca"), tok("--dim")];
+      for (var k = 0; k < 22; k++) {
+        var x = Math.round(r() * 17) * 40 + 40, y = Math.round(r() * 17) * 40 + 40;
+        g.strokeStyle = colors[k % 3]; g.beginPath(); g.moveTo(x, y);
+        for (var s = 0; s < 3; s++) { if (s % 2) y += (r() > .5 ? 1 : -1) * Math.round(r() * 5 + 1) * 40; else x += (r() > .5 ? 1 : -1) * Math.round(r() * 5 + 1) * 40; x = Math.max(40, Math.min(W - 40, x)); y = Math.max(40, Math.min(W - 40, y)); g.lineTo(x, y); }
+        g.stroke();
+        g.fillStyle = tok("--bg"); g.beginPath(); g.arc(x, y, 9, 0, 7); g.fill(); g.strokeStyle = colors[k % 3]; g.lineWidth = 3; g.stroke(); g.lineWidth = 4;
+      }
+      g.fillStyle = tok("--ink"); g.font = "700 44px JetBrains Mono, monospace"; g.fillText("NORTHBOUND", 44, W - 96);
+      g.fillStyle = tok("--primary"); g.fillText("SIGNAL", 44, W - 44);
+    }
+
+    // Waveform with played portion in primary.
+    var wave = document.getElementById("wave"), dur = 338, pos = 112, playing = true;
+    var peaks = (function () { var r = rnd(99), a = []; for (var i = 0; i < 160; i++) a.push(0.25 + 0.75 * Math.abs(Math.sin(i / 9) * .6 + (r() - .5) * .8)); return a; })();
+    function drawWave() {
+      var dpr = window.devicePixelRatio || 1, w = wave.clientWidth, h = wave.clientHeight;
+      wave.width = w * dpr; wave.height = h * dpr;
+      var g = wave.getContext("2d"); g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
+      var bw = w / peaks.length, split = pos / dur * w;
+      peaks.forEach(function (p, i) {
+        var x = i * bw, bh = Math.max(2, Math.min(1, p) * (h - 4));
+        g.fillStyle = x < split ? tok("--primary") : tok("--rule-strong");
+        g.fillRect(x + 0.5, (h - bh) / 2, Math.max(1, bw - 1.5), bh);
+      });
+      g.fillStyle = tok("--ink"); g.fillRect(split - 1, 0, 2, h);
+      var m = Math.floor(pos / 60), s = Math.floor(pos % 60);
+      document.getElementById("pos").textContent = m + ":" + String(s).padStart(2, "0");
+    }
+    wave.addEventListener("click", function (e) { var r = wave.getBoundingClientRect(); pos = (e.clientX - r.left) / r.width * dur; drawWave(); });
+
+    var btn = document.getElementById("play"), table = document.getElementById("tracks");
+    btn.addEventListener("click", function () {
+      playing = !playing; btn.textContent = playing ? "❚❚" : "▶"; btn.setAttribute("aria-label", playing ? "Pause" : "Play");
+      table.classList.toggle("paused", !playing);
+    });
+    setInterval(function () { if (playing) { pos = (pos + 1) % dur; drawWave(); } }, 1000);
+
+    var vol = document.getElementById("volume"), volv = document.getElementById("volv");
+    vol.addEventListener("input", function () { var v = +vol.value; volv.textContent = v === 0 ? "mute" : (20 * Math.log10(v / 100) * 0.9).toFixed(0).replace("-", "−") + " dB"; });
+
+    function all() { drawCover(); drawWave(); }
+    all(); window.addEventListener("resize", drawWave);
+    new MutationObserver(all).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "style"] });
+    if (document.fonts) document.fonts.ready.then(drawCover);
+  })();
+</script>
+</body>
+</html>

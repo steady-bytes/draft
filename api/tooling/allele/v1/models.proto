@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package tooling.allele.v1;
+
+option go_package = "github.com/steady-bytes/draft/api/tooling/allele/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// See docs/website/content/docs/architecture/allele-implementation-plan.md's Data Model section
+// for the full reasoning behind every message here.
+
+message Repository {
+    string id             = 1;
+    string name           = 2;   // "steady-bytes/draft"
+    string description    = 3;
+    repeated string languages = 4; // ["go","rust","proto"] -- detected, not configured
+    string default_branch  = 5;    // "main"
+    int64  symbol_count    = 6;    // cached from the latest AST index
+    google.protobuf.Timestamp created_at = 7;
+}
+
+enum WorktreeOwnerKind {
+    WORKTREE_OWNER_KIND_UNSPECIFIED   = 0;
+    WORKTREE_OWNER_KIND_AGENT         = 1; // an Agent Service Executor
+    WORKTREE_OWNER_KIND_HUMAN         = 2;
+    WORKTREE_OWNER_KIND_EVOLUTION_RUN = 3; // a candidate branch from the separate evolution plugin
+}
+
+enum WorktreeStatus {
+    WORKTREE_STATUS_UNSPECIFIED = 0;
+    WORKTREE_STATUS_EDITING     = 1;
+    WORKTREE_STATUS_READY       = 2; // pushed, no open conflict against the current queue order
+    WORKTREE_STATUS_QUEUED      = 3;
+    WORKTREE_STATUS_VERIFYING   = 4;
+    WORKTREE_STATUS_BLOCKED     = 5; // real semantic conflict or failed verification
+    WORKTREE_STATUS_MERGED      = 6;
+}
+
+message Worktree {
+    string id              = 1;  // "wt-07" -- display id; the real git ref is branch, below
+    string repository_id   = 2;
+    string branch          = 3;  // refs/heads/wt-07
+    string base_commit     = 4;  // merge-base sha this worktree branched from
+    WorktreeOwnerKind owner_kind = 5;
+    string owner_id        = 6;  // objective_id (agent), identity (human), or run_id (evolution)
+    string task_label      = 7;  // "Weighted upstream pools" -- display only
+    int64  symbol_count    = 8;  // symbols changed vs. base_commit, cached from the latest index
+    WorktreeStatus status   = 9;
+    google.protobuf.Timestamp opened_at = 10;
+}
+
+enum SymbolChangeOp {
+    SYMBOL_CHANGE_OP_UNSPECIFIED       = 0;
+    SYMBOL_CHANGE_OP_ADDED             = 1;
+    SYMBOL_CHANGE_OP_MODIFIED          = 2;
+    SYMBOL_CHANGE_OP_DELETED           = 3;
+    SYMBOL_CHANGE_OP_SIGNATURE_CHANGED = 4;
+}
+
+message SymbolChange {
+    string id            = 1;
+    string path           = 2; // services/core/fuse/balancer/weighted.go
+    string symbol         = 3; // "balancer.Weighted.Pick"
+    string kind           = 4; // "method" | "type" | "field" -- open-ended, language-reported
+    SymbolChangeOp op      = 5;
+    string signature_before = 6; // set only when op = SIGNATURE_CHANGED
+    string signature_after  = 7;
+    repeated string affected_callers = 8; // fully-qualified symbols whose call sites auto-updated
+}
+
+enum ConflictKind {
+    CONFLICT_KIND_UNSPECIFIED      = 0;
+    CONFLICT_KIND_SAME_NODE        = 1; // both sides edit the same AST node incompatibly
+    CONFLICT_KIND_BROKEN_REFERENCE = 2; // R2.2's case: a caller now reads what the other side removed
+}
+
+message ConflictReport {
+    string id                = 1;
+    ConflictKind kind         = 2;
+    string symbol             = 3; // the symbol in THIS change that's affected
+    string other_worktree_id  = 4; // "wt-04"
+    string other_symbol       = 5; // route.Upstream.Address
+    string explanation        = 6; // "wt-04 removes the field this change starts reading..."
+    bool   would_textually_merge = 7; // true = "a line-based merge would succeed" -- the whole point
+}
+
+message Change {
+    string id             = 1; // "CH-219"
+    string repository_id  = 2;
+    string worktree_id    = 3;
+    string title           = 4;
+    repeated SymbolChange symbols = 5;
+    int64  files_changed   = 6;
+    int64  lines_added     = 7;
+    int64  lines_removed   = 8;
+    repeated ConflictReport conflicts = 9;
+    Provenance provenance   = 10;
+    google.protobuf.Timestamp opened_at = 11;
+}
+
+enum VerificationStatus {
+    VERIFICATION_STATUS_UNSPECIFIED = 0;
+    VERIFICATION_STATUS_WAITING     = 1;
+    VERIFICATION_STATUS_RUNNING     = 2;
+    VERIFICATION_STATUS_PASSED      = 3;
+    VERIFICATION_STATUS_FAILED      = 4;
+}
+
+message VerificationStep {
+    string name    = 1; // "Parse + type check", "Unit tests · 214", "Merge simulation..."
+    VerificationStatus status = 2;
+    string detail   = 3; // failure detail or timing, free text
+    int64  duration_ms = 4;
+}
+
+message VerificationRun {
+    string id            = 1;
+    string change_id      = 2;
+    string bench_run_id   = 3; // foreign reference into Bench's own Run -- see the plan's Decisions
+    repeated VerificationStep steps = 4;
+    VerificationStatus status = 5;
+    google.protobuf.Timestamp started_at  = 6;
+    google.protobuf.Timestamp finished_at = 7;
+}
+
+message Provenance {
+    string change_id        = 1;
+    string identity          = 2; // X-Authentik-Username at push time -- the enforced "who"
+    WorktreeOwnerKind owner_kind = 3;
+    string objective_id      = 4; // set when owner_kind = AGENT; foreign id, not a local join
+    string task_id           = 5;
+    repeated string permitted_paths = 6; // the PathPermission globs checked, snapshotted
+    bool   permission_violated = 7;      // always false for an accepted change
+    string signature_key_id   = 8;       // which identity's Ed25519/SSH key signed the merge commit
+    string commit_sha         = 9;       // the signed merge commit, once merged
+    google.protobuf.Timestamp recorded_at = 10;
+}
+
+message PathPermission {
+    string id               = 1;
+    string repository_id     = 2;
+    string identity_pattern  = 3; // matches X-Authentik-Username, exact string for now
+    repeated string allow_globs = 4; // ["fuse/balancer/**", "fuse/route/**"]
+    repeated string deny_globs  = 5; // ["draft-api/**", "draft.linkage.yaml"] -- deny wins
+}
+
+// Humans register their own SSH public key here and sign locally (git config gpg.format ssh);
+// Allele verifies against it rather than generating a signature. Agents and evolution runs never
+// create one of these -- Allele mints and holds their signing key itself. See the plan's
+// Provenance and Permission Enforcement section (R4.3).
+message SigningKey {
+    string id               = 1;
+    string identity          = 2; // the X-Authentik-Username this key verifies commits for
+    string public_key        = 3; // SSH public key, authorized_keys format (git's gpg.format=ssh)
+    google.protobuf.Timestamp registered_at = 4;
+    google.protobuf.Timestamp revoked_at    = 5; // unset while active
+}
+
+enum LinkMode {
+    LINK_MODE_UNSPECIFIED     = 0;
+    LINK_MODE_STATIC          = 1;
+    LINK_MODE_RUNTIME_SERVICE = 2;
+    LINK_MODE_SIDECAR         = 3;
+}
+
+message Link {
+    string target    = 1; // the component this link attaches to
+    LinkMode mode     = 2;
+    string transport  = 3; // "otlp/grpc . unix socket" -- free text, mode-dependent
+}
+
+message Component {
+    string name   = 1;
+    string version = 2;
+    repeated Link links = 3;
+}
+
+enum BreakingChangePolicy {
+    BREAKING_CHANGE_POLICY_UNSPECIFIED    = 0;
+    BREAKING_CHANGE_POLICY_ALWAYS         = 1; // any mode change is breaking
+    BREAKING_CHANGE_POLICY_INTERFACE_ONLY = 2; // breaking only if the interface itself changed -- default
+    BREAKING_CHANGE_POLICY_NEVER          = 3;
+}
+
+message LinkageManifest {
+    string repository_id = 1;
+    string commit_sha     = 2; // the draft.linkage.yaml blob this was parsed from
+    repeated Component components = 3;
+    BreakingChangePolicy policy = 4;
+}

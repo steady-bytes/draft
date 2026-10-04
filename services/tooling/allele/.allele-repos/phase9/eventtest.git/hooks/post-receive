@@ -1,0 +1,4 @@
+#!/bin/sh
+export ALLELE_REPOSITORY_ID='b2423ce8-86f7-4274-be96-fab4f133aa3c'
+export ALLELE_SERVER_ADDR='http://localhost:9311'
+exec '/Users/andrew/Projects/steady-bytes/github/draft/.local-stack/bin/allele-post-receive-hook'

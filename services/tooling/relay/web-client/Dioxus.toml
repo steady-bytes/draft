@@ -1,0 +1,17 @@
+[application]
+name = "relay pwa"
+default_platform = "web"
+out_dir = "dist"
+asset_dir = "public"
+
+[web.app]
+title = "{relay}"
+
+[web.watcher]
+reload_html = true
+watch_path = ["src", "public"]
+
+[web.resource.dev]
+
+[[web.proxy]]
+backend = "http://localhost:9308/tooling.relay.v1.RelayService/"

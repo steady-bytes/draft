@@ -15,6 +15,8 @@ fn main() -> Result<()> {
         "./core/observability/metrics/v1/",
         "./core/observability/wide_events/v1/",
         "./tooling/lineman/v1/",
+        "./tooling/relay/v1/",
+        "./tooling/allele/v1/",
     ];
 
     let protos_to_compile: Vec<_> = proto_dirs

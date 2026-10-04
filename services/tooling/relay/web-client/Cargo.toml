@@ -1,0 +1,54 @@
+[package]
+name = "relay-pwa"
+version = "0.1.0"
+authors = ["steady-bytes | steady-bytes.com"]
+edition = "2021"
+publish = false
+
+[dependencies]
+dioxus = { version = "0.7.5", features = ["web", "router"] }
+dioxus-logger = "0.7.4"
+once_cell = "1.21.3"
+draft-api = { path = "../../../../api", features = ["web"] }
+dioxus-grpc = { path = "../../../../tools/dioxus-grpc", default-features = false }
+draft-ui = { path = "../../../../tools/draft-ui", features = ["dioxus", "discovery"] }
+tonic-web-wasm-client = "0.9.1"
+prost = "0.14"
+prost-types = "0.14"
+chrono = "0.4.44"
+gloo-timers = { version = "0.3", features = ["futures"] }
+# stream::iter builds the client-streaming request UploadTrack needs from a plain Vec of chunks --
+# executor-agnostic (no tokio runtime needed), so it works fine under wasm32.
+futures-util = "0.3"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3.77"
+# base64-encodes each AudioChunk/UploadTrackChunk's raw PCM bytes to pass through
+# document::eval's JSON-based JS bridge (assets/audio-player.js) -- JSON has no binary type.
+base64 = "0.22"
+# Deserializes messages the Record page's capture script sends back via dioxus.send() (views/record.rs).
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# MediaDevices/MediaRecorder (Record page's real mic capture) and AudioContext/AnalyserNode
+# (real level meters + playback of StreamAudioOut's raw PCM) -- see views/record.rs and
+# components/audio.rs. No mock/simulated waveform or meter data is shipped (the Phase 10
+# deliverable's own bar); both need real browser audio APIs, not just "Storage" the way
+# Lineman's own web-client (its only sibling so far) uses web-sys for.
+web-sys = { version = "0.3.77", features = [
+    "Storage",
+    "MediaDevices", "MediaStream", "MediaStreamConstraints", "MediaTrackConstraints",
+    "MediaRecorder", "MediaRecorderOptions", "BlobEvent",
+    "AudioContext", "AudioContextOptions", "AnalyserNode", "AudioNode", "AudioDestinationNode",
+    "GainNode", "AudioBuffer", "AudioBufferSourceNode", "AudioBufferOptions",
+    "Blob", "BlobPropertyBag", "File", "FileList", "Url",
+    "HtmlInputElement", "HtmlCanvasElement", "CanvasRenderingContext2d",
+] }
+
+[features]
+default = ["web"]
+web = ["dioxus/web"]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
